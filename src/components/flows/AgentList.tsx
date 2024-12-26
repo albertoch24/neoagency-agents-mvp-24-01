@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface Agent {
   id: string;
@@ -18,15 +19,27 @@ export const AgentList = ({ agents, onAddAgent }: AgentListProps) => {
     <ScrollArea className="h-[600px]">
       <div className="space-y-2">
         {agents?.map((agent) => (
-          <Button
-            key={agent.id}
-            variant="outline"
-            className="w-full justify-start"
-            onClick={() => onAddAgent(agent.id)}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            {agent.name}
-          </Button>
+          <Card key={agent.id} className="hover:bg-accent transition-colors">
+            <CardContent className="p-4">
+              <Button
+                variant="ghost"
+                className="w-full justify-start p-0 h-auto"
+                onClick={() => onAddAgent(agent.id)}
+              >
+                <div className="flex items-start gap-2">
+                  <Plus className="h-4 w-4 mt-1 flex-shrink-0" />
+                  <div className="text-left">
+                    <div className="font-medium">{agent.name}</div>
+                    {agent.description && (
+                      <p className="text-sm text-muted-foreground">
+                        {agent.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </Button>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </ScrollArea>
