@@ -29,7 +29,7 @@ serve(async (req) => {
     // Fetch brief details
     const { data: brief, error: briefError } = await supabaseClient
       .from('briefs')
-      .select('*, brief_outputs(*)')
+      .select('*')
       .eq('id', briefId)
       .single()
 
@@ -42,28 +42,27 @@ serve(async (req) => {
       throw new Error('Brief not found')
     }
 
-    // Clear previous outputs for this stage when reprocessing
-    if (stageId !== 'kickoff') {
-      console.log('Clearing previous outputs for stage:', stageId)
-      const { error: deleteError } = await supabaseClient
-        .from('brief_outputs')
-        .delete()
-        .eq('brief_id', briefId)
-        .eq('stage', stageId)
+    // Always clear previous outputs and conversations for this brief and stage
+    console.log('Clearing previous outputs and conversations for brief:', briefId, 'stage:', stageId)
+    
+    const { error: deleteError } = await supabaseClient
+      .from('brief_outputs')
+      .delete()
+      .eq('brief_id', briefId)
+      .eq('stage', stageId)
 
-      if (deleteError) {
-        console.error('Error clearing previous outputs:', deleteError)
-      }
+    if (deleteError) {
+      console.error('Error clearing previous outputs:', deleteError)
+    }
 
-      const { error: deleteConvError } = await supabaseClient
-        .from('workflow_conversations')
-        .delete()
-        .eq('brief_id', briefId)
-        .eq('stage_id', stageId)
+    const { error: deleteConvError } = await supabaseClient
+      .from('workflow_conversations')
+      .delete()
+      .eq('brief_id', briefId)
+      .eq('stage_id', stageId)
 
-      if (deleteConvError) {
-        console.error('Error clearing previous conversations:', deleteConvError)
-      }
+    if (deleteConvError) {
+      console.error('Error clearing previous conversations:', deleteConvError)
     }
 
     // Fetch agents for this stage
@@ -99,23 +98,17 @@ serve(async (req) => {
       )
     }
 
+    // Initialize OpenAI
+    const openai = new OpenAI({
+      apiKey: Deno.env.get('OPENAI_API_KEY'),
+    })
+
     console.log('Processing responses for', agents.length, 'agents')
 
     // Process each agent's response
     for (const agent of agents) {
       try {
-        // Prepare context from previous stages
-        const { data: previousOutputs } = await supabaseClient
-          .from('brief_outputs')
-          .select('*')
-          .eq('brief_id', briefId)
-          .order('created_at', { ascending: true })
-
-        const context = previousOutputs?.map(output => 
-          `Stage ${output.stage}: ${JSON.stringify(output.content)}`
-        ).join('\n') || ''
-
-        // Prepare agent prompt with updated information
+        // Prepare agent prompt treating this as a new brief
         const prompt = `You are ${agent.name}, a ${agent.description} working in an agency.
 Your skills include:
 ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
@@ -128,19 +121,16 @@ Target Audience: ${brief.target_audience}
 Budget: ${brief.budget}
 Timeline: ${brief.timeline}
 
-Previous stages output:
-${context}
-
-This is ${stageId === brief.current_stage ? 'an updated version of the brief' : 'a new stage'}.
-Based on your role and skills, analyze the brief and previous work, then provide your professional input for the current stage (${stageId}).
-If this is an updated brief, focus on what has changed and how it affects your recommendations.
+This is a new brief that needs your full analysis for the ${stageId} stage.
+Based on your role and skills, provide your professional input and recommendations.
+Treat this as a completely new project, ignoring any previous work or conversations.
 Respond in a conversational way, as if you're speaking in a team meeting.`
 
         console.log('Calling OpenAI for agent:', agent.name)
 
         // Get agent's response
         const completion = await openai.chat.completions.create({
-          model: 'gpt-4',
+          model: 'gpt-4o-mini',
           messages: [
             { role: 'system', content: prompt },
             { role: 'user', content: 'Please provide your analysis and recommendations.' }
