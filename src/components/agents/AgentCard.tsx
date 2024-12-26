@@ -52,6 +52,18 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
 
   const handleDelete = async () => {
     try {
+      // First, delete associated workflow conversations
+      const { error: conversationsError } = await supabase
+        .from('workflow_conversations')
+        .delete()
+        .eq('agent_id', agent.id);
+
+      if (conversationsError) {
+        console.error('Error deleting workflow conversations:', conversationsError);
+        throw conversationsError;
+      }
+
+      // Then delete the agent
       const { error } = await supabase
         .from('agents')
         .delete()
