@@ -122,8 +122,9 @@ export const WorkflowLogs = () => {
                   ))}
                 </div>
               </div>
-            ))}
-          </ScrollArea>
+            );
+          })}
+        </ScrollArea>
       </CardContent>
     </Card>
   );
