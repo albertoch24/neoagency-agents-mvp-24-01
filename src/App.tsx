@@ -13,13 +13,16 @@ import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
+// Get the base URL from the current window location
+const basename = window.location.pathname.split('/').slice(0, -1).join('/');
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter basename={basename}>
           <Routes>
             <Route
               path="/"
