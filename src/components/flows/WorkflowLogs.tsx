@@ -14,6 +14,8 @@ export const WorkflowLogs = () => {
   const { data: briefs, isLoading } = useQuery({
     queryKey: ["workflow-logs"],
     queryFn: async () => {
+      console.log("Starting to fetch workflow logs");
+      
       // First, get all briefs
       const { data: briefsData, error: briefsError } = await supabase
         .from("briefs")
@@ -25,19 +27,27 @@ export const WorkflowLogs = () => {
         throw briefsError;
       }
 
-      // For each brief, get its conversations and outputs
+      console.log("Fetched briefs:", briefsData);
+
+      // For each brief, get its conversations and outputs with detailed information
       const briefsWithDetails = await Promise.all(
         briefsData.map(async (brief) => {
+          console.log(`Fetching details for brief ${brief.id}`);
+
           // Get conversations with agent and skills details
           const { data: conversations, error: convsError } = await supabase
             .from("workflow_conversations")
             .select(`
               *,
-              agents!workflow_conversations_agent_id_fkey (
+              agents (
+                id,
                 name,
+                description,
                 skills (
+                  id,
                   name,
-                  type
+                  type,
+                  description
                 )
               )
             `)
@@ -45,11 +55,13 @@ export const WorkflowLogs = () => {
             .order("created_at", { ascending: true });
 
           if (convsError) {
-            console.error("Error fetching conversations:", convsError);
+            console.error(`Error fetching conversations for brief ${brief.id}:`, convsError);
             return { ...brief, conversations: [], outputs: [] };
           }
 
-          // Get brief outputs
+          console.log(`Fetched conversations for brief ${brief.id}:`, conversations);
+
+          // Get brief outputs with stage information
           const { data: outputs, error: outputsError } = await supabase
             .from("brief_outputs")
             .select("*")
@@ -57,19 +69,45 @@ export const WorkflowLogs = () => {
             .order("created_at", { ascending: true });
 
           if (outputsError) {
-            console.error("Error fetching outputs:", outputsError);
+            console.error(`Error fetching outputs for brief ${brief.id}:`, outputsError);
             return { ...brief, conversations, outputs: [] };
           }
 
+          console.log(`Fetched outputs for brief ${brief.id}:`, outputs);
+
+          // Group conversations by stage
+          const stageMap = conversations.reduce((acc: any, conv: any) => {
+            if (!acc[conv.stage_id]) {
+              acc[conv.stage_id] = {
+                stage: conv.stage_id,
+                conversations: [],
+                agents: new Set(),
+                outputs: outputs.filter((o: any) => o.stage === conv.stage_id)
+              };
+            }
+            acc[conv.stage_id].conversations.push(conv);
+            if (conv.agents) {
+              acc[conv.stage_id].agents.add(conv.agents.name);
+            }
+            return acc;
+          }, {});
+
+          // Convert stage map to array and format agents sets to arrays
+          const stages = Object.values(stageMap).map((stage: any) => ({
+            ...stage,
+            agents: Array.from(stage.agents)
+          }));
+
           return {
             ...brief,
+            stages,
             conversations,
             outputs
           };
         })
       );
 
-      console.log("Fetched briefs with details:", briefsWithDetails);
+      console.log("Final briefs with details:", briefsWithDetails);
       return briefsWithDetails;
     },
   });

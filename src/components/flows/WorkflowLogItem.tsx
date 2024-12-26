@@ -2,10 +2,11 @@ import { format } from "date-fns";
 import { WorkflowStageList } from "./WorkflowStageList";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
 
 interface WorkflowLogItemProps {
   brief: any;
@@ -14,15 +15,6 @@ interface WorkflowLogItemProps {
 export const WorkflowLogItem = ({ brief }: WorkflowLogItemProps) => {
   const queryClient = useQueryClient();
   
-  // Group conversations by stage
-  const conversationsByStage = brief.conversations?.reduce((acc: any, conv: any) => {
-    if (!acc[conv.stage_id]) {
-      acc[conv.stage_id] = [];
-    }
-    acc[conv.stage_id].push(conv);
-    return acc;
-  }, {});
-
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
@@ -48,9 +40,15 @@ export const WorkflowLogItem = ({ brief }: WorkflowLogItemProps) => {
           <div className="flex justify-between items-center w-full pr-4">
             <div className="flex items-center gap-4">
               <span className="font-semibold">{brief.title}</span>
-              <span className="text-sm text-muted-foreground">
-                {format(new Date(brief.created_at), "PPpp")}
-              </span>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {format(new Date(brief.created_at), "PPpp")}
+                </span>
+              </div>
+              <Badge variant="secondary">
+                Stage: {brief.current_stage || "Not started"}
+              </Badge>
             </div>
             <Button
               variant="destructive"
@@ -64,10 +62,31 @@ export const WorkflowLogItem = ({ brief }: WorkflowLogItemProps) => {
         </AccordionTrigger>
         <AccordionContent>
           <div className="space-y-6 pt-4">
-            <WorkflowStageList 
-              stages={Object.entries(conversationsByStage || {})} 
-              briefOutputs={brief.brief_outputs}
-            />
+            {brief.stages?.map((stage: any) => (
+              <div key={stage.stage} className="border-l-2 border-muted pl-4">
+                <h4 className="text-lg font-semibold mb-2 capitalize">
+                  Stage: {stage.stage}
+                </h4>
+                <div className="space-y-4">
+                  <div>
+                    <h5 className="text-sm font-medium text-muted-foreground mb-1">
+                      Agents Involved:
+                    </h5>
+                    <div className="flex flex-wrap gap-2">
+                      {stage.agents.map((agent: string) => (
+                        <Badge key={agent} variant="outline">
+                          {agent}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <WorkflowStageList 
+                    stages={[[stage.stage, stage.conversations]]}
+                    briefOutputs={stage.outputs}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </AccordionContent>
       </AccordionItem>
