@@ -7,27 +7,7 @@ import { toast } from "sonner";
 import { AgentList } from "./AgentList";
 import { FlowStepList } from "./FlowStepList";
 import { ArrowLeft, Trash2, ListChecks } from "lucide-react";
-
-interface Flow {
-  id: string;
-  name: string;
-  description: string | null;
-}
-
-interface Agent {
-  id: string;
-  name: string;
-  description: string | null;
-}
-
-interface FlowStep {
-  id: string;
-  flow_id: string;
-  agent_id: string;
-  order_index: number;
-  outputs?: string[];
-  requirements?: string;
-}
+import { Flow, FlowStep } from "@/types/flow";
 
 interface FlowBuilderProps {
   flow: Flow;
@@ -47,7 +27,7 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as Agent[];
+      return data;
     },
   });
 
@@ -56,12 +36,25 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("flow_steps")
-        .select("*")
+        .select(`
+          *,
+          agents (
+            name,
+            description
+          )
+        `)
         .eq("flow_id", flow.id)
         .order("order_index", { ascending: true });
 
       if (error) throw error;
-      return data as FlowStep[];
+      
+      // Transform the data to match our FlowStep interface
+      return (data || []).map(step => ({
+        ...step,
+        outputs: step.outputs?.map((output: any) => ({
+          text: typeof output === 'string' ? output : output.text
+        })) || []
+      })) as FlowStep[];
     },
   });
 

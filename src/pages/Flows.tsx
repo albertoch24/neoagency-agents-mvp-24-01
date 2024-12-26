@@ -11,29 +11,12 @@ import { FlowHistory } from "@/components/flows/FlowHistory";
 import { FlowList } from "@/components/flows/FlowList";
 import { FlowPreview } from "@/components/flows/FlowPreview";
 import { Badge } from "@/components/ui/badge";
+import { Flow, FlowStep } from "@/types/flow";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-
-interface Flow {
-  id: string;
-  name: string;
-  description: string | null;
-}
-
-interface FlowStep {
-  id: string;
-  agent_id: string;
-  order_index: number;
-  outputs?: { text: string }[];
-  requirements?: string;
-  agents: {
-    name: string;
-    description: string;
-  };
-}
 
 const Flows = () => {
   const [selectedFlow, setSelectedFlow] = useState<Flow | null>(null);
@@ -71,7 +54,14 @@ const Flows = () => {
         .order("order_index", { ascending: true });
 
       if (error) throw error;
-      return data as FlowStep[];
+
+      // Transform the data to match our FlowStep interface
+      return (data || []).map(step => ({
+        ...step,
+        outputs: step.outputs?.map((output: any) => ({
+          text: typeof output === 'string' ? output : output.text
+        })) || []
+      })) as FlowStep[];
     },
     enabled: !!selectedFlow?.id,
   });

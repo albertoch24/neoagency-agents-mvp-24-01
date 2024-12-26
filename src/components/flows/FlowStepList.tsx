@@ -3,20 +3,12 @@ import { FlowStepItem } from "./FlowStepItem";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Flow, FlowStep } from "@/types/flow";
 
 interface Agent {
   id: string;
   name: string;
   description: string | null;
-}
-
-interface FlowStep {
-  id: string;
-  flow_id: string;
-  agent_id: string;
-  order_index: number;
-  outputs?: { text: string }[];
-  requirements?: string;
 }
 
 interface FlowStepListProps {
