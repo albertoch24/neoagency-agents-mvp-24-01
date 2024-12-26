@@ -27,6 +27,14 @@ const BriefForm = ({ initialData, onSubmitSuccess }: BriefFormProps) => {
   });
 
   const onSubmit = async (values: any) => {
+    if (!user) {
+      toast.error("You must be logged in to submit a brief");
+      return;
+    }
+
+    console.log("Submitting brief with values:", values);
+    console.log("Current user:", user);
+
     try {
       toast.info(initialData ? "Updating your brief..." : "Creating your brief...");
 
@@ -36,13 +44,19 @@ const BriefForm = ({ initialData, onSubmitSuccess }: BriefFormProps) => {
         .upsert({
           ...values,
           id: initialData?.id,
-          user_id: user?.id,
+          user_id: user.id,
           current_stage: initialData ? initialData.current_stage : "kickoff",
         })
         .select()
         .single();
 
-      if (briefError) throw briefError;
+      if (briefError) {
+        console.error("Error creating/updating brief:", briefError);
+        toast.error(briefError.message || "Failed to submit brief");
+        return;
+      }
+
+      console.log("Brief created/updated successfully:", brief);
 
       if (!initialData) {
         toast.info("Starting workflow process...");
@@ -55,7 +69,11 @@ const BriefForm = ({ initialData, onSubmitSuccess }: BriefFormProps) => {
           }
         );
 
-        if (workflowError) throw workflowError;
+        if (workflowError) {
+          console.error("Error starting workflow:", workflowError);
+          toast.error("Brief created but workflow failed to start");
+          return;
+        }
       }
 
       toast.success(initialData ? "Brief updated successfully!" : "Brief submitted and workflow started!");
