@@ -26,7 +26,7 @@ export const WorkflowLogs = () => {
             content,
             created_at,
             agent_id,
-            agents (
+            agents!workflow_conversations_agent_id_fkey (
               name,
               skills (
                 name,
