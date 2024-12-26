@@ -14,7 +14,7 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
           <div className="flex items-center gap-2 mb-2">
             <User className="h-4 w-4" />
             <span className="font-medium">
-              {conv.agents?.name}
+              {conv.agents?.name || 'Unknown Agent'}
             </span>
             <Badge variant="outline">Step {index + 1}</Badge>
           </div>

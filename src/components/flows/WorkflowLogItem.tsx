@@ -13,7 +13,9 @@ interface WorkflowLogItemProps {
 
 export const WorkflowLogItem = ({ brief }: WorkflowLogItemProps) => {
   const queryClient = useQueryClient();
-  const conversationsByStage = brief.workflow_conversations?.reduce((acc: any, conv: any) => {
+  
+  // Group conversations by stage
+  const conversationsByStage = brief.conversations?.reduce((acc: any, conv: any) => {
     if (!acc[conv.stage_id]) {
       acc[conv.stage_id] = [];
     }
