@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,7 @@ import BriefDisplay from "@/components/brief/BriefDisplay";
 import WorkflowDisplay from "@/components/workflow/WorkflowDisplay";
 import { Button } from "@/components/ui/button";
 import { FilePlus, FolderOpen, Edit } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,11 +17,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const Index = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [currentStage, setCurrentStage] = useState("kickoff");
   const [showNewBrief, setShowNewBrief] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedBriefId, setSelectedBriefId] = useState<string | null>(null);
+
+  // Read stage from URL params on mount and when URL changes
+  useEffect(() => {
+    const stageFromUrl = searchParams.get("stage");
+    if (stageFromUrl) {
+      setCurrentStage(stageFromUrl);
+    }
+  }, [searchParams]);
 
   const { data: briefs } = useQuery({
     queryKey: ["briefs", user?.id],
@@ -69,6 +79,8 @@ const Index = () => {
 
   const handleStageSelect = (stage: WorkflowStage) => {
     setCurrentStage(stage.id);
+    // Update URL with new stage
+    setSearchParams({ stage: stage.id });
   };
 
   const handleSelectBrief = (briefId: string) => {

@@ -30,6 +30,7 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
     console.log("Current user:", user);
 
     try {
+      setIsProcessing(true);
       toast.info(initialData ? "Updating your brief..." : "Creating your brief...");
 
       const { data: brief, error: briefError } = await supabase
@@ -38,7 +39,7 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
           ...values,
           id: initialData?.id,
           user_id: user.id,
-          current_stage: initialData ? initialData.current_stage : "kickoff",
+          current_stage: "kickoff",
         })
         .select()
         .single();
@@ -46,12 +47,12 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       if (briefError) {
         console.error("Error creating/updating brief:", briefError);
         toast.error(briefError.message || "Failed to submit brief");
+        setIsProcessing(false);
         return;
       }
 
       console.log("Brief created/updated successfully:", brief);
 
-      setIsProcessing(true);
       const toastId = toast.loading(
         "Starting workflow process... This may take around 2 minutes. Rome wasn't built in a day 😃",
         { duration: Infinity }
@@ -62,7 +63,7 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
         "process-workflow-stage",
         {
-          body: { briefId: brief.id, stageId: brief.current_stage || "kickoff" },
+          body: { briefId: brief.id, stageId: "kickoff" },
         }
       );
 
@@ -85,9 +86,8 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       setIsProcessing(false);
       onSubmitSuccess?.();
       
-      if (!initialData) {
-        navigate("/");
-      }
+      // Force navigation to home with kickoff stage
+      navigate("/?stage=kickoff");
     } catch (error) {
       console.error("Error submitting brief:", error);
       toast.error("Error submitting brief. Please try again.");
