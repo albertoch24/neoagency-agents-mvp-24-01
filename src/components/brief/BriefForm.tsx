@@ -69,7 +69,7 @@ const BriefForm = ({ initialData, onSubmitSuccess }: BriefFormProps) => {
       if (!initialData) {
         setIsProcessing(true);
         const toastId = toast.loading(
-          "Starting workflow process...Rome wasn't built in a day 😃. This may take around 2 minutes.", 
+          "Starting workflow process... This may take around 2 minutes. Rome wasn't built in a day 😃", 
           { duration: Infinity }
         );
 
@@ -117,6 +117,8 @@ const BriefForm = ({ initialData, onSubmitSuccess }: BriefFormProps) => {
       setIsProcessing(false);
     }
   };
+
+  // ... keep existing code (rest of the component)
 
   return (
     <Card>
