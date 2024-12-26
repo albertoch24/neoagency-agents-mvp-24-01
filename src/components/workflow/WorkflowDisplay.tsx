@@ -15,15 +15,17 @@ interface WorkflowDisplayProps {
   briefId?: string;
 }
 
+interface BriefOutputContent {
+  agent_id: string;
+  agent_name: string;
+  response: string;
+}
+
 interface BriefOutput {
   id: string;
   brief_id: string;
   stage: string;
-  content: {
-    agent_id: string;
-    agent_name: string;
-    response: string;
-  };
+  content: BriefOutputContent;
   created_at: string;
   updated_at: string;
 }
@@ -46,7 +48,11 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
         return [];
       }
 
-      return data;
+      // Transform the data to ensure content is properly typed
+      return (data || []).map(output => ({
+        ...output,
+        content: output.content as BriefOutputContent
+      }));
     },
     enabled: !!briefId,
   });
