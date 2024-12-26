@@ -44,6 +44,118 @@ export type Database = {
           },
         ]
       }
+      flow_history: {
+        Row: {
+          completed_at: string | null
+          flow_id: string
+          id: string
+          results: Json | null
+          started_at: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          flow_id: string
+          id?: string
+          results?: Json | null
+          started_at?: string
+          status: string
+        }
+        Update: {
+          completed_at?: string | null
+          flow_id?: string
+          id?: string
+          results?: Json | null
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_history_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flow_steps: {
+        Row: {
+          agent_id: string
+          created_at: string
+          flow_id: string
+          id: string
+          order_index: number
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          flow_id: string
+          id?: string
+          order_index: number
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          flow_id?: string
+          id?: string
+          order_index?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_steps_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_steps_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flows: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flows_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string

@@ -8,6 +8,7 @@ import { RequireAuth } from "@/components/auth/RequireAuth";
 import AppLayout from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Agents from "./pages/Agents";
+import Flows from "./pages/Flows";
 import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,16 @@ const App = () => (
                 <RequireAuth>
                   <AppLayout>
                     <Agents />
+                  </AppLayout>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/flows"
+              element={
+                <RequireAuth>
+                  <AppLayout>
+                    <Flows />
                   </AppLayout>
                 </RequireAuth>
               }

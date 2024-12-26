@@ -54,6 +54,12 @@ const AppLayout = ({ children }: AppLayoutProps) => {
                         >
                           AI Agents
                         </NavigationMenuLink>
+                        <NavigationMenuLink
+                          className="block px-4 py-2 hover:bg-accent rounded-md cursor-pointer"
+                          onClick={() => navigate("/flows")}
+                        >
+                          Flow Builder
+                        </NavigationMenuLink>
                       </div>
                     </NavigationMenuContent>
                   </NavigationMenuItem>
