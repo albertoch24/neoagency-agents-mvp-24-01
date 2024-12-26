@@ -42,6 +42,9 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
       if (response) {
         setMessages(prev => [...prev, { role: 'assistant', content: response }]);
       }
+    } catch (error) {
+      console.error('Error getting agent response:', error);
+      toast.error('Failed to get response from agent');
     } finally {
       setIsLoading(false);
     }
@@ -86,6 +89,27 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
     }
   };
 
+  const handleEdit = async (updatedAgent: Partial<Agent>) => {
+    try {
+      const { error } = await supabase
+        .from('agents')
+        .update({
+          name: updatedAgent.name,
+          description: updatedAgent.description,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', agent.id);
+
+      if (error) throw error;
+
+      toast.success('Agent updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+    } catch (error) {
+      console.error('Error updating agent:', error);
+      toast.error('Failed to update agent');
+    }
+  };
+
   return (
     <Card className="card-hover-effect agent-card h-[500px] flex flex-col">
       <AgentCardHeader
@@ -93,6 +117,7 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
         onAddSkill={() => setShowSkillDialog(true)}
         onEdit={() => onClick?.()}
         onDelete={() => setShowDeleteDialog(true)}
+        onSave={handleEdit}
       />
       <AgentCardContent
         messages={messages}
