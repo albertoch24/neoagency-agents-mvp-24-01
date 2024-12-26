@@ -174,6 +174,8 @@ export type Database = {
           flow_id: string
           id: string
           order_index: number
+          outputs: Json[] | null
+          requirements: string | null
           updated_at: string
         }
         Insert: {
@@ -182,6 +184,8 @@ export type Database = {
           flow_id: string
           id?: string
           order_index: number
+          outputs?: Json[] | null
+          requirements?: string | null
           updated_at?: string
         }
         Update: {
@@ -190,6 +194,8 @@ export type Database = {
           flow_id?: string
           id?: string
           order_index?: number
+          outputs?: Json[] | null
+          requirements?: string | null
           updated_at?: string
         }
         Relationships: [
