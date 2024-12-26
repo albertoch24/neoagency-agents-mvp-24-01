@@ -13,6 +13,8 @@ import { RoleList } from "@/components/workflow/RoleList";
 import { OutputList } from "@/components/workflow/OutputList";
 import { WorkflowStage } from "@/types/workflow";
 import { useQuery } from "@tanstack/react-query";
+// Import stages from WorkflowStages
+import { stages } from "@/components/workflow/WorkflowStages";
 
 const Index = () => {
   const { user } = useAuth();

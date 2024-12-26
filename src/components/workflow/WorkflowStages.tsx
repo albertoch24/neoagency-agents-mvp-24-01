@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { WorkflowStage } from "@/types/workflow";
 
-const stages: WorkflowStage[] = [
+export const stages: WorkflowStage[] = [
   {
     id: "kickoff",
     name: "Kick Off",
