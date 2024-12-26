@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { AgentList } from "./AgentList";
 import { FlowStepList } from "./FlowStepList";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 
 interface Flow {
   id: string;
@@ -95,6 +95,33 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
     }
   };
 
+  const handleDeleteFlow = async () => {
+    try {
+      // First delete all flow steps
+      const { error: stepsError } = await supabase
+        .from("flow_steps")
+        .delete()
+        .eq("flow_id", flow.id);
+
+      if (stepsError) throw stepsError;
+
+      // Then delete the flow itself
+      const { error: flowError } = await supabase
+        .from("flows")
+        .delete()
+        .eq("id", flow.id);
+
+      if (flowError) throw flowError;
+
+      queryClient.invalidateQueries({ queryKey: ["flows"] });
+      toast.success("Flow deleted successfully");
+      onClose();
+    } catch (error) {
+      console.error("Error deleting flow:", error);
+      toast.error("Failed to delete flow");
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -104,6 +131,14 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
           </Button>
           <h2 className="text-2xl font-bold">{flow.name}</h2>
         </div>
+        <Button 
+          variant="destructive" 
+          onClick={handleDeleteFlow}
+          className="flex items-center gap-2"
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete Flow
+        </Button>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
