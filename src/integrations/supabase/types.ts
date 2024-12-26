@@ -371,7 +371,7 @@ export type Database = {
     Functions: {
       delete_agent_with_relations: {
         Args: {
-          agent_id: string
+          agent_id_param: string
         }
         Returns: undefined
       }

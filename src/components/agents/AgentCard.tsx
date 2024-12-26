@@ -52,21 +52,47 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
 
   const handleDelete = async () => {
     try {
-      // Start a transaction to ensure all operations succeed or fail together
-      const { error: transactionError } = await supabase.rpc('delete_agent_with_relations', {
-        agent_id: agent.id as string
-      });
+      // First, delete workflow conversations for this agent
+      const { error: workflowConversationError } = await supabase
+        .from('workflow_conversations')
+        .delete()
+        .eq('agent_id', agent.id);
 
-      if (transactionError) {
-        console.error('Error in delete transaction:', transactionError);
-        throw transactionError;
+      if (workflowConversationError) {
+        console.error('Error deleting workflow conversations:', workflowConversationError);
+        toast.error('Failed to delete agent conversations');
+        return;
+      }
+
+      // Then, delete skills associated with the agent
+      const { error: skillsError } = await supabase
+        .from('skills')
+        .delete()
+        .eq('agent_id', agent.id);
+
+      if (skillsError) {
+        console.error('Error deleting agent skills:', skillsError);
+        toast.error('Failed to delete agent skills');
+        return;
+      }
+
+      // Finally, delete the agent
+      const { error: agentError } = await supabase
+        .from('agents')
+        .delete()
+        .eq('id', agent.id);
+
+      if (agentError) {
+        console.error('Error deleting agent:', agentError);
+        toast.error('Failed to delete agent');
+        return;
       }
 
       toast.success('Agent deleted successfully');
       queryClient.invalidateQueries({ queryKey: ['agents'] });
     } catch (error) {
-      console.error('Error deleting agent:', error);
-      toast.error('Failed to delete agent');
+      console.error('Unexpected error deleting agent:', error);
+      toast.error('An unexpected error occurred');
     } finally {
       setShowDeleteDialog(false);
     }
