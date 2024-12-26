@@ -2,12 +2,16 @@ import { useState } from "react";
 import { WorkflowStages } from "@/components/workflow/WorkflowStages";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WorkflowStage } from "@/types/workflow";
+import { RoleList } from "@/components/workflow/RoleList";
+import { OutputList } from "@/components/workflow/OutputList";
 
 export default function Agents() {
   const [currentStage, setCurrentStage] = useState<string>("kickoff");
+  const [selectedStage, setSelectedStage] = useState<WorkflowStage | null>(null);
 
   const handleStageSelect = (stage: WorkflowStage) => {
     setCurrentStage(stage.id);
+    setSelectedStage(stage);
   };
 
   return (
@@ -26,12 +30,8 @@ export default function Agents() {
           <CardHeader>
             <CardTitle>Team Roles</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                View and manage team roles and responsibilities
-              </p>
-            </div>
+          <CardContent>
+            {selectedStage && <RoleList roles={selectedStage.roles} />}
           </CardContent>
         </Card>
 
@@ -39,12 +39,8 @@ export default function Agents() {
           <CardHeader>
             <CardTitle>Stage Outputs</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Track and manage deliverables for each stage
-              </p>
-            </div>
+          <CardContent>
+            {selectedStage && <OutputList outputs={selectedStage.outputs} />}
           </CardContent>
         </Card>
       </div>
