@@ -6,6 +6,19 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 
+interface WorkflowConversation {
+  id: string;
+  brief_id: string;
+  stage_id: string;
+  agent_id: string;
+  content: string;
+  created_at: string;
+  agents: {
+    name: string;
+    description: string;
+  };
+}
+
 interface WorkflowConversationProps {
   briefId: string;
   currentStage: string;
@@ -19,14 +32,17 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
         .from("workflow_conversations")
         .select(`
           *,
-          agents (name, description)
+          agents (
+            name,
+            description
+          )
         `)
         .eq("brief_id", briefId)
         .eq("stage_id", currentStage)
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      return data;
+      return data as WorkflowConversation[];
     },
   });
 

@@ -1,4 +1,4 @@
-import { WorkflowStages } from "@/components/workflow/WorkflowStages";
+import { WorkflowStages, stages } from "@/components/workflow/WorkflowStages";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RoleList } from "@/components/workflow/RoleList";
 import { OutputList } from "@/components/workflow/OutputList";
