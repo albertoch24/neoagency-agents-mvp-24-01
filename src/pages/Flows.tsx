@@ -4,12 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Plus, ListChecks } from "lucide-react";
+import { Loader2, Plus, ListChecks, Info } from "lucide-react";
 import { FlowForm } from "@/components/flows/FlowForm";
 import { FlowBuilder } from "@/components/flows/FlowBuilder";
 import { FlowHistory } from "@/components/flows/FlowHistory";
 import { FlowList } from "@/components/flows/FlowList";
 import { FlowPreview } from "@/components/flows/FlowPreview";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 interface Flow {
   id: string;
@@ -78,12 +83,31 @@ const Flows = () => {
     );
   }
 
+  const applicationFlow = flows?.find(flow => flow.name === "Application Workflow");
+
   return (
     <div className="container py-8">
       <div className="flex justify-between items-center mb-8">
         <div className="flex items-center gap-2">
           <ListChecks className="h-6 w-6" />
           <h1 className="text-3xl font-bold tracking-tight">Flow Builder</h1>
+          {applicationFlow && (
+            <HoverCard>
+              <HoverCardTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Info className="h-4 w-4" />
+                </Button>
+              </HoverCardTrigger>
+              <HoverCardContent className="w-80">
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold">Current Application Flow</h4>
+                  <p className="text-sm text-muted-foreground">
+                    This is the main workflow used to process projects. Click on "Application Workflow" in the list to see all stages and details.
+                  </p>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+          )}
         </div>
         <Dialog open={isCreating} onOpenChange={setIsCreating}>
           <DialogTrigger asChild>
@@ -101,7 +125,14 @@ const Flows = () => {
       {flows && flows.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2">
           <div>
-            <h2 className="text-xl font-semibold mb-4">Available Flows</h2>
+            <div className="flex items-center gap-2 mb-4">
+              <h2 className="text-xl font-semibold">Available Flows</h2>
+              {applicationFlow && (
+                <Badge variant="secondary">
+                  Current Application Flow
+                </Badge>
+              )}
+            </div>
             <FlowList
               flows={flows}
               selectedFlow={selectedFlow}
@@ -131,6 +162,14 @@ const Flows = () => {
                       </Button>
                     </div>
                     <FlowPreview flowSteps={flowSteps} />
+                  </div>
+                ) : applicationFlow ? (
+                  <div className="text-center py-12">
+                    <ListChecks className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-4 text-lg font-semibold">Select "Application Workflow"</h3>
+                    <p className="text-muted-foreground">
+                      Click on the Application Workflow in the list to see the current project workflow
+                    </p>
                   </div>
                 ) : (
                   <div className="text-center py-12">

@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, User } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface FlowStep {
   id: string;
@@ -32,9 +33,9 @@ export const FlowPreview = ({ flowSteps }: FlowPreviewProps) => {
                 <User className="h-5 w-5 mt-1 text-muted-foreground" />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-muted-foreground">
+                    <Badge variant="secondary">
                       Step {index + 1}
-                    </span>
+                    </Badge>
                     <h4 className="font-medium">{step.agents.name}</h4>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -42,10 +43,12 @@ export const FlowPreview = ({ flowSteps }: FlowPreviewProps) => {
                   </p>
                   {step.outputs && step.outputs.length > 0 && (
                     <div className="mt-4">
-                      <h5 className="text-sm font-medium mb-2">Outputs:</h5>
+                      <h5 className="text-sm font-medium mb-2">Required Outputs:</h5>
                       <ul className="list-disc list-inside text-sm space-y-1">
                         {step.outputs.map((output, i) => (
-                          <li key={i}>{output}</li>
+                          <li key={i} className="text-muted-foreground">
+                            {output}
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -53,7 +56,9 @@ export const FlowPreview = ({ flowSteps }: FlowPreviewProps) => {
                   {step.requirements && (
                     <div className="mt-4">
                       <h5 className="text-sm font-medium mb-2">Requirements:</h5>
-                      <p className="text-sm">{step.requirements}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {step.requirements}
+                      </p>
                     </div>
                   )}
                 </div>
