@@ -44,6 +44,94 @@ export type Database = {
           },
         ]
       }
+      brief_outputs: {
+        Row: {
+          brief_id: string
+          content: Json
+          created_at: string
+          id: string
+          stage: string
+          updated_at: string
+        }
+        Insert: {
+          brief_id: string
+          content: Json
+          created_at?: string
+          id?: string
+          stage: string
+          updated_at?: string
+        }
+        Update: {
+          brief_id?: string
+          content?: Json
+          created_at?: string
+          id?: string
+          stage?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brief_outputs_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "briefs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      briefs: {
+        Row: {
+          budget: string | null
+          created_at: string
+          current_stage: string | null
+          description: string | null
+          id: string
+          objectives: string | null
+          status: string | null
+          target_audience: string | null
+          timeline: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget?: string | null
+          created_at?: string
+          current_stage?: string | null
+          description?: string | null
+          id?: string
+          objectives?: string | null
+          status?: string | null
+          target_audience?: string | null
+          timeline?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget?: string | null
+          created_at?: string
+          current_stage?: string | null
+          description?: string | null
+          id?: string
+          objectives?: string | null
+          status?: string | null
+          target_audience?: string | null
+          timeline?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "briefs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flow_history: {
         Row: {
           completed_at: string | null
