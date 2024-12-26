@@ -35,11 +35,12 @@ export const WorkflowLogs = () => {
           console.log(`Fetching details for brief ${brief.id}`);
 
           // Get conversations with agent and skills details
+          // Note: We're now specifying the foreign key to use with agents!workflow_conversations_agent_id_fkey
           const { data: conversations, error: convsError } = await supabase
             .from("workflow_conversations")
             .select(`
               *,
-              agents (
+              agents!workflow_conversations_agent_id_fkey (
                 id,
                 name,
                 description,
