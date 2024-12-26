@@ -5,19 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
+import { Database } from "@/integrations/supabase/database.types";
 
-interface WorkflowConversation {
-  id: string;
-  brief_id: string;
-  stage_id: string;
-  agent_id: string;
-  content: string;
-  created_at: string;
+type WorkflowConversation = Database["public"]["Tables"]["workflow_conversations"]["Row"] & {
   agents: {
     name: string;
     description: string;
   };
-}
+};
 
 interface WorkflowConversationProps {
   briefId: string;

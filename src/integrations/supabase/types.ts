@@ -309,6 +309,55 @@ export type Database = {
           },
         ]
       }
+      workflow_conversations: {
+        Row: {
+          agent_id: string
+          brief_id: string
+          content: string
+          created_at: string
+          id: string
+          stage_id: string
+        }
+        Insert: {
+          agent_id: string
+          brief_id: string
+          content: string
+          created_at?: string
+          id?: string
+          stage_id: string
+        }
+        Update: {
+          agent_id?: string
+          brief_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          stage_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_conversations_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_conversations_agent_id_fkey1"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_conversations_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "briefs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
