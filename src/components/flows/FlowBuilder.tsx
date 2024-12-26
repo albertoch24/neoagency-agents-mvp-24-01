@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,63 +6,17 @@ import { toast } from "sonner";
 import { AgentList } from "./AgentList";
 import { FlowStepList } from "./FlowStepList";
 import { ArrowLeft, Trash2, ListChecks } from "lucide-react";
-import { Flow, FlowStep } from "@/types/flow";
+import { Flow } from "@/types/flow";
+import { useFlowSteps } from "./useFlowSteps";
+import { useQuery } from "@tanstack/react-query";
 
 interface FlowBuilderProps {
   flow: Flow;
   onClose: () => void;
 }
 
-const defaultSteps = [
-  {
-    id: "1",
-    agent_id: "strategic-planner",
-    order_index: 0,
-    outputs: [
-      { text: "Market Analysis Report" },
-      { text: "Target Audience Insights" },
-      { text: "Competitive Analysis" }
-    ],
-    requirements: "Analyze market trends and identify target audience segments",
-    agents: {
-      name: "Strategic Planner",
-      description: "Expert in market analysis and strategic planning"
-    }
-  },
-  {
-    id: "2",
-    agent_id: "creative-director",
-    order_index: 1,
-    outputs: [
-      { text: "Creative Brief" },
-      { text: "Visual Direction" },
-      { text: "Key Messages" }
-    ],
-    requirements: "Develop creative direction based on strategic insights",
-    agents: {
-      name: "Creative Director",
-      description: "Leads creative vision and concept development"
-    }
-  },
-  {
-    id: "3",
-    agent_id: "content-strategist",
-    order_index: 2,
-    outputs: [
-      { text: "Content Strategy" },
-      { text: "Content Calendar" },
-      { text: "Distribution Plan" }
-    ],
-    requirements: "Create content strategy aligned with creative direction",
-    agents: {
-      name: "Content Strategist",
-      description: "Plans and oversees content creation and distribution"
-    }
-  }
-];
-
 export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
-  const [steps, setSteps] = useState<FlowStep[]>([]);
+  const { steps, handleAddStep } = useFlowSteps(flow);
   const queryClient = useQueryClient();
 
   const { data: agents } = useQuery({
@@ -79,69 +32,8 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
     },
   });
 
-  const { data: flowSteps } = useQuery({
-    queryKey: ["flow-steps", flow.id],
-    queryFn: async () => {
-      if (flow.name === "Application Workflow") {
-        return defaultSteps;
-      }
-
-      const { data, error } = await supabase
-        .from("flow_steps")
-        .select(`
-          *,
-          agents (
-            name,
-            description
-          )
-        `)
-        .eq("flow_id", flow.id)
-        .order("order_index", { ascending: true });
-
-      if (error) throw error;
-      
-      return (data || []).map(step => ({
-        ...step,
-        outputs: step.outputs?.map((output: any) => ({
-          text: typeof output === 'string' ? output : output.text
-        })) || []
-      })) as FlowStep[];
-    },
-  });
-
-  useEffect(() => {
-    if (flowSteps) {
-      setSteps(flowSteps);
-    }
-  }, [flowSteps]);
-
-  const handleAddStep = async (agentId: string) => {
-    try {
-      const newStep = {
-        flow_id: flow.id,
-        agent_id: agentId,
-        order_index: steps.length,
-        outputs: [],
-        requirements: "",
-      };
-
-      const { error } = await supabase
-        .from("flow_steps")
-        .insert([newStep]);
-
-      if (error) throw error;
-
-      queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
-      toast.success("Step added successfully");
-    } catch (error) {
-      console.error("Error adding step:", error);
-      toast.error("Failed to add step");
-    }
-  };
-
   const handleDeleteFlow = async () => {
     try {
-      // First delete all flow steps
       const { error: stepsError } = await supabase
         .from("flow_steps")
         .delete()
@@ -149,7 +41,6 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
 
       if (stepsError) throw stepsError;
 
-      // Then delete the flow itself
       const { error: flowError } = await supabase
         .from("flows")
         .delete()
