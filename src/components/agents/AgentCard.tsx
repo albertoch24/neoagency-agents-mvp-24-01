@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { useAgentResponse } from "@/hooks/useAgentResponse";
-import { Loader2, Trash2, Edit2 } from "lucide-react";
+import { Loader2, Trash2, Edit2, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -20,7 +20,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useQueryClient } from "@tanstack/react-query";
+import { SkillForm } from "@/components/skills/SkillForm";
 
 interface AgentCardProps {
   agent: Agent;
@@ -37,6 +44,7 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showSkillDialog, setShowSkillDialog] = useState(false);
   const { getAgentResponse } = useAgentResponse();
   const queryClient = useQueryClient();
 
@@ -78,6 +86,26 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
     }
   };
 
+  const handleAddSkill = async (skillData: any) => {
+    try {
+      const { error } = await supabase
+        .from('skills')
+        .insert([{
+          ...skillData,
+          agent_id: agent.id,
+        }]);
+
+      if (error) throw error;
+
+      toast.success('Skill added successfully');
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+      setShowSkillDialog(false);
+    } catch (error) {
+      console.error('Error adding skill:', error);
+      toast.error('Failed to add skill');
+    }
+  };
+
   return (
     <>
       <Card className="card-hover-effect agent-card h-[500px] flex flex-col">
@@ -88,7 +116,15 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => onClick?.()} // This will be used for editing
+                onClick={() => setShowSkillDialog(true)}
+                className="h-8 w-8"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onClick?.()}
                 className="h-8 w-8"
               >
                 <Edit2 className="h-4 w-4" />
@@ -105,6 +141,15 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
             </div>
           </div>
           <CardDescription>{agent.description}</CardDescription>
+          {agent.skills.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {agent.skills.map((skill) => (
+                <Badge key={skill.id} variant="outline">
+                  {skill.name}
+                </Badge>
+              ))}
+            </div>
+          )}
         </CardHeader>
         <CardContent className="flex-1 flex flex-col">
           <ScrollArea className="flex-1 mb-4 p-4 border rounded-md">
@@ -170,6 +215,15 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={showSkillDialog} onOpenChange={setShowSkillDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Skill</DialogTitle>
+          </DialogHeader>
+          <SkillForm onSubmit={handleAddSkill} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
