@@ -8,13 +8,19 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
     const { briefId, stageId } = await req.json()
+    console.log('Processing stage:', stageId, 'for brief:', briefId)
     
+    if (!briefId || !stageId) {
+      throw new Error('Missing required parameters: briefId or stageId')
+    }
+
     // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -28,7 +34,14 @@ serve(async (req) => {
       .eq('id', briefId)
       .single()
 
-    if (briefError) throw briefError
+    if (briefError) {
+      console.error('Error fetching brief:', briefError)
+      throw briefError
+    }
+
+    if (!brief) {
+      throw new Error('Brief not found')
+    }
 
     // Fetch agents for this stage
     const { data: agents, error: agentsError } = await supabaseClient
@@ -38,28 +51,55 @@ serve(async (req) => {
         skills (*)
       `)
 
-    if (agentsError) throw agentsError
+    if (agentsError) {
+      console.error('Error fetching agents:', agentsError)
+      throw agentsError
+    }
+
+    if (!agents || agents.length === 0) {
+      console.log('No agents found, creating default response')
+      // Create a default output if no agents are available
+      await supabaseClient
+        .from('brief_outputs')
+        .insert({
+          brief_id: briefId,
+          stage: stageId,
+          content: {
+            agent_id: 'system',
+            agent_name: 'System',
+            response: 'No agents are currently available to process this stage. Please try again later or contact support.'
+          }
+        })
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Created default response' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Initialize OpenAI
     const openai = new OpenAI({
       apiKey: Deno.env.get('OPENAI_API_KEY'),
     })
 
+    console.log('Processing responses for', agents.length, 'agents')
+
     // Process each agent's response
     for (const agent of agents) {
-      // Prepare context from previous stages
-      const { data: previousOutputs } = await supabaseClient
-        .from('brief_outputs')
-        .select('*')
-        .eq('brief_id', briefId)
-        .order('created_at', { ascending: true })
+      try {
+        // Prepare context from previous stages
+        const { data: previousOutputs } = await supabaseClient
+          .from('brief_outputs')
+          .select('*')
+          .eq('brief_id', briefId)
+          .order('created_at', { ascending: true })
 
-      const context = previousOutputs?.map(output => 
-        `Stage ${output.stage}: ${JSON.stringify(output.content)}`
-      ).join('\n') || ''
+        const context = previousOutputs?.map(output => 
+          `Stage ${output.stage}: ${JSON.stringify(output.content)}`
+        ).join('\n') || ''
 
-      // Prepare agent prompt
-      const prompt = `You are ${agent.name}, a ${agent.description} working in an agency.
+        // Prepare agent prompt
+        const prompt = `You are ${agent.name}, a ${agent.description} working in an agency.
 Your skills include:
 ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
 
@@ -77,41 +117,51 @@ ${context}
 Based on your role and skills, analyze the brief and previous work, then provide your professional input for the current stage (${stageId}).
 Respond in a conversational way, as if you're speaking in a team meeting.`
 
-      // Get agent's response
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: prompt },
-          { role: 'user', content: 'Please provide your analysis and recommendations.' }
-        ],
-        temperature: 0.7,
-      })
+        console.log('Calling OpenAI for agent:', agent.name)
 
-      const response = completion.choices[0].message.content
-
-      // Store agent's response
-      await supabaseClient
-        .from('workflow_conversations')
-        .insert({
-          brief_id: briefId,
-          stage_id: stageId,
-          agent_id: agent.id,
-          content: response,
-          role: 'agent'
+        // Get agent's response
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4',
+          messages: [
+            { role: 'system', content: prompt },
+            { role: 'user', content: 'Please provide your analysis and recommendations.' }
+          ],
+          temperature: 0.7,
         })
 
-      // Update brief_outputs with the combined insights
-      await supabaseClient
-        .from('brief_outputs')
-        .insert({
-          brief_id: briefId,
-          stage: stageId,
-          content: {
+        const response = completion.choices[0].message.content
+
+        console.log('Received response from OpenAI for agent:', agent.name)
+
+        // Store agent's response
+        await supabaseClient
+          .from('workflow_conversations')
+          .insert({
+            brief_id: briefId,
+            stage_id: stageId,
             agent_id: agent.id,
-            agent_name: agent.name,
-            response: response
-          }
-        })
+            content: response,
+            role: 'agent'
+          })
+
+        // Update brief_outputs with the combined insights
+        await supabaseClient
+          .from('brief_outputs')
+          .insert({
+            brief_id: briefId,
+            stage: stageId,
+            content: {
+              agent_id: agent.id,
+              agent_name: agent.name,
+              response: response
+            }
+          })
+
+        console.log('Stored response for agent:', agent.name)
+      } catch (error) {
+        console.error('Error processing agent:', agent.name, error)
+        // Continue with other agents even if one fails
+      }
     }
 
     return new Response(
