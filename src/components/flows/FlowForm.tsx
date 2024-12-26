@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 interface FlowFormProps {
   onClose: () => void;
@@ -16,15 +17,26 @@ export const FlowForm = ({ onClose }: FlowFormProps) => {
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast.error("You must be logged in to create a flow");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const { error } = await supabase
         .from("flows")
-        .insert([{ name, description }]);
+        .insert([{ 
+          name, 
+          description,
+          user_id: user.id 
+        }]);
 
       if (error) throw error;
 
