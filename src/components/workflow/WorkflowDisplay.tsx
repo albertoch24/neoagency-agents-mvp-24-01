@@ -48,11 +48,31 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
         return [];
       }
 
-      // Transform the data to ensure content is properly typed
-      return (data || []).map(output => ({
-        ...output,
-        content: output.content as BriefOutputContent
-      }));
+      // Transform and validate the data to ensure content is properly typed
+      return (data || []).map(output => {
+        const typedContent = output.content as unknown as BriefOutputContent;
+        
+        // Validate that the content has the required properties
+        if (!typedContent || typeof typedContent !== 'object' || 
+            !('agent_id' in typedContent) || 
+            !('agent_name' in typedContent) || 
+            !('response' in typedContent)) {
+          console.error('Invalid content structure:', output.content);
+          return {
+            ...output,
+            content: {
+              agent_id: 'unknown',
+              agent_name: 'Unknown Agent',
+              response: 'Error: Invalid output format'
+            }
+          };
+        }
+
+        return {
+          ...output,
+          content: typedContent
+        };
+      });
     },
     enabled: !!briefId,
   });
