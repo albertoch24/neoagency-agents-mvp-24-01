@@ -118,8 +118,6 @@ const BriefForm = ({ initialData, onSubmitSuccess }: BriefFormProps) => {
     }
   };
 
-  // ... keep existing code (rest of the component)
-
   return (
     <Card>
       <CardHeader>
