@@ -8,6 +8,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -45,27 +46,9 @@ serve(async (req) => {
     // Clear previous outputs and conversations
     console.log('Clearing previous outputs and conversations for brief:', briefId, 'stage:', stageId)
     
-    const { error: deleteError } = await supabaseClient
-      .from('brief_outputs')
-      .delete()
-      .eq('brief_id', briefId)
-      .eq('stage', stageId)
+    await clearPreviousData(supabaseClient, briefId, stageId)
 
-    if (deleteError) {
-      console.error('Error clearing previous outputs:', deleteError)
-    }
-
-    const { error: deleteConvError } = await supabaseClient
-      .from('workflow_conversations')
-      .delete()
-      .eq('brief_id', briefId)
-      .eq('stage_id', stageId)
-
-    if (deleteConvError) {
-      console.error('Error clearing previous conversations:', deleteConvError)
-    }
-
-    // Fetch agents with their skills for this stage
+    // Fetch non-paused agents with their skills
     const { data: agents, error: agentsError } = await supabaseClient
       .from('agents')
       .select(`
@@ -78,6 +61,7 @@ serve(async (req) => {
           content
         )
       `)
+      .eq('is_paused', false) // Only fetch non-paused agents
 
     if (agentsError) {
       console.error('Error fetching agents:', agentsError)
@@ -85,19 +69,8 @@ serve(async (req) => {
     }
 
     if (!agents || agents.length === 0) {
-      console.log('No agents found, creating default response')
-      await supabaseClient
-        .from('brief_outputs')
-        .insert({
-          brief_id: briefId,
-          stage: stageId,
-          content: {
-            agent_id: 'system',
-            agent_name: 'System',
-            response: 'No agents are currently available to process this stage. Please try again later or contact support.'
-          }
-        })
-
+      console.log('No active agents found, creating default response')
+      await createDefaultResponse(supabaseClient, briefId, stageId)
       return new Response(
         JSON.stringify({ success: true, message: 'Created default response' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -109,86 +82,12 @@ serve(async (req) => {
       apiKey: Deno.env.get('OPENAI_API_KEY'),
     })
 
-    console.log('Processing responses for', agents.length, 'agents')
+    console.log('Processing responses for', agents.length, 'active agents')
 
     // Process each agent's response
     for (const agent of agents) {
       try {
-        // Format agent's skills for the prompt
-        const formattedSkills = agent.skills?.map((skill: any) => ({
-          name: skill.name,
-          type: skill.type,
-          description: skill.description,
-          content: skill.content
-        })) || []
-
-        // Create a more detailed prompt that includes agent's description and skills
-        const prompt = `You are ${agent.name}, ${agent.description || 'an AI agent'}.
-
-Your expertise and skills include:
-${formattedSkills.map((skill: any) => `
-- ${skill.name} (${skill.type}):
-  ${skill.description || 'No description provided'}
-  Details: ${skill.content}
-`).join('\n')}
-
-You are working on the following brief:
-Title: ${brief.title}
-Description: ${brief.description || 'No description provided'}
-Objectives: ${brief.objectives || 'No objectives provided'}
-Target Audience: ${brief.target_audience || 'No target audience specified'}
-Budget: ${brief.budget || 'No budget specified'}
-Timeline: ${brief.timeline || 'No timeline specified'}
-
-Current Stage: ${stageId}
-
-Based on your specific role, skills, and expertise described above, provide your professional analysis and recommendations for this stage of the project.
-Be specific about how your skills will be applied to meet the brief's objectives.
-Respond in a conversational way, as if you're speaking in a team meeting.`
-
-        console.log('Calling OpenAI for agent:', agent.name)
-        console.log('Agent skills:', formattedSkills)
-
-        // Get agent's response
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4',
-          messages: [
-            { role: 'system', content: prompt },
-            { role: 'user', content: 'Please provide your analysis and recommendations for this stage.' }
-          ],
-          temperature: 0.7,
-        })
-
-        const response = completion.choices[0].message.content
-
-        console.log('Received response from OpenAI for agent:', agent.name)
-
-        // Store agent's response in workflow_conversations
-        await supabaseClient
-          .from('workflow_conversations')
-          .insert({
-            brief_id: briefId,
-            stage_id: stageId,
-            agent_id: agent.id,
-            content: response
-          })
-
-        // Update brief_outputs with the combined insights
-        await supabaseClient
-          .from('brief_outputs')
-          .insert({
-            brief_id: briefId,
-            stage: stageId,
-            content: {
-              agent_id: agent.id,
-              agent_name: agent.name,
-              agent_description: agent.description,
-              agent_skills: formattedSkills,
-              response: response
-            }
-          })
-
-        console.log('Stored response for agent:', agent.name)
+        await processAgentResponse(supabaseClient, openai, agent, brief, stageId)
       } catch (error) {
         console.error('Error processing agent:', agent.name, error)
       }
@@ -210,3 +109,127 @@ Respond in a conversational way, as if you're speaking in a team meeting.`
     )
   }
 })
+
+async function clearPreviousData(supabaseClient: any, briefId: string, stageId: string) {
+  const { error: deleteError } = await supabaseClient
+    .from('brief_outputs')
+    .delete()
+    .eq('brief_id', briefId)
+    .eq('stage', stageId)
+
+  if (deleteError) {
+    console.error('Error clearing previous outputs:', deleteError)
+  }
+
+  const { error: deleteConvError } = await supabaseClient
+    .from('workflow_conversations')
+    .delete()
+    .eq('brief_id', briefId)
+    .eq('stage_id', stageId)
+
+  if (deleteConvError) {
+    console.error('Error clearing previous conversations:', deleteConvError)
+  }
+}
+
+async function createDefaultResponse(supabaseClient: any, briefId: string, stageId: string) {
+  await supabaseClient
+    .from('brief_outputs')
+    .insert({
+      brief_id: briefId,
+      stage: stageId,
+      content: {
+        agent_id: 'system',
+        agent_name: 'System',
+        response: 'No active agents are currently available to process this stage. Please try again later or contact support.'
+      }
+    })
+}
+
+async function processAgentResponse(supabaseClient: any, openai: any, agent: any, brief: any, stageId: string) {
+  const formattedSkills = agent.skills?.map((skill: any) => ({
+    name: skill.name,
+    type: skill.type,
+    description: skill.description,
+    content: skill.content
+  })) || []
+
+  const prompt = createPrompt(agent, formattedSkills, brief, stageId)
+  
+  console.log('Calling OpenAI for agent:', agent.name)
+  console.log('Agent skills:', formattedSkills)
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4',
+    messages: [
+      { role: 'system', content: prompt },
+      { role: 'user', content: 'Please provide your analysis and recommendations for this stage.' }
+    ],
+    temperature: 0.7,
+  })
+
+  const response = completion.choices[0].message.content
+
+  console.log('Received response from OpenAI for agent:', agent.name)
+
+  await storeAgentResponse(supabaseClient, agent, response, brief.id, stageId, formattedSkills)
+}
+
+function createPrompt(agent: any, formattedSkills: any[], brief: any, stageId: string) {
+  return `You are ${agent.name}, ${agent.description || 'an AI agent'}.
+
+Your expertise and skills include:
+${formattedSkills.map((skill: any) => `
+- ${skill.name} (${skill.type}):
+  ${skill.description || 'No description provided'}
+  Details: ${skill.content}
+`).join('\n')}
+
+You are working on the following brief:
+Title: ${brief.title}
+Description: ${brief.description || 'No description provided'}
+Objectives: ${brief.objectives || 'No objectives provided'}
+Target Audience: ${brief.target_audience || 'No target audience specified'}
+Budget: ${brief.budget || 'No budget specified'}
+Timeline: ${brief.timeline || 'No timeline specified'}
+
+Current Stage: ${stageId}
+
+Based on your specific role, skills, and expertise described above, provide your professional analysis and recommendations for this stage of the project.
+Be specific about how your skills will be applied to meet the brief's objectives.
+Respond in a conversational way, as if you're speaking in a team meeting.`
+}
+
+async function storeAgentResponse(
+  supabaseClient: any, 
+  agent: any, 
+  response: string, 
+  briefId: string, 
+  stageId: string, 
+  formattedSkills: any[]
+) {
+  await supabaseClient
+    .from('workflow_conversations')
+    .insert({
+      brief_id: briefId,
+      stage_id: stageId,
+      agent_id: agent.id,
+      content: response
+    })
+
+  await supabaseClient
+    .from('brief_outputs')
+    .insert({
+      brief_id: briefId,
+      stage: stageId,
+      content: {
+        agent_id: agent.id,
+        agent_name: agent.name,
+        agent_description: agent.description,
+        agent_skills: formattedSkills,
+        response: response
+      }
+    })
+
+  console.log('Stored response for agent:', agent.name)
+}
