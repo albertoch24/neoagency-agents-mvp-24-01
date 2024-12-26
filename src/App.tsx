@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { RequireAuth } from "@/components/auth/RequireAuth";
+import AppLayout from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Agents from "./pages/Agents";
 import Auth from "./pages/Auth";
@@ -23,7 +24,9 @@ const App = () => (
               path="/"
               element={
                 <RequireAuth>
-                  <Index />
+                  <AppLayout>
+                    <Index />
+                  </AppLayout>
                 </RequireAuth>
               }
             />
@@ -32,7 +35,9 @@ const App = () => (
               path="/agents"
               element={
                 <RequireAuth>
-                  <Agents />
+                  <AppLayout>
+                    <Agents />
+                  </AppLayout>
                 </RequireAuth>
               }
             />
