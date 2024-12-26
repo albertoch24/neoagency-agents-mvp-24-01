@@ -57,6 +57,13 @@ export default function Agents() {
 
   const handleSubmitAgent = async (agentData: Partial<Agent>) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error('You must be logged in to perform this action');
+        return;
+      }
+
       if (selectedAgent) {
         // Update existing agent
         const { error } = await supabase
@@ -77,6 +84,7 @@ export default function Agents() {
           .insert([{
             name: agentData.name,
             description: agentData.description,
+            user_id: user.id,
           }]);
 
         if (error) throw error;
