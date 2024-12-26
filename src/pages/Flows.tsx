@@ -10,6 +10,7 @@ import { FlowBuilder } from "@/components/flows/FlowBuilder";
 import { FlowHistory } from "@/components/flows/FlowHistory";
 import { FlowList } from "@/components/flows/FlowList";
 import { FlowPreview } from "@/components/flows/FlowPreview";
+import { Badge } from "@/components/ui/badge";  // Added import for Badge
 import {
   HoverCard,
   HoverCardContent,
