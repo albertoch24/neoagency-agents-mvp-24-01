@@ -1,24 +1,13 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Plus, ListChecks, Info } from "lucide-react";
-import { FlowForm } from "@/components/flows/FlowForm";
-import { FlowBuilder } from "@/components/flows/FlowBuilder";
-import { FlowHistory } from "@/components/flows/FlowHistory";
-import { FlowList } from "@/components/flows/FlowList";
-import { FlowPreview } from "@/components/flows/FlowPreview";
-import { WorkflowLogs } from "@/components/flows/WorkflowLogs";
-import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
 import { Flow, FlowStep } from "@/types/flow";
 import { useAuth } from "@/components/auth/AuthProvider";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
+import { WorkflowLogs } from "@/components/flows/WorkflowLogs";
+import { FlowsHeader } from "@/components/flows/FlowsHeader";
+import { FlowsContent } from "@/components/flows/FlowsContent";
+import { FlowDialogs } from "@/components/flows/FlowDialogs";
 
 const Flows = () => {
   const [selectedFlow, setSelectedFlow] = useState<Flow | null>(null);
@@ -97,145 +86,30 @@ const Flows = () => {
 
   return (
     <div className="container py-8">
-      <div className="flex justify-between items-center mb-8">
-        <div className="flex items-center gap-2">
-          <ListChecks className="h-6 w-6" />
-          <h1 className="text-3xl font-bold tracking-tight">Flow Builder</h1>
-          {applicationFlow && (
-            <HoverCard>
-              <HoverCardTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Info className="h-4 w-4" />
-                </Button>
-              </HoverCardTrigger>
-              <HoverCardContent className="w-80">
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold">Current Application Flow</h4>
-                  <p className="text-sm text-muted-foreground">
-                    This is the main workflow used to process projects. Click on "Application Workflow" in the list to see all stages and details.
-                  </p>
-                </div>
-              </HoverCardContent>
-            </HoverCard>
-          )}
-        </div>
-        <Dialog open={isCreating} onOpenChange={setIsCreating}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Flow
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <FlowForm onClose={() => setIsCreating(false)} />
-          </DialogContent>
-        </Dialog>
-      </div>
+      <FlowsHeader
+        applicationFlow={applicationFlow}
+        isCreating={isCreating}
+        setIsCreating={setIsCreating}
+      />
 
-      {flows && flows.length > 0 ? (
-        <>
-          <div className="grid gap-6 md:grid-cols-2">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <h2 className="text-xl font-semibold">Available Flows</h2>
-                {applicationFlow && (
-                  <Badge variant="secondary">
-                    Current Application Flow
-                  </Badge>
-                )}
-              </div>
-              <FlowList
-                flows={flows}
-                selectedFlow={selectedFlow}
-                onSelectFlow={setSelectedFlow}
-                onShowHistory={(flow) => {
-                  setSelectedFlow(flow);
-                  setShowHistory(true);
-                }}
-              />
-            </div>
+      <FlowsContent
+        flows={flows}
+        selectedFlow={selectedFlow}
+        setSelectedFlow={setSelectedFlow}
+        flowSteps={flowSteps}
+        applicationFlow={applicationFlow}
+        setShowHistory={setShowHistory}
+      />
 
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Flow Preview</h2>
-              <Card>
-                <CardContent className="p-6">
-                  {selectedFlow ? (
-                    <div className="space-y-6">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="text-lg font-semibold">{selectedFlow.name}</h3>
-                          {selectedFlow.description && (
-                            <p className="text-sm text-muted-foreground">{selectedFlow.description}</p>
-                          )}
-                        </div>
-                        <Button onClick={() => setSelectedFlow(null)}>
-                          Configure Flow
-                        </Button>
-                      </div>
-                      <FlowPreview flowSteps={flowSteps} />
-                    </div>
-                  ) : applicationFlow ? (
-                    <div className="text-center py-12">
-                      <ListChecks className="mx-auto h-12 w-12 text-muted-foreground" />
-                      <h3 className="mt-4 text-lg font-semibold">Select "Application Workflow"</h3>
-                      <p className="text-muted-foreground">
-                        Click on the Application Workflow in the list to see the current project workflow
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <ListChecks className="mx-auto h-12 w-12 text-muted-foreground" />
-                      <h3 className="mt-4 text-lg font-semibold">Select a Flow</h3>
-                      <p className="text-muted-foreground">
-                        Choose a flow from the left to see its preview
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+      {/* Only show workflow logs for admin users */}
+      {profile?.is_admin && <WorkflowLogs />}
 
-          {/* Only show workflow logs for admin users */}
-          {profile?.is_admin && <WorkflowLogs />}
-        </>
-      ) : (
-        <div className="text-center py-12">
-          <ListChecks className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-semibold">No Flows Created</h3>
-          <p className="text-muted-foreground">
-            Create your first flow to get started
-          </p>
-        </div>
-      )}
-
-      {selectedFlow && !showHistory && (
-        <Dialog open={true} onOpenChange={() => setSelectedFlow(null)}>
-          <DialogContent className="max-w-4xl">
-            <FlowBuilder
-              flow={selectedFlow}
-              onClose={() => setSelectedFlow(null)}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {showHistory && selectedFlow && (
-        <Dialog open={true} onOpenChange={() => {
-          setShowHistory(false);
-          setSelectedFlow(null);
-        }}>
-          <DialogContent>
-            <FlowHistory
-              flowId={selectedFlow.id}
-              onClose={() => {
-                setShowHistory(false);
-                setSelectedFlow(null);
-              }}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
+      <FlowDialogs
+        selectedFlow={selectedFlow}
+        showHistory={showHistory}
+        setSelectedFlow={setSelectedFlow}
+        setShowHistory={setShowHistory}
+      />
     </div>
   );
 };
