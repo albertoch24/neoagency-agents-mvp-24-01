@@ -26,7 +26,7 @@ export const WorkflowLogs = () => {
             stage_id,
             content,
             created_at,
-            agents (
+            agents!workflow_conversations_agent_id_fkey (
               name
             )
           )
