@@ -68,9 +68,10 @@ const BriefForm = ({ initialData, onSubmitSuccess }: BriefFormProps) => {
 
       if (!initialData) {
         setIsProcessing(true);
-        const toastId = toast.loading("Starting workflow process... This may take a few moments.", {
-          duration: Infinity, // Make the toast persistent
-        });
+        const toastId = toast.loading(
+          "Starting workflow process...Rome wasn't built in a day 😃. This may take around 2 minutes.", 
+          { duration: Infinity }
+        );
 
         console.log("Invoking process-workflow-stage function for brief:", brief.id);
         
