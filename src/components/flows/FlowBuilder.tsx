@@ -14,6 +14,54 @@ interface FlowBuilderProps {
   onClose: () => void;
 }
 
+const defaultSteps = [
+  {
+    id: "1",
+    agent_id: "strategic-planner",
+    order_index: 0,
+    outputs: [
+      { text: "Market Analysis Report" },
+      { text: "Target Audience Insights" },
+      { text: "Competitive Analysis" }
+    ],
+    requirements: "Analyze market trends and identify target audience segments",
+    agents: {
+      name: "Strategic Planner",
+      description: "Expert in market analysis and strategic planning"
+    }
+  },
+  {
+    id: "2",
+    agent_id: "creative-director",
+    order_index: 1,
+    outputs: [
+      { text: "Creative Brief" },
+      { text: "Visual Direction" },
+      { text: "Key Messages" }
+    ],
+    requirements: "Develop creative direction based on strategic insights",
+    agents: {
+      name: "Creative Director",
+      description: "Leads creative vision and concept development"
+    }
+  },
+  {
+    id: "3",
+    agent_id: "content-strategist",
+    order_index: 2,
+    outputs: [
+      { text: "Content Strategy" },
+      { text: "Content Calendar" },
+      { text: "Distribution Plan" }
+    ],
+    requirements: "Create content strategy aligned with creative direction",
+    agents: {
+      name: "Content Strategist",
+      description: "Plans and oversees content creation and distribution"
+    }
+  }
+];
+
 export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
   const [steps, setSteps] = useState<FlowStep[]>([]);
   const queryClient = useQueryClient();
@@ -34,6 +82,10 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
   const { data: flowSteps } = useQuery({
     queryKey: ["flow-steps", flow.id],
     queryFn: async () => {
+      if (flow.name === "Application Workflow") {
+        return defaultSteps;
+      }
+
       const { data, error } = await supabase
         .from("flow_steps")
         .select(`
@@ -48,7 +100,6 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
 
       if (error) throw error;
       
-      // Transform the data to match our FlowStep interface
       return (data || []).map(step => ({
         ...step,
         outputs: step.outputs?.map((output: any) => ({
