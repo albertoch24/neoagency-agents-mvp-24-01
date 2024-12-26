@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface BriefFormProps {
   initialData?: any;
@@ -20,6 +21,7 @@ const BriefForm = ({ initialData, onSubmitSuccess }: BriefFormProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isProcessing, setIsProcessing] = useState(false);
+  const navigate = useNavigate();
   
   const form = useForm({
     defaultValues: {
@@ -92,6 +94,10 @@ const BriefForm = ({ initialData, onSubmitSuccess }: BriefFormProps) => {
 
         toast.dismiss(toastId);
         toast.success("Brief submitted and workflow started successfully!");
+        
+        // After successful brief creation and workflow start, navigate to the home page
+        // This will show the workflow display since it's the default view when a brief exists
+        navigate("/");
       }
 
       // Invalidate the briefs query to refresh the list
