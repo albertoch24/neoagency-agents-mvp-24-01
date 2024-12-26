@@ -52,7 +52,18 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
 
   const handleDelete = async () => {
     try {
-      // First, delete associated workflow conversations
+      // First, delete associated skills
+      const { error: skillsError } = await supabase
+        .from('skills')
+        .delete()
+        .eq('agent_id', agent.id);
+
+      if (skillsError) {
+        console.error('Error deleting skills:', skillsError);
+        throw skillsError;
+      }
+
+      // Then, delete associated workflow conversations
       const { error: conversationsError } = await supabase
         .from('workflow_conversations')
         .delete()
@@ -63,7 +74,7 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
         throw conversationsError;
       }
 
-      // Then delete the agent
+      // Finally delete the agent
       const { error } = await supabase
         .from('agents')
         .delete()
