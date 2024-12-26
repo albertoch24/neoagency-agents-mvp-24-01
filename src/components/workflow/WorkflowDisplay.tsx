@@ -7,6 +7,7 @@ import { WorkflowStage } from "@/types/workflow";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 
 interface WorkflowDisplayProps {
   currentStage: string;
@@ -15,16 +16,42 @@ interface WorkflowDisplayProps {
 }
 
 const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDisplayProps) => {
+  // Fetch brief outputs for the current stage
+  const { data: stageOutputs } = useQuery({
+    queryKey: ["brief-outputs", briefId, currentStage],
+    queryFn: async () => {
+      if (!briefId) return [];
+
+      const { data, error } = await supabase
+        .from("brief_outputs")
+        .select("*")
+        .eq("brief_id", briefId)
+        .eq("stage", currentStage);
+
+      if (error) {
+        console.error("Error fetching outputs:", error);
+        return [];
+      }
+
+      return data;
+    },
+    enabled: !!briefId,
+  });
+
   useEffect(() => {
     const processStage = async () => {
       if (!briefId) return;
 
       try {
+        toast.info(`Processing ${currentStage} stage...`);
+        
         const { error } = await supabase.functions.invoke('process-workflow-stage', {
           body: { briefId, stageId: currentStage }
         });
 
         if (error) throw error;
+        
+        toast.success(`Stage ${currentStage} processed successfully!`);
       } catch (error) {
         console.error('Error processing stage:', error);
         toast.error('Failed to process workflow stage');
@@ -55,9 +82,18 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
             <CardTitle>Stage Outputs</CardTitle>
           </CardHeader>
           <CardContent>
-            <OutputList
-              outputs={stages.find((stage) => stage.id === currentStage)?.outputs || []}
-            />
+            {stageOutputs && stageOutputs.length > 0 ? (
+              <div className="space-y-4">
+                {stageOutputs.map((output) => (
+                  <div key={output.id} className="space-y-2">
+                    <h4 className="font-medium">{output.content.agent_name}</h4>
+                    <p className="text-sm text-muted-foreground">{output.content.response}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Processing stage outputs...</p>
+            )}
           </CardContent>
         </Card>
       </div>
