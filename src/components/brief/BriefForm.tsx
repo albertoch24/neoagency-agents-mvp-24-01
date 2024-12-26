@@ -23,14 +23,30 @@ const BriefForm = () => {
 
   const onSubmit = async (values: any) => {
     try {
-      const { error } = await supabase.from("briefs").insert({
-        ...values,
-        user_id: user?.id,
-      });
+      // Insert the brief
+      const { data: brief, error: briefError } = await supabase
+        .from("briefs")
+        .insert({
+          ...values,
+          user_id: user?.id,
+          current_stage: "kickoff",
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (briefError) throw briefError;
 
-      toast.success("Brief submitted successfully");
+      // Start the workflow process
+      const { error: workflowError } = await supabase.functions.invoke(
+        "process-workflow-stage",
+        {
+          body: { briefId: brief.id, stageId: "kickoff" },
+        }
+      );
+
+      if (workflowError) throw workflowError;
+
+      toast.success("Brief submitted and workflow started");
       form.reset();
     } catch (error) {
       console.error("Error submitting brief:", error);
