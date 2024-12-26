@@ -66,7 +66,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
               <Home className="h-4 w-4" />
               Home
             </Button>
-            <h1 className="text-2xl font-bold">SkillKeeper</h1>
+            <h1 className="text-2xl font-bold">NEO AGENCY</h1>
           </div>
           {user && (
             <div className="flex items-center gap-4">
