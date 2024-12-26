@@ -52,31 +52,19 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
 
   const handleDelete = async () => {
     try {
-      // First, delete workflow conversations for this agent
-      const { error: workflowConversationError } = await supabase
+      // Step 1: Delete from workflow_conversations
+      const { error: workflowError } = await supabase
         .from('workflow_conversations')
         .delete()
         .eq('agent_id', agent.id);
 
-      if (workflowConversationError) {
-        console.error('Error deleting workflow conversations:', workflowConversationError);
+      if (workflowError) {
+        console.error('Error deleting workflow conversations:', workflowError);
         toast.error('Failed to delete agent conversations');
         return;
       }
 
-      // Then, delete skills associated with the agent
-      const { error: skillsError } = await supabase
-        .from('skills')
-        .delete()
-        .eq('agent_id', agent.id);
-
-      if (skillsError) {
-        console.error('Error deleting agent skills:', skillsError);
-        toast.error('Failed to delete agent skills');
-        return;
-      }
-
-      // Finally, delete the agent
+      // Step 2: Delete from agents
       const { error: agentError } = await supabase
         .from('agents')
         .delete()
@@ -85,6 +73,18 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
       if (agentError) {
         console.error('Error deleting agent:', agentError);
         toast.error('Failed to delete agent');
+        return;
+      }
+
+      // Step 3: Delete from skills
+      const { error: skillsError } = await supabase
+        .from('skills')
+        .delete()
+        .eq('agent_id', agent.id);
+
+      if (skillsError) {
+        console.error('Error deleting skills:', skillsError);
+        toast.error('Failed to delete agent skills');
         return;
       }
 
