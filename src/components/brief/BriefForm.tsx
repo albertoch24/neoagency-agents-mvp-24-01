@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface BriefFormProps {
   initialData?: any;
@@ -15,6 +16,8 @@ interface BriefFormProps {
 
 const BriefForm = ({ initialData, onSubmitSuccess }: BriefFormProps) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  
   const form = useForm({
     defaultValues: {
       title: initialData?.title || "",
@@ -76,10 +79,16 @@ const BriefForm = ({ initialData, onSubmitSuccess }: BriefFormProps) => {
         }
       }
 
+      // Invalidate the briefs query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["briefs"] });
+      queryClient.invalidateQueries({ queryKey: ["brief"] });
+
       toast.success(initialData ? "Brief updated successfully!" : "Brief submitted and workflow started!");
       
       // Reset form and call success callback
-      form.reset();
+      if (!initialData) {
+        form.reset();
+      }
       onSubmitSuccess?.();
     } catch (error) {
       console.error("Error submitting brief:", error);
