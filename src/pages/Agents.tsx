@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,9 +8,18 @@ import { Home, Plus } from "lucide-react";
 import { AgentCard } from "@/components/agents/AgentCard";
 import { Agent } from "@/types/agent";
 import { toast } from "sonner";
+import { AgentForm } from "@/components/agents/AgentForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function Agents() {
   const navigate = useNavigate();
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [showAgentDialog, setShowAgentDialog] = useState(false);
 
   const { data: agents, isLoading } = useQuery({
     queryKey: ["agents"],
@@ -35,6 +45,52 @@ export default function Agents() {
     navigate("/");
   };
 
+  const handleEditAgent = (agent: Agent) => {
+    setSelectedAgent(agent);
+    setShowAgentDialog(true);
+  };
+
+  const handleCreateAgent = () => {
+    setSelectedAgent(null);
+    setShowAgentDialog(true);
+  };
+
+  const handleSubmitAgent = async (agentData: Partial<Agent>) => {
+    try {
+      if (selectedAgent) {
+        // Update existing agent
+        const { error } = await supabase
+          .from('agents')
+          .update({
+            name: agentData.name,
+            description: agentData.description,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', selectedAgent.id);
+
+        if (error) throw error;
+        toast.success('Agent updated successfully');
+      } else {
+        // Create new agent
+        const { error } = await supabase
+          .from('agents')
+          .insert([{
+            name: agentData.name,
+            description: agentData.description,
+          }]);
+
+        if (error) throw error;
+        toast.success('Agent created successfully');
+      }
+
+      setShowAgentDialog(false);
+      setSelectedAgent(null);
+    } catch (error) {
+      console.error('Error saving agent:', error);
+      toast.error(selectedAgent ? 'Failed to update agent' : 'Failed to create agent');
+    }
+  };
+
   return (
     <div className="container mx-auto space-y-8 p-8">
       <div className="flex justify-between items-center">
@@ -53,7 +109,10 @@ export default function Agents() {
             <Home className="h-4 w-4" />
             Go to Brief
           </Button>
-          <Button className="flex items-center gap-2">
+          <Button 
+            onClick={handleCreateAgent}
+            className="flex items-center gap-2"
+          >
             <Plus className="h-4 w-4" />
             New Agent
           </Button>
@@ -76,7 +135,11 @@ export default function Agents() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {agents?.map((agent) => (
-            <AgentCard key={agent.id} agent={agent} />
+            <AgentCard 
+              key={agent.id} 
+              agent={agent} 
+              onClick={() => handleEditAgent(agent)}
+            />
           ))}
           {agents?.length === 0 && (
             <Card className="col-span-full">
@@ -89,6 +152,20 @@ export default function Agents() {
           )}
         </div>
       )}
+
+      <Dialog open={showAgentDialog} onOpenChange={setShowAgentDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {selectedAgent ? 'Edit Agent' : 'Create New Agent'}
+            </DialogTitle>
+          </DialogHeader>
+          <AgentForm
+            onSubmit={handleSubmitAgent}
+            initialData={selectedAgent || undefined}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
