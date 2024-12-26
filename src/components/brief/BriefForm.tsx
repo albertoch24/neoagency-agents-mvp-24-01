@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
 
 interface BriefFormProps {
   initialData?: any;
@@ -17,6 +19,7 @@ interface BriefFormProps {
 const BriefForm = ({ initialData, onSubmitSuccess }: BriefFormProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const form = useForm({
     defaultValues: {
@@ -62,37 +65,49 @@ const BriefForm = ({ initialData, onSubmitSuccess }: BriefFormProps) => {
       console.log("Brief created/updated successfully:", brief);
 
       if (!initialData) {
-        toast.info("Starting workflow process...");
+        setIsProcessing(true);
+        const toastId = toast.loading("Starting workflow process... This may take a few moments.", {
+          duration: Infinity, // Make the toast persistent
+        });
 
+        console.log("Invoking process-workflow-stage function for brief:", brief.id);
+        
         // Start the workflow process for new briefs
-        const { error: workflowError } = await supabase.functions.invoke(
+        const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
           "process-workflow-stage",
           {
             body: { briefId: brief.id, stageId: "kickoff" },
           }
         );
 
+        console.log("Workflow function response:", { data: workflowData, error: workflowError });
+
         if (workflowError) {
           console.error("Error starting workflow:", workflowError);
-          toast.error("Brief created but workflow failed to start");
+          toast.dismiss(toastId);
+          toast.error("Brief created but workflow failed to start. Please try again or contact support.");
+          setIsProcessing(false);
           return;
         }
+
+        toast.dismiss(toastId);
+        toast.success("Brief submitted and workflow started successfully!");
       }
 
       // Invalidate the briefs query to refresh the list
       queryClient.invalidateQueries({ queryKey: ["briefs"] });
       queryClient.invalidateQueries({ queryKey: ["brief"] });
 
-      toast.success(initialData ? "Brief updated successfully!" : "Brief submitted and workflow started!");
-      
-      // Reset form and call success callback
       if (!initialData) {
         form.reset();
       }
+      
+      setIsProcessing(false);
       onSubmitSuccess?.();
     } catch (error) {
       console.error("Error submitting brief:", error);
       toast.error("Error submitting brief. Please try again.");
+      setIsProcessing(false);
     }
   };
 
@@ -182,8 +197,17 @@ const BriefForm = ({ initialData, onSubmitSuccess }: BriefFormProps) => {
                 </FormItem>
               )}
             />
-            <Button type="submit">
-              {initialData ? "Update Brief" : "Submit Brief"}
+            <Button type="submit" disabled={isProcessing}>
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : initialData ? (
+                "Update Brief"
+              ) : (
+                "Submit Brief"
+              )}
             </Button>
           </form>
         </Form>
