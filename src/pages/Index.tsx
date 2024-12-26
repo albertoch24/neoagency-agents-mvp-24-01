@@ -7,7 +7,7 @@ import BriefForm from "@/components/brief/BriefForm";
 import BriefDisplay from "@/components/brief/BriefDisplay";
 import WorkflowDisplay from "@/components/workflow/WorkflowDisplay";
 import { Button } from "@/components/ui/button";
-import { FilePlus, FolderOpen } from "lucide-react";
+import { FilePlus, FolderOpen, Edit } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,7 @@ const Index = () => {
   const { user } = useAuth();
   const [currentStage, setCurrentStage] = useState("kickoff");
   const [showNewBrief, setShowNewBrief] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const { data: briefs } = useQuery({
     queryKey: ["briefs", user?.id],
@@ -67,18 +68,39 @@ const Index = () => {
   const handleSelectBrief = async (briefId: string) => {
     await refetchCurrentBrief();
     setShowNewBrief(false);
+    setIsEditing(false);
+  };
+
+  const handleEditBrief = () => {
+    setIsEditing(true);
+    setShowNewBrief(false);
   };
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       <div className="flex justify-between items-center">
-        <Button
-          onClick={() => setShowNewBrief(true)}
-          className="flex items-center gap-2"
-        >
-          <FilePlus className="h-4 w-4" />
-          Start with a new brief
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => {
+              setShowNewBrief(true);
+              setIsEditing(false);
+            }}
+            className="flex items-center gap-2"
+          >
+            <FilePlus className="h-4 w-4" />
+            Start with a new brief
+          </Button>
+          {currentBrief && !showNewBrief && !isEditing && (
+            <Button
+              onClick={handleEditBrief}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Edit className="h-4 w-4" />
+              Edit Brief
+            </Button>
+          )}
+        </div>
 
         {briefs && briefs.length > 0 && (
           <DropdownMenu>
@@ -102,14 +124,21 @@ const Index = () => {
         )}
       </div>
 
-      {(showNewBrief || !currentBrief) ? (
-        <BriefForm />
+      {(showNewBrief || !currentBrief || isEditing) ? (
+        <BriefForm 
+          initialData={isEditing ? currentBrief : undefined}
+          onSubmitSuccess={() => {
+            setIsEditing(false);
+            refetchCurrentBrief();
+          }}
+        />
       ) : (
         <div className="space-y-8">
           <BriefDisplay brief={currentBrief} />
           <WorkflowDisplay
             currentStage={currentStage}
             onStageSelect={handleStageSelect}
+            briefId={currentBrief?.id}
           />
         </div>
       )}

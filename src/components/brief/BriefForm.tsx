@@ -7,56 +7,62 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 
-const BriefForm = () => {
+interface BriefFormProps {
+  initialData?: any;
+  onSubmitSuccess?: () => void;
+}
+
+const BriefForm = ({ initialData, onSubmitSuccess }: BriefFormProps) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const form = useForm({
     defaultValues: {
-      title: "",
-      description: "",
-      objectives: "",
-      target_audience: "",
-      budget: "",
-      timeline: "",
+      title: initialData?.title || "",
+      description: initialData?.description || "",
+      objectives: initialData?.objectives || "",
+      target_audience: initialData?.target_audience || "",
+      budget: initialData?.budget || "",
+      timeline: initialData?.timeline || "",
     },
   });
 
   const onSubmit = async (values: any) => {
     try {
-      toast.info("Creating your brief...");
+      toast.info(initialData ? "Updating your brief..." : "Creating your brief...");
 
-      // Insert the brief
+      // Update or insert the brief
       const { data: brief, error: briefError } = await supabase
         .from("briefs")
-        .insert({
+        .upsert({
           ...values,
+          id: initialData?.id,
           user_id: user?.id,
-          current_stage: "kickoff",
+          current_stage: initialData ? initialData.current_stage : "kickoff",
         })
         .select()
         .single();
 
       if (briefError) throw briefError;
 
-      toast.info("Starting workflow process...");
+      if (!initialData) {
+        toast.info("Starting workflow process...");
 
-      // Start the workflow process
-      const { error: workflowError } = await supabase.functions.invoke(
-        "process-workflow-stage",
-        {
-          body: { briefId: brief.id, stageId: "kickoff" },
-        }
-      );
+        // Start the workflow process for new briefs
+        const { error: workflowError } = await supabase.functions.invoke(
+          "process-workflow-stage",
+          {
+            body: { briefId: brief.id, stageId: "kickoff" },
+          }
+        );
 
-      if (workflowError) throw workflowError;
+        if (workflowError) throw workflowError;
+      }
 
-      toast.success("Brief submitted and workflow started!");
+      toast.success(initialData ? "Brief updated successfully!" : "Brief submitted and workflow started!");
       
-      // Reset form and refresh the page to show the new brief
+      // Reset form and call success callback
       form.reset();
-      window.location.reload();
+      onSubmitSuccess?.();
     } catch (error) {
       console.error("Error submitting brief:", error);
       toast.error("Error submitting brief. Please try again.");
@@ -66,7 +72,7 @@ const BriefForm = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Submit a Brief</CardTitle>
+        <CardTitle>{initialData ? "Edit Brief" : "Submit a Brief"}</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -149,7 +155,9 @@ const BriefForm = () => {
                 </FormItem>
               )}
             />
-            <Button type="submit">Submit Brief</Button>
+            <Button type="submit">
+              {initialData ? "Update Brief" : "Submit Brief"}
+            </Button>
           </form>
         </Form>
       </CardContent>
