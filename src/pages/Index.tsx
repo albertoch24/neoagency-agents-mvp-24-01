@@ -20,6 +20,7 @@ const Index = () => {
   const [currentStage, setCurrentStage] = useState("kickoff");
   const [showNewBrief, setShowNewBrief] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedBriefId, setSelectedBriefId] = useState<string | null>(null);
 
   const { data: briefs } = useQuery({
     queryKey: ["briefs", user?.id],
@@ -40,16 +41,21 @@ const Index = () => {
     enabled: !!user,
   });
 
-  const { data: currentBrief, refetch: refetchCurrentBrief } = useQuery({
-    queryKey: ["brief", user?.id],
+  const { data: currentBrief } = useQuery({
+    queryKey: ["brief", selectedBriefId || "latest", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const query = supabase
         .from("briefs")
         .select("*, brief_outputs(*)")
-        .eq("user_id", user?.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .eq("user_id", user?.id);
+
+      if (selectedBriefId) {
+        query.eq("id", selectedBriefId);
+      } else {
+        query.order("created_at", { ascending: false });
+      }
+
+      const { data, error } = await query.limit(1).maybeSingle();
 
       if (error) {
         console.error("Error fetching brief:", error);
@@ -65,8 +71,8 @@ const Index = () => {
     setCurrentStage(stage.id);
   };
 
-  const handleSelectBrief = async (briefId: string) => {
-    await refetchCurrentBrief();
+  const handleSelectBrief = (briefId: string) => {
+    setSelectedBriefId(briefId);
     setShowNewBrief(false);
     setIsEditing(false);
   };
@@ -129,7 +135,7 @@ const Index = () => {
           initialData={isEditing ? currentBrief : undefined}
           onSubmitSuccess={() => {
             setIsEditing(false);
-            refetchCurrentBrief();
+            setSelectedBriefId(null);
           }}
         />
       ) : (
