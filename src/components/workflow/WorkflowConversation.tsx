@@ -27,7 +27,7 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
         .from("workflow_conversations")
         .select(`
           *,
-          agents (
+          agents!workflow_conversations_agent_id_fkey (
             name,
             description
           )
