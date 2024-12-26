@@ -42,7 +42,7 @@ serve(async (req) => {
       throw new Error('Brief not found')
     }
 
-    // Always clear previous outputs and conversations for this brief and stage
+    // Clear previous outputs and conversations
     console.log('Clearing previous outputs and conversations for brief:', briefId, 'stage:', stageId)
     
     const { error: deleteError } = await supabaseClient
@@ -65,12 +65,18 @@ serve(async (req) => {
       console.error('Error clearing previous conversations:', deleteConvError)
     }
 
-    // Fetch agents for this stage
+    // Fetch agents with their skills for this stage
     const { data: agents, error: agentsError } = await supabaseClient
       .from('agents')
       .select(`
         *,
-        skills (*)
+        skills (
+          id,
+          name,
+          type,
+          description,
+          content
+        )
       `)
 
     if (agentsError) {
@@ -108,32 +114,47 @@ serve(async (req) => {
     // Process each agent's response
     for (const agent of agents) {
       try {
-        // Prepare agent prompt treating this as a new brief
-        const prompt = `You are ${agent.name}, a ${agent.description} working in an agency.
-Your skills include:
-${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
+        // Format agent's skills for the prompt
+        const formattedSkills = agent.skills?.map((skill: any) => ({
+          name: skill.name,
+          type: skill.type,
+          description: skill.description,
+          content: skill.content
+        })) || []
+
+        // Create a more detailed prompt that includes agent's description and skills
+        const prompt = `You are ${agent.name}, ${agent.description || 'an AI agent'}.
+
+Your expertise and skills include:
+${formattedSkills.map((skill: any) => `
+- ${skill.name} (${skill.type}):
+  ${skill.description || 'No description provided'}
+  Details: ${skill.content}
+`).join('\n')}
 
 You are working on the following brief:
 Title: ${brief.title}
-Description: ${brief.description}
-Objectives: ${brief.objectives}
-Target Audience: ${brief.target_audience}
-Budget: ${brief.budget}
-Timeline: ${brief.timeline}
+Description: ${brief.description || 'No description provided'}
+Objectives: ${brief.objectives || 'No objectives provided'}
+Target Audience: ${brief.target_audience || 'No target audience specified'}
+Budget: ${brief.budget || 'No budget specified'}
+Timeline: ${brief.timeline || 'No timeline specified'}
 
-This is a new brief that needs your full analysis for the ${stageId} stage.
-Based on your role and skills, provide your professional input and recommendations.
-Treat this as a completely new project, ignoring any previous work or conversations.
+Current Stage: ${stageId}
+
+Based on your specific role, skills, and expertise described above, provide your professional analysis and recommendations for this stage of the project.
+Be specific about how your skills will be applied to meet the brief's objectives.
 Respond in a conversational way, as if you're speaking in a team meeting.`
 
         console.log('Calling OpenAI for agent:', agent.name)
+        console.log('Agent skills:', formattedSkills)
 
         // Get agent's response
         const completion = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4',
           messages: [
             { role: 'system', content: prompt },
-            { role: 'user', content: 'Please provide your analysis and recommendations.' }
+            { role: 'user', content: 'Please provide your analysis and recommendations for this stage.' }
           ],
           temperature: 0.7,
         })
@@ -142,15 +163,14 @@ Respond in a conversational way, as if you're speaking in a team meeting.`
 
         console.log('Received response from OpenAI for agent:', agent.name)
 
-        // Store agent's response
+        // Store agent's response in workflow_conversations
         await supabaseClient
           .from('workflow_conversations')
           .insert({
             brief_id: briefId,
             stage_id: stageId,
             agent_id: agent.id,
-            content: response,
-            role: 'agent'
+            content: response
           })
 
         // Update brief_outputs with the combined insights
@@ -162,6 +182,8 @@ Respond in a conversational way, as if you're speaking in a team meeting.`
             content: {
               agent_id: agent.id,
               agent_name: agent.name,
+              agent_description: agent.description,
+              agent_skills: formattedSkills,
               response: response
             }
           })
