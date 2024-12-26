@@ -35,7 +35,7 @@ const App = () => (
             <Route
               path="/agents"
               element={
-                <RequireAuth>
+                <RequireAuth requireAdmin>
                   <AppLayout>
                     <Agents />
                   </AppLayout>
@@ -45,7 +45,7 @@ const App = () => (
             <Route
               path="/flows"
               element={
-                <RequireAuth>
+                <RequireAuth requireAdmin>
                   <AppLayout>
                     <Flows />
                   </AppLayout>

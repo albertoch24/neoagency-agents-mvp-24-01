@@ -12,6 +12,7 @@ import {
 import { LogOut, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -20,6 +21,21 @@ interface AppLayoutProps {
 const AppLayout = ({ children }: AppLayoutProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user?.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const handleLogout = async () => {
     try {
@@ -39,32 +55,34 @@ const AppLayout = ({ children }: AppLayoutProps) => {
           <h1 className="text-2xl font-bold">SkillKeeper</h1>
           {user && (
             <div className="flex items-center gap-4">
-              <NavigationMenu>
-                <NavigationMenuList>
-                  <NavigationMenuItem>
-                    <NavigationMenuTrigger>
-                      <List className="mr-2" />
-                      Projects
-                    </NavigationMenuTrigger>
-                    <NavigationMenuContent>
-                      <div className="p-4 w-[200px]">
-                        <NavigationMenuLink
-                          className="block px-4 py-2 hover:bg-accent rounded-md cursor-pointer"
-                          onClick={() => navigate("/agents")}
-                        >
-                          AI Agents
-                        </NavigationMenuLink>
-                        <NavigationMenuLink
-                          className="block px-4 py-2 hover:bg-accent rounded-md cursor-pointer"
-                          onClick={() => navigate("/flows")}
-                        >
-                          Flow Builder
-                        </NavigationMenuLink>
-                      </div>
-                    </NavigationMenuContent>
-                  </NavigationMenuItem>
-                </NavigationMenuList>
-              </NavigationMenu>
+              {profile?.is_admin && (
+                <NavigationMenu>
+                  <NavigationMenuList>
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger>
+                        <List className="mr-2" />
+                        Projects
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <div className="p-4 w-[200px]">
+                          <NavigationMenuLink
+                            className="block px-4 py-2 hover:bg-accent rounded-md cursor-pointer"
+                            onClick={() => navigate("/agents")}
+                          >
+                            AI Agents
+                          </NavigationMenuLink>
+                          <NavigationMenuLink
+                            className="block px-4 py-2 hover:bg-accent rounded-md cursor-pointer"
+                            onClick={() => navigate("/flows")}
+                          >
+                            Flow Builder
+                          </NavigationMenuLink>
+                        </div>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  </NavigationMenuList>
+                </NavigationMenu>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
