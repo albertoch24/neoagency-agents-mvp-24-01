@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.1.0'
+import OpenAI from "https://esm.sh/openai@4.28.0"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,23 +34,24 @@ serve(async (req) => {
     if (agentError) throw agentError
     if (!agent) throw new Error('Agent not found')
 
-    // Initialize OpenAI
-    const configuration = new Configuration({
+    // Initialize OpenAI with the latest SDK
+    const openai = new OpenAI({
       apiKey: Deno.env.get('OPENAI_API_KEY'),
     })
-    const openai = new OpenAIApi(configuration)
 
     // Prepare system message with agent description and skills
     const systemMessage = `You are an AI assistant with the following description: ${agent.description}
     
 Your skills and knowledge include:
-${agent.skills.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
+${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n') || 'No specific skills defined yet.'}
 
 Please use these skills and knowledge to provide accurate and helpful responses.`
 
-    // Call OpenAI API
-    const completion = await openai.createChatCompletion({
-      model: 'gpt-4',
+    console.log('Calling OpenAI API with system message:', systemMessage)
+
+    // Call OpenAI API with the latest SDK syntax
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemMessage },
         { role: 'user', content: input }
@@ -58,7 +59,9 @@ Please use these skills and knowledge to provide accurate and helpful responses.
       temperature: 0.7,
     })
 
-    const response = completion.data.choices[0].message?.content
+    const response = completion.choices[0].message.content
+
+    console.log('Received response from OpenAI:', response)
 
     return new Response(
       JSON.stringify({ response }),
@@ -66,7 +69,7 @@ Please use these skills and knowledge to provide accurate and helpful responses.
     )
 
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error in agent-response function:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
