@@ -52,46 +52,15 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
 
   const handleDelete = async () => {
     try {
-      // First, delete associated skills
-      const { error: skillsError } = await supabase
-        .from('skills')
-        .delete()
-        .eq('agent_id', agent.id);
+      // Start a transaction to ensure all operations succeed or fail together
+      const { error: transactionError } = await supabase.rpc('delete_agent_with_relations', {
+        agent_id: agent.id
+      });
 
-      if (skillsError) {
-        console.error('Error deleting skills:', skillsError);
-        throw skillsError;
+      if (transactionError) {
+        console.error('Error in delete transaction:', transactionError);
+        throw transactionError;
       }
-
-      // Then, delete all workflow conversations using either foreign key
-      const { error: conversationsError1 } = await supabase
-        .from('workflow_conversations')
-        .delete()
-        .eq('agent_id', agent.id);
-
-      if (conversationsError1) {
-        console.error('Error deleting workflow conversations (1):', conversationsError1);
-        throw conversationsError1;
-      }
-
-      // Delete any remaining workflow conversations (if any, due to the second foreign key)
-      const { error: conversationsError2 } = await supabase
-        .from('workflow_conversations')
-        .delete()
-        .eq('agent_id', agent.id);
-
-      if (conversationsError2) {
-        console.error('Error deleting workflow conversations (2):', conversationsError2);
-        throw conversationsError2;
-      }
-
-      // Finally delete the agent
-      const { error: deleteError } = await supabase
-        .from('agents')
-        .delete()
-        .eq('id', agent.id);
-
-      if (deleteError) throw deleteError;
 
       toast.success('Agent deleted successfully');
       queryClient.invalidateQueries({ queryKey: ['agents'] });
