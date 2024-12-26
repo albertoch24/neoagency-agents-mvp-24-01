@@ -133,14 +133,16 @@ const Index = () => {
           }}
         />
       ) : (
-        <div className="space-y-8">
+        <>
           <BriefDisplay brief={currentBrief} />
-          <WorkflowDisplay
-            currentStage={currentStage}
-            onStageSelect={handleStageSelect}
-            briefId={currentBrief?.id}
-          />
-        </div>
+          <div className="-mx-4">
+            <WorkflowDisplay
+              currentStage={currentStage}
+              onStageSelect={handleStageSelect}
+              briefId={currentBrief?.id}
+            />
+          </div>
+        </>
       )}
     </div>
   );

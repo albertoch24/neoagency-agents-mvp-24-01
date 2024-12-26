@@ -101,7 +101,7 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
   }, [currentStage, briefId]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 px-4">
       <WorkflowStages currentStage={currentStage} onStageSelect={onStageSelect} />
 
       <div className="grid gap-8 md:grid-cols-2">
@@ -115,27 +115,37 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
             />
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Stage Outputs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {stageOutputs && stageOutputs.length > 0 ? (
-              <div className="space-y-4">
-                {stageOutputs.map((output) => (
-                  <div key={output.id} className="space-y-2">
-                    <h4 className="font-medium">{output.content.agent_name}</h4>
-                    <p className="text-sm text-muted-foreground">{output.content.response}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Processing stage outputs...</p>
-            )}
-          </CardContent>
-        </Card>
       </div>
+
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Stage Outputs</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {stageOutputs && stageOutputs.length > 0 ? (
+            <div className="space-y-6">
+              {stageOutputs.map((output) => (
+                <div key={output.id} className="space-y-3">
+                  <h4 className="text-lg font-semibold text-primary">
+                    {output.content.agent_name}
+                  </h4>
+                  <div className="text-muted-foreground whitespace-pre-wrap">
+                    {output.content.response.split('\n').map((paragraph, index) => (
+                      paragraph.trim() && (
+                        <p key={index} className="mb-4">
+                          {paragraph}
+                        </p>
+                      )
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Processing stage outputs...</p>
+          )}
+        </CardContent>
+      </Card>
 
       {briefId && (
         <WorkflowConversation
