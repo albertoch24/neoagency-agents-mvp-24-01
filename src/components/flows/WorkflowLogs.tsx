@@ -14,41 +14,63 @@ export const WorkflowLogs = () => {
   const { data: briefs, isLoading } = useQuery({
     queryKey: ["workflow-logs"],
     queryFn: async () => {
-      console.log("Fetching workflow logs...");
-      const { data, error } = await supabase
+      // First, get all briefs
+      const { data: briefsData, error: briefsError } = await supabase
         .from("briefs")
-        .select(`
-          id,
-          title,
-          created_at,
-          brief_outputs (
-            stage,
-            content,
-            created_at
-          ),
-          workflow_conversations (
-            stage_id,
-            content,
-            created_at,
-            agent_id,
-            agents!workflow_conversations_agent_id_fkey (
-              name,
-              skills (
-                name,
-                type
-              )
-            )
-          )
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching workflow logs:", error);
-        throw error;
+      if (briefsError) {
+        console.error("Error fetching briefs:", briefsError);
+        throw briefsError;
       }
 
-      console.log("Fetched briefs:", data);
-      return data;
+      // For each brief, get its conversations and outputs
+      const briefsWithDetails = await Promise.all(
+        briefsData.map(async (brief) => {
+          // Get conversations with agent and skills details
+          const { data: conversations, error: convsError } = await supabase
+            .from("workflow_conversations")
+            .select(`
+              *,
+              agents!workflow_conversations_agent_id_fkey (
+                name,
+                skills (
+                  name,
+                  type
+                )
+              )
+            `)
+            .eq("brief_id", brief.id)
+            .order("created_at", { ascending: true });
+
+          if (convsError) {
+            console.error("Error fetching conversations:", convsError);
+            return { ...brief, conversations: [], outputs: [] };
+          }
+
+          // Get brief outputs
+          const { data: outputs, error: outputsError } = await supabase
+            .from("brief_outputs")
+            .select("*")
+            .eq("brief_id", brief.id)
+            .order("created_at", { ascending: true });
+
+          if (outputsError) {
+            console.error("Error fetching outputs:", outputsError);
+            return { ...brief, conversations, outputs: [] };
+          }
+
+          return {
+            ...brief,
+            conversations,
+            outputs
+          };
+        })
+      );
+
+      console.log("Fetched briefs with details:", briefsWithDetails);
+      return briefsWithDetails;
     },
   });
 
