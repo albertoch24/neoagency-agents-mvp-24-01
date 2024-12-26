@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const BriefForm = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const form = useForm({
     defaultValues: {
       title: "",
@@ -23,6 +25,8 @@ const BriefForm = () => {
 
   const onSubmit = async (values: any) => {
     try {
+      toast.info("Creating your brief...");
+
       // Insert the brief
       const { data: brief, error: briefError } = await supabase
         .from("briefs")
@@ -36,6 +40,8 @@ const BriefForm = () => {
 
       if (briefError) throw briefError;
 
+      toast.info("Starting workflow process...");
+
       // Start the workflow process
       const { error: workflowError } = await supabase.functions.invoke(
         "process-workflow-stage",
@@ -46,11 +52,14 @@ const BriefForm = () => {
 
       if (workflowError) throw workflowError;
 
-      toast.success("Brief submitted and workflow started");
+      toast.success("Brief submitted and workflow started!");
+      
+      // Reset form and refresh the page to show the new brief
       form.reset();
+      window.location.reload();
     } catch (error) {
       console.error("Error submitting brief:", error);
-      toast.error("Error submitting brief");
+      toast.error("Error submitting brief. Please try again.");
     }
   };
 
