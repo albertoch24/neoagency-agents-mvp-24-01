@@ -1,18 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
-interface FlowStep {
-  id: string;
-  agent_id: string;
-  order_index: number;
-  outputs?: { text: string }[];
-  requirements?: string;
-  agents: {
-    name: string;
-    description: string;
-  };
-}
+import { FlowStep } from "@/types/flow";
 
 interface FlowPreviewProps {
   flowSteps?: FlowStep[];
@@ -36,11 +25,15 @@ export const FlowPreview = ({ flowSteps }: FlowPreviewProps) => {
                     <Badge variant="secondary">
                       Step {index + 1}
                     </Badge>
-                    <h4 className="font-medium">{step.agents.name}</h4>
+                    {step.agents && (
+                      <h4 className="font-medium">{step.agents.name}</h4>
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {step.agents.description}
-                  </p>
+                  {step.agents?.description && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {step.agents.description}
+                    </p>
+                  )}
                   {step.outputs && step.outputs.length > 0 && (
                     <div className="mt-4">
                       <h5 className="text-sm font-medium mb-2">Required Outputs:</h5>
