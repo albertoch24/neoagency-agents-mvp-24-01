@@ -9,7 +9,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-import { LogOut, List } from "lucide-react";
+import { LogOut, List, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -48,11 +48,26 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     }
   };
 
+  const handleGoHome = () => {
+    navigate("/");
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <header className="w-full border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">SkillKeeper</h1>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleGoHome}
+              className="flex items-center gap-2"
+            >
+              <Home className="h-4 w-4" />
+              Home
+            </Button>
+            <h1 className="text-2xl font-bold">SkillKeeper</h1>
+          </div>
           {user && (
             <div className="flex items-center gap-4">
               {profile?.is_admin && (
