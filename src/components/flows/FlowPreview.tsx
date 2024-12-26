@@ -6,7 +6,7 @@ interface FlowStep {
   id: string;
   agent_id: string;
   order_index: number;
-  outputs?: string[];
+  outputs?: { text: string }[];
   requirements?: string;
   agents: {
     name: string;
@@ -47,7 +47,7 @@ export const FlowPreview = ({ flowSteps }: FlowPreviewProps) => {
                       <ul className="list-disc list-inside text-sm space-y-1">
                         {step.outputs.map((output, i) => (
                           <li key={i} className="text-muted-foreground">
-                            {output}
+                            {output.text}
                           </li>
                         ))}
                       </ul>

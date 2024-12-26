@@ -22,7 +22,7 @@ interface FlowStep {
   flow_id: string;
   agent_id: string;
   order_index: number;
-  outputs?: string[];
+  outputs?: { text: string }[];
   requirements?: string;
 }
 
@@ -44,13 +44,19 @@ export const FlowStepItem = ({
   onRemove 
 }: FlowStepItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedOutputs, setEditedOutputs] = useState(step.outputs?.join('\n') || '');
+  const [editedOutputs, setEditedOutputs] = useState(
+    step.outputs?.map(o => o.text).join('\n') || ''
+  );
   const [editedRequirements, setEditedRequirements] = useState(step.requirements || '');
   const queryClient = useQueryClient();
 
   const handleSave = async () => {
     try {
-      const outputs = editedOutputs.split('\n').filter(output => output.trim());
+      const outputs = editedOutputs
+        .split('\n')
+        .filter(output => output.trim())
+        .map(text => ({ text }));
+
       const { error } = await supabase
         .from("flow_steps")
         .update({
@@ -128,7 +134,7 @@ export const FlowStepItem = ({
                 <ul className="list-disc pl-4 space-y-1">
                   {step.outputs?.map((output, i) => (
                     <li key={i} className="text-sm">
-                      {output}
+                      {output.text}
                     </li>
                   )) || <li>No outputs defined</li>}
                 </ul>
