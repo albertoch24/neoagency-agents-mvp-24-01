@@ -15,7 +15,7 @@ interface FlowStep {
   flow_id: string;
   agent_id: string;
   order_index: number;
-  outputs?: string[];
+  outputs?: { text: string }[];
   requirements?: string;
 }
 

@@ -10,7 +10,7 @@ import { FlowBuilder } from "@/components/flows/FlowBuilder";
 import { FlowHistory } from "@/components/flows/FlowHistory";
 import { FlowList } from "@/components/flows/FlowList";
 import { FlowPreview } from "@/components/flows/FlowPreview";
-import { Badge } from "@/components/ui/badge";  // Added import for Badge
+import { Badge } from "@/components/ui/badge";
 import {
   HoverCard,
   HoverCardContent,
@@ -27,7 +27,7 @@ interface FlowStep {
   id: string;
   agent_id: string;
   order_index: number;
-  outputs?: string[];
+  outputs?: { text: string }[];
   requirements?: string;
   agents: {
     name: string;
