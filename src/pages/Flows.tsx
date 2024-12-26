@@ -10,8 +10,10 @@ import { FlowBuilder } from "@/components/flows/FlowBuilder";
 import { FlowHistory } from "@/components/flows/FlowHistory";
 import { FlowList } from "@/components/flows/FlowList";
 import { FlowPreview } from "@/components/flows/FlowPreview";
+import { WorkflowLogs } from "@/components/flows/WorkflowLogs";
 import { Badge } from "@/components/ui/badge";
 import { Flow, FlowStep } from "@/types/flow";
+import { useAuth } from "@/components/auth/AuthProvider";
 import {
   HoverCard,
   HoverCardContent,
@@ -22,6 +24,24 @@ const Flows = () => {
   const [selectedFlow, setSelectedFlow] = useState<Flow | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const { user } = useAuth();
+
+  // Fetch user profile to check if admin
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const { data: flows, isLoading } = useQuery({
     queryKey: ["flows"],
@@ -55,7 +75,6 @@ const Flows = () => {
 
       if (error) throw error;
 
-      // Transform the data to match our FlowStep interface
       return (data || []).map(step => ({
         ...step,
         outputs: step.outputs?.map((output: any) => ({
@@ -114,67 +133,72 @@ const Flows = () => {
       </div>
 
       {flows && flows.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <h2 className="text-xl font-semibold">Available Flows</h2>
-              {applicationFlow && (
-                <Badge variant="secondary">
-                  Current Application Flow
-                </Badge>
-              )}
+        <>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <h2 className="text-xl font-semibold">Available Flows</h2>
+                {applicationFlow && (
+                  <Badge variant="secondary">
+                    Current Application Flow
+                  </Badge>
+                )}
+              </div>
+              <FlowList
+                flows={flows}
+                selectedFlow={selectedFlow}
+                onSelectFlow={setSelectedFlow}
+                onShowHistory={(flow) => {
+                  setSelectedFlow(flow);
+                  setShowHistory(true);
+                }}
+              />
             </div>
-            <FlowList
-              flows={flows}
-              selectedFlow={selectedFlow}
-              onSelectFlow={setSelectedFlow}
-              onShowHistory={(flow) => {
-                setSelectedFlow(flow);
-                setShowHistory(true);
-              }}
-            />
+
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Flow Preview</h2>
+              <Card>
+                <CardContent className="p-6">
+                  {selectedFlow ? (
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="text-lg font-semibold">{selectedFlow.name}</h3>
+                          {selectedFlow.description && (
+                            <p className="text-sm text-muted-foreground">{selectedFlow.description}</p>
+                          )}
+                        </div>
+                        <Button onClick={() => setSelectedFlow(null)}>
+                          Configure Flow
+                        </Button>
+                      </div>
+                      <FlowPreview flowSteps={flowSteps} />
+                    </div>
+                  ) : applicationFlow ? (
+                    <div className="text-center py-12">
+                      <ListChecks className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <h3 className="mt-4 text-lg font-semibold">Select "Application Workflow"</h3>
+                      <p className="text-muted-foreground">
+                        Click on the Application Workflow in the list to see the current project workflow
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <ListChecks className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <h3 className="mt-4 text-lg font-semibold">Select a Flow</h3>
+                      <p className="text-muted-foreground">
+                        Choose a flow from the left to see its preview
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Flow Preview</h2>
-            <Card>
-              <CardContent className="p-6">
-                {selectedFlow ? (
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-lg font-semibold">{selectedFlow.name}</h3>
-                        {selectedFlow.description && (
-                          <p className="text-sm text-muted-foreground">{selectedFlow.description}</p>
-                        )}
-                      </div>
-                      <Button onClick={() => setSelectedFlow(null)}>
-                        Configure Flow
-                      </Button>
-                    </div>
-                    <FlowPreview flowSteps={flowSteps} />
-                  </div>
-                ) : applicationFlow ? (
-                  <div className="text-center py-12">
-                    <ListChecks className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <h3 className="mt-4 text-lg font-semibold">Select "Application Workflow"</h3>
-                    <p className="text-muted-foreground">
-                      Click on the Application Workflow in the list to see the current project workflow
-                    </p>
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <ListChecks className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <h3 className="mt-4 text-lg font-semibold">Select a Flow</h3>
-                    <p className="text-muted-foreground">
-                      Choose a flow from the left to see its preview
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+          {/* Only show workflow logs for admin users */}
+          {profile?.is_admin && <WorkflowLogs />}
+        </>
       ) : (
         <div className="text-center py-12">
           <ListChecks className="mx-auto h-12 w-12 text-muted-foreground" />
