@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Loader2, Plus, History } from "lucide-react";
 import { FlowForm } from "@/components/flows/FlowForm";
 import { FlowBuilder } from "@/components/flows/FlowBuilder";
