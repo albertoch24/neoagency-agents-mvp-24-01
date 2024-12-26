@@ -1,31 +1,34 @@
 export interface Skill {
   id: string;
   name: string;
-  description: string;
-  type: "text" | "document";
+  description: string | null;
+  type: string;
   content: string;
-  createdAt: Date;
+  agent_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Agent {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   skills: Skill[];
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
 }
 
 export interface Flow {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   agents: {
     agentId: string;
     order: number;
   }[];
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Session {
@@ -36,8 +39,8 @@ export interface Session {
   outputs: {
     agentId: string;
     output: string;
-    timestamp: Date;
+    timestamp: string;
   }[];
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: string;
+  updated_at: string;
 }

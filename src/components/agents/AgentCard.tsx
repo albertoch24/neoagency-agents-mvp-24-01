@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, parseISO } from "date-fns";
 import { useAgentResponse } from "@/hooks/useAgentResponse";
 import { Loader2 } from "lucide-react";
 
@@ -92,7 +92,7 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
           </Button>
         </form>
         <div className="text-sm text-muted-foreground mt-2">
-          Updated {formatDistanceToNow(new Date(agent.updatedAt), { addSuffix: true })}
+          Updated {formatDistanceToNow(parseISO(agent.updated_at), { addSuffix: true })}
         </div>
       </CardContent>
     </Card>
