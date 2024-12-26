@@ -1,7 +1,13 @@
 import { Card } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Brief {
+  id: string;
   title: string;
   description: string;
   objectives: string;
@@ -16,12 +22,45 @@ interface BriefDisplayProps {
 }
 
 const BriefDisplay = ({ brief }: BriefDisplayProps) => {
+  const queryClient = useQueryClient();
+
+  const handleDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from("briefs")
+        .delete()
+        .eq("id", brief.id);
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ["briefs"] });
+      queryClient.invalidateQueries({ queryKey: ["brief"] });
+      toast.success("Brief deleted successfully");
+    } catch (error) {
+      console.error("Error deleting brief:", error);
+      toast.error("Failed to delete brief");
+    }
+  };
+
   return (
     <Card className="mb-8">
       <Accordion type="single" collapsible>
         <AccordionItem value="brief-details">
           <AccordionTrigger className="px-6 py-4">
-            <h2 className="text-xl font-semibold">{brief.title}</h2>
+            <div className="flex justify-between items-center w-full">
+              <h2 className="text-xl font-semibold">{brief.title}</h2>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete();
+                }}
+                className="ml-4"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </AccordionTrigger>
           <AccordionContent className="px-6 pb-4">
             <div className="space-y-4">
