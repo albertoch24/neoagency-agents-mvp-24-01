@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, Trash, Edit } from "lucide-react";
+import { ArrowRight, Trash, Edit, User } from "lucide-react";
 import { toast } from "sonner";
 import {
   AccordionContent,
@@ -75,6 +75,7 @@ export const FlowStepItem = ({
       <AccordionItem value={step.id} className="w-full">
         <AccordionTrigger>
           <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">{agent?.name}</span>
             <span className="text-sm text-muted-foreground">
               (Step {index + 1})

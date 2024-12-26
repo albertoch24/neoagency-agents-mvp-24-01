@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { AgentList } from "./AgentList";
 import { FlowStepList } from "./FlowStepList";
+import { ArrowLeft } from "lucide-react";
 
 interface Flow {
   id: string;
@@ -97,8 +98,12 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">{flow.name}</h2>
-        <Button onClick={onClose}>Close</Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h2 className="text-2xl font-bold">{flow.name}</h2>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4">

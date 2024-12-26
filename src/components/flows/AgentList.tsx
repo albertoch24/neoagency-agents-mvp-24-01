@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus } from "lucide-react";
+import { Plus, User } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface Agent {
@@ -27,7 +27,7 @@ export const AgentList = ({ agents, onAddAgent }: AgentListProps) => {
                 onClick={() => onAddAgent(agent.id)}
               >
                 <div className="flex items-start gap-2">
-                  <Plus className="h-4 w-4 mt-1 flex-shrink-0" />
+                  <User className="h-4 w-4 mt-1 flex-shrink-0" />
                   <div className="text-left">
                     <div className="font-medium">{agent.name}</div>
                     {agent.description && (
@@ -36,6 +36,7 @@ export const AgentList = ({ agents, onAddAgent }: AgentListProps) => {
                       </p>
                     )}
                   </div>
+                  <Plus className="h-4 w-4 ml-auto mt-1" />
                 </div>
               </Button>
             </CardContent>
