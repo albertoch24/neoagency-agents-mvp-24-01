@@ -1,16 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, History } from "lucide-react";
 import { WorkflowLogItem } from "./WorkflowLogItem";
 
 export const WorkflowLogs = () => {
-  const { data: logs, isLoading } = useQuery({
+  const { data: briefs, isLoading } = useQuery({
     queryKey: ["workflow-logs"],
     queryFn: async () => {
       console.log("Fetching workflow logs...");
-      const { data: briefs, error: briefsError } = await supabase
+      const { data, error } = await supabase
         .from("briefs")
         .select(`
           id,
@@ -37,50 +36,44 @@ export const WorkflowLogs = () => {
         `)
         .order("created_at", { ascending: false });
 
-      if (briefsError) {
-        console.error("Error fetching briefs:", briefsError);
-        throw briefsError;
+      if (error) {
+        console.error("Error fetching workflow logs:", error);
+        throw error;
       }
 
-      console.log("Fetched briefs:", briefs);
-      return briefs;
+      console.log("Fetched briefs:", data);
+      return data;
     },
   });
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className="flex justify-center items-center py-8">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
-    );
-  }
-
-  if (!logs || logs.length === 0) {
-    return (
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle>Workflow Activity Log</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center text-muted-foreground">
-            No workflow logs available yet
-          </div>
-        </CardContent>
-      </Card>
     );
   }
 
   return (
     <Card className="mt-8">
       <CardHeader>
-        <CardTitle>Workflow Activity Log</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <History className="h-5 w-5" />
+          Workflow Activity Log
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[600px] pr-4">
-          {logs.map((brief) => (
-            <WorkflowLogItem key={brief.id} brief={brief} />
-          ))}
-        </ScrollArea>
+        {briefs && briefs.length > 0 ? (
+          <div className="space-y-8">
+            {briefs.map((brief: any) => (
+              <WorkflowLogItem key={brief.id} brief={brief} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-muted-foreground py-8">
+            No workflow logs available
+          </p>
+        )}
       </CardContent>
     </Card>
   );

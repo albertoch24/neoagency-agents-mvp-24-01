@@ -1,22 +1,36 @@
 import { Badge } from "@/components/ui/badge";
+import { Brain, Code, Pencil } from "lucide-react";
 
 interface AgentSkillsProps {
-  skills?: { name: string; type: string }[];
+  skills?: any[];
 }
 
 export const AgentSkills = ({ skills }: AgentSkillsProps) => {
-  if (!skills?.length) return null;
+  if (!skills || skills.length === 0) return null;
+
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'thinking':
+        return <Brain className="h-3 w-3" />;
+      case 'coding':
+        return <Code className="h-3 w-3" />;
+      default:
+        return <Pencil className="h-3 w-3" />;
+    }
+  };
 
   return (
-    <div className="mb-2">
-      <p className="text-sm text-muted-foreground">Skills used:</p>
-      <div className="flex flex-wrap gap-1 mt-1">
-        {skills.map((skill) => (
-          <Badge key={skill.name} variant="secondary">
-            {skill.name}
-          </Badge>
-        ))}
-      </div>
+    <div className="flex flex-wrap gap-2">
+      {skills.map((skill: any) => (
+        <Badge 
+          key={skill.name} 
+          variant="secondary"
+          className="flex items-center gap-1"
+        >
+          {getIcon(skill.type)}
+          {skill.name}
+        </Badge>
+      ))}
     </div>
   );
 };
