@@ -51,42 +51,43 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
 
       console.log("Brief created/updated successfully:", brief);
 
-      if (!initialData) {
-        setIsProcessing(true);
-        const toastId = toast.loading(
-          "Starting workflow process... This may take around 2 minutes. Rome wasn't built in a day 😃",
-          { duration: Infinity }
-        );
+      setIsProcessing(true);
+      const toastId = toast.loading(
+        "Starting workflow process... This may take around 2 minutes. Rome wasn't built in a day 😃",
+        { duration: Infinity }
+      );
 
-        console.log("Invoking process-workflow-stage function for brief:", brief.id);
-        
-        const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
-          "process-workflow-stage",
-          {
-            body: { briefId: brief.id, stageId: "kickoff" },
-          }
-        );
-
-        console.log("Workflow function response:", { data: workflowData, error: workflowError });
-
-        if (workflowError) {
-          console.error("Error starting workflow:", workflowError);
-          toast.dismiss(toastId);
-          toast.error("Brief created but workflow failed to start. Please try again or contact support.");
-          setIsProcessing(false);
-          return;
+      console.log("Invoking process-workflow-stage function for brief:", brief.id);
+      
+      const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
+        "process-workflow-stage",
+        {
+          body: { briefId: brief.id, stageId: brief.current_stage || "kickoff" },
         }
+      );
 
+      console.log("Workflow function response:", { data: workflowData, error: workflowError });
+
+      if (workflowError) {
+        console.error("Error starting workflow:", workflowError);
         toast.dismiss(toastId);
-        toast.success("Brief submitted and workflow started successfully!");
-        navigate("/");
+        toast.error("Brief saved but workflow failed to start. Please try again or contact support.");
+        setIsProcessing(false);
+        return;
       }
 
+      toast.dismiss(toastId);
+      toast.success(initialData ? "Brief updated and workflow restarted!" : "Brief submitted and workflow started successfully!");
+      
       queryClient.invalidateQueries({ queryKey: ["briefs"] });
       queryClient.invalidateQueries({ queryKey: ["brief"] });
 
       setIsProcessing(false);
       onSubmitSuccess?.();
+      
+      if (!initialData) {
+        navigate("/");
+      }
     } catch (error) {
       console.error("Error submitting brief:", error);
       toast.error("Error submitting brief. Please try again.");
