@@ -10,6 +10,7 @@ export const WorkflowLogs = () => {
   const { data: logs, isLoading } = useQuery({
     queryKey: ["workflow-logs"],
     queryFn: async () => {
+      console.log("Fetching workflow logs...");
       const { data: briefs, error: briefsError } = await supabase
         .from("briefs")
         .select(`
@@ -25,7 +26,8 @@ export const WorkflowLogs = () => {
             stage_id,
             content,
             created_at,
-            agents!workflow_conversations_agent_id_fkey (
+            agent_id,
+            agents (
               name,
               skills (
                 name,
@@ -36,7 +38,12 @@ export const WorkflowLogs = () => {
         `)
         .order("created_at", { ascending: false });
 
-      if (briefsError) throw briefsError;
+      if (briefsError) {
+        console.error("Error fetching briefs:", briefsError);
+        throw briefsError;
+      }
+
+      console.log("Fetched briefs:", briefs);
       return briefs;
     },
   });
@@ -49,6 +56,21 @@ export const WorkflowLogs = () => {
     );
   }
 
+  if (!logs || logs.length === 0) {
+    return (
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>Workflow Activity Log</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center text-muted-foreground">
+            No workflow logs available yet
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="mt-8">
       <CardHeader>
@@ -56,8 +78,7 @@ export const WorkflowLogs = () => {
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[600px] pr-4">
-          {logs?.map((brief) => {
-            // Group conversations by stage
+          {logs.map((brief) => {
             const conversationsByStage = brief.workflow_conversations?.reduce((acc: any, conv: any) => {
               if (!acc[conv.stage_id]) {
                 acc[conv.stage_id] = [];
@@ -80,7 +101,6 @@ export const WorkflowLogs = () => {
                     <div key={stage} className="pl-4 border-l-2">
                       <h4 className="font-medium mb-2">Stage: {stage}</h4>
                       
-                      {/* Display agents in sequence */}
                       <div className="space-y-4">
                         {conversations.map((conv: any, index: number) => (
                           <div key={conv.created_at} className="pl-4">
@@ -92,7 +112,6 @@ export const WorkflowLogs = () => {
                               <Badge variant="outline">Step {index + 1}</Badge>
                             </div>
                             
-                            {/* Display agent skills */}
                             {conv.agents?.skills && conv.agents.skills.length > 0 && (
                               <div className="mb-2">
                                 <p className="text-sm text-muted-foreground">Skills used:</p>
@@ -109,7 +128,6 @@ export const WorkflowLogs = () => {
                         ))}
                       </div>
 
-                      {/* Display outputs for this stage */}
                       {brief.brief_outputs?.filter((output: any) => output.stage === stage).map((output: any) => (
                         <div key={output.created_at} className="mt-4">
                           <p className="text-sm font-medium">Required Output:</p>
