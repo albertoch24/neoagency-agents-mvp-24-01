@@ -15,9 +15,22 @@ interface WorkflowDisplayProps {
   briefId?: string;
 }
 
+interface BriefOutput {
+  id: string;
+  brief_id: string;
+  stage: string;
+  content: {
+    agent_id: string;
+    agent_name: string;
+    response: string;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
 const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDisplayProps) => {
   // Fetch brief outputs for the current stage
-  const { data: stageOutputs } = useQuery({
+  const { data: stageOutputs } = useQuery<BriefOutput[]>({
     queryKey: ["brief-outputs", briefId, currentStage],
     queryFn: async () => {
       if (!briefId) return [];
