@@ -4,6 +4,9 @@ import { RoleList } from "@/components/workflow/RoleList";
 import { OutputList } from "@/components/workflow/OutputList";
 import { WorkflowConversation } from "@/components/workflow/WorkflowConversation";
 import { WorkflowStage } from "@/types/workflow";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface WorkflowDisplayProps {
   currentStage: string;
@@ -12,6 +15,25 @@ interface WorkflowDisplayProps {
 }
 
 const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDisplayProps) => {
+  useEffect(() => {
+    const processStage = async () => {
+      if (!briefId) return;
+
+      try {
+        const { error } = await supabase.functions.invoke('process-workflow-stage', {
+          body: { briefId, stageId: currentStage }
+        });
+
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error processing stage:', error);
+        toast.error('Failed to process workflow stage');
+      }
+    };
+
+    processStage();
+  }, [currentStage, briefId]);
+
   return (
     <div className="space-y-8">
       <WorkflowStages currentStage={currentStage} onStageSelect={onStageSelect} />
