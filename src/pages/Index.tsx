@@ -20,9 +20,13 @@ const Index = () => {
         .eq("user_id", user?.id)
         .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching brief:", error);
+        return null;
+      }
+
       return data;
     },
     enabled: !!user,
