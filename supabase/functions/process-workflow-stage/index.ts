@@ -8,7 +8,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -43,6 +42,30 @@ serve(async (req) => {
       throw new Error('Brief not found')
     }
 
+    // Clear previous outputs for this stage when reprocessing
+    if (stageId !== 'kickoff') {
+      console.log('Clearing previous outputs for stage:', stageId)
+      const { error: deleteError } = await supabaseClient
+        .from('brief_outputs')
+        .delete()
+        .eq('brief_id', briefId)
+        .eq('stage', stageId)
+
+      if (deleteError) {
+        console.error('Error clearing previous outputs:', deleteError)
+      }
+
+      const { error: deleteConvError } = await supabaseClient
+        .from('workflow_conversations')
+        .delete()
+        .eq('brief_id', briefId)
+        .eq('stage_id', stageId)
+
+      if (deleteConvError) {
+        console.error('Error clearing previous conversations:', deleteConvError)
+      }
+    }
+
     // Fetch agents for this stage
     const { data: agents, error: agentsError } = await supabaseClient
       .from('agents')
@@ -58,7 +81,6 @@ serve(async (req) => {
 
     if (!agents || agents.length === 0) {
       console.log('No agents found, creating default response')
-      // Create a default output if no agents are available
       await supabaseClient
         .from('brief_outputs')
         .insert({
@@ -77,11 +99,6 @@ serve(async (req) => {
       )
     }
 
-    // Initialize OpenAI
-    const openai = new OpenAI({
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
-    })
-
     console.log('Processing responses for', agents.length, 'agents')
 
     // Process each agent's response
@@ -98,7 +115,7 @@ serve(async (req) => {
           `Stage ${output.stage}: ${JSON.stringify(output.content)}`
         ).join('\n') || ''
 
-        // Prepare agent prompt
+        // Prepare agent prompt with updated information
         const prompt = `You are ${agent.name}, a ${agent.description} working in an agency.
 Your skills include:
 ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
@@ -114,7 +131,9 @@ Timeline: ${brief.timeline}
 Previous stages output:
 ${context}
 
+This is ${stageId === brief.current_stage ? 'an updated version of the brief' : 'a new stage'}.
 Based on your role and skills, analyze the brief and previous work, then provide your professional input for the current stage (${stageId}).
+If this is an updated brief, focus on what has changed and how it affects your recommendations.
 Respond in a conversational way, as if you're speaking in a team meeting.`
 
         console.log('Calling OpenAI for agent:', agent.name)
@@ -160,7 +179,6 @@ Respond in a conversational way, as if you're speaking in a team meeting.`
         console.log('Stored response for agent:', agent.name)
       } catch (error) {
         console.error('Error processing agent:', agent.name, error)
-        // Continue with other agents even if one fails
       }
     }
 
