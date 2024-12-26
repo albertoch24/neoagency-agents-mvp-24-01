@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Plus, History } from "lucide-react";
+import { Loader2, Plus, History, ListChecks } from "lucide-react";
 import { FlowForm } from "@/components/flows/FlowForm";
 import { FlowBuilder } from "@/components/flows/FlowBuilder";
 import { FlowHistory } from "@/components/flows/FlowHistory";
@@ -46,7 +46,10 @@ const Flows = () => {
   return (
     <div className="container py-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Flow Builder</h1>
+        <div className="flex items-center gap-2">
+          <ListChecks className="h-6 w-6" />
+          <h1 className="text-3xl font-bold tracking-tight">Flow Builder</h1>
+        </div>
         <Dialog open={isCreating} onOpenChange={setIsCreating}>
           <DialogTrigger asChild>
             <Button>
@@ -60,38 +63,51 @@ const Flows = () => {
         </Dialog>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {flows?.map((flow) => (
-          <Card key={flow.id} className="relative">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <CardTitle>{flow.name}</CardTitle>
+      {flows && flows.length > 0 ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {flows.map((flow) => (
+            <Card key={flow.id} className="relative">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <CardTitle className="flex items-center gap-2">
+                    <ListChecks className="h-4 w-4" />
+                    {flow.name}
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setSelectedFlow(flow);
+                      setShowHistory(true);
+                    }}
+                  >
+                    <History className="h-4 w-4" />
+                  </Button>
+                </div>
+                {flow.description && (
+                  <p className="text-sm text-muted-foreground">{flow.description}</p>
+                )}
+              </CardHeader>
+              <CardContent>
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    setSelectedFlow(flow);
-                    setShowHistory(true);
-                  }}
+                  className="w-full"
+                  onClick={() => setSelectedFlow(flow)}
                 >
-                  <History className="h-4 w-4" />
+                  Configure Flow
                 </Button>
-              </div>
-              {flow.description && (
-                <p className="text-sm text-muted-foreground">{flow.description}</p>
-              )}
-            </CardHeader>
-            <CardContent>
-              <Button
-                className="w-full"
-                onClick={() => setSelectedFlow(flow)}
-              >
-                Configure Flow
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <ListChecks className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-semibold">No Flows Created</h3>
+          <p className="text-muted-foreground">
+            Create your first flow to get started
+          </p>
+        </div>
+      )}
 
       {selectedFlow && !showHistory && (
         <Dialog open={true} onOpenChange={() => setSelectedFlow(null)}>

@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { AgentList } from "./AgentList";
 import { FlowStepList } from "./FlowStepList";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, ListChecks } from "lucide-react";
 
 interface Flow {
   id: string;
@@ -129,7 +129,10 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
           <Button variant="ghost" size="icon" onClick={onClose}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h2 className="text-2xl font-bold">{flow.name}</h2>
+          <div className="flex items-center gap-2">
+            <ListChecks className="h-5 w-5" />
+            <h2 className="text-2xl font-bold">{flow.name}</h2>
+          </div>
         </div>
         <Button 
           variant="destructive" 
@@ -144,14 +147,20 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
       <div className="grid grid-cols-3 gap-4">
         <Card className="col-span-1">
           <CardContent className="p-4">
-            <h3 className="font-semibold mb-4">Available Agents</h3>
+            <div className="flex items-center gap-2 mb-4">
+              <ListChecks className="h-4 w-4" />
+              <h3 className="font-semibold">Available Agents</h3>
+            </div>
             <AgentList agents={agents} onAddAgent={handleAddStep} />
           </CardContent>
         </Card>
 
         <Card className="col-span-2">
           <CardContent className="p-4">
-            <h3 className="font-semibold mb-4">Flow Steps</h3>
+            <div className="flex items-center gap-2 mb-4">
+              <ListChecks className="h-4 w-4" />
+              <h3 className="font-semibold">Flow Steps</h3>
+            </div>
             <FlowStepList steps={steps} agents={agents} flowId={flow.id} />
           </CardContent>
         </Card>
