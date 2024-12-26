@@ -369,7 +369,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      delete_agent_with_relations: {
+        Args: {
+          agent_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

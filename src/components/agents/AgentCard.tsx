@@ -54,7 +54,7 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
     try {
       // Start a transaction to ensure all operations succeed or fail together
       const { error: transactionError } = await supabase.rpc('delete_agent_with_relations', {
-        agent_id: agent.id
+        agent_id: agent.id as string
       });
 
       if (transactionError) {
