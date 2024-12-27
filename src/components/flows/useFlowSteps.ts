@@ -7,6 +7,7 @@ import { getDefaultSteps } from "./defaultSteps";
 
 export const useFlowSteps = (flow: Flow) => {
   const [steps, setSteps] = useState<FlowStep[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: flowSteps } = useQuery({
@@ -59,6 +60,7 @@ export const useFlowSteps = (flow: Flow) => {
 
   const handleSaveSteps = async () => {
     try {
+      setIsSaving(true);
       console.log('Saving current steps state:', steps);
       
       // Validate agent_ids are valid UUIDs
@@ -108,13 +110,16 @@ export const useFlowSteps = (flow: Flow) => {
     } catch (error) {
       console.error("Error in handleSaveSteps:", error);
       toast.error("Failed to save steps");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleRemoveStep = async (stepId: string) => {
     try {
       // Update local state first
-      setSteps(prevSteps => prevSteps.filter(step => step.id !== stepId));
+      const updatedSteps = steps.filter(step => step.id !== stepId);
+      setSteps(updatedSteps);
       toast.success("Step removed successfully");
     } catch (error) {
       console.error("Error in handleRemoveStep:", error);
@@ -176,6 +181,7 @@ export const useFlowSteps = (flow: Flow) => {
     handleAddStep,
     handleSaveSteps,
     handleRemoveStep,
-    setSteps
+    setSteps,
+    isSaving
   };
 };

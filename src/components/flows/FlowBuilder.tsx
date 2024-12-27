@@ -8,7 +8,7 @@ import { FlowBuilderHeader } from "./FlowBuilderHeader";
 import { FlowBuilderSidebar } from "./FlowBuilderSidebar";
 import { FlowBuilderContent } from "./FlowBuilderContent";
 import { Button } from "@/components/ui/button";
-import { Save } from "lucide-react";
+import { Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -18,7 +18,7 @@ interface FlowBuilderProps {
 }
 
 export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
-  const { steps, handleAddStep, handleSaveSteps, handleRemoveStep } = useFlowSteps(flow);
+  const { steps, handleAddStep, handleSaveSteps, handleRemoveStep, isSaving } = useFlowSteps(flow);
   const queryClient = useQueryClient();
 
   const { data: agents } = useQuery({
@@ -70,9 +70,14 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
           <Button 
             onClick={handleSaveSteps}
             className="gap-2"
+            disabled={isSaving}
           >
-            <Save className="h-4 w-4" />
-            Save Steps
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {isSaving ? "Saving..." : "Save Steps"}
           </Button>
         </div>
         <div className="grid grid-cols-3 gap-4">
