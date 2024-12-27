@@ -45,7 +45,6 @@ export const useFlowSteps = (flow: Flow) => {
 
   useEffect(() => {
     if (flowSteps) {
-      console.log('Setting steps from flowSteps:', flowSteps);
       setSteps(flowSteps);
     }
   }, [flowSteps]);
@@ -66,33 +65,35 @@ export const useFlowSteps = (flow: Flow) => {
         return;
       }
 
-      // Get the current steps from the database to ensure we have the latest state
-      const { data: currentSteps, error: stepsError } = await supabase
+      // Fetch the latest state of steps
+      const { data: latestSteps, error: fetchError } = await supabase
         .from("flow_steps")
-        .select("*")
+        .select("order_index")
         .eq("flow_id", flow.id)
-        .order("order_index", { ascending: true });
+        .order("order_index", { ascending: false })
+        .limit(1);
 
-      if (stepsError) {
-        console.error("Error fetching current steps:", stepsError);
+      if (fetchError) {
+        console.error("Error fetching latest steps:", fetchError);
         toast.error("Failed to add step");
         return;
       }
 
-      const newStepIndex = currentSteps?.length || 0;
-      console.log('Adding new step with index:', newStepIndex);
+      // Calculate the new order index
+      const nextOrderIndex = latestSteps && latestSteps.length > 0 
+        ? latestSteps[0].order_index + 1 
+        : 0;
 
-      const newStep = {
-        flow_id: flow.id,
-        agent_id: agentId,
-        order_index: newStepIndex,
-        outputs: [],
-        requirements: "",
-      };
-
-      const { data, error } = await supabase
+      // Create the new step
+      const { data: newStepData, error: insertError } = await supabase
         .from("flow_steps")
-        .insert([newStep])
+        .insert([{
+          flow_id: flow.id,
+          agent_id: agentId,
+          order_index: nextOrderIndex,
+          outputs: [],
+          requirements: "",
+        }])
         .select(`
           *,
           agents (
@@ -102,22 +103,22 @@ export const useFlowSteps = (flow: Flow) => {
         `)
         .single();
 
-      if (error) {
-        console.error("Error adding step:", error);
+      if (insertError || !newStepData) {
+        console.error("Error adding step:", insertError);
         toast.error("Failed to add step");
         return;
       }
 
-      // Transform the data to match FlowStep type
+      // Transform the new step data
       const transformedStep: FlowStep = {
-        ...data,
+        ...newStepData,
         outputs: [],
       };
 
-      // Update local state with the current steps plus the new one
+      // Update local state
       setSteps(prevSteps => [...prevSteps, transformedStep]);
       
-      // Also invalidate the query to ensure consistency
+      // Invalidate the query to ensure consistency
       await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
       
       toast.success("Step added successfully");
