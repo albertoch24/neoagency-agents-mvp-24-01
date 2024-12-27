@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Agents from "./pages/Agents";
 import Flows from "./pages/Flows";
 import Auth from "./pages/Auth";
+import Stages from "./pages/Stages";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,16 @@ const App = () => (
                 <RequireAuth requireAdmin>
                   <AppLayout>
                     <Flows />
+                  </AppLayout>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/stages"
+              element={
+                <RequireAuth requireAdmin>
+                  <AppLayout>
+                    <Stages />
                   </AppLayout>
                 </RequireAuth>
               }
