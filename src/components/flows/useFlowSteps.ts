@@ -71,6 +71,9 @@ export const useFlowSteps = (flow: Flow) => {
         return;
       }
 
+      // Optimistically update the cache
+      queryClient.setQueryData(["flow-steps", flow.id], steps);
+
       // First, delete all existing steps for this flow
       const { error: deleteError } = await supabase
         .from("flow_steps")
@@ -80,6 +83,8 @@ export const useFlowSteps = (flow: Flow) => {
       if (deleteError) {
         console.error("Error deleting existing steps:", deleteError);
         toast.error("Failed to save steps");
+        // Revert cache on error
+        queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
         return;
       }
 
@@ -101,15 +106,18 @@ export const useFlowSteps = (flow: Flow) => {
         if (insertError) {
           console.error("Error inserting steps:", insertError);
           toast.error("Failed to save steps");
+          // Revert cache on error
+          queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
           return;
         }
       }
 
-      await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
       toast.success("Steps saved successfully");
     } catch (error) {
       console.error("Error in handleSaveSteps:", error);
       toast.error("Failed to save steps");
+      // Revert cache on error
+      queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
     } finally {
       setIsSaving(false);
     }
@@ -117,13 +125,17 @@ export const useFlowSteps = (flow: Flow) => {
 
   const handleRemoveStep = async (stepId: string) => {
     try {
-      // Update local state first
+      // Update local state and cache optimistically
       const updatedSteps = steps.filter(step => step.id !== stepId);
       setSteps(updatedSteps);
+      queryClient.setQueryData(["flow-steps", flow.id], updatedSteps);
+      
       toast.success("Step removed successfully");
     } catch (error) {
       console.error("Error in handleRemoveStep:", error);
       toast.error("Failed to remove step");
+      // Revert on error
+      queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
     }
   };
 
@@ -161,12 +173,17 @@ export const useFlowSteps = (flow: Flow) => {
         requirements: "",
       };
 
-      // Update local state first
-      setSteps(prevSteps => [...prevSteps, newStep]);
+      // Update local state and cache optimistically
+      const updatedSteps = [...steps, newStep];
+      setSteps(updatedSteps);
+      queryClient.setQueryData(["flow-steps", flow.id], updatedSteps);
+      
       toast.success("Step added successfully");
     } catch (error) {
       console.error("Error in handleAddStep:", error);
       toast.error("Failed to add step");
+      // Revert on error
+      queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
     }
   };
 
