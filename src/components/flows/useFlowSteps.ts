@@ -12,8 +12,13 @@ export const useFlowSteps = (flow: Flow) => {
   const { data: flowSteps } = useQuery({
     queryKey: ["flow-steps", flow.id],
     queryFn: async () => {
+      console.log('Fetching steps for flow:', flow.id);
+      
       if (flow.name === "Application Workflow") {
-        return await getDefaultSteps(flow.id);
+        console.log('Getting default steps for Application Workflow');
+        const defaultSteps = await getDefaultSteps(flow.id);
+        console.log('Default steps:', defaultSteps);
+        return defaultSteps;
       }
 
       const { data, error } = await supabase
@@ -34,6 +39,8 @@ export const useFlowSteps = (flow: Flow) => {
         throw error;
       }
       
+      console.log('Fetched flow steps:', data);
+      
       return (data || []).map(step => ({
         ...step,
         outputs: step.outputs?.map((output: any) => ({
@@ -45,6 +52,7 @@ export const useFlowSteps = (flow: Flow) => {
 
   useEffect(() => {
     if (flowSteps) {
+      console.log('Setting steps:', flowSteps);
       setSteps(flowSteps);
     }
   }, [flowSteps]);
@@ -123,6 +131,8 @@ export const useFlowSteps = (flow: Flow) => {
         toast.error("Failed to add step: Agent not found or is paused");
         return;
       }
+
+      console.log('Adding step for agent:', agent);
 
       // Create the new step with the current number of steps as the order_index
       const newStep: FlowStep = {
