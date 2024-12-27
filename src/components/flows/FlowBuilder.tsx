@@ -7,6 +7,9 @@ import { useEffect } from "react";
 import { FlowBuilderHeader } from "./FlowBuilderHeader";
 import { FlowBuilderSidebar } from "./FlowBuilderSidebar";
 import { FlowBuilderContent } from "./FlowBuilderContent";
+import { Button } from "@/components/ui/button";
+import { Save } from "lucide-react";
+import { toast } from "sonner";
 
 interface FlowBuilderProps {
   flow: Flow;
@@ -14,7 +17,7 @@ interface FlowBuilderProps {
 }
 
 export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
-  const { steps, handleAddStep } = useFlowSteps(flow);
+  const { steps, handleAddStep, handleSaveSteps } = useFlowSteps(flow);
   const queryClient = useQueryClient();
 
   const { data: agents } = useQuery({
@@ -60,7 +63,16 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
 
   return (
     <div className="space-y-4">
-      <FlowBuilderHeader flow={flow} onClose={onClose} />
+      <div className="flex justify-between items-center">
+        <FlowBuilderHeader flow={flow} onClose={onClose} />
+        <Button 
+          onClick={handleSaveSteps}
+          className="gap-2"
+        >
+          <Save className="h-4 w-4" />
+          Save Steps
+        </Button>
+      </div>
       <div className="grid grid-cols-3 gap-4">
         <FlowBuilderSidebar 
           agents={agents || []} 

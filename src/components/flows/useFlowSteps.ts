@@ -49,6 +49,51 @@ export const useFlowSteps = (flow: Flow) => {
     }
   }, [flowSteps]);
 
+  const handleSaveSteps = async () => {
+    try {
+      console.log('Saving current steps state:', steps);
+      
+      // First, delete all existing steps for this flow
+      const { error: deleteError } = await supabase
+        .from("flow_steps")
+        .delete()
+        .eq("flow_id", flow.id);
+
+      if (deleteError) {
+        console.error("Error deleting existing steps:", deleteError);
+        toast.error("Failed to save steps");
+        return;
+      }
+
+      // Then insert the current steps with their correct order
+      if (steps.length > 0) {
+        const { error: insertError } = await supabase
+          .from("flow_steps")
+          .insert(
+            steps.map((step, index) => ({
+              flow_id: flow.id,
+              agent_id: step.agent_id,
+              order_index: index,
+              outputs: step.outputs || [],
+              requirements: step.requirements || "",
+            }))
+          );
+
+        if (insertError) {
+          console.error("Error inserting steps:", insertError);
+          toast.error("Failed to save steps");
+          return;
+        }
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
+      toast.success("Steps saved successfully");
+    } catch (error) {
+      console.error("Error in handleSaveSteps:", error);
+      toast.error("Failed to save steps");
+    }
+  };
+
   const handleAddStep = async (agentId: string) => {
     try {
       // First check if the agent exists and is not paused
@@ -65,56 +110,18 @@ export const useFlowSteps = (flow: Flow) => {
         return;
       }
 
-      // Get the current highest order_index
-      const { data: maxOrderStep, error: maxOrderError } = await supabase
-        .from("flow_steps")
-        .select("order_index")
-        .eq("flow_id", flow.id)
-        .order("order_index", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (maxOrderError && maxOrderError.code !== 'PGRST116') { // PGRST116 means no rows returned
-        console.error("Error getting max order:", maxOrderError);
-        toast.error("Failed to add step");
-        return;
-      }
-
-      const nextOrderIndex = maxOrderStep ? maxOrderStep.order_index + 1 : 0;
-
-      // Create the new step
-      const { data: newStep, error: insertError } = await supabase
-        .from("flow_steps")
-        .insert([{
-          flow_id: flow.id,
-          agent_id: agentId,
-          order_index: nextOrderIndex,
-          outputs: [],
-          requirements: "",
-        }])
-        .select(`
-          *,
-          agents (
-            name,
-            description
-          )
-        `)
-        .single();
-
-      if (insertError || !newStep) {
-        console.error("Error adding step:", insertError);
-        toast.error("Failed to add step");
-        return;
-      }
-
-      // Transform and add the new step
-      const transformedStep: FlowStep = {
-        ...newStep,
+      // Create the new step with the current number of steps as the order_index
+      const newStep: FlowStep = {
+        id: crypto.randomUUID(),
+        flow_id: flow.id,
+        agent_id: agentId,
+        order_index: steps.length,
         outputs: [],
+        requirements: "",
       };
 
-      setSteps(prevSteps => [...prevSteps, transformedStep]);
-      await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
+      // Update local state first
+      setSteps(prevSteps => [...prevSteps, newStep]);
       toast.success("Step added successfully");
     } catch (error) {
       console.error("Error in handleAddStep:", error);
@@ -125,6 +132,7 @@ export const useFlowSteps = (flow: Flow) => {
   return {
     steps,
     handleAddStep,
+    handleSaveSteps,
     setSteps
   };
 };
