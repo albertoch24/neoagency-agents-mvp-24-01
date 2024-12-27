@@ -77,7 +77,7 @@ export const AgentCardHeader: React.FC<AgentCardHeaderProps> = ({
           >
             <Trash2 className="h-4 w-4" />
           </Button>
-          <Badge variant="secondary">{agent.skills.length} skills</Badge>
+          <Badge variant="secondary">{agent.skills?.length || 0} skills</Badge>
         </div>
       </div>
       {isEditing ? (
@@ -90,7 +90,7 @@ export const AgentCardHeader: React.FC<AgentCardHeaderProps> = ({
       ) : (
         <CardDescription>{agent.description}</CardDescription>
       )}
-      {agent.skills.length > 0 && (
+      {agent.skills && agent.skills.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-2">
           {agent.skills.map((skill) => (
             <Badge key={skill.id} variant="outline">
