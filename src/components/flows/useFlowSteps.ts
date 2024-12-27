@@ -85,7 +85,10 @@ export const useFlowSteps = (flow: Flow) => {
         return;
       }
 
-      // Immediately invalidate the query to refresh the data
+      // Update local state immediately
+      setSteps(prevSteps => [...prevSteps, data]);
+      
+      // Also invalidate the query to ensure consistency
       await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
       
       toast.success("Step added successfully");
@@ -97,6 +100,7 @@ export const useFlowSteps = (flow: Flow) => {
 
   return {
     steps,
-    handleAddStep
+    handleAddStep,
+    setSteps
   };
 };

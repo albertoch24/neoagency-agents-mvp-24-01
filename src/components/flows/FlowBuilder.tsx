@@ -9,6 +9,7 @@ import { ArrowLeft, Trash2, ListChecks } from "lucide-react";
 import { Flow } from "@/types/flow";
 import { useFlowSteps } from "./useFlowSteps";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 interface FlowBuilderProps {
   flow: Flow;
@@ -16,7 +17,7 @@ interface FlowBuilderProps {
 }
 
 export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
-  const { steps, handleAddStep } = useFlowSteps(flow);
+  const { steps, handleAddStep, setSteps } = useFlowSteps(flow);
   const queryClient = useQueryClient();
 
   const { data: agents } = useQuery({
@@ -31,6 +32,30 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
       return data;
     },
   });
+
+  // Subscribe to real-time changes on flow_steps
+  useEffect(() => {
+    const channel = supabase
+      .channel('flow_steps_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'flow_steps',
+          filter: `flow_id=eq.${flow.id}`
+        },
+        async () => {
+          // Refetch the steps when changes occur
+          await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [flow.id, queryClient]);
 
   const handleDeleteFlow = async () => {
     try {
