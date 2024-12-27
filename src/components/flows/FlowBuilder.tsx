@@ -10,6 +10,7 @@ import { FlowBuilderContent } from "./FlowBuilderContent";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface FlowBuilderProps {
   flow: Flow;
@@ -62,28 +63,30 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
   }, [flow.id, queryClient]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <FlowBuilderHeader flow={flow} onClose={onClose} />
-        <Button 
-          onClick={handleSaveSteps}
-          className="gap-2"
-        >
-          <Save className="h-4 w-4" />
-          Save Steps
-        </Button>
+    <ScrollArea className="h-[80vh]">
+      <div className="space-y-4 p-4">
+        <div className="flex justify-between items-center">
+          <FlowBuilderHeader flow={flow} onClose={onClose} />
+          <Button 
+            onClick={handleSaveSteps}
+            className="gap-2"
+          >
+            <Save className="h-4 w-4" />
+            Save Steps
+          </Button>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <FlowBuilderSidebar 
+            agents={agents || []} 
+            onAddAgent={handleAddStep} 
+          />
+          <FlowBuilderContent 
+            steps={steps} 
+            agents={agents || []} 
+            flowId={flow.id} 
+          />
+        </div>
       </div>
-      <div className="grid grid-cols-3 gap-4">
-        <FlowBuilderSidebar 
-          agents={agents || []} 
-          onAddAgent={handleAddStep} 
-        />
-        <FlowBuilderContent 
-          steps={steps} 
-          agents={agents || []} 
-          flowId={flow.id} 
-        />
-      </div>
-    </div>
+    </ScrollArea>
   );
 };
