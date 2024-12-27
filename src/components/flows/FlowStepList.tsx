@@ -22,24 +22,30 @@ export const FlowStepList = ({ steps, agents, flowId }: FlowStepListProps) => {
 
   const handleRemoveStep = async (stepId: string) => {
     try {
-      // First delete the specific step
+      console.log('Removing step:', stepId);
+      
+      // Delete the specific step
       const { error: deleteError } = await supabase
         .from("flow_steps")
         .delete()
         .eq("id", stepId);
 
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error("Error deleting step:", deleteError);
+        toast.error("Failed to delete step");
+        return;
+      }
 
-      // Get the remaining steps and update their order
+      // Get remaining steps after deletion
       const remainingSteps = steps.filter(step => step.id !== stepId);
       
-      // Update each remaining step's order sequentially
+      // Update order_index for remaining steps
       for (let i = 0; i < remainingSteps.length; i++) {
         const { error: updateError } = await supabase
           .from("flow_steps")
           .update({ order_index: i })
           .eq("id", remainingSteps[i].id);
-          
+        
         if (updateError) {
           console.error("Error updating step order:", updateError);
           toast.error("Failed to update step order");

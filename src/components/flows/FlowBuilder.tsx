@@ -32,6 +32,8 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
 
   // Subscribe to real-time changes on flow_steps
   useEffect(() => {
+    console.log('Setting up real-time subscription for flow steps');
+    
     const channel = supabase
       .channel('flow_steps_changes')
       .on(
@@ -51,6 +53,7 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
       .subscribe();
 
     return () => {
+      console.log('Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
   }, [flow.id, queryClient]);
