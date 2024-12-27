@@ -10,6 +10,7 @@ interface Stage {
   name: string;
   description: string | null;
   order_index: number;
+  user_id: string;
 }
 
 interface StageBuilderProps {
@@ -31,14 +32,21 @@ export const StageBuilder = ({ stages }: StageBuilderProps) => {
     const otherStage = stages[newIndex];
 
     try {
-      const { error } = await supabase
+      // Update current stage
+      const { error: error1 } = await supabase
         .from("stages")
-        .upsert([
-          { ...currentStage, order_index: newIndex },
-          { ...otherStage, order_index: currentIndex },
-        ]);
+        .update({ order_index: newIndex })
+        .eq("id", currentStage.id);
 
-      if (error) throw error;
+      if (error1) throw error1;
+
+      // Update other stage
+      const { error: error2 } = await supabase
+        .from("stages")
+        .update({ order_index: currentIndex })
+        .eq("id", otherStage.id);
+
+      if (error2) throw error2;
 
       queryClient.invalidateQueries({ queryKey: ["stages"] });
       toast.success("Stage order updated");
