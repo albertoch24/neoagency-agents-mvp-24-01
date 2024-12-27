@@ -76,7 +76,13 @@ export const useFlowSteps = (flow: Flow) => {
       const { data, error } = await supabase
         .from("flow_steps")
         .insert([newStep])
-        .select()
+        .select(`
+          *,
+          agents (
+            name,
+            description
+          )
+        `)
         .single();
 
       if (error) {
@@ -85,8 +91,14 @@ export const useFlowSteps = (flow: Flow) => {
         return;
       }
 
+      // Transform the data to match FlowStep type
+      const transformedStep: FlowStep = {
+        ...data,
+        outputs: [],
+      };
+
       // Update local state immediately
-      setSteps(prevSteps => [...prevSteps, data]);
+      setSteps(prevSteps => [...prevSteps, transformedStep]);
       
       // Also invalidate the query to ensure consistency
       await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });

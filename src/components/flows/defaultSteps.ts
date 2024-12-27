@@ -2,7 +2,7 @@ import { FlowStep } from "@/types/flow";
 
 export const getDefaultSteps = (flowId: string): FlowStep[] => [
   {
-    id: "1",
+    id: "00000000-0000-0000-0000-000000000001",
     flow_id: flowId,
     agent_id: "strategic-planner",
     order_index: 0,
@@ -18,7 +18,7 @@ export const getDefaultSteps = (flowId: string): FlowStep[] => [
     }
   },
   {
-    id: "2",
+    id: "00000000-0000-0000-0000-000000000002",
     flow_id: flowId,
     agent_id: "creative-director",
     order_index: 1,
@@ -34,7 +34,7 @@ export const getDefaultSteps = (flowId: string): FlowStep[] => [
     }
   },
   {
-    id: "3",
+    id: "00000000-0000-0000-0000-000000000003",
     flow_id: flowId,
     agent_id: "content-strategist",
     order_index: 2,
