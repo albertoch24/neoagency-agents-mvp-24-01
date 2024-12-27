@@ -53,6 +53,14 @@ export const useFlowSteps = (flow: Flow) => {
     try {
       console.log('Saving current steps state:', steps);
       
+      // Validate agent_ids are valid UUIDs
+      const invalidSteps = steps.filter(step => !isValidUUID(step.agent_id));
+      if (invalidSteps.length > 0) {
+        console.error("Invalid agent IDs found:", invalidSteps);
+        toast.error("Invalid agent IDs found in steps");
+        return;
+      }
+
       // First, delete all existing steps for this flow
       const { error: deleteError } = await supabase
         .from("flow_steps")
@@ -96,6 +104,12 @@ export const useFlowSteps = (flow: Flow) => {
 
   const handleAddStep = async (agentId: string) => {
     try {
+      if (!isValidUUID(agentId)) {
+        console.error("Invalid agent ID:", agentId);
+        toast.error("Invalid agent ID");
+        return;
+      }
+
       // First check if the agent exists and is not paused
       const { data: agent, error: agentError } = await supabase
         .from("agents")
@@ -127,6 +141,12 @@ export const useFlowSteps = (flow: Flow) => {
       console.error("Error in handleAddStep:", error);
       toast.error("Failed to add step");
     }
+  };
+
+  // Helper function to validate UUID
+  const isValidUUID = (uuid: string) => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
   };
 
   return {
