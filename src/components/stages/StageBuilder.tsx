@@ -4,6 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, ArrowDown, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useState } from "react";
+import { StageForm } from "./StageForm";
 
 interface Stage {
   id: string;
@@ -19,6 +22,7 @@ interface StageBuilderProps {
 
 export const StageBuilder = ({ stages }: StageBuilderProps) => {
   const queryClient = useQueryClient();
+  const [editingStage, setEditingStage] = useState<Stage | null>(null);
 
   const handleMoveStage = async (stageId: string, direction: "up" | "down") => {
     const currentStage = stages.find((s) => s.id === stageId);
@@ -99,7 +103,11 @@ export const StageBuilder = ({ stages }: StageBuilderProps) => {
                 >
                   <ArrowDown className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon">
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => setEditingStage(stage)}
+                >
                   <Edit className="h-4 w-4" />
                 </Button>
                 <Button
@@ -119,6 +127,15 @@ export const StageBuilder = ({ stages }: StageBuilderProps) => {
           No stages created yet. Click the "Create Stage" button to get started.
         </p>
       )}
+
+      <Dialog open={!!editingStage} onOpenChange={(open) => !open && setEditingStage(null)}>
+        <DialogContent>
+          <StageForm 
+            onClose={() => setEditingStage(null)} 
+            editingStage={editingStage}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
