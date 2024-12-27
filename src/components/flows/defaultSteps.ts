@@ -1,54 +1,50 @@
 import { FlowStep } from "@/types/flow";
+import { supabase } from "@/integrations/supabase/client";
 
-export const getDefaultSteps = (flowId: string): FlowStep[] => {
-  return [
-    {
-      id: "00000000-0000-0000-0000-000000000001",
-      flow_id: flowId,
-      agent_id: "00000000-0000-0000-0000-000000000011", // Changed from "strategic-planner" to valid UUID
-      order_index: 0,
-      outputs: [
-        { text: "Market Analysis Report" },
-        { text: "Target Audience Insights" },
-        { text: "Competitive Analysis" }
-      ],
-      requirements: "Analyze market trends and identify target audience segments",
-      agents: {
-        name: "Strategic Planner",
-        description: "Expert in market analysis and strategic planning"
-      }
-    },
-    {
-      id: "00000000-0000-0000-0000-000000000002",
-      flow_id: flowId,
-      agent_id: "00000000-0000-0000-0000-000000000012", // Changed from "creative-director" to valid UUID
-      order_index: 1,
-      outputs: [
-        { text: "Creative Brief" },
-        { text: "Visual Direction" },
-        { text: "Key Messages" }
-      ],
-      requirements: "Develop creative direction based on strategic insights",
-      agents: {
-        name: "Creative Director",
-        description: "Leads creative vision and concept development"
-      }
-    },
-    {
-      id: "00000000-0000-0000-0000-000000000003",
-      flow_id: flowId,
-      agent_id: "00000000-0000-0000-0000-000000000013", // Changed from "content-strategist" to valid UUID
-      order_index: 2,
-      outputs: [
-        { text: "Content Strategy" },
-        { text: "Content Calendar" },
-        { text: "Distribution Plan" }
-      ],
-      requirements: "Create content strategy aligned with creative direction",
-      agents: {
-        name: "Content Strategist",
-        description: "Plans and oversees content creation and distribution"
-      }
+export const getDefaultSteps = async (flowId: string): Promise<FlowStep[]> => {
+  // Fetch the first 3 available agents
+  const { data: agents } = await supabase
+    .from("agents")
+    .select("id, name, description")
+    .order("created_at", { ascending: false })
+    .limit(3);
+
+  if (!agents || agents.length === 0) {
+    console.error("No agents found in the database");
+    return [];
+  }
+
+  // Map agents to steps, using as many agents as available
+  return agents.map((agent, index) => ({
+    id: crypto.randomUUID(),
+    flow_id: flowId,
+    agent_id: agent.id,
+    order_index: index,
+    outputs: index === 0 
+      ? [
+          { text: "Market Analysis Report" },
+          { text: "Target Audience Insights" },
+          { text: "Competitive Analysis" }
+        ]
+      : index === 1
+      ? [
+          { text: "Creative Brief" },
+          { text: "Visual Direction" },
+          { text: "Key Messages" }
+        ]
+      : [
+          { text: "Content Strategy" },
+          { text: "Content Calendar" },
+          { text: "Distribution Plan" }
+        ],
+    requirements: index === 0
+      ? "Analyze market trends and identify target audience segments"
+      : index === 1
+      ? "Develop creative direction based on strategic insights"
+      : "Create content strategy aligned with creative direction",
+    agents: {
+      name: agent.name,
+      description: agent.description
     }
-  ];
+  }));
 };

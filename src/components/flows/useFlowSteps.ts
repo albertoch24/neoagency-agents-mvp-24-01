@@ -13,7 +13,7 @@ export const useFlowSteps = (flow: Flow) => {
     queryKey: ["flow-steps", flow.id],
     queryFn: async () => {
       if (flow.name === "Application Workflow") {
-        return getDefaultSteps(flow.id);
+        return await getDefaultSteps(flow.id);
       }
 
       const { data, error } = await supabase
