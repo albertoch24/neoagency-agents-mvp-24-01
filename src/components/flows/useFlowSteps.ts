@@ -65,27 +65,25 @@ export const useFlowSteps = (flow: Flow) => {
         return;
       }
 
-      // Fetch the latest state of steps
-      const { data: latestSteps, error: fetchError } = await supabase
+      // Get the current highest order_index
+      const { data: maxOrderStep, error: maxOrderError } = await supabase
         .from("flow_steps")
         .select("order_index")
         .eq("flow_id", flow.id)
         .order("order_index", { ascending: false })
-        .limit(1);
+        .limit(1)
+        .single();
 
-      if (fetchError) {
-        console.error("Error fetching latest steps:", fetchError);
+      if (maxOrderError && maxOrderError.code !== 'PGRST116') { // PGRST116 means no rows returned
+        console.error("Error getting max order:", maxOrderError);
         toast.error("Failed to add step");
         return;
       }
 
-      // Calculate the new order index
-      const nextOrderIndex = latestSteps && latestSteps.length > 0 
-        ? latestSteps[0].order_index + 1 
-        : 0;
+      const nextOrderIndex = maxOrderStep ? maxOrderStep.order_index + 1 : 0;
 
       // Create the new step
-      const { data: newStepData, error: insertError } = await supabase
+      const { data: newStep, error: insertError } = await supabase
         .from("flow_steps")
         .insert([{
           flow_id: flow.id,
@@ -103,27 +101,23 @@ export const useFlowSteps = (flow: Flow) => {
         `)
         .single();
 
-      if (insertError || !newStepData) {
+      if (insertError || !newStep) {
         console.error("Error adding step:", insertError);
         toast.error("Failed to add step");
         return;
       }
 
-      // Transform the new step data
+      // Transform and add the new step
       const transformedStep: FlowStep = {
-        ...newStepData,
+        ...newStep,
         outputs: [],
       };
 
-      // Update local state
       setSteps(prevSteps => [...prevSteps, transformedStep]);
-      
-      // Invalidate the query to ensure consistency
       await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
-      
       toast.success("Step added successfully");
     } catch (error) {
-      console.error("Error adding step:", error);
+      console.error("Error in handleAddStep:", error);
       toast.error("Failed to add step");
     }
   };

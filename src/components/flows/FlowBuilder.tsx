@@ -61,7 +61,6 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
   return (
     <div className="space-y-4">
       <FlowBuilderHeader flow={flow} onClose={onClose} />
-
       <div className="grid grid-cols-3 gap-4">
         <FlowBuilderSidebar 
           agents={agents || []} 

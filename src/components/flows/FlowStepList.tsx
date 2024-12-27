@@ -36,20 +36,33 @@ export const FlowStepList = ({ steps, agents, flowId }: FlowStepListProps) => {
         return;
       }
 
-      // Get remaining steps after deletion
-      const remainingSteps = steps.filter(step => step.id !== stepId);
-      
+      // Get remaining steps
+      const { data: remainingSteps, error: fetchError } = await supabase
+        .from("flow_steps")
+        .select("*")
+        .eq("flow_id", flowId)
+        .order("order_index", { ascending: true });
+
+      if (fetchError) {
+        console.error("Error fetching remaining steps:", fetchError);
+        toast.error("Failed to update step order");
+        return;
+      }
+
       // Update order_index for remaining steps
-      for (let i = 0; i < remainingSteps.length; i++) {
-        const { error: updateError } = await supabase
-          .from("flow_steps")
-          .update({ order_index: i })
-          .eq("id", remainingSteps[i].id);
-        
-        if (updateError) {
-          console.error("Error updating step order:", updateError);
-          toast.error("Failed to update step order");
-          return;
+      for (let i = 0; i < (remainingSteps?.length || 0); i++) {
+        const step = remainingSteps?.[i];
+        if (step) {
+          const { error: updateError } = await supabase
+            .from("flow_steps")
+            .update({ order_index: i })
+            .eq("id", step.id);
+
+          if (updateError) {
+            console.error("Error updating step order:", updateError);
+            toast.error("Failed to update step order");
+            return;
+          }
         }
       }
 
