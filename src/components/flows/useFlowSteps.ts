@@ -28,7 +28,11 @@ export const useFlowSteps = (flow: Flow) => {
         .eq("flow_id", flow.id)
         .order("order_index", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching flow steps:", error);
+        toast.error("Failed to fetch flow steps");
+        throw error;
+      }
       
       return (data || []).map(step => ({
         ...step,
@@ -47,6 +51,20 @@ export const useFlowSteps = (flow: Flow) => {
 
   const handleAddStep = async (agentId: string) => {
     try {
+      // First check if the agent exists and is not paused
+      const { data: agent, error: agentError } = await supabase
+        .from("agents")
+        .select("*")
+        .eq("id", agentId)
+        .eq("is_paused", false)
+        .single();
+
+      if (agentError || !agent) {
+        console.error("Error checking agent:", agentError);
+        toast.error("Failed to add step: Agent not found or is paused");
+        return;
+      }
+
       const newStep = {
         flow_id: flow.id,
         agent_id: agentId,
@@ -55,13 +73,21 @@ export const useFlowSteps = (flow: Flow) => {
         requirements: "",
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("flow_steps")
-        .insert([newStep]);
+        .insert([newStep])
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error adding step:", error);
+        toast.error("Failed to add step");
+        return;
+      }
 
-      queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
+      // Immediately invalidate the query to refresh the data
+      await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
+      
       toast.success("Step added successfully");
     } catch (error) {
       console.error("Error adding step:", error);
