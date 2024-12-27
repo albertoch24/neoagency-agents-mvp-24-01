@@ -22,32 +22,33 @@ export const FlowStepList = ({ steps, agents, flowId }: FlowStepListProps) => {
 
   const handleRemoveStep = async (stepId: string) => {
     try {
-      // Delete only the specific step
-      const { error } = await supabase
+      // First delete the specific step
+      const { error: deleteError } = await supabase
         .from("flow_steps")
         .delete()
         .eq("id", stepId);
 
-      if (error) throw error;
+      if (deleteError) throw deleteError;
 
-      // Get remaining steps after deletion
-      const remainingSteps = steps.filter((s) => s.id !== stepId);
+      // Get the remaining steps and update their order
+      const remainingSteps = steps.filter(step => step.id !== stepId);
       
-      // Update order_index for remaining steps
-      const updatedSteps = remainingSteps.map((step, index) => ({
-        ...step,
-        order_index: index
-      }));
-
-      // Update order_index for each remaining step
-      for (const step of updatedSteps) {
-        await supabase
+      // Update each remaining step's order sequentially
+      for (let i = 0; i < remainingSteps.length; i++) {
+        const { error: updateError } = await supabase
           .from("flow_steps")
-          .update({ order_index: step.order_index })
-          .eq("id", step.id);
+          .update({ order_index: i })
+          .eq("id", remainingSteps[i].id);
+          
+        if (updateError) {
+          console.error("Error updating step order:", updateError);
+          toast.error("Failed to update step order");
+          return;
+        }
       }
 
-      queryClient.invalidateQueries({ queryKey: ["flow-steps", flowId] });
+      // Invalidate and refetch to ensure UI is in sync with database
+      await queryClient.invalidateQueries({ queryKey: ["flow-steps", flowId] });
       toast.success("Step removed successfully");
     } catch (error) {
       console.error("Error removing step:", error);

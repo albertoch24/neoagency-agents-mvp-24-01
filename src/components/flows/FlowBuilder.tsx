@@ -45,7 +45,8 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
           table: 'flow_steps',
           filter: `flow_id=eq.${flow.id}`
         },
-        async () => {
+        async (payload) => {
+          console.log('Flow steps changed:', payload);
           // Refetch the steps when changes occur
           await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
         }
