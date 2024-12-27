@@ -17,6 +17,7 @@ export interface Agent {
   created_at: string;
   updated_at: string;
   user_id: string;
+  is_paused: boolean | null;
 }
 
 export interface Flow {
