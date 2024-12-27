@@ -87,6 +87,7 @@ export const useFlowSteps = (flow: Flow) => {
           .from("flow_steps")
           .insert(
             steps.map((step, index) => ({
+              id: step.id,
               flow_id: flow.id,
               agent_id: step.agent_id,
               order_index: index,
@@ -107,6 +108,17 @@ export const useFlowSteps = (flow: Flow) => {
     } catch (error) {
       console.error("Error in handleSaveSteps:", error);
       toast.error("Failed to save steps");
+    }
+  };
+
+  const handleRemoveStep = async (stepId: string) => {
+    try {
+      // Update local state first
+      setSteps(prevSteps => prevSteps.filter(step => step.id !== stepId));
+      toast.success("Step removed successfully");
+    } catch (error) {
+      console.error("Error in handleRemoveStep:", error);
+      toast.error("Failed to remove step");
     }
   };
 
@@ -163,6 +175,7 @@ export const useFlowSteps = (flow: Flow) => {
     steps,
     handleAddStep,
     handleSaveSteps,
+    handleRemoveStep,
     setSteps
   };
 };

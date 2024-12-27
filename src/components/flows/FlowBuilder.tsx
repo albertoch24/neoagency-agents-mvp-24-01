@@ -18,7 +18,7 @@ interface FlowBuilderProps {
 }
 
 export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
-  const { steps, handleAddStep, handleSaveSteps } = useFlowSteps(flow);
+  const { steps, handleAddStep, handleSaveSteps, handleRemoveStep } = useFlowSteps(flow);
   const queryClient = useQueryClient();
 
   const { data: agents } = useQuery({
@@ -83,7 +83,8 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
           <FlowBuilderContent 
             steps={steps} 
             agents={agents || []} 
-            flowId={flow.id} 
+            flowId={flow.id}
+            onRemoveStep={handleRemoveStep}
           />
         </div>
       </div>

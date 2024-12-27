@@ -7,9 +7,10 @@ interface FlowBuilderContentProps {
   steps: FlowStep[];
   agents: any[];
   flowId: string;
+  onRemoveStep?: (stepId: string) => void;
 }
 
-export const FlowBuilderContent = ({ steps, agents, flowId }: FlowBuilderContentProps) => {
+export const FlowBuilderContent = ({ steps, agents, flowId, onRemoveStep }: FlowBuilderContentProps) => {
   return (
     <Card className="col-span-2">
       <CardContent className="p-4">
@@ -17,7 +18,12 @@ export const FlowBuilderContent = ({ steps, agents, flowId }: FlowBuilderContent
           <ListChecks className="h-4 w-4" />
           <h3 className="font-semibold">Flow Steps</h3>
         </div>
-        <FlowStepList steps={steps} agents={agents} flowId={flowId} />
+        <FlowStepList 
+          steps={steps} 
+          agents={agents} 
+          flowId={flowId} 
+          onRemoveStep={onRemoveStep}
+        />
       </CardContent>
     </Card>
   );

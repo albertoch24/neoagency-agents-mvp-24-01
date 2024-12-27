@@ -1,8 +1,5 @@
 import { Accordion } from "@/components/ui/accordion";
 import { FlowStepItem } from "./FlowStepItem";
-import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { Flow, FlowStep } from "@/types/flow";
 
 interface Agent {
@@ -15,66 +12,10 @@ interface FlowStepListProps {
   steps: FlowStep[];
   agents?: Agent[];
   flowId: string;
+  onRemoveStep?: (stepId: string) => void;
 }
 
-export const FlowStepList = ({ steps, agents, flowId }: FlowStepListProps) => {
-  const queryClient = useQueryClient();
-
-  const handleRemoveStep = async (stepId: string) => {
-    try {
-      console.log('Removing step:', stepId);
-      
-      // Delete the specific step
-      const { error: deleteError } = await supabase
-        .from("flow_steps")
-        .delete()
-        .eq("id", stepId);
-
-      if (deleteError) {
-        console.error("Error deleting step:", deleteError);
-        toast.error("Failed to delete step");
-        return;
-      }
-
-      // Get remaining steps
-      const { data: remainingSteps, error: fetchError } = await supabase
-        .from("flow_steps")
-        .select("*")
-        .eq("flow_id", flowId)
-        .order("order_index", { ascending: true });
-
-      if (fetchError) {
-        console.error("Error fetching remaining steps:", fetchError);
-        toast.error("Failed to update step order");
-        return;
-      }
-
-      // Update order_index for remaining steps
-      for (let i = 0; i < (remainingSteps?.length || 0); i++) {
-        const step = remainingSteps?.[i];
-        if (step) {
-          const { error: updateError } = await supabase
-            .from("flow_steps")
-            .update({ order_index: i })
-            .eq("id", step.id);
-
-          if (updateError) {
-            console.error("Error updating step order:", updateError);
-            toast.error("Failed to update step order");
-            return;
-          }
-        }
-      }
-
-      // Invalidate and refetch to ensure UI is in sync with database
-      await queryClient.invalidateQueries({ queryKey: ["flow-steps", flowId] });
-      toast.success("Step removed successfully");
-    } catch (error) {
-      console.error("Error removing step:", error);
-      toast.error("Failed to remove step");
-    }
-  };
-
+export const FlowStepList = ({ steps, agents, flowId, onRemoveStep }: FlowStepListProps) => {
   return (
     <div className="space-y-4">
       <Accordion type="single" collapsible className="w-full">
@@ -88,7 +29,7 @@ export const FlowStepList = ({ steps, agents, flowId }: FlowStepListProps) => {
               index={index}
               isLast={index === steps.length - 1}
               flowId={flowId}
-              onRemove={handleRemoveStep}
+              onRemove={onRemoveStep}
             />
           );
         })}
