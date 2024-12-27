@@ -45,6 +45,7 @@ export const useFlowSteps = (flow: Flow) => {
 
   useEffect(() => {
     if (flowSteps) {
+      console.log('Setting steps from flowSteps:', flowSteps);
       setSteps(flowSteps);
     }
   }, [flowSteps]);
@@ -65,10 +66,26 @@ export const useFlowSteps = (flow: Flow) => {
         return;
       }
 
+      // Get the current steps from the database to ensure we have the latest state
+      const { data: currentSteps, error: stepsError } = await supabase
+        .from("flow_steps")
+        .select("*")
+        .eq("flow_id", flow.id)
+        .order("order_index", { ascending: true });
+
+      if (stepsError) {
+        console.error("Error fetching current steps:", stepsError);
+        toast.error("Failed to add step");
+        return;
+      }
+
+      const newStepIndex = currentSteps?.length || 0;
+      console.log('Adding new step with index:', newStepIndex);
+
       const newStep = {
         flow_id: flow.id,
         agent_id: agentId,
-        order_index: steps.length,
+        order_index: newStepIndex,
         outputs: [],
         requirements: "",
       };
@@ -97,7 +114,7 @@ export const useFlowSteps = (flow: Flow) => {
         outputs: [],
       };
 
-      // Update local state immediately
+      // Update local state with the current steps plus the new one
       setSteps(prevSteps => [...prevSteps, transformedStep]);
       
       // Also invalidate the query to ensure consistency
