@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { CardContent } from "@/components/ui/card";
 
@@ -29,46 +29,57 @@ export const AgentCardContent: React.FC<AgentCardContentProps> = ({
   updatedAt
 }) => {
   return (
-    <CardContent className="flex-1 flex flex-col">
-      <ScrollArea className="flex-1 mb-4 p-4 border rounded-md">
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`mb-4 ${
-              message.role === 'user' ? 'text-right' : 'text-left'
-            }`}
-          >
+    <CardContent className="flex-1 flex flex-col gap-4 p-4">
+      <ScrollArea className="flex-1 pr-4">
+        <div className="space-y-4">
+          {messages.map((message, index) => (
             <div
-              className={`inline-block p-3 rounded-lg ${
-                message.role === 'user'
-                  ? 'bg-primary text-primary-foreground ml-12'
-                  : 'bg-muted mr-12'
+              key={index}
+              className={`flex ${
+                message.role === 'user' ? 'justify-end' : 'justify-start'
               }`}
             >
-              {message.content}
+              <div
+                className={`max-w-[80%] rounded-lg p-3 ${
+                  message.role === 'user'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted'
+                }`}
+              >
+                {message.content}
+              </div>
             </div>
-          </div>
-        ))}
-        {isLoading && (
-          <div className="flex items-center space-x-2 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Thinking...</span>
-          </div>
-        )}
+          ))}
+          {isLoading && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Thinking...</span>
+            </div>
+          )}
+        </div>
       </ScrollArea>
-      <form onSubmit={onSubmit} className="flex gap-2">
-        <Input
-          value={input}
-          onChange={(e) => onInputChange(e.target.value)}
-          placeholder="Ask something..."
-          disabled={isLoading}
-        />
-        <Button type="submit" disabled={isLoading}>
-          Send
-        </Button>
-      </form>
-      <div className="text-sm text-muted-foreground mt-2">
-        Updated {formatDistanceToNow(parseISO(updatedAt), { addSuffix: true })}
+      
+      <div className="space-y-2">
+        <form onSubmit={onSubmit} className="flex gap-2">
+          <Input
+            value={input}
+            onChange={(e) => onInputChange(e.target.value)}
+            placeholder="Ask something..."
+            disabled={isLoading}
+            className="flex-1"
+          />
+          <Button type="submit" size="icon" disabled={isLoading}>
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </form>
+        
+        <div className="text-xs text-muted-foreground">
+          Updated {formatDistanceToNow(parseISO(updatedAt), { addSuffix: true })}
+        </div>
       </div>
     </CardContent>
   );
