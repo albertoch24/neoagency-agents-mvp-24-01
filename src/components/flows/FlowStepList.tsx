@@ -22,6 +22,7 @@ export const FlowStepList = ({ steps, agents, flowId }: FlowStepListProps) => {
 
   const handleRemoveStep = async (stepId: string) => {
     try {
+      // Delete only the specific step
       const { error } = await supabase
         .from("flow_steps")
         .delete()
@@ -29,10 +30,16 @@ export const FlowStepList = ({ steps, agents, flowId }: FlowStepListProps) => {
 
       if (error) throw error;
 
-      const updatedSteps = steps
-        .filter((s) => s.id !== stepId)
-        .map((s, index) => ({ ...s, order_index: index }));
+      // Get remaining steps after deletion
+      const remainingSteps = steps.filter((s) => s.id !== stepId);
+      
+      // Update order_index for remaining steps
+      const updatedSteps = remainingSteps.map((step, index) => ({
+        ...step,
+        order_index: index
+      }));
 
+      // Update order_index for each remaining step
       for (const step of updatedSteps) {
         await supabase
           .from("flow_steps")
