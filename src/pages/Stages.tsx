@@ -13,6 +13,7 @@ const Stages = () => {
   // Create a stage to trigger the default stages creation
   const createInitialStage = async () => {
     try {
+      console.log("Creating initial stage for user:", user?.id);
       const { error } = await supabase.from("stages").insert({
         name: "Initial Stage",
         description: "This stage triggers the creation of default stages",
@@ -20,7 +21,13 @@ const Stages = () => {
         user_id: user?.id,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error creating initial stage:", error);
+        throw error;
+      }
+      
+      console.log("Initial stage created successfully");
+      toast.success("Default stages created");
       
       // Refetch stages after creating the initial one
       await refetch();
@@ -33,7 +40,9 @@ const Stages = () => {
   const { data: stages, refetch } = useQuery({
     queryKey: ["stages", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      console.log("Fetching stages for user:", user?.id);
+      
+      const { data: stages, error } = await supabase
         .from("stages")
         .select("*")
         .eq("user_id", user?.id)
@@ -44,21 +53,36 @@ const Stages = () => {
         return [];
       }
 
+      console.log("Fetched stages:", stages);
+
       // If no stages exist and user is admin, create initial stage to trigger defaults
-      if (data.length === 0) {
+      if (!stages || stages.length === 0) {
+        console.log("No stages found, checking if user is admin");
         const { data: profile } = await supabase
           .from("profiles")
           .select("is_admin")
           .eq("id", user?.id)
           .single();
 
+        console.log("User profile:", profile);
+
         if (profile?.is_admin) {
+          console.log("User is admin, creating initial stage");
           await createInitialStage();
-          return [];
+          
+          // Fetch stages again after creating the initial one
+          const { data: newStages } = await supabase
+            .from("stages")
+            .select("*")
+            .eq("user_id", user?.id)
+            .order("order_index", { ascending: true });
+            
+          console.log("Newly created stages:", newStages);
+          return newStages || [];
         }
       }
 
-      return data;
+      return stages || [];
     },
     enabled: !!user,
   });
