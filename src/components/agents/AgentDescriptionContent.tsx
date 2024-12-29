@@ -27,18 +27,20 @@ export const AgentDescriptionContent = ({
       case "overview":
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Overview</h3>
-            <ScrollArea className="h-[400px] pr-4">
-              <p className="whitespace-pre-wrap">{agent.description || "No overview available."}</p>
+            <h3 className="text-lg font-semibold px-4">Overview</h3>
+            <ScrollArea className="h-[350px]">
+              <div className="px-4 pb-4">
+                <p className="whitespace-pre-wrap">{agent.description || "No overview available."}</p>
+              </div>
             </ScrollArea>
           </div>
         );
       case "skills":
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Skills</h3>
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="flex flex-wrap gap-2">
+            <h3 className="text-lg font-semibold px-4">Skills</h3>
+            <ScrollArea className="h-[350px]">
+              <div className="flex flex-wrap gap-2 px-4 pb-4">
                 {agent.skills?.map((skill) => (
                   <div key={skill.id} className="flex items-center gap-1">
                     {editingSkill?.id === skill.id ? (
@@ -83,9 +85,9 @@ export const AgentDescriptionContent = ({
       case "details":
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Details</h3>
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="space-y-2">
+            <h3 className="text-lg font-semibold px-4">Details</h3>
+            <ScrollArea className="h-[350px]">
+              <div className="space-y-2 px-4 pb-4">
                 <p>
                   <span className="font-medium">Created:</span>{" "}
                   {new Date(agent.created_at).toLocaleDateString()}
@@ -105,9 +107,11 @@ export const AgentDescriptionContent = ({
       case "info":
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Information</h3>
-            <ScrollArea className="h-[400px] pr-4">
-              <p>Additional information about the agent will be displayed here.</p>
+            <h3 className="text-lg font-semibold px-4">Information</h3>
+            <ScrollArea className="h-[350px]">
+              <div className="px-4 pb-4">
+                <p>Additional information about the agent will be displayed here.</p>
+              </div>
             </ScrollArea>
           </div>
         );
@@ -116,5 +120,5 @@ export const AgentDescriptionContent = ({
     }
   };
 
-  return <div className="p-4 flex-1 overflow-hidden">{renderContent()}</div>;
+  return <div className="flex-1 overflow-hidden">{renderContent()}</div>;
 };
