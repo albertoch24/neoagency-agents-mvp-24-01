@@ -9,7 +9,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-import { LogOut, List, Home, Layers } from "lucide-react";
+import { LogOut, List, Home, Layers, Bot, FlowChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -84,13 +84,19 @@ const AppLayout = ({ children }: AppLayoutProps) => {
                             className="block px-4 py-2 hover:bg-accent rounded-md cursor-pointer"
                             onClick={() => navigate("/agents")}
                           >
-                            AI Agents
+                            <div className="flex items-center gap-2">
+                              <Bot className="h-4 w-4" />
+                              AI Agents
+                            </div>
                           </NavigationMenuLink>
                           <NavigationMenuLink
                             className="block px-4 py-2 hover:bg-accent rounded-md cursor-pointer"
                             onClick={() => navigate("/flows")}
                           >
-                            Flow Builder
+                            <div className="flex items-center gap-2">
+                              <FlowChart className="h-4 w-4" />
+                              Flow Builder
+                            </div>
                           </NavigationMenuLink>
                           <NavigationMenuLink
                             className="block px-4 py-2 hover:bg-accent rounded-md cursor-pointer"
