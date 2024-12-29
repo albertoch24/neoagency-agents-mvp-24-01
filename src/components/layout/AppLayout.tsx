@@ -9,7 +9,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-import { LogOut, List, Home, Layers, Bot, FlowChart } from "lucide-react";
+import { LogOut, List, Home, Layers, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -94,7 +94,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
                             onClick={() => navigate("/flows")}
                           >
                             <div className="flex items-center gap-2">
-                              <FlowChart className="h-4 w-4" />
+                              <List className="h-4 w-4" />
                               Flow Builder
                             </div>
                           </NavigationMenuLink>
