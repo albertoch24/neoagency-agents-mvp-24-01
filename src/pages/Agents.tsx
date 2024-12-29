@@ -15,30 +15,37 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export default function Agents() {
   const navigate = useNavigate();
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [showAgentDialog, setShowAgentDialog] = useState(false);
+  const { user } = useAuth();
 
   const { data: agents, isLoading } = useQuery({
-    queryKey: ["agents"],
+    queryKey: ["agents", user?.id],
     queryFn: async () => {
+      if (!user) throw new Error("No user found");
+
       const { data, error } = await supabase
         .from("agents")
         .select(`
           *,
           skills (*)
         `)
+        .eq('user_id', user.id)
         .order("created_at", { ascending: false });
 
       if (error) {
+        console.error("Error fetching agents:", error);
         toast.error("Failed to load agents");
         throw error;
       }
 
       return data as Agent[];
     },
+    enabled: !!user,
   });
 
   const handleGoToHome = () => {
@@ -73,7 +80,8 @@ export default function Agents() {
             description: agentData.description,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', selectedAgent.id);
+          .eq('id', selectedAgent.id)
+          .eq('user_id', user.id); // Add this line for extra security
 
         if (error) throw error;
         toast.success('Agent updated successfully');
