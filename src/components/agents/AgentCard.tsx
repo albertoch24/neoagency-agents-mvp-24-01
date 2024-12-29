@@ -166,9 +166,11 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
         onSave={handleEdit}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="line-clamp-2 px-6 py-2 text-sm text-muted-foreground">
-          {agent.description || "No description available."}
-        </div>
+        {agent.description && (
+          <div className="line-clamp-2 px-6 py-2 text-sm text-muted-foreground">
+            {agent.description}
+          </div>
+        )}
         <AgentDescriptionNav
           activeSection={activeSection}
           onSectionChange={setActiveSection}

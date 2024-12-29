@@ -104,17 +104,6 @@ export const AgentDescriptionContent = ({
             </ScrollArea>
           </div>
         );
-      case "info":
-        return (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold px-4">Information</h3>
-            <ScrollArea className="h-[350px]">
-              <div className="px-4 pb-4">
-                <p>Additional information about the agent will be displayed here.</p>
-              </div>
-            </ScrollArea>
-          </div>
-        );
       default:
         return null;
     }
