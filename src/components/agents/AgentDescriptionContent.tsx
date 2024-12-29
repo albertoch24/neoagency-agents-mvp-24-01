@@ -116,5 +116,5 @@ export const AgentDescriptionContent = ({
     }
   };
 
-  return <div className="p-4 flex-1">{renderContent()}</div>;
+  return <div className="p-4 flex-1 overflow-hidden">{renderContent()}</div>;
 };

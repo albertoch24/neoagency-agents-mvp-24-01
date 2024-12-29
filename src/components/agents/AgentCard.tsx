@@ -157,7 +157,7 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
   };
 
   return (
-    <Card className="card-hover-effect agent-card h-[600px] flex flex-col overflow-hidden">
+    <Card className="card-hover-effect agent-card h-[600px] flex flex-col">
       <AgentCardHeader
         agent={agent}
         onAddSkill={() => setShowSkillDialog(true)}
