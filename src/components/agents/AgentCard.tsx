@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { useAgentResponse } from "@/hooks/useAgentResponse";
 import { useQueryClient } from "@tanstack/react-query";
 import { AgentCardHeader } from "./AgentCardHeader";
-import { AgentCardContent } from "./AgentCardContent";
 import { AgentCardDialogs } from "./AgentCardDialogs";
 import { AgentDescriptionNav } from "./AgentDescriptionNav";
 import { AgentDescriptionContent } from "./AgentDescriptionContent";
@@ -56,7 +55,6 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
 
   const handleDelete = async () => {
     try {
-      // Step 1: Delete from workflow_conversations
       const { error: workflowError } = await supabase
         .from('workflow_conversations')
         .delete()
@@ -68,7 +66,6 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
         return;
       }
 
-      // Step 2: Delete from agents
       const { error: agentError } = await supabase
         .from('agents')
         .delete()
@@ -80,7 +77,6 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
         return;
       }
 
-      // Step 3: Delete from skills
       const { error: skillsError } = await supabase
         .from('skills')
         .delete()
