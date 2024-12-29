@@ -8,6 +8,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AgentCardHeader } from "./AgentCardHeader";
 import { AgentCardContent } from "./AgentCardContent";
 import { AgentCardDialogs } from "./AgentCardDialogs";
+import { AgentDescriptionNav } from "./AgentDescriptionNav";
+import { AgentDescriptionContent } from "./AgentDescriptionContent";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -27,6 +29,8 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
   const [showSkillDialog, setShowSkillDialog] = useState(false);
   const { getAgentResponse } = useAgentResponse();
   const queryClient = useQueryClient();
+  const [activeSection, setActiveSection] = useState("overview");
+  const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,14 +152,20 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
         onDelete={() => setShowDeleteDialog(true)}
         onSave={handleEdit}
       />
-      <AgentCardContent
-        messages={messages}
-        isLoading={isLoading}
-        input={input}
-        onInputChange={setInput}
-        onSubmit={handleSubmit}
-        updatedAt={agent.updated_at}
-      />
+      <div className="flex flex-1 overflow-hidden">
+        <AgentDescriptionNav
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+        />
+        <AgentDescriptionContent
+          agent={agent}
+          activeSection={activeSection}
+          editingSkill={editingSkill}
+          onEditSkill={(skill) => setEditingSkill(skill)}
+          onDeleteSkill={handleDeleteSkill}
+          onUpdateSkill={(skill) => setEditingSkill(skill)}
+        />
+      </div>
       <AgentCardDialogs
         showDeleteDialog={showDeleteDialog}
         showSkillDialog={showSkillDialog}

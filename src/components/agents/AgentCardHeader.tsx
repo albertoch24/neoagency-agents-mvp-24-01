@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, Edit2, Trash2, Save, Pause, Play, X } from "lucide-react";
-import { Agent, Skill } from "@/types/agent";
+import { Plus, Edit2, Trash2, Save, Pause, Play } from "lucide-react";
+import { Agent } from "@/types/agent";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -18,18 +17,17 @@ interface AgentCardHeaderProps {
   onSave: (updatedAgent: Partial<Agent>) => void;
 }
 
-export const AgentCardHeader: React.FC<AgentCardHeaderProps> = ({
+export const AgentCardHeader = ({
   agent,
   onAddSkill,
   onEdit,
   onDelete,
   onSave
-}) => {
+}: AgentCardHeaderProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(agent.name);
   const [editedDescription, setEditedDescription] = useState(agent.description || '');
   const [isPausing, setIsPausing] = useState(false);
-  const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
   const queryClient = useQueryClient();
 
   const handleSave = () => {
@@ -66,49 +64,6 @@ export const AgentCardHeader: React.FC<AgentCardHeaderProps> = ({
       toast.error('Failed to update agent status');
     } finally {
       setIsPausing(false);
-    }
-  };
-
-  const handleDeleteSkill = async (skillId: string) => {
-    try {
-      const { error } = await supabase
-        .from('skills')
-        .delete()
-        .eq('id', skillId);
-
-      if (error) throw error;
-
-      toast.success('Skill deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['agents'] });
-    } catch (error) {
-      console.error('Error deleting skill:', error);
-      toast.error('Failed to delete skill');
-    }
-  };
-
-  const handleEditSkill = async (skill: Skill) => {
-    if (editingSkill?.id === skill.id) {
-      try {
-        const { error } = await supabase
-          .from('skills')
-          .update({
-            name: editingSkill.name,
-            description: editingSkill.description,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', skill.id);
-
-        if (error) throw error;
-
-        toast.success('Skill updated successfully');
-        setEditingSkill(null);
-        queryClient.invalidateQueries({ queryKey: ['agents'] });
-      } catch (error) {
-        console.error('Error updating skill:', error);
-        toast.error('Failed to update skill');
-      }
-    } else {
-      setEditingSkill(skill);
     }
   };
 
@@ -163,9 +118,6 @@ export const AgentCardHeader: React.FC<AgentCardHeaderProps> = ({
           >
             <Trash2 className="h-4 w-4" />
           </Button>
-          <Badge variant="secondary" className={agent.is_paused ? "opacity-50" : ""}>
-            {agent.skills?.length || 0} skills
-          </Badge>
         </div>
       </div>
       {isEditing ? (
@@ -177,50 +129,6 @@ export const AgentCardHeader: React.FC<AgentCardHeaderProps> = ({
         />
       ) : (
         <CardDescription>{agent.description}</CardDescription>
-      )}
-      {agent.skills && agent.skills.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-2">
-          {agent.skills.map((skill) => (
-            <div key={skill.id} className="flex items-center gap-1">
-              {editingSkill?.id === skill.id ? (
-                <Input
-                  value={editingSkill.name}
-                  onChange={(e) => setEditingSkill({ ...editingSkill, name: e.target.value })}
-                  className="h-6 w-32 text-sm"
-                />
-              ) : (
-                <Badge variant="outline" className="pr-1">
-                  {skill.name}
-                </Badge>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleEditSkill(skill)}
-                className="h-4 w-4 p-0"
-              >
-                {editingSkill?.id === skill.id ? (
-                  <Save className="h-3 w-3" />
-                ) : (
-                  <Edit2 className="h-3 w-3" />
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDeleteSkill(skill.id)}
-                className="h-4 w-4 p-0 text-destructive"
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-      {agent.is_paused && (
-        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 mt-2">
-          Paused
-        </Badge>
       )}
     </CardHeader>
   );
