@@ -26,7 +26,7 @@ export const AgentDescriptionContent = ({
     switch (activeSection) {
       case "overview":
         return (
-          <div className="space-y-4">
+          <div className="space-y-4 h-full">
             <h3 className="text-lg font-semibold px-4">Overview</h3>
             <ScrollArea className="h-[350px]">
               <div className="px-4 pb-4">
@@ -37,7 +37,7 @@ export const AgentDescriptionContent = ({
         );
       case "skills":
         return (
-          <div className="space-y-4">
+          <div className="space-y-4 h-full">
             <h3 className="text-lg font-semibold px-4">Skills</h3>
             <ScrollArea className="h-[350px]">
               <div className="flex flex-wrap gap-2 px-4 pb-4">
@@ -84,7 +84,7 @@ export const AgentDescriptionContent = ({
         );
       case "details":
         return (
-          <div className="space-y-4">
+          <div className="space-y-4 h-full">
             <h3 className="text-lg font-semibold px-4">Details</h3>
             <ScrollArea className="h-[350px]">
               <div className="space-y-2 px-4 pb-4">

@@ -167,7 +167,7 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         {agent.description && (
-          <div className="line-clamp-2 px-6 py-2 text-sm text-muted-foreground">
+          <div className="line-clamp-2 px-6 py-2 text-sm text-muted-foreground border-b">
             {agent.description}
           </div>
         )}
