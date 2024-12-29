@@ -26,9 +26,9 @@ export const AgentDescriptionContent = ({
     switch (activeSection) {
       case "overview":
         return (
-          <div className="h-[350px]">
-            <ScrollArea className="h-full">
-              <div className="px-4">
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-[400px]">
+              <div className="p-4">
                 <p className="whitespace-pre-wrap">{agent.description || "No overview available."}</p>
               </div>
             </ScrollArea>
@@ -36,9 +36,9 @@ export const AgentDescriptionContent = ({
         );
       case "skills":
         return (
-          <div className="h-[350px]">
-            <ScrollArea className="h-full">
-              <div className="flex flex-wrap gap-2 px-4">
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-[400px]">
+              <div className="flex flex-wrap gap-2 p-4">
                 {agent.skills?.map((skill) => (
                   <div key={skill.id} className="flex items-center gap-1">
                     {editingSkill?.id === skill.id ? (
@@ -85,5 +85,5 @@ export const AgentDescriptionContent = ({
     }
   };
 
-  return <div className="flex-1 overflow-hidden p-4">{renderContent()}</div>;
+  return <div className="flex-1 flex flex-col overflow-hidden">{renderContent()}</div>;
 };

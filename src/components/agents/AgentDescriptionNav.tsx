@@ -1,5 +1,4 @@
-import { AlignVerticalJustifyStart, List } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface AgentDescriptionNavProps {
   activeSection: string;
@@ -10,36 +9,26 @@ export const AgentDescriptionNav = ({
   activeSection,
   onSectionChange,
 }: AgentDescriptionNavProps) => {
-  const sections = [
-    {
-      id: "overview",
-      name: "Overview",
-      icon: AlignVerticalJustifyStart,
-    },
-    {
-      id: "skills",
-      name: "Skills",
-      icon: List,
-    },
-  ];
-
   return (
-    <nav className="flex gap-2 p-4 border-b w-full">
-      {sections.map((section) => (
-        <button
-          key={section.id}
-          onClick={() => onSectionChange(section.id)}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-colors flex-1",
-            activeSection === section.id
-              ? "bg-primary text-primary-foreground"
-              : "hover:bg-accent"
-          )}
-        >
-          <section.icon className="h-4 w-4" />
-          {section.name}
-        </button>
-      ))}
-    </nav>
+    <div className="flex border-b">
+      <Button
+        variant="ghost"
+        className={`flex-1 rounded-none ${
+          activeSection === "overview" ? "border-b-2 border-primary" : ""
+        }`}
+        onClick={() => onSectionChange("overview")}
+      >
+        Overview
+      </Button>
+      <Button
+        variant="ghost"
+        className={`flex-1 rounded-none ${
+          activeSection === "skills" ? "border-b-2 border-primary" : ""
+        }`}
+        onClick={() => onSectionChange("skills")}
+      >
+        Skills
+      </Button>
+    </div>
   );
 };
