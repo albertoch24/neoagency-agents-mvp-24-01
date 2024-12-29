@@ -167,24 +167,24 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         {agent.description && (
-          <div className="px-6 py-2 text-sm text-muted-foreground border-b line-clamp-2">
-            {agent.description}
+          <div className="px-4 py-2 text-sm text-muted-foreground border-b">
+            <div className="line-clamp-2">
+              {agent.description}
+            </div>
           </div>
         )}
         <AgentDescriptionNav
           activeSection={activeSection}
           onSectionChange={setActiveSection}
         />
-        <div className="flex-1 overflow-hidden">
-          <AgentDescriptionContent
-            agent={agent}
-            activeSection={activeSection}
-            editingSkill={editingSkill}
-            onEditSkill={(skill) => setEditingSkill(skill)}
-            onDeleteSkill={handleDeleteSkill}
-            onUpdateSkill={(skill) => setEditingSkill(skill)}
-          />
-        </div>
+        <AgentDescriptionContent
+          agent={agent}
+          activeSection={activeSection}
+          editingSkill={editingSkill}
+          onEditSkill={(skill) => setEditingSkill(skill)}
+          onDeleteSkill={handleDeleteSkill}
+          onUpdateSkill={(skill) => setEditingSkill(skill)}
+        />
       </div>
       <AgentCardDialogs
         showDeleteDialog={showDeleteDialog}
