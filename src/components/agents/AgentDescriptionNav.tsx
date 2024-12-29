@@ -1,4 +1,4 @@
-import { FileText, List, AlignVerticalJustifyStart } from "lucide-react";
+import { AlignVerticalJustifyStart, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AgentDescriptionNavProps {
@@ -15,11 +15,6 @@ export const AgentDescriptionNav = ({
       id: "overview",
       name: "Overview",
       icon: AlignVerticalJustifyStart,
-    },
-    {
-      id: "details",
-      name: "Details",
-      icon: FileText,
     },
     {
       id: "skills",

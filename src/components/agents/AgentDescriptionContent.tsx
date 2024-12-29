@@ -82,28 +82,6 @@ export const AgentDescriptionContent = ({
             </ScrollArea>
           </div>
         );
-      case "details":
-        return (
-          <div className="space-y-4 h-full">
-            <h3 className="text-lg font-semibold px-4">Details</h3>
-            <ScrollArea className="h-[350px]">
-              <div className="space-y-2 px-4 pb-4">
-                <p>
-                  <span className="font-medium">Created:</span>{" "}
-                  {new Date(agent.created_at).toLocaleDateString()}
-                </p>
-                <p>
-                  <span className="font-medium">Last Updated:</span>{" "}
-                  {new Date(agent.updated_at).toLocaleDateString()}
-                </p>
-                <p>
-                  <span className="font-medium">Status:</span>{" "}
-                  {agent.is_paused ? "Paused" : "Active"}
-                </p>
-              </div>
-            </ScrollArea>
-          </div>
-        );
       default:
         return null;
     }
