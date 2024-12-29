@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Agent } from "@/types/agent";
+import { Agent, Skill } from "@/types/agent";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -99,6 +99,23 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
       toast.error('An unexpected error occurred');
     } finally {
       setShowDeleteDialog(false);
+    }
+  };
+
+  const handleDeleteSkill = async (skillId: string) => {
+    try {
+      const { error } = await supabase
+        .from('skills')
+        .delete()
+        .eq('id', skillId);
+
+      if (error) throw error;
+
+      toast.success('Skill deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+    } catch (error) {
+      console.error('Error deleting skill:', error);
+      toast.error('Failed to delete skill');
     }
   };
 
