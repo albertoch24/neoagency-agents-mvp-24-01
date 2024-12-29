@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface AuthContextType {
   session: Session | null;
@@ -20,19 +21,56 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    // Initialize session from local storage if available
+    const storedSession = localStorage.getItem('supabase.auth.session');
+    if (storedSession) {
+      try {
+        const parsedSession = JSON.parse(storedSession);
+        setSession(parsedSession);
+        setUser(parsedSession?.user ?? null);
+      } catch (error) {
+        console.error('Error parsing stored session:', error);
+        localStorage.removeItem('supabase.auth.session');
+      }
+    }
+
+    // Get the initial session
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error fetching session:', error);
+        toast.error('Error fetching session. Please try logging in again.');
+        return;
+      }
+      
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+        localStorage.setItem('supabase.auth.session', JSON.stringify(session));
+      }
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
+      
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+        localStorage.setItem('supabase.auth.session', JSON.stringify(session));
+      } else {
+        setSession(null);
+        setUser(null);
+        localStorage.removeItem('supabase.auth.session');
+      }
+      
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Cleanup subscription
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (
