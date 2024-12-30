@@ -36,45 +36,12 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
 
       console.log("Fetching conversations for:", { briefId, currentStage });
 
-      // First, get the stage details
-      const { data: stage, error: stageError } = await supabase
-        .from("stages")
-        .select("id, flow_id")
-        .eq("id", currentStage)
-        .maybeSingle();
-
-      if (stageError) {
-        console.error("Error fetching stage:", stageError);
-        return [];
-      }
-
-      if (!stage) {
-        console.log("No stage found with ID:", currentStage);
-        return [];
-      }
-
-      console.log("Found stage:", stage);
-
-      // Get the flow steps for this stage's flow
-      const { data: flowSteps, error: flowStepsError } = await supabase
-        .from("flow_steps")
-        .select("*")
-        .eq("flow_id", stage.flow_id)
-        .order("order_index", { ascending: true });
-
-      if (flowStepsError) {
-        console.error("Error fetching flow steps:", flowStepsError);
-        return [];
-      }
-
-      console.log("Found flow steps:", flowSteps);
-
-      // Get the conversations
+      // Get the conversations with the correct foreign key relationship specified
       const { data: conversations, error: conversationsError } = await supabase
         .from("workflow_conversations")
         .select(`
           *,
-          agents (
+          agents!workflow_conversations_agent_id_fkey (
             name,
             description
           )
