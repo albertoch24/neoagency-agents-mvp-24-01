@@ -58,6 +58,33 @@ serve(async (req) => {
       throw deleteError
     }
 
+    // Get the first available agent to start the conversation
+    const { data: agent, error: agentError } = await supabaseClient
+      .from('agents')
+      .select('*')
+      .limit(1)
+      .single()
+
+    if (agentError) {
+      console.error('Error fetching agent:', agentError)
+      throw agentError
+    }
+
+    // Create initial workflow conversation
+    const { error: conversationError } = await supabaseClient
+      .from('workflow_conversations')
+      .insert({
+        brief_id: briefId,
+        stage_id: stageId,
+        agent_id: agent.id,
+        content: `Starting ${stage.name} stage. I'll help guide this process.`
+      })
+
+    if (conversationError) {
+      console.error('Error creating conversation:', conversationError)
+      throw conversationError
+    }
+
     // Create new output
     const { error: outputError } = await supabaseClient
       .from('brief_outputs')
