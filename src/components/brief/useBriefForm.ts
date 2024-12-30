@@ -53,6 +53,27 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
 
       console.log("Brief created/updated successfully:", brief);
 
+      // First, get the stage UUID
+      const { data: stage, error: stageError } = await supabase
+        .from("stages")
+        .select("id")
+        .eq("name", "kickoff")
+        .maybeSingle();
+
+      if (stageError) {
+        console.error("Error fetching stage:", stageError);
+        toast.error("Failed to fetch stage information");
+        setIsProcessing(false);
+        return;
+      }
+
+      if (!stage) {
+        console.error("Stage not found");
+        toast.error("Stage not found");
+        setIsProcessing(false);
+        return;
+      }
+
       const toastId = toast.loading(
         "Starting workflow process... This may take around 2 minutes. Rome wasn't built in a day 😃",
         { duration: Infinity }
@@ -63,7 +84,7 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
         "process-workflow-stage",
         {
-          body: { briefId: brief.id, stageId: "kickoff" },
+          body: { briefId: brief.id, stageId: stage.id },
         }
       );
 
