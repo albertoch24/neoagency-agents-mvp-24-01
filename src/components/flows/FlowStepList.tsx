@@ -15,11 +15,11 @@ interface FlowStepListProps {
   onRemoveStep?: (stepId: string) => void;
 }
 
-export const FlowStepList = ({ steps, agents, flowId, onRemoveStep }: FlowStepListProps) => {
+export const FlowStepList = ({ steps = [], agents, flowId, onRemoveStep }: FlowStepListProps) => {
   return (
     <div className="space-y-4">
       <Accordion type="single" collapsible className="w-full">
-        {steps.map((step, index) => {
+        {Array.isArray(steps) && steps.map((step, index) => {
           const agent = agents?.find((a) => a.id === step.agent_id);
           return (
             <FlowStepItem
@@ -34,7 +34,7 @@ export const FlowStepList = ({ steps, agents, flowId, onRemoveStep }: FlowStepLi
           );
         })}
       </Accordion>
-      {steps.length === 0 && (
+      {(!steps || steps.length === 0) && (
         <p className="text-center text-muted-foreground">
           Add agents from the left panel to create your flow
         </p>

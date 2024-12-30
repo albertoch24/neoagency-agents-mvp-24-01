@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Flow } from "@/types/flow";
+import { Flow, FlowStep } from "@/types/flow";
 import { useStepOperations } from "./hooks/useStepOperations";
 import { saveFlowSteps } from "./utils/stepUtils";
 
@@ -28,8 +28,16 @@ export const useFlowSteps = (flow: Flow) => {
         throw error;
       }
       
-      console.log('Fetched flow steps:', data);
-      return data || [];
+      // Transform the data to match FlowStep type
+      const transformedSteps: FlowStep[] = (data || []).map(step => ({
+        ...step,
+        outputs: step.outputs?.map((output: any) => ({
+          text: typeof output === 'string' ? output : output.text || ''
+        })) || []
+      }));
+      
+      console.log('Fetched flow steps:', transformedSteps);
+      return transformedSteps;
     },
   });
 

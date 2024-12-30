@@ -21,8 +21,6 @@ export const useStepOperations = (flowId: string) => {
 
       const updatedSteps = [...steps, newStep];
       setSteps(updatedSteps);
-      
-      return updatedSteps;
     } catch (error) {
       console.error("Error in handleAddStep:", error);
       throw error;
@@ -32,7 +30,6 @@ export const useStepOperations = (flowId: string) => {
   const handleRemoveStep = (stepId: string) => {
     const updatedSteps = steps.filter(step => step.id !== stepId);
     setSteps(updatedSteps);
-    return updatedSteps;
   };
 
   return {
