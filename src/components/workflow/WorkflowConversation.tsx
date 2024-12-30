@@ -31,6 +31,23 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
     queryFn: async () => {
       console.log("Fetching conversations for:", { briefId, currentStage });
       
+      // First, get the stage UUID from the stages table
+      const { data: stageData, error: stageError } = await supabase
+        .from("stages")
+        .select("id")
+        .eq("name", currentStage)
+        .single();
+
+      if (stageError) {
+        console.error("Error fetching stage:", stageError);
+        return [];
+      }
+
+      if (!stageData) {
+        console.log("No stage found for name:", currentStage);
+        return [];
+      }
+
       const { data, error } = await supabase
         .from("workflow_conversations")
         .select(`
@@ -41,12 +58,12 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
           )
         `)
         .eq("brief_id", briefId)
-        .eq("stage_id", currentStage)
+        .eq("stage_id", stageData.id)
         .order("created_at", { ascending: true });
 
       if (error) {
         console.error("Error fetching conversations:", error);
-        throw error;
+        return [];
       }
 
       console.log("Found conversations:", data);
@@ -71,7 +88,7 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground text-center py-8">
-            No team discussion available for this stage yet.
+            No team discussion available for this stage yet. The workflow is being processed...
           </p>
         </CardContent>
       </Card>
@@ -120,7 +137,9 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
                     </AccordionItem>
                   </Accordion>
                   <div className="mt-2 text-sm leading-relaxed bg-background p-4 rounded-md shadow-sm">
-                    {conversation.content}
+                    <div className="prose prose-sm max-w-none">
+                      <div className="whitespace-pre-wrap">{conversation.content}</div>
+                    </div>
                   </div>
                 </div>
               </div>
