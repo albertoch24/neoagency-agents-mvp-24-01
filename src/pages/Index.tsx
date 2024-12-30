@@ -49,6 +49,8 @@ const Index = () => {
       return data;
     },
     enabled: !!user,
+    staleTime: 0,  // Always fetch fresh data
+    cacheTime: 0   // Don't cache the data
   });
 
   const { data: currentBrief } = useQuery({
@@ -75,6 +77,8 @@ const Index = () => {
       return data;
     },
     enabled: !!user,
+    staleTime: 0,  // Always fetch fresh data
+    cacheTime: 0   // Don't cache the data
   });
 
   const handleStageSelect = (stage: WorkflowStage) => {

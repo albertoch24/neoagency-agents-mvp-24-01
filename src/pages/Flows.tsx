@@ -43,6 +43,8 @@ const Flows = () => {
       if (error) throw error;
       return data as Flow[];
     },
+    staleTime: 0,  // Always fetch fresh data
+    cacheTime: 0   // Don't cache the data
   });
 
   const { data: flowSteps } = useQuery({
@@ -72,6 +74,8 @@ const Flows = () => {
       })) as FlowStep[];
     },
     enabled: !!selectedFlow?.id,
+    staleTime: 0,  // Always fetch fresh data
+    cacheTime: 0   // Don't cache the data
   });
 
   if (isLoading) {

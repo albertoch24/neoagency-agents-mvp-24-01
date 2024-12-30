@@ -44,6 +44,8 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
       return data;
     },
     enabled: !!user,
+    staleTime: 0, // Always fetch fresh data
+    cacheTime: 0  // Don't cache the data
   });
 
   // Subscribe to real-time changes on flow_steps
