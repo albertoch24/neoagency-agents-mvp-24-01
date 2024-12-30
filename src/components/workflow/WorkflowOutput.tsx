@@ -83,7 +83,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                       <div key={outputIndex} className="ml-4 p-4 bg-muted rounded-lg">
                         <h6 className="font-semibold mb-2">{outputItem.text}</h6>
                         {outputItem.content && (
-                          <p className="text-sm mt-2">{outputItem.content}</p>
+                          <p className="text-sm mt-2 whitespace-pre-wrap">{outputItem.content}</p>
                         )}
                       </div>
                     ))}
