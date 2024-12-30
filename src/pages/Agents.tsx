@@ -1,29 +1,20 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Home, Plus } from "lucide-react";
-import { AgentCard } from "@/components/agents/AgentCard";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Agent } from "@/types/agent";
 import { toast } from "sonner";
 import { AgentForm } from "@/components/agents/AgentForm";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { AgentsList } from "@/components/agents/AgentsList";
+import { AgentsHeader } from "@/components/agents/AgentsHeader";
 
 export default function Agents() {
   const navigate = useNavigate();
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [showAgentDialog, setShowAgentDialog] = useState(false);
   const { user } = useAuth();
-  const queryClient = useQueryClient();
 
   const { data: agents, isLoading } = useQuery({
     queryKey: ["agents", user?.id],
@@ -50,17 +41,13 @@ export default function Agents() {
     enabled: !!user,
   });
 
-  const handleGoToHome = () => {
-    navigate("/");
-  };
-
-  const handleEditAgent = (agent: Agent) => {
-    setSelectedAgent(agent);
-    setShowAgentDialog(true);
-  };
-
+  const handleGoToHome = () => navigate("/");
   const handleCreateAgent = () => {
     setSelectedAgent(null);
+    setShowAgentDialog(true);
+  };
+  const handleEditAgent = (agent: Agent) => {
+    setSelectedAgent(agent);
     setShowAgentDialog(true);
   };
 
@@ -74,8 +61,7 @@ export default function Agents() {
       }
 
       if (selectedAgent) {
-        // Update existing agent
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('agents')
           .update({
             name: agentData.name,
@@ -83,36 +69,21 @@ export default function Agents() {
             updated_at: new Date().toISOString(),
           })
           .eq('id', selectedAgent.id)
-          .eq('user_id', user.id)
-          .select();
+          .eq('user_id', user.id);
 
-        if (error) {
-          console.error('Error updating agent:', error);
-          toast.error('Failed to update agent');
-          return;
-        }
-
+        if (error) throw error;
         toast.success('Agent updated successfully');
-        queryClient.invalidateQueries({ queryKey: ["agents", user.id] });
       } else {
-        // Create new agent
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('agents')
           .insert([{
             name: agentData.name,
             description: agentData.description,
             user_id: user.id,
-          }])
-          .select();
+          }]);
 
-        if (error) {
-          console.error('Error creating agent:', error);
-          toast.error('Failed to create agent');
-          return;
-        }
-
+        if (error) throw error;
         toast.success('Agent created successfully');
-        queryClient.invalidateQueries({ queryKey: ["agents", user.id] });
       }
 
       setShowAgentDialog(false);
@@ -125,65 +96,16 @@ export default function Agents() {
 
   return (
     <div className="container mx-auto space-y-8 p-8">
-      <div className="flex justify-between items-center">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold">AI Agents</h1>
-          <p className="text-muted-foreground">
-            Manage your AI agents and their capabilities
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={handleGoToHome}
-            className="flex items-center gap-2"
-          >
-            <Home className="h-4 w-4" />
-            Go to Brief
-          </Button>
-          <Button 
-            onClick={handleCreateAgent}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            New Agent
-          </Button>
-        </div>
-      </div>
+      <AgentsHeader 
+        onGoHome={handleGoToHome}
+        onCreateAgent={handleCreateAgent}
+      />
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="h-[500px] animate-pulse">
-              <CardHeader>
-                <CardTitle className="h-6 bg-muted rounded" />
-              </CardHeader>
-              <CardContent>
-                <div className="h-full bg-muted rounded" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {agents?.map((agent) => (
-            <AgentCard 
-              key={agent.id} 
-              agent={agent} 
-              onClick={() => handleEditAgent(agent)}
-            />
-          ))}
-          {agents?.length === 0 && (
-            <Card className="col-span-full">
-              <CardContent className="flex flex-col items-center justify-center p-6">
-                <p className="text-muted-foreground text-center">
-                  No agents found. Create your first AI agent to get started.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
+      <AgentsList 
+        agents={agents}
+        onEditAgent={handleEditAgent}
+        isLoading={isLoading}
+      />
 
       <Dialog open={showAgentDialog} onOpenChange={setShowAgentDialog}>
         <DialogContent>
