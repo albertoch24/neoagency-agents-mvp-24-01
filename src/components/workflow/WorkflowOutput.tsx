@@ -71,11 +71,21 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
               <div className="text-muted-foreground">
                 <p className="mb-2">Flow: {output.content.flow_name || 'No flow specified'}</p>
                 <p className="mb-2">Agents involved: {output.content.agent_count || 0}</p>
-                {output.content.response && (
-                  <div className="whitespace-pre-wrap mt-4">
-                    {output.content.response}
+                {output.content.outputs?.map((agentOutput: any, index: number) => (
+                  <div key={index} className="mt-4 space-y-2">
+                    <h5 className="font-medium">{agentOutput.agent}</h5>
+                    {agentOutput.outputs?.map((output: any, outputIndex: number) => (
+                      <div key={outputIndex} className="ml-4">
+                        <h6 className="font-semibold text-primary">{output.text}</h6>
+                      </div>
+                    ))}
+                    {agentOutput.requirements && (
+                      <p className="ml-4 text-sm">
+                        Requirements: {agentOutput.requirements}
+                      </p>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
             </div>
           ))}

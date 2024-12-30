@@ -23,7 +23,11 @@ export type WorkflowOutputContent = {
   stage_name?: string;
   flow_name?: string;
   agent_count?: number;
-  response?: string;
+  outputs?: Array<{
+    agent: string;
+    requirements?: string;
+    outputs?: Array<{ text: string }>;
+  }>;
 };
 
 export type BriefOutput = {

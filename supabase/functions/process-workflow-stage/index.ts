@@ -23,7 +23,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get the stage details
+    // Get the stage details with associated flow
     const { data: stage, error: stageError } = await supabaseClient
       .from('stages')
       .select('*, flows(*)')
@@ -72,7 +72,7 @@ serve(async (req) => {
           brief_id: briefId,
           stage_id: stageId,
           agent_id: agent.id,
-          content: `Using ${agent.name} with skills: ${agent.skills?.map(s => s.name).join(', ')}`
+          content: `Using ${agent.name} with requirements: ${step.requirements || 'None'} and outputs: ${JSON.stringify(step.outputs || [])}`
         })
 
       if (convError) throw convError
@@ -89,7 +89,11 @@ serve(async (req) => {
           stage_name: stage.name,
           flow_name: stage.flows?.name,
           agent_count: flowSteps.length,
-          timestamp: new Date().toISOString()
+          outputs: flowSteps.map(step => ({
+            agent: step.agents?.name,
+            requirements: step.requirements,
+            outputs: step.outputs
+          }))
         }
       })
 
