@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.3.0";
+import { processAgent } from "./utils/workflow.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,16 +21,10 @@ serve(async (req) => {
 
     console.log("Processing workflow stage:", { briefId, stageId });
 
-    // Initialize clients
+    // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
-    const openai = new OpenAIApi(
-      new Configuration({
-        apiKey: Deno.env.get("OPENAI_API_KEY"),
-      })
     );
 
     // Fetch brief details
@@ -100,63 +94,11 @@ serve(async (req) => {
         continue;
       }
 
-      console.log("Processing agent:", agent.name);
-
-      // Create personalized prompt for the agent
-      const agentPrompt = `You are ${agent.name}, an expert with the following profile:
-${agent.description}
-
-Your skills include:
-${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join("\n") || "No specific skills listed"}
-
-Please analyze the following brief and provide your expert perspective based on your role and skills:
-
-Brief Title: ${brief.title}
-Description: ${brief.description || "Not provided"}
-Objectives: ${brief.objectives || "Not provided"}
-Target Audience: ${brief.target_audience || "Not provided"}
-Budget: ${brief.budget || "Not provided"}
-Timeline: ${brief.timeline || "Not provided"}
-
-Please provide a detailed analysis and recommendations from your specific perspective as ${agent.name}.`;
-
       try {
-        // Get response from OpenAI
-        const completion = await openai.createChatCompletion({
-          model: "gpt-4o",
-          messages: [
-            { role: "system", content: "You are a professional creative agency expert." },
-            { role: "user", content: agentPrompt }
-          ],
-        });
-
-        const response = completion.data.choices[0].message?.content || "";
-        console.log("Received response from OpenAI for agent:", agent.name);
-
-        // Save the conversation
-        const { error: conversationError } = await supabaseClient
-          .from("workflow_conversations")
-          .insert({
-            brief_id: briefId,
-            stage_id: stageId,
-            agent_id: agent.id,
-            content: response
-          });
-
-        if (conversationError) {
-          console.error("Error saving conversation:", conversationError);
-          throw conversationError;
-        }
-
-        // Add to outputs array
-        outputs.push({
-          agent: agent.name,
-          outputs: [{
-            text: response
-          }]
-        });
+        const output = await processAgent(supabaseClient, agent, brief, stageId);
+        outputs.push(output);
       } catch (error) {
-        console.error("Error processing agent:", agent.name, error);
+        console.error(`Error processing agent ${agent.name}:`, error);
         throw error;
       }
     }

@@ -1,4 +1,4 @@
-import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.3.0'
+import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.3.0";
 
 export function createOpenAIClient() {
   const configuration = new Configuration({
@@ -8,6 +8,8 @@ export function createOpenAIClient() {
 }
 
 export async function generateAgentResponse(openai: OpenAIApi, agentPrompt: string) {
+  console.log('Generating response for prompt:', agentPrompt);
+  
   const completion = await openai.createChatCompletion({
     model: 'gpt-4o',
     messages: [
