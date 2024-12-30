@@ -4,7 +4,7 @@ import { Flow } from "@/types/flow";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -18,6 +18,12 @@ export const FlowBuilderHeader = ({ flow, onClose }: FlowBuilderHeaderProps) => 
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(flow.name);
   const [description, setDescription] = useState(flow.description || "");
+
+  // Update local state when flow prop changes
+  useEffect(() => {
+    setName(flow.name);
+    setDescription(flow.description || "");
+  }, [flow]);
 
   const handleDeleteFlow = async () => {
     try {
@@ -57,13 +63,22 @@ export const FlowBuilderHeader = ({ flow, onClose }: FlowBuilderHeaderProps) => 
 
       if (error) throw error;
 
-      queryClient.invalidateQueries({ queryKey: ["flows"] });
+      // Invalidate and refetch to ensure UI is updated
+      await queryClient.invalidateQueries({ queryKey: ["flows"] });
+      
       toast.success("Flow updated successfully");
       setIsEditing(false);
     } catch (error) {
       console.error("Error updating flow:", error);
       toast.error("Failed to update flow");
     }
+  };
+
+  const handleCancel = () => {
+    // Reset form to original values on cancel
+    setName(flow.name);
+    setDescription(flow.description || "");
+    setIsEditing(false);
   };
 
   return (
@@ -90,7 +105,7 @@ export const FlowBuilderHeader = ({ flow, onClose }: FlowBuilderHeaderProps) => 
               />
               <div className="flex gap-2">
                 <Button onClick={handleSaveEdit}>Save</Button>
-                <Button variant="outline" onClick={() => setIsEditing(false)}>
+                <Button variant="outline" onClick={handleCancel}>
                   Cancel
                 </Button>
               </div>
