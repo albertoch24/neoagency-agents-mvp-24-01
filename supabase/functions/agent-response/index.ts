@@ -15,6 +15,10 @@ serve(async (req) => {
   try {
     const { agentId, input } = await req.json()
     
+    if (!agentId || !input) {
+      throw new Error('Missing required parameters: agentId and input must be provided')
+    }
+
     // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -31,7 +35,10 @@ serve(async (req) => {
       .eq('id', agentId)
       .single()
 
-    if (agentError) throw agentError
+    if (agentError) {
+      console.error('Error fetching agent:', agentError)
+      throw new Error('Failed to fetch agent details')
+    }
     if (!agent) throw new Error('Agent not found')
 
     // Initialize OpenAI with the latest SDK
@@ -48,10 +55,11 @@ ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\
 Please use these skills and knowledge to provide accurate and helpful responses.`
 
     console.log('Calling OpenAI API with system message:', systemMessage)
+    console.log('User input:', input)
 
     // Call OpenAI API with the latest SDK syntax
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4', // Fixed model name
       messages: [
         { role: 'system', content: systemMessage },
         { role: 'user', content: input }
@@ -71,9 +79,12 @@ Please use these skills and knowledge to provide accurate and helpful responses.
   } catch (error) {
     console.error('Error in agent-response function:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || 'An unexpected error occurred',
+        details: error.toString()
+      }),
       { 
-        status: 500,
+        status: error.status || 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
