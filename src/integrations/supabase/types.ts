@@ -410,13 +410,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "workflow_conversations_agent_id_fkey1"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "workflow_conversations_brief_id_fkey"
             columns: ["brief_id"]
             isOneToOne: false

@@ -36,7 +36,6 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
 
       console.log("Fetching conversations for:", { briefId, currentStage });
 
-      // Get the conversations with the correct foreign key relationship specified
       const { data: conversations, error: conversationsError } = await supabase
         .from("workflow_conversations")
         .select(`
