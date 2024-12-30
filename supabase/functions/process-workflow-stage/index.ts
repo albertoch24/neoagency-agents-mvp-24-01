@@ -1,10 +1,13 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import OpenAI from "https://esm.sh/openai@4.28.0"
-import { corsHeaders } from './utils/cors.ts'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -51,7 +54,7 @@ serve(async (req) => {
     if (briefError) throw briefError
     if (!brief) throw new Error('Brief not found')
 
-    // Get the flow steps if a flow is associated
+    // Get the flow steps with agents and their skills
     let flowSteps = []
     if (stage.flow_id) {
       const { data: steps, error: stepsError } = await supabaseClient
@@ -88,30 +91,35 @@ serve(async (req) => {
       ).join('\n') || ''
 
       // Prepare system message with agent description and skills
-      const systemMessage = `You are ${agent.name} with the following description: ${agent.description}
+      const systemMessage = `You are ${agent.name}, an AI agent with the following description: ${agent.description}
 
 Your skills and expertise include:
 ${agentSkills}
 
 Based on these skills and the brief information provided, generate specific outputs that fulfill the requirements.
-Focus on providing actionable, concrete deliverables.`
+Focus on providing actionable, concrete deliverables.
+Your response should be detailed and specific to your role and expertise.`
 
       // Prepare user message with brief details and requirements
       const userMessage = `Brief Details:
 Title: ${brief.title}
-Description: ${brief.description}
-Objectives: ${brief.objectives}
-Target Audience: ${brief.target_audience}
-Budget: ${brief.budget}
-Timeline: ${brief.timeline}
+Description: ${brief.description || 'No description provided'}
+Objectives: ${brief.objectives || 'No objectives provided'}
+Target Audience: ${brief.target_audience || 'No target audience specified'}
+Budget: ${brief.budget || 'No budget specified'}
+Timeline: ${brief.timeline || 'No timeline specified'}
 
+Required Outputs: ${step.outputs?.map((output: any) => output.text).join('\n') || 'No specific outputs required'}
 Requirements: ${step.requirements || 'No specific requirements provided'}
 
-Please provide detailed outputs based on the brief and your expertise.`
+Please provide detailed outputs based on the brief and your expertise.
+Be specific and actionable in your response.`
+
+      console.log('Sending request to OpenAI with messages:', { systemMessage, userMessage })
 
       // Call OpenAI for agent's response
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [
           { role: 'system', content: systemMessage },
           { role: 'user', content: userMessage }
@@ -120,6 +128,8 @@ Please provide detailed outputs based on the brief and your expertise.`
       })
 
       const agentResponse = completion.choices[0].message.content
+
+      console.log('Received response from OpenAI:', agentResponse)
 
       // Create a workflow conversation entry
       const { error: convError } = await supabaseClient
@@ -162,12 +172,14 @@ Please provide detailed outputs based on the brief and your expertise.`
     if (outputError) throw outputError
 
     // Update brief current stage
-    const { error: briefError2 } = await supabaseClient
+    const { error: briefUpdateError } = await supabaseClient
       .from('briefs')
       .update({ current_stage: stage.name })
       .eq('id', briefId)
 
-    if (briefError2) throw briefError2
+    if (briefUpdateError) throw briefUpdateError
+
+    console.log('Successfully processed stage:', stage.name)
 
     return new Response(
       JSON.stringify({ success: true }),
