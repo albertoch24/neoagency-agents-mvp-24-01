@@ -7,11 +7,12 @@ export type WorkflowRole = {
 export type WorkflowStage = {
   id: string;
   name: string;
-  icon: string;
-  description: string;
-  roles: WorkflowRole[];
-  outputs: string[];
-  completed?: boolean;
+  description: string | null;
+  order_index: number;
+  user_id: string;
+  flow_id: string | null;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type WorkflowState = {
