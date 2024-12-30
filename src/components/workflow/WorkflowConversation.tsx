@@ -29,6 +29,8 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
   const { data: conversations, refetch } = useQuery({
     queryKey: ["workflow-conversations", briefId, currentStage],
     queryFn: async () => {
+      console.log("Fetching conversations for:", { briefId, currentStage });
+      
       const { data, error } = await supabase
         .from("workflow_conversations")
         .select(`
@@ -42,7 +44,12 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
         .eq("stage_id", currentStage)
         .order("created_at", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching conversations:", error);
+        throw error;
+      }
+
+      console.log("Found conversations:", data);
       return data as WorkflowConversation[];
     },
   });
