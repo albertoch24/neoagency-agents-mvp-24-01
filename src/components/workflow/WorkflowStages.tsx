@@ -3,109 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { WorkflowStage } from "@/types/workflow";
-
-export const stages: WorkflowStage[] = [
-  {
-    id: "kickoff",
-    name: "Kick Off",
-    icon: "flag",
-    description: "Project initialization and objective setting",
-    roles: [
-      {
-        id: "account-manager",
-        name: "Account Manager",
-        responsibilities: ["Set project objectives", "Define KPIs", "Client communication"],
-      },
-    ],
-    outputs: ["Internal Brief", "Project Timeline", "KPI Document"],
-  },
-  {
-    id: "insight",
-    name: "Insight Exploration",
-    icon: "search",
-    description: "Market analysis and research phase",
-    roles: [
-      {
-        id: "strategic-planner",
-        name: "Strategic Planner",
-        responsibilities: ["Market analysis", "Competitive research"],
-      },
-      {
-        id: "media-planner",
-        name: "Media Planner",
-        responsibilities: ["Channel analysis", "Budget planning"],
-      },
-    ],
-    outputs: ["Insight Report", "Market Analysis", "Competitor Analysis"],
-  },
-  {
-    id: "concept",
-    name: "Concept Ideation",
-    icon: "lightbulb",
-    description: "Creative concept development",
-    roles: [
-      {
-        id: "creative-director",
-        name: "Creative Director",
-        responsibilities: ["Creative direction", "Concept approval"],
-      },
-      {
-        id: "copywriter",
-        name: "Copywriter",
-        responsibilities: ["Messaging development", "Content creation"],
-      },
-      {
-        id: "art-director",
-        name: "Art Director",
-        responsibilities: ["Visual direction", "Design concepts"],
-      },
-    ],
-    outputs: ["Creative Brief", "Key Messages", "Visual Guidelines"],
-  },
-  {
-    id: "storyboard",
-    name: "Storyboard",
-    icon: "film",
-    description: "Visual planning and narrative structure",
-    roles: [
-      {
-        id: "creative-director",
-        name: "Creative Director",
-        responsibilities: ["Storyboard review", "Narrative approval"],
-      },
-      {
-        id: "art-director",
-        name: "Art Director",
-        responsibilities: ["Visual sequence", "Style guide"],
-      },
-    ],
-    outputs: ["Storyboard Document", "Visual Sequence", "Style Guide"],
-  },
-  {
-    id: "strategy",
-    name: "Strategy Alignment",
-    icon: "target",
-    description: "Strategic planning and execution",
-    roles: [
-      {
-        id: "strategic-planner",
-        name: "Strategic Planner",
-        responsibilities: ["Strategy development", "Implementation planning"],
-      },
-      {
-        id: "media-planner",
-        name: "Media Planner",
-        responsibilities: ["Media strategy", "Channel planning"],
-      },
-      {
-        id: "social-media-manager",
-        name: "Social Media Manager",
-        responsibilities: ["Social strategy", "Content calendar"],
-      },
-    ],
-    outputs: ["Strategic Plan", "Channel Strategy", "Content Calendar"],
-  },
-];
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 const iconMap = {
   flag: Flag,
@@ -121,12 +21,50 @@ interface WorkflowStagesProps {
 }
 
 export function WorkflowStages({ currentStage, onStageSelect }: WorkflowStagesProps) {
+  const { user } = useAuth();
+
+  // Fetch stages from the database
+  const { data: stages } = useQuery({
+    queryKey: ["stages", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("stages")
+        .select("*")
+        .eq("user_id", user?.id)
+        .order("order_index", { ascending: true });
+
+      if (error) {
+        console.error("Error fetching stages:", error);
+        return [];
+      }
+
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  if (!stages || stages.length === 0) {
+    return null;
+  }
+
   const currentStageIndex = stages.findIndex(stage => stage.id === currentStage);
 
   return (
     <div className="grid gap-4 md:grid-cols-5">
       {stages.map((stage, index) => {
-        const Icon = iconMap[stage.icon as keyof typeof iconMap];
+        // Skip rendering if stage is empty or invalid
+        if (!stage.name || !stage.description) {
+          return null;
+        }
+
+        // Determine icon based on stage name or default to Flag
+        const iconKey = stage.name.toLowerCase().includes("kick") ? "flag" :
+                       stage.name.toLowerCase().includes("insight") ? "search" :
+                       stage.name.toLowerCase().includes("concept") ? "lightbulb" :
+                       stage.name.toLowerCase().includes("storyboard") ? "film" :
+                       "target";
+                       
+        const Icon = iconMap[iconKey as keyof typeof iconMap];
         const isActive = currentStage === stage.id;
         const isCompleted = index < currentStageIndex;
         const isNext = index === currentStageIndex + 1;
