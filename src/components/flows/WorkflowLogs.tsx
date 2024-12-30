@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, History, Trash2 } from "lucide-react";
-import { WorkflowLogItem } from "./WorkflowLogItem";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 import { toast } from "sonner";
+import { WorkflowLogHeader } from "./WorkflowLogHeader";
+import { WorkflowLogContent } from "./WorkflowLogContent";
 
 export const WorkflowLogs = () => {
   const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
@@ -16,7 +16,6 @@ export const WorkflowLogs = () => {
     queryFn: async () => {
       console.log("Starting to fetch workflow logs");
       try {
-        // First, get all briefs
         const { data: briefsData, error: briefsError } = await supabase
           .from("briefs")
           .select("*")
@@ -29,13 +28,11 @@ export const WorkflowLogs = () => {
 
         console.log("Fetched briefs:", briefsData);
 
-        // For each brief, get its conversations and outputs with detailed information
         const briefsWithDetails = await Promise.all(
           briefsData.map(async (brief) => {
             try {
               console.log(`Fetching details for brief ${brief.id}`);
 
-              // Get conversations with agent and skills details
               const { data: conversations, error: convsError } = await supabase
                 .from("workflow_conversations")
                 .select(`
@@ -60,9 +57,6 @@ export const WorkflowLogs = () => {
                 return { ...brief, conversations: [], outputs: [] };
               }
 
-              console.log(`Fetched conversations for brief ${brief.id}:`, conversations);
-
-              // Get brief outputs with stage information
               const { data: outputs, error: outputsError } = await supabase
                 .from("brief_outputs")
                 .select("*")
@@ -74,9 +68,6 @@ export const WorkflowLogs = () => {
                 return { ...brief, conversations, outputs: [] };
               }
 
-              console.log(`Fetched outputs for brief ${brief.id}:`, outputs);
-
-              // Group conversations by stage
               const stageMap = conversations.reduce((acc: any, conv: any) => {
                 if (!acc[conv.stage_id]) {
                   acc[conv.stage_id] = {
@@ -93,7 +84,6 @@ export const WorkflowLogs = () => {
                 return acc;
               }, {});
 
-              // Convert stage map to array and format agents sets to arrays
               const stages = Object.values(stageMap).map((stage: any) => ({
                 ...stage,
                 agents: Array.from(stage.agents)
@@ -119,24 +109,41 @@ export const WorkflowLogs = () => {
         throw error;
       }
     },
-    retry: 1,
-    retryDelay: 1000,
+    gcTime: 0,
+    staleTime: 0,
   });
 
   const handleDeleteSelected = async () => {
     try {
-      const { error } = await supabase
+      // First delete all workflow conversations for the selected briefs
+      const { error: conversationsError } = await supabase
+        .from("workflow_conversations")
+        .delete()
+        .in("brief_id", selectedLogs);
+
+      if (conversationsError) throw conversationsError;
+
+      // Then delete all brief outputs
+      const { error: outputsError } = await supabase
+        .from("brief_outputs")
+        .delete()
+        .in("brief_id", selectedLogs);
+
+      if (outputsError) throw outputsError;
+
+      // Finally delete the briefs
+      const { error: briefsError } = await supabase
         .from("briefs")
         .delete()
         .in("id", selectedLogs);
 
-      if (error) throw error;
+      if (briefsError) throw briefsError;
 
-      toast.success("Selected logs deleted successfully");
+      toast.success("Selected workflows deleted successfully");
       setSelectedLogs([]);
     } catch (error) {
-      console.error("Error deleting logs:", error);
-      toast.error("Failed to delete logs");
+      console.error("Error deleting workflows:", error);
+      toast.error("Failed to delete workflows");
     }
   };
 
@@ -160,7 +167,6 @@ export const WorkflowLogs = () => {
             onClick={() => window.location.reload()}
             className="gap-2"
           >
-            <History className="h-4 w-4" />
             Retry
           </Button>
         </CardContent>
@@ -179,44 +185,17 @@ export const WorkflowLogs = () => {
   return (
     <Card className="mt-8">
       <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5" />
-            Workflow Activity Log
-          </CardTitle>
-          {selectedLogs.length > 0 && (
-            <Button 
-              variant="destructive" 
-              onClick={handleDeleteSelected}
-              className="flex items-center gap-2"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete Selected ({selectedLogs.length})
-            </Button>
-          )}
-        </div>
+        <WorkflowLogHeader 
+          selectedLogs={selectedLogs}
+          onDeleteSelected={handleDeleteSelected}
+        />
       </CardHeader>
       <CardContent>
-        {briefs && briefs.length > 0 ? (
-          <div className="space-y-8">
-            {briefs.map((brief: any) => (
-              <div key={brief.id} className="flex items-start gap-2">
-                <Checkbox
-                  checked={selectedLogs.includes(brief.id)}
-                  onCheckedChange={() => toggleLogSelection(brief.id)}
-                  className="mt-2"
-                />
-                <div className="flex-1">
-                  <WorkflowLogItem brief={brief} />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-center text-muted-foreground py-8">
-            No workflow logs available
-          </p>
-        )}
+        <WorkflowLogContent
+          briefs={briefs}
+          selectedLogs={selectedLogs}
+          onToggleSelection={toggleLogSelection}
+        />
       </CardContent>
     </Card>
   );
