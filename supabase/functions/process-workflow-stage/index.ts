@@ -1,124 +1,121 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { corsHeaders, handleCors } from './utils/cors.ts';
-import { createOpenAIClient, createPrompt } from './utils/openai.ts';
-import { 
-  createSupabaseClient, 
-  clearPreviousData, 
-  createDefaultResponse,
-  storeAgentResponse 
-} from './utils/database.ts';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders } from './utils/cors.ts'
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
+  // Handle CORS
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
 
   try {
-    const { briefId, stageId } = await req.json();
-    console.log('Processing stage:', stageId, 'for brief:', briefId);
+    const { briefId, stageId } = await req.json()
     
     if (!briefId || !stageId) {
-      throw new Error('Missing required parameters: briefId or stageId');
+      throw new Error('Missing required parameters: briefId or stageId')
     }
 
-    const supabaseClient = createSupabaseClient();
+    console.log('Processing workflow stage:', { briefId, stageId })
 
-    // Fetch brief details
-    const { data: brief, error: briefError } = await supabaseClient
+    // Initialize Supabase client
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // Get the stage details
+    const { data: stage, error: stageError } = await supabaseClient
+      .from('stages')
+      .select('*, flows(*)')
+      .eq('id', stageId)
+      .single()
+
+    if (stageError) throw stageError
+    if (!stage) throw new Error('Stage not found')
+
+    console.log('Found stage:', stage)
+
+    // Get the flow steps if a flow is associated
+    let flowSteps = []
+    if (stage.flow_id) {
+      const { data: steps, error: stepsError } = await supabaseClient
+        .from('flow_steps')
+        .select(`
+          *,
+          agents (
+            id,
+            name,
+            description,
+            skills (*)
+          )
+        `)
+        .eq('flow_id', stage.flow_id)
+        .order('order_index', { ascending: true })
+
+      if (stepsError) throw stepsError
+      flowSteps = steps || []
+    }
+
+    console.log('Flow steps:', flowSteps)
+
+    // Process each flow step sequentially
+    for (const step of flowSteps) {
+      const agent = step.agents
+      if (!agent) continue
+
+      console.log('Processing step with agent:', agent.name)
+
+      // Create a workflow conversation entry
+      const { error: convError } = await supabaseClient
+        .from('workflow_conversations')
+        .insert({
+          brief_id: briefId,
+          stage_id: stageId,
+          agent_id: agent.id,
+          content: `Using ${agent.name} with skills: ${agent.skills?.map(s => s.name).join(', ')}`
+        })
+
+      if (convError) throw convError
+    }
+
+    // Create stage output
+    const { error: outputError } = await supabaseClient
+      .from('brief_outputs')
+      .insert({
+        brief_id: briefId,
+        stage: stage.name,
+        stage_id: stageId,
+        content: {
+          stage_name: stage.name,
+          flow_name: stage.flows?.name,
+          agent_count: flowSteps.length,
+          timestamp: new Date().toISOString()
+        }
+      })
+
+    if (outputError) throw outputError
+
+    // Update brief current stage
+    const { error: briefError } = await supabaseClient
       .from('briefs')
-      .select('*')
+      .update({ current_stage: stage.name })
       .eq('id', briefId)
-      .single();
 
-    if (briefError) {
-      console.error('Error fetching brief:', briefError);
-      throw briefError;
-    }
-
-    if (!brief) {
-      throw new Error('Brief not found');
-    }
-
-    await clearPreviousData(supabaseClient, briefId, stageId);
-
-    // Fetch non-paused agents with their skills
-    const { data: agents, error: agentsError } = await supabaseClient
-      .from('agents')
-      .select(`
-        *,
-        skills (
-          id,
-          name,
-          type,
-          description,
-          content
-        )
-      `)
-      .eq('is_paused', false);
-
-    if (agentsError) {
-      console.error('Error fetching agents:', agentsError);
-      throw agentsError;
-    }
-
-    if (!agents || agents.length === 0) {
-      console.log('No active agents found, creating default response');
-      await createDefaultResponse(supabaseClient, briefId, stageId);
-      return new Response(
-        JSON.stringify({ success: true, message: 'Created default response' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const openai = createOpenAIClient();
-    console.log('Processing responses for', agents.length, 'active agents');
-
-    // Process each agent's response
-    for (const agent of agents) {
-      try {
-        const formattedSkills = agent.skills?.map((skill: any) => ({
-          name: skill.name,
-          type: skill.type,
-          description: skill.description,
-          content: skill.content
-        })) || [];
-
-        const prompt = createPrompt(agent, formattedSkills, brief, stageId);
-        
-        console.log('Calling OpenAI for agent:', agent.name);
-        console.log('Agent skills:', formattedSkills);
-
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: prompt },
-            { role: 'user', content: 'Please provide your analysis and recommendations for this stage.' }
-          ],
-          temperature: 0.7,
-        });
-
-        const response = completion.choices[0].message.content;
-        console.log('Received response from OpenAI for agent:', agent.name);
-
-        await storeAgentResponse(supabaseClient, agent, response, briefId, stageId, formattedSkills);
-      } catch (error) {
-        console.error('Error processing agent:', agent.name, error);
-      }
-    }
+    if (briefError) throw briefError
 
     return new Response(
       JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    )
 
   } catch (error) {
-    console.error('Error in process-workflow-stage function:', error);
+    console.error('Error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
-        status: 500,
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
-    );
+    )
   }
-});
+})

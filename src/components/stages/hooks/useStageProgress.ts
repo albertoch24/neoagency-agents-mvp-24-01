@@ -41,7 +41,8 @@ export const useStageProgress = () => {
       
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["stages"] });
-      queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+      queryClient.invalidateQueries({ queryKey: ["brief-outputs", briefId] });
+      queryClient.invalidateQueries({ queryKey: ["workflow-conversations", briefId] });
     } catch (error) {
       console.error("Error starting stage:", error);
       toast.error("Failed to start stage");
@@ -49,8 +50,9 @@ export const useStageProgress = () => {
   };
 
   const isStageCompleted = (stageId: string) => {
-    // For now, we'll consider a stage completed if it has outputs
-    // This can be enhanced based on your specific completion criteria
+    if (!briefId) return false;
+    
+    // Check if there are outputs for this stage
     const outputs = queryClient.getQueryData(["brief-outputs", briefId, stageId]);
     return !!outputs;
   };
