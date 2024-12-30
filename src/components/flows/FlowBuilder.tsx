@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 interface FlowBuilderProps {
   flow: Flow;
@@ -20,18 +21,29 @@ interface FlowBuilderProps {
 export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
   const { steps, handleAddStep, handleSaveSteps, handleRemoveStep, isSaving } = useFlowSteps(flow);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-  const { data: agents } = useQuery({
-    queryKey: ["agents"],
+  const { data: agents, error: agentsError } = useQuery({
+    queryKey: ["agents", user?.id],
     queryFn: async () => {
+      console.log('Fetching agents for user:', user?.id);
+      
       const { data, error } = await supabase
         .from("agents")
         .select("*")
+        .eq("user_id", user?.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching agents:", error);
+        toast.error("Failed to load agents");
+        throw error;
+      }
+
+      console.log('Fetched agents:', data);
       return data;
     },
+    enabled: !!user,
   });
 
   // Subscribe to real-time changes on flow_steps
@@ -61,6 +73,14 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
       supabase.removeChannel(channel);
     };
   }, [flow.id, queryClient]);
+
+  if (agentsError) {
+    return (
+      <div className="p-4 text-center">
+        <p className="text-red-500">Error loading agents. Please try again later.</p>
+      </div>
+    );
+  }
 
   return (
     <ScrollArea className="h-[80vh]">
