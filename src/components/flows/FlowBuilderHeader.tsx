@@ -1,9 +1,12 @@
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ListChecks, Trash2 } from "lucide-react";
+import { ArrowLeft, ListChecks, Trash2, Edit2 } from "lucide-react";
 import { Flow } from "@/types/flow";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface FlowBuilderHeaderProps {
   flow: Flow;
@@ -12,6 +15,9 @@ interface FlowBuilderHeaderProps {
 
 export const FlowBuilderHeader = ({ flow, onClose }: FlowBuilderHeaderProps) => {
   const queryClient = useQueryClient();
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState(flow.name);
+  const [description, setDescription] = useState(flow.description || "");
 
   const handleDeleteFlow = async () => {
     try {
@@ -38,25 +44,86 @@ export const FlowBuilderHeader = ({ flow, onClose }: FlowBuilderHeaderProps) => 
     }
   };
 
+  const handleSaveEdit = async () => {
+    try {
+      const { error } = await supabase
+        .from("flows")
+        .update({ 
+          name, 
+          description,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", flow.id);
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ["flows"] });
+      toast.success("Flow updated successfully");
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating flow:", error);
+      toast.error("Failed to update flow");
+    }
+  };
+
   return (
-    <div className="flex justify-between items-center">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <ListChecks className="h-5 w-5" />
-          <h2 className="text-2xl font-bold">{flow.name}</h2>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          {isEditing ? (
+            <div className="space-y-2">
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="max-w-sm"
+                placeholder="Flow name"
+              />
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="max-w-sm"
+                placeholder="Flow description"
+                rows={2}
+              />
+              <div className="flex gap-2">
+                <Button onClick={handleSaveEdit}>Save</Button>
+                <Button variant="outline" onClick={() => setIsEditing(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <ListChecks className="h-5 w-5" />
+              <div>
+                <h2 className="text-2xl font-bold">{flow.name}</h2>
+                {flow.description && (
+                  <p className="text-sm text-muted-foreground">{flow.description}</p>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsEditing(true)}
+                className="ml-2"
+              >
+                <Edit2 className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
+        <Button 
+          variant="destructive" 
+          onClick={handleDeleteFlow}
+          className="flex items-center gap-2"
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete Flow
+        </Button>
       </div>
-      <Button 
-        variant="destructive" 
-        onClick={handleDeleteFlow}
-        className="flex items-center gap-2"
-      >
-        <Trash2 className="h-4 w-4" />
-        Delete Flow
-      </Button>
     </div>
   );
 };
