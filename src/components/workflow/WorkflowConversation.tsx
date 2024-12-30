@@ -6,6 +6,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 import { Database } from "@/integrations/supabase/database.types";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 type WorkflowConversation = Database["public"]["Tables"]["workflow_conversations"]["Row"] & {
   agents: {
@@ -41,7 +47,6 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
     },
   });
 
-  // Refetch conversations every 5 seconds while the workflow is processing
   useEffect(() => {
     const interval = setInterval(() => {
       refetch();
@@ -79,9 +84,18 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
                       })}
                     </span>
                   </div>
-                  <p className="mt-1 text-muted-foreground">
-                    {conversation.agents?.description}
-                  </p>
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="description">
+                      <AccordionTrigger className="text-sm text-muted-foreground">
+                        View Role Description
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {conversation.agents?.description}
+                        </p>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                   <div className="mt-2 text-sm">
                     {conversation.content}
                   </div>
