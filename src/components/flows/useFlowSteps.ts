@@ -57,7 +57,16 @@ export const useFlowSteps = (flow: Flow) => {
       // Transform the data to match FlowStep type
       const transformedSteps: FlowStep[] = (data || []).map(step => ({
         ...step,
-        outputs: step.outputs || [],
+        outputs: Array.isArray(step.outputs) 
+          ? step.outputs.map(output => {
+              if (typeof output === 'string') {
+                return { text: output };
+              }
+              return typeof output === 'object' && output !== null
+                ? { text: output.text || '' }
+                : { text: '' };
+            })
+          : [],
         requirements: step.requirements || ""
       }));
       
