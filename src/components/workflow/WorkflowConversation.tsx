@@ -52,6 +52,7 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
       console.log("Found conversations:", data);
       return data as WorkflowConversation[];
     },
+    enabled: !!briefId && !!currentStage,
   });
 
   useEffect(() => {
@@ -61,6 +62,21 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
 
     return () => clearInterval(interval);
   }, [refetch]);
+
+  if (!conversations?.length) {
+    return (
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-primary">Team Discussion</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground text-center py-8">
+            No team discussion available for this stage yet.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="mt-8">
