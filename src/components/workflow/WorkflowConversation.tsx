@@ -58,24 +58,24 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
   return (
     <Card className="mt-8">
       <CardHeader>
-        <CardTitle>Team Discussion</CardTitle>
+        <CardTitle className="text-2xl font-bold text-primary">Team Discussion</CardTitle>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[400px] pr-4">
-          <div className="space-y-4">
+          <div className="space-y-6">
             {conversations?.map((conversation) => (
               <div
                 key={conversation.id}
-                className="flex items-start gap-4"
+                className="flex items-start gap-4 p-4 rounded-lg bg-agent/30"
               >
-                <Avatar>
-                  <AvatarFallback>
+                <Avatar className="h-10 w-10 border-2 border-primary">
+                  <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
                     {conversation.agents?.name.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-semibold">
+                <div className="flex-1 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-lg font-bold text-primary">
                       {conversation.agents?.name}
                     </h4>
                     <span className="text-sm text-muted-foreground">
@@ -86,17 +86,17 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
                   </div>
                   <Accordion type="single" collapsible className="w-full">
                     <AccordionItem value="description">
-                      <AccordionTrigger className="text-sm text-muted-foreground">
+                      <AccordionTrigger className="text-sm font-medium text-muted-foreground hover:text-primary">
                         View Role Description
                       </AccordionTrigger>
                       <AccordionContent>
-                        <p className="mt-1 text-sm text-muted-foreground">
+                        <p className="mt-2 text-sm text-muted-foreground leading-relaxed bg-muted/50 p-4 rounded-md">
                           {conversation.agents?.description}
                         </p>
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
-                  <div className="mt-2 text-sm">
+                  <div className="mt-2 text-sm leading-relaxed bg-background p-4 rounded-md shadow-sm">
                     {conversation.content}
                   </div>
                 </div>
