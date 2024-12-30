@@ -13,17 +13,19 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
   const { data: stage } = useQuery({
     queryKey: ["stage", stageId],
     queryFn: async () => {
+      console.log("Fetching stage with name:", stageId);
       const { data, error } = await supabase
         .from("stages")
         .select("id")
         .eq("name", stageId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error("Error fetching stage:", error);
         return null;
       }
 
+      console.log("Found stage:", data);
       return data;
     },
     enabled: !!stageId,
@@ -33,8 +35,12 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
   const { data: outputs } = useQuery({
     queryKey: ["brief-outputs", briefId, stage?.id],
     queryFn: async () => {
-      if (!stage?.id) return [];
+      if (!stage?.id) {
+        console.log("No stage found, skipping outputs query");
+        return [];
+      }
 
+      console.log("Fetching outputs for stage:", stage.id);
       const { data, error } = await supabase
         .from("brief_outputs")
         .select("*")
@@ -47,6 +53,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         return [];
       }
 
+      console.log("Found outputs:", data);
       return data as BriefOutput[];
     },
     enabled: !!briefId && !!stage?.id,
