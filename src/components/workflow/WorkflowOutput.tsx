@@ -1,5 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { BriefOutput } from "@/types/workflow";
@@ -40,6 +39,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
     enabled: !!briefId && !!stageId,
     staleTime: 0, // Disable stale time to always fetch fresh data
     gcTime: 0, // Disable caching
+    refetchInterval: 5000, // Refetch every 5 seconds to ensure we have the latest data
   });
 
   if (!outputs?.length) {
@@ -48,46 +48,41 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Stage Output</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[600px] pr-4">
-          <div className="space-y-6">
-            {outputs.map((output) => (
-              <div key={output.id} className="space-y-6">
-                <h4 className="text-lg font-semibold text-primary">
-                  {output.content.stage_name || 'Stage Output'}
-                </h4>
-                <div className="text-muted-foreground">
-                  {output.content.outputs?.map((agentOutput: any, index: number) => (
-                    <div key={index} className="mt-6">
-                      <Accordion type="single" collapsible className="w-full">
-                        <AccordionItem value={`agent-${index}`}>
-                          <AccordionTrigger className="text-lg font-medium">
-                            {agentOutput.agent}
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            {agentOutput.outputs?.map((outputItem: any, outputIndex: number) => (
-                              <div key={outputIndex} className="ml-4 p-4 bg-muted rounded-lg mt-2">
-                                <h6 className="font-semibold mb-2">{outputItem.text}</h6>
-                                {outputItem.content && (
-                                  <div className="text-sm mt-2">
-                                    <p className="whitespace-pre-wrap">{outputItem.content}</p>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
-                    </div>
-                  ))}
-                </div>
+      <CardContent className="p-6">
+        <div className="space-y-6">
+          {outputs.map((output) => (
+            <div key={output.id} className="space-y-6">
+              <h4 className="text-lg font-semibold text-primary">
+                {output.content.stage_name || 'Stage Output'}
+              </h4>
+              <div className="text-muted-foreground">
+                {output.content.outputs?.map((agentOutput: any, index: number) => (
+                  <div key={index} className="mt-6">
+                    <Accordion type="single" collapsible className="w-full">
+                      <AccordionItem value={`agent-${index}`}>
+                        <AccordionTrigger className="text-lg font-medium">
+                          {agentOutput.agent}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          {agentOutput.outputs?.map((outputItem: any, outputIndex: number) => (
+                            <div key={outputIndex} className="ml-4 p-4 bg-muted rounded-lg mt-2">
+                              <h6 className="font-semibold mb-2">{outputItem.text}</h6>
+                              {outputItem.content && (
+                                <div className="text-sm mt-2">
+                                  <p className="whitespace-pre-wrap">{outputItem.content}</p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </ScrollArea>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
