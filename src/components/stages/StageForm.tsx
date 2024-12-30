@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 interface Stage {
   id: string;
@@ -15,6 +17,7 @@ interface Stage {
   description: string | null;
   order_index: number;
   user_id: string;
+  flow_id: string | null;
 }
 
 interface StageFormProps {
@@ -28,11 +31,29 @@ export const StageForm = ({ onClose, editingStage }: StageFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [selectedFlowId, setSelectedFlowId] = useState<string | null>(null);
+
+  // Fetch available flows
+  const { data: flows } = useQuery({
+    queryKey: ["flows"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("flows")
+        .select("*")
+        .eq("user_id", user?.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
   useEffect(() => {
     if (editingStage) {
       setName(editingStage.name);
       setDescription(editingStage.description || "");
+      setSelectedFlowId(editingStage.flow_id);
     }
   }, [editingStage]);
 
@@ -49,6 +70,7 @@ export const StageForm = ({ onClose, editingStage }: StageFormProps) => {
           .update({
             name,
             description,
+            flow_id: selectedFlowId,
           })
           .eq("id", editingStage.id);
 
@@ -71,6 +93,7 @@ export const StageForm = ({ onClose, editingStage }: StageFormProps) => {
           description,
           user_id: user.id,
           order_index: nextOrderIndex,
+          flow_id: selectedFlowId,
         });
 
         if (error) throw error;
@@ -109,6 +132,24 @@ export const StageForm = ({ onClose, editingStage }: StageFormProps) => {
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
           />
+        </div>
+        <div>
+          <Select
+            value={selectedFlowId || ""}
+            onValueChange={(value) => setSelectedFlowId(value || null)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a workflow (optional)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">No workflow</SelectItem>
+              {flows?.map((flow) => (
+                <SelectItem key={flow.id} value={flow.id}>
+                  {flow.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <div className="flex justify-end gap-2">

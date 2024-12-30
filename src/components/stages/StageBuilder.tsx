@@ -7,6 +7,13 @@ import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useState } from "react";
 import { StageForm } from "./StageForm";
+import { Badge } from "@/components/ui/badge";
+
+interface Flow {
+  id: string;
+  name: string;
+  description: string | null;
+}
 
 interface Stage {
   id: string;
@@ -14,6 +21,8 @@ interface Stage {
   description: string | null;
   order_index: number;
   user_id: string;
+  flow_id: string | null;
+  flows?: Flow;
 }
 
 interface StageBuilderProps {
@@ -81,7 +90,14 @@ export const StageBuilder = ({ stages }: StageBuilderProps) => {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <h3 className="text-lg font-semibold">{stage.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold">{stage.name}</h3>
+                  {stage.flows && (
+                    <Badge variant="secondary" className="text-xs">
+                      {stage.flows.name}
+                    </Badge>
+                  )}
+                </div>
                 {stage.description && (
                   <p className="text-sm text-muted-foreground">{stage.description}</p>
                 )}

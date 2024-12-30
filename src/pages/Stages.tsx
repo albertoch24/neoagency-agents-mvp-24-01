@@ -44,7 +44,14 @@ const Stages = () => {
       
       const { data: stages, error } = await supabase
         .from("stages")
-        .select("*")
+        .select(`
+          *,
+          flows (
+            id,
+            name,
+            description
+          )
+        `)
         .eq("user_id", user?.id)
         .order("order_index", { ascending: true });
 
@@ -73,7 +80,14 @@ const Stages = () => {
           // Fetch stages again after creating the initial one
           const { data: newStages } = await supabase
             .from("stages")
-            .select("*")
+            .select(`
+              *,
+              flows (
+                id,
+                name,
+                description
+              )
+            `)
             .eq("user_id", user?.id)
             .order("order_index", { ascending: true });
             
