@@ -53,11 +53,13 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
 
       console.log("Brief created/updated successfully:", brief);
 
-      // First, get the stage UUID
+      // Get the first stage by order_index
       const { data: stage, error: stageError } = await supabase
         .from("stages")
-        .select("id")
-        .eq("name", "kickoff")
+        .select("id, name")
+        .eq("user_id", user.id)
+        .order("order_index", { ascending: true })
+        .limit(1)
         .maybeSingle();
 
       if (stageError) {
@@ -68,11 +70,13 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       }
 
       if (!stage) {
-        console.error("Stage not found");
-        toast.error("Stage not found");
+        console.error("No stages found");
+        toast.error("No stages found. Please create stages first.");
         setIsProcessing(false);
         return;
       }
+
+      console.log("Starting workflow with first stage:", stage);
 
       const toastId = toast.loading(
         "Starting workflow process... This may take around 2 minutes. Rome wasn't built in a day 😃",
@@ -107,8 +111,8 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       setIsProcessing(false);
       onSubmitSuccess?.();
       
-      // Force navigation to home with kickoff stage
-      navigate("/?stage=kickoff");
+      // Navigate to home with the first stage
+      navigate(`/?stage=${stage.name}`);
     } catch (error) {
       console.error("Error submitting brief:", error);
       toast.error("Error submitting brief. Please try again.");
