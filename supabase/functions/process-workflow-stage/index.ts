@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import OpenAI from "https://esm.sh/openai@4.28.0"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,7 +31,22 @@ serve(async (req) => {
     // Get stage information
     const { data: stage, error: stageError } = await supabaseClient
       .from('stages')
-      .select('*')
+      .select(`
+        *,
+        flows (
+          id,
+          name,
+          flow_steps (
+            *,
+            agents (
+              id,
+              name,
+              description,
+              skills (*)
+            )
+          )
+        )
+      `)
       .eq('id', stageId)
       .single()
 
@@ -38,14 +54,25 @@ serve(async (req) => {
       throw stageError
     }
 
+    // Get brief information
+    const { data: brief, error: briefError } = await supabaseClient
+      .from('briefs')
+      .select('*')
+      .eq('id', briefId)
+      .single()
+
+    if (briefError) {
+      throw briefError
+    }
+
     // Update brief with current stage
-    const { error: briefError } = await supabaseClient
+    const { error: briefUpdateError } = await supabaseClient
       .from('briefs')
       .update({ current_stage: stageId })
       .eq('id', briefId)
 
-    if (briefError) {
-      throw briefError
+    if (briefUpdateError) {
+      throw briefUpdateError
     }
 
     // Delete existing outputs for this stage and brief
@@ -58,48 +85,102 @@ serve(async (req) => {
       throw deleteError
     }
 
-    // Get the first available agent to start the conversation
-    const { data: agent, error: agentError } = await supabaseClient
-      .from('agents')
-      .select('*')
-      .limit(1)
-      .single()
+    // Initialize OpenAI
+    const openai = new OpenAI({
+      apiKey: Deno.env.get('OPENAI_API_KEY'),
+    });
 
-    if (agentError) {
-      console.error('Error fetching agent:', agentError)
-      throw agentError
-    }
+    // Process each agent in the flow
+    const flow = stage.flows;
+    const flowSteps = flow?.flow_steps || [];
+    
+    console.log('Processing flow steps:', flowSteps);
 
-    // Create initial workflow conversation
-    const { error: conversationError } = await supabaseClient
-      .from('workflow_conversations')
-      .insert({
-        brief_id: briefId,
-        stage_id: stageId,
-        agent_id: agent.id,
-        content: `Starting ${stage.name} stage. I'll help guide this process.`
-      })
+    for (const step of flowSteps) {
+      const agent = step.agents;
+      if (!agent) continue;
 
-    if (conversationError) {
-      console.error('Error creating conversation:', conversationError)
-      throw conversationError
-    }
+      console.log('Processing agent:', agent.name);
 
-    // Create new output
-    const { error: outputError } = await supabaseClient
-      .from('brief_outputs')
-      .insert({
-        brief_id: briefId,
-        stage: stageId,
-        stage_id: stageId,
-        content: {
-          stage_name: stage.name,
-          outputs: [] // Initial empty outputs
-        }
-      })
+      // Prepare agent skills and context
+      const skills = agent.skills || [];
+      const skillsDescription = skills.map((skill: any) => 
+        `${skill.name}: ${skill.content}`
+      ).join('\n');
 
-    if (outputError) {
-      throw outputError
+      // Create system message with agent description and skills
+      const systemMessage = `You are ${agent.name}, an AI agent with the following description: ${agent.description}
+
+Your skills and expertise include:
+${skillsDescription}
+
+You are working on a brief with these details:
+Title: ${brief.title}
+Description: ${brief.description}
+Objectives: ${brief.objectives}
+Target Audience: ${brief.target_audience}
+Budget: ${brief.budget}
+Timeline: ${brief.timeline}
+
+Current Stage: ${stage.name}
+
+Based on your specific role and expertise, analyze this brief and provide your professional insights and recommendations.
+Be specific about how your skills will be applied to meet the brief's objectives.
+Respond in a conversational way, as if you're speaking in a team meeting.`;
+
+      console.log('Calling OpenAI with system message:', systemMessage);
+
+      // Get response from OpenAI
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemMessage }
+        ],
+        temperature: 0.7,
+      });
+
+      const response = completion.choices[0].message.content;
+
+      console.log('Received response from OpenAI for agent:', agent.name);
+
+      // Save the conversation
+      const { error: conversationError } = await supabaseClient
+        .from('workflow_conversations')
+        .insert({
+          brief_id: briefId,
+          stage_id: stageId,
+          agent_id: agent.id,
+          content: response
+        });
+
+      if (conversationError) {
+        console.error('Error saving conversation:', conversationError);
+        throw conversationError;
+      }
+
+      // Save the output
+      const { error: outputError } = await supabaseClient
+        .from('brief_outputs')
+        .insert({
+          brief_id: briefId,
+          stage: stageId,
+          stage_id: stageId,
+          content: {
+            stage_name: stage.name,
+            outputs: [{
+              agent: agent.name,
+              outputs: [{
+                text: `Agent Analysis`,
+                content: response
+              }]
+            }]
+          }
+        });
+
+      if (outputError) {
+        console.error('Error saving output:', outputError);
+        throw outputError;
+      }
     }
 
     return new Response(
