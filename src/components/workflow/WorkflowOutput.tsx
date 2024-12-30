@@ -64,11 +64,6 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                           {agentOutput.agent}
                         </AccordionTrigger>
                         <AccordionContent>
-                          <div className="mb-4 p-4 bg-muted rounded-lg">
-                            <p className="text-sm text-muted-foreground">
-                              {agentOutput.role_description}
-                            </p>
-                          </div>
                           {agentOutput.outputs?.map((outputItem: any, outputIndex: number) => (
                             <div key={outputIndex} className="ml-4 p-4 bg-muted rounded-lg mt-2">
                               <h6 className="font-semibold mb-2">{outputItem.text}</h6>
