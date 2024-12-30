@@ -54,6 +54,20 @@ serve(async (req) => {
     if (briefError) throw briefError
     if (!brief) throw new Error('Brief not found')
 
+    // First, delete any existing outputs for this brief and stage
+    const { error: deleteError } = await supabaseClient
+      .from('brief_outputs')
+      .delete()
+      .eq('brief_id', briefId)
+      .eq('stage', stage.name)
+
+    if (deleteError) {
+      console.error('Error deleting existing outputs:', deleteError)
+      throw deleteError
+    }
+
+    console.log('Deleted existing outputs for brief:', briefId, 'and stage:', stage.name)
+
     // Get the flow steps with agents and their skills
     let flowSteps = []
     if (stage.flow_id) {
@@ -119,7 +133,7 @@ Be specific and actionable in your response.`
 
       // Call OpenAI for agent's response
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4',
         messages: [
           { role: 'system', content: systemMessage },
           { role: 'user', content: userMessage }
@@ -154,7 +168,7 @@ Be specific and actionable in your response.`
       })
     }
 
-    // Create stage output
+    // Create new stage output
     const { error: outputError } = await supabaseClient
       .from('brief_outputs')
       .insert({
