@@ -10,43 +10,17 @@ interface WorkflowOutputProps {
 }
 
 export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
-  // First query to get the stage UUID
-  const { data: stage } = useQuery({
-    queryKey: ["stage", stageId],
-    queryFn: async () => {
-      console.log("Fetching stage with name:", stageId);
-      const { data, error } = await supabase
-        .from("stages")
-        .select("id")
-        .eq("name", stageId)
-        .maybeSingle();
-
-      if (error) {
-        console.error("Error fetching stage:", error);
-        return null;
-      }
-
-      console.log("Found stage:", data);
-      return data;
-    },
-    enabled: !!stageId,
-  });
-
-  // Then query the outputs using the stage UUID
+  // Query to fetch outputs with no caching to ensure fresh data
   const { data: outputs } = useQuery({
-    queryKey: ["brief-outputs", briefId, stage?.id],
+    queryKey: ["brief-outputs", briefId, stageId],
     queryFn: async () => {
-      if (!stage?.id) {
-        console.log("No stage found, skipping outputs query");
-        return [];
-      }
-
-      console.log("Fetching outputs for stage:", stage.id);
+      console.log("Fetching outputs for stage:", stageId);
+      
       const { data, error } = await supabase
         .from("brief_outputs")
         .select("*")
         .eq("brief_id", briefId)
-        .eq("stage_id", stage.id)
+        .eq("stage", stageId)
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -57,7 +31,9 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
       console.log("Found outputs:", data);
       return data as BriefOutput[];
     },
-    enabled: !!briefId && !!stage?.id,
+    enabled: !!briefId && !!stageId,
+    staleTime: 0, // Disable stale time to always fetch fresh data
+    cacheTime: 0, // Disable caching
   });
 
   if (!outputs?.length) {

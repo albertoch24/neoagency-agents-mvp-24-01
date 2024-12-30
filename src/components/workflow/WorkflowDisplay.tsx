@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { WorkflowStages } from "@/components/workflow/WorkflowStages";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { toast } from "sonner";
 import { WorkflowOutput } from "./WorkflowOutput";
 import { WorkflowProgress } from "./WorkflowProgress";
 import { WorkflowActions } from "./WorkflowActions";
+import { WorkflowConversation } from "./WorkflowConversation";
 
 interface WorkflowDisplayProps {
   currentStage: string;
@@ -17,11 +19,13 @@ interface WorkflowDisplayProps {
 
 const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDisplayProps) => {
   // Fetch stage outputs
-  const { data: stageOutputs } = useQuery({
+  const { data: stageOutputs, isLoading: outputsLoading } = useQuery({
     queryKey: ["brief-outputs", briefId, currentStage],
     queryFn: async () => {
       if (!briefId) return [];
 
+      console.log("Fetching outputs for stage:", currentStage);
+      
       const { data, error } = await supabase
         .from("brief_outputs")
         .select("*")
@@ -33,9 +37,12 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
         return [];
       }
 
+      console.log("Found outputs:", data);
       return data;
     },
-    enabled: !!briefId,
+    enabled: !!briefId && !!currentStage,
+    staleTime: 0, // Always fetch fresh data
+    cacheTime: 0, // Don't cache the data
   });
 
   // Fetch all stages to determine progression
@@ -88,7 +95,10 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
       <WorkflowProgress stages={stages} currentStage={currentStage} />
 
       {briefId && currentStage && (
-        <WorkflowOutput briefId={briefId} stageId={currentStage} />
+        <>
+          <WorkflowOutput briefId={briefId} stageId={currentStage} />
+          <WorkflowConversation briefId={briefId} currentStage={currentStage} />
+        </>
       )}
 
       <WorkflowActions 
