@@ -9,20 +9,47 @@ interface WorkflowOutputProps {
 }
 
 export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
-  const { data: outputs } = useQuery({
-    queryKey: ["brief-outputs", briefId, stageId],
+  // First query to get the stage UUID
+  const { data: stage } = useQuery({
+    queryKey: ["stage", stageId],
     queryFn: async () => {
+      const { data, error } = await supabase
+        .from("stages")
+        .select("id")
+        .eq("name", stageId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching stage:", error);
+        return null;
+      }
+
+      return data;
+    },
+    enabled: !!stageId,
+  });
+
+  // Then query the outputs using the stage UUID
+  const { data: outputs } = useQuery({
+    queryKey: ["brief-outputs", briefId, stage?.id],
+    queryFn: async () => {
+      if (!stage?.id) return [];
+
       const { data, error } = await supabase
         .from("brief_outputs")
         .select("*")
         .eq("brief_id", briefId)
-        .eq("stage", stageId)
+        .eq("stage_id", stage.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching outputs:", error);
+        return [];
+      }
+
       return data as BriefOutput[];
     },
-    enabled: !!briefId && !!stageId,
+    enabled: !!briefId && !!stage?.id,
   });
 
   if (!outputs?.length) {
