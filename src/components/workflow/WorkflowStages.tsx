@@ -121,12 +121,15 @@ interface WorkflowStagesProps {
 }
 
 export function WorkflowStages({ currentStage, onStageSelect }: WorkflowStagesProps) {
+  const currentStageIndex = stages.findIndex(stage => stage.id === currentStage);
+
   return (
     <div className="grid gap-4 md:grid-cols-5">
-      {stages.map((stage) => {
+      {stages.map((stage, index) => {
         const Icon = iconMap[stage.icon as keyof typeof iconMap];
         const isActive = currentStage === stage.id;
-        const isCompleted = stage.completed;
+        const isCompleted = index < currentStageIndex;
+        const isNext = index === currentStageIndex + 1;
 
         return (
           <Card
@@ -145,6 +148,11 @@ export function WorkflowStages({ currentStage, onStageSelect }: WorkflowStagesPr
                 {isCompleted && (
                   <Badge variant="secondary" className="ml-auto">
                     Completed
+                  </Badge>
+                )}
+                {isNext && (
+                  <Badge variant="outline" className="ml-auto">
+                    Next
                   </Badge>
                 )}
               </CardTitle>
