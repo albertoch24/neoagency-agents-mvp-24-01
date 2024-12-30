@@ -5,11 +5,13 @@ import { toast } from "sonner";
 import { Flow, FlowStep } from "@/types/flow";
 import { useStepOperations } from "./hooks/useStepOperations";
 import { saveFlowSteps } from "./utils/stepUtils";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export const useFlowSteps = (flow: Flow) => {
   const [isSaving, setIsSaving] = useState(false);
   const queryClient = useQueryClient();
   const { steps, setSteps, handleAddStep, handleRemoveStep } = useStepOperations(flow.id);
+  const { user } = useAuth();
 
   // Fetch only explicitly added steps
   const { data: flowSteps } = useQuery({
@@ -17,6 +19,28 @@ export const useFlowSteps = (flow: Flow) => {
     queryFn: async () => {
       console.log('Fetching steps for flow:', flow.id);
       
+      if (!user) {
+        console.error("No user found when fetching flow steps");
+        throw new Error("Authentication required");
+      }
+
+      // First verify the flow belongs to the user
+      const { data: flowData, error: flowError } = await supabase
+        .from('flows')
+        .select('user_id')
+        .eq('id', flow.id)
+        .single();
+
+      if (flowError || !flowData) {
+        console.error('Error verifying flow ownership:', flowError);
+        throw flowError;
+      }
+
+      if (flowData.user_id !== user.id) {
+        console.error('Flow does not belong to current user');
+        throw new Error("Unauthorized");
+      }
+
       const { data, error } = await supabase
         .from("flow_steps")
         .select("*, agents(name, description)")
@@ -39,6 +63,7 @@ export const useFlowSteps = (flow: Flow) => {
       console.log('Fetched flow steps:', transformedSteps);
       return transformedSteps;
     },
+    enabled: !!user && !!flow.id,
   });
 
   // Update steps when flowSteps changes
@@ -50,6 +75,11 @@ export const useFlowSteps = (flow: Flow) => {
   }, [flowSteps, setSteps]);
 
   const handleSaveSteps = async () => {
+    if (!user) {
+      toast.error("You must be logged in to save steps");
+      return;
+    }
+
     try {
       setIsSaving(true);
       console.log('Saving current steps state:', steps);
