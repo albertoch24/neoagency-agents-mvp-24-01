@@ -87,8 +87,8 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
       
       <WorkflowProgress stages={stages} currentStage={currentStage} />
 
-      {stageOutputs && stageOutputs.length > 0 && (
-        <WorkflowOutput outputs={stageOutputs} />
+      {briefId && currentStage && (
+        <WorkflowOutput briefId={briefId} stageId={currentStage} />
       )}
 
       <WorkflowActions 

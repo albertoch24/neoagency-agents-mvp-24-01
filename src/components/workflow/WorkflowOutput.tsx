@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { BriefOutput } from "@/types/workflow";
 
 interface WorkflowOutputProps {
   briefId: string;
@@ -19,7 +20,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as BriefOutput[];
     },
     enabled: !!briefId && !!stageId,
   });
