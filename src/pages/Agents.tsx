@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { AgentForm } from "@/components/agents/AgentForm";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -22,6 +23,7 @@ export default function Agents() {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [showAgentDialog, setShowAgentDialog] = useState(false);
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: agents, isLoading } = useQuery({
     queryKey: ["agents", user?.id],
@@ -73,7 +75,7 @@ export default function Agents() {
 
       if (selectedAgent) {
         // Update existing agent
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('agents')
           .update({
             name: agentData.name,
@@ -81,22 +83,36 @@ export default function Agents() {
             updated_at: new Date().toISOString(),
           })
           .eq('id', selectedAgent.id)
-          .eq('user_id', user.id); // Add this line for extra security
+          .eq('user_id', user.id)
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating agent:', error);
+          toast.error('Failed to update agent');
+          return;
+        }
+
         toast.success('Agent updated successfully');
+        queryClient.invalidateQueries({ queryKey: ["agents", user.id] });
       } else {
         // Create new agent
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('agents')
           .insert([{
             name: agentData.name,
             description: agentData.description,
             user_id: user.id,
-          }]);
+          }])
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error creating agent:', error);
+          toast.error('Failed to create agent');
+          return;
+        }
+
         toast.success('Agent created successfully');
+        queryClient.invalidateQueries({ queryKey: ["agents", user.id] });
       }
 
       setShowAgentDialog(false);
@@ -175,6 +191,11 @@ export default function Agents() {
             <DialogTitle>
               {selectedAgent ? 'Edit Agent' : 'Create New Agent'}
             </DialogTitle>
+            <DialogDescription>
+              {selectedAgent 
+                ? 'Update the agent details below.' 
+                : 'Fill in the details to create a new AI agent.'}
+            </DialogDescription>
           </DialogHeader>
           <AgentForm
             onSubmit={handleSubmitAgent}
