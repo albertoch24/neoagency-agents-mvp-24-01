@@ -29,45 +29,67 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
   const { data: conversations, refetch } = useQuery({
     queryKey: ["workflow-conversations", briefId, currentStage],
     queryFn: async () => {
+      if (!briefId || !currentStage) {
+        console.log("Missing required parameters:", { briefId, currentStage });
+        return [];
+      }
+
       console.log("Fetching conversations for:", { briefId, currentStage });
-      
-      // First, get the stage UUID from the stages table
-      const { data: stageData, error: stageError } = await supabase
+
+      // First, get the stage details
+      const { data: stage, error: stageError } = await supabase
         .from("stages")
-        .select("id")
-        .eq("name", currentStage)
-        .single();
+        .select("id, flow_id")
+        .eq("id", currentStage)
+        .maybeSingle();
 
       if (stageError) {
         console.error("Error fetching stage:", stageError);
         return [];
       }
 
-      if (!stageData) {
-        console.log("No stage found for name:", currentStage);
+      if (!stage) {
+        console.log("No stage found with ID:", currentStage);
         return [];
       }
 
-      const { data, error } = await supabase
+      console.log("Found stage:", stage);
+
+      // Get the flow steps for this stage's flow
+      const { data: flowSteps, error: flowStepsError } = await supabase
+        .from("flow_steps")
+        .select("*")
+        .eq("flow_id", stage.flow_id)
+        .order("order_index", { ascending: true });
+
+      if (flowStepsError) {
+        console.error("Error fetching flow steps:", flowStepsError);
+        return [];
+      }
+
+      console.log("Found flow steps:", flowSteps);
+
+      // Get the conversations
+      const { data: conversations, error: conversationsError } = await supabase
         .from("workflow_conversations")
         .select(`
           *,
-          agents!workflow_conversations_agent_id_fkey (
+          agents (
             name,
             description
           )
         `)
         .eq("brief_id", briefId)
-        .eq("stage_id", stageData.id)
+        .eq("stage_id", currentStage)
         .order("created_at", { ascending: true });
 
-      if (error) {
-        console.error("Error fetching conversations:", error);
+      if (conversationsError) {
+        console.error("Error fetching conversations:", conversationsError);
         return [];
       }
 
-      console.log("Found conversations:", data);
-      return data as WorkflowConversation[];
+      console.log("Found conversations:", conversations);
+      return conversations as WorkflowConversation[];
     },
     enabled: !!briefId && !!currentStage,
   });
@@ -88,7 +110,7 @@ export function WorkflowConversation({ briefId, currentStage }: WorkflowConversa
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground text-center py-8">
-            No team discussion available for this stage yet. The workflow is being processed...
+            The workflow agents are processing the brief for this stage. Please wait...
           </p>
         </CardContent>
       </Card>
