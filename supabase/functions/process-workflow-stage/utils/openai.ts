@@ -6,17 +6,18 @@ export function createOpenAIClient() {
   });
 }
 
-export function createPrompt(agent: any, formattedSkills: any[], brief: any, stageId: string) {
-  return `You are ${agent.name}, ${agent.description || 'an AI agent'}.
+export function createAgentPrompt(agent: any, skills: any[], brief: any, stageName: string) {
+  const skillsDescription = skills.map(skill => 
+    `${skill.name}: ${skill.content}`
+  ).join('\n');
 
-Your expertise and skills include:
-${formattedSkills.map((skill: any) => `
-- ${skill.name} (${skill.type}):
-  ${skill.description || 'No description provided'}
-  Details: ${skill.content}
-`).join('\n')}
+  return `You are ${agent.name}, an AI agent with the following description:
+${agent.description}
 
-You are working on the following brief:
+Your specific skills and expertise include:
+${skillsDescription}
+
+You are working on a brief with these details:
 Title: ${brief.title}
 Description: ${brief.description || 'No description provided'}
 Objectives: ${brief.objectives || 'No objectives provided'}
@@ -24,7 +25,7 @@ Target Audience: ${brief.target_audience || 'No target audience specified'}
 Budget: ${brief.budget || 'No budget specified'}
 Timeline: ${brief.timeline || 'No timeline specified'}
 
-Current Stage: ${stageId}
+Current Stage: ${stageName}
 
 Based on your specific role, skills, and expertise described above, provide your professional analysis and recommendations for this stage of the project.
 Be specific about how your skills will be applied to meet the brief's objectives.
