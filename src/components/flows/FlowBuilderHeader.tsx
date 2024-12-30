@@ -1,12 +1,10 @@
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, ListChecks, Trash2, Edit2 } from "lucide-react";
-import { Flow } from "@/types/flow";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Flow } from "@/types/flow";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface FlowBuilderHeaderProps {
   flow: Flow;
@@ -14,136 +12,69 @@ interface FlowBuilderHeaderProps {
 }
 
 export const FlowBuilderHeader = ({ flow, onClose }: FlowBuilderHeaderProps) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState(flow.name);
-  const [description, setDescription] = useState(flow.description || "");
-
-  // Update local state when flow prop changes
-  useEffect(() => {
-    if (flow) {
-      setName(flow.name);
-      setDescription(flow.description || "");
-    }
-  }, [flow]);
 
   const handleDeleteFlow = async () => {
     try {
-      const { error: stepsError } = await supabase
-        .from("flow_steps")
+      setIsDeleting(true);
+      console.log("Starting flow deletion process for flow:", flow.id);
+
+      // First delete all stages associated with this flow
+      const { error: stagesError } = await supabase
+        .from("stages")
         .delete()
         .eq("flow_id", flow.id);
 
-      if (stepsError) throw stepsError;
+      if (stagesError) {
+        console.error("Error deleting stages:", stagesError);
+        throw stagesError;
+      }
 
+      // Then delete the flow
       const { error: flowError } = await supabase
         .from("flows")
         .delete()
         .eq("id", flow.id);
 
-      if (flowError) throw flowError;
+      if (flowError) {
+        console.error("Error deleting flow:", flowError);
+        throw flowError;
+      }
 
-      queryClient.invalidateQueries({ queryKey: ["flows"] });
       toast.success("Flow deleted successfully");
-      onClose();
+      queryClient.invalidateQueries({ queryKey: ["flows"] });
+      navigate("/flows");
     } catch (error) {
       console.error("Error deleting flow:", error);
       toast.error("Failed to delete flow");
+    } finally {
+      setIsDeleting(false);
     }
-  };
-
-  const handleSaveEdit = async () => {
-    try {
-      console.log("Saving flow with description:", description);
-      
-      const { error } = await supabase
-        .from("flows")
-        .update({ 
-          name, 
-          description: description || null, // Ensure null is sent when empty
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", flow.id);
-
-      if (error) {
-        console.error("Error updating flow:", error);
-        throw error;
-      }
-
-      // Invalidate and refetch to ensure UI is updated
-      await queryClient.invalidateQueries({ queryKey: ["flows"] });
-      
-      toast.success("Flow updated successfully");
-      setIsEditing(false);
-    } catch (error) {
-      console.error("Error updating flow:", error);
-      toast.error("Failed to update flow");
-    }
-  };
-
-  const handleCancel = () => {
-    // Reset form to original values on cancel
-    setName(flow.name);
-    setDescription(flow.description || "");
-    setIsEditing(false);
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          {isEditing ? (
-            <div className="space-y-2">
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="max-w-sm"
-                placeholder="Flow name"
-              />
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="max-w-sm"
-                placeholder="Flow description"
-                rows={2}
-              />
-              <div className="flex gap-2">
-                <Button onClick={handleSaveEdit}>Save</Button>
-                <Button variant="outline" onClick={handleCancel}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <ListChecks className="h-5 w-5" />
-              <div>
-                <h2 className="text-2xl font-bold">{flow.name}</h2>
-                {flow.description && (
-                  <p className="text-sm text-muted-foreground">{flow.description}</p>
-                )}
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsEditing(true)}
-                className="ml-2"
-              >
-                <Edit2 className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-        </div>
-        <Button 
-          variant="destructive" 
-          onClick={handleDeleteFlow}
-          className="flex items-center gap-2"
+    <div className="flex items-center justify-between mb-6">
+      <div>
+        <h2 className="text-2xl font-semibold">{flow.name}</h2>
+        {flow.description && (
+          <p className="text-muted-foreground">{flow.description}</p>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          onClick={onClose}
         >
-          <Trash2 className="h-4 w-4" />
-          Delete Flow
+          Close
+        </Button>
+        <Button
+          variant="destructive"
+          onClick={handleDeleteFlow}
+          disabled={isDeleting}
+        >
+          {isDeleting ? "Deleting..." : "Delete Flow"}
         </Button>
       </div>
     </div>
