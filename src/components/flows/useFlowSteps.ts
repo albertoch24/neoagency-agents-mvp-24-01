@@ -62,9 +62,14 @@ export const useFlowSteps = (flow: Flow) => {
               if (typeof output === 'string') {
                 return { text: output };
               }
-              return typeof output === 'object' && output !== null
-                ? { text: output.text || '' }
-                : { text: '' };
+              if (typeof output === 'object' && output !== null) {
+                // Handle both cases where output might be { text: string } or have a nested text property
+                const textValue = typeof output === 'object' && 'text' in output 
+                  ? output.text as string 
+                  : '';
+                return { text: textValue };
+              }
+              return { text: '' };
             })
           : [],
         requirements: step.requirements || ""
