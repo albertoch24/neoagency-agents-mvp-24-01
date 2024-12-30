@@ -40,7 +40,12 @@ serve(async (req) => {
       .eq('id', briefId)
       .single()
 
-    if (briefError) throw briefError
+    if (briefError) {
+      console.error('Error fetching brief:', briefError)
+      throw briefError
+    }
+
+    console.log('Found brief:', brief)
 
     // Fetch stage with its associated flow and steps
     const { data: stage, error: stageError } = await supabaseClient
@@ -64,15 +69,35 @@ serve(async (req) => {
       .eq('id', stageId)
       .single()
 
-    if (stageError) throw stageError
+    if (stageError) {
+      console.error('Error fetching stage:', stageError)
+      throw stageError
+    }
 
-    console.log('Processing flow steps:', stage.flows?.flow_steps)
+    console.log('Found stage with flow:', stage)
+
+    // Update brief's current stage
+    const { error: updateError } = await supabaseClient
+      .from('briefs')
+      .update({ current_stage: stage.name })
+      .eq('id', briefId)
+
+    if (updateError) {
+      console.error('Error updating brief stage:', updateError)
+      throw updateError
+    }
 
     // Process each agent in the flow
     const outputs = []
-    for (const step of (stage.flows?.flow_steps || [])) {
+    const flowSteps = stage.flows?.flow_steps || []
+    console.log('Processing flow steps:', flowSteps)
+
+    for (const step of flowSteps) {
       const agent = step.agents
-      if (!agent) continue
+      if (!agent) {
+        console.log('No agent found for step:', step)
+        continue
+      }
 
       console.log('Processing agent:', agent.name)
 
@@ -94,38 +119,45 @@ Timeline: ${brief.timeline || 'Not provided'}
 
 Please provide a detailed analysis and recommendations from your specific perspective as ${agent.name}.`
 
-      // Get response from OpenAI
-      const completion = await openai.createChatCompletion({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: 'You are a professional creative agency expert.' },
-          { role: 'user', content: agentPrompt }
-        ],
-      })
-
-      const response = completion.data.choices[0].message?.content || ''
-      console.log('Received response from OpenAI for agent:', agent.name)
-
-      // Save the conversation
-      const { error: conversationError } = await supabaseClient
-        .from('workflow_conversations')
-        .insert({
-          brief_id: briefId,
-          stage_id: stageId,
-          agent_id: agent.id,
-          content: response
+      try {
+        // Get response from OpenAI
+        const completion = await openai.createChatCompletion({
+          model: 'gpt-4o',
+          messages: [
+            { role: 'system', content: 'You are a professional creative agency expert.' },
+            { role: 'user', content: agentPrompt }
+          ],
         })
 
-      if (conversationError) throw conversationError
+        const response = completion.data.choices[0].message?.content || ''
+        console.log('Received response from OpenAI for agent:', agent.name)
 
-      // Add to outputs array
-      outputs.push({
-        agent: agent.name,
-        outputs: [{
-          text: `Agent Analysis`,
-          content: response
-        }]
-      })
+        // Save the conversation
+        const { error: conversationError } = await supabaseClient
+          .from('workflow_conversations')
+          .insert({
+            brief_id: briefId,
+            stage_id: stageId,
+            agent_id: agent.id,
+            content: response
+          })
+
+        if (conversationError) {
+          console.error('Error saving conversation:', conversationError)
+          throw conversationError
+        }
+
+        // Add to outputs array
+        outputs.push({
+          agent: agent.name,
+          outputs: [{
+            text: response
+          }]
+        })
+      } catch (error) {
+        console.error('Error processing agent:', agent.name, error)
+        throw error
+      }
     }
 
     // Save the final output
@@ -141,7 +173,10 @@ Please provide a detailed analysis and recommendations from your specific perspe
         }
       })
 
-    if (outputError) throw outputError
+    if (outputError) {
+      console.error('Error saving output:', outputError)
+      throw outputError
+    }
 
     return new Response(
       JSON.stringify({ message: 'Stage processed successfully' }),
