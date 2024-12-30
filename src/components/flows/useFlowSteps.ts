@@ -13,7 +13,7 @@ export const useFlowSteps = (flow: Flow) => {
   const { steps, setSteps, handleAddStep, handleRemoveStep } = useStepOperations(flow.id);
   const { user } = useAuth();
 
-  // Fetch only explicitly added steps
+  // Fetch flow steps
   const { data: flowSteps } = useQuery({
     queryKey: ["flow-steps", flow.id],
     queryFn: async () => {
@@ -52,15 +52,15 @@ export const useFlowSteps = (flow: Flow) => {
         throw error;
       }
       
+      console.log('Fetched flow steps:', data);
+      
       // Transform the data to match FlowStep type
       const transformedSteps: FlowStep[] = (data || []).map(step => ({
         ...step,
-        outputs: step.outputs?.map((output: any) => ({
-          text: typeof output === 'string' ? output : output.text || ''
-        })) || []
+        outputs: step.outputs || [],
+        requirements: step.requirements || ""
       }));
       
-      console.log('Fetched flow steps:', transformedSteps);
       return transformedSteps;
     },
     enabled: !!user && !!flow.id,
