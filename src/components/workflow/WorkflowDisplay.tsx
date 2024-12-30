@@ -30,7 +30,8 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
         .from("brief_outputs")
         .select("*")
         .eq("brief_id", briefId)
-        .eq("stage", currentStage);
+        .eq("stage", currentStage)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error("Error fetching outputs:", error);
@@ -41,8 +42,8 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
       return data;
     },
     enabled: !!briefId && !!currentStage,
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 0, // Don't cache the data
+    staleTime: 0,
+    gcTime: 0,
   });
 
   const { data: stages } = useQuery({
@@ -72,7 +73,10 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
       const { error: workflowError } = await supabase.functions.invoke(
         "process-workflow-stage",
         {
-          body: { briefId, stageId: nextStage.id },
+          body: { 
+            briefId, 
+            stageId: nextStage.id 
+          },
         }
       );
 
