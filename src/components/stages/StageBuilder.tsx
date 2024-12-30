@@ -2,12 +2,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowUp, ArrowDown, Edit, Trash2, Play } from "lucide-react";
-import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useState } from "react";
 import { StageForm } from "./StageForm";
-import { Badge } from "@/components/ui/badge";
 import { useStageProgress } from "./hooks/useStageProgress";
 import { StageControls } from "./StageControls";
 import { StageHeader } from "./StageHeader";
@@ -115,7 +112,6 @@ export const StageBuilder = ({ stages }: StageBuilderProps) => {
                       onClick={() => startStage(stage.id)}
                       className="flex items-center gap-2"
                     >
-                      <Play className="h-4 w-4" />
                       Start Stage
                     </Button>
                   )}
