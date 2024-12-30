@@ -8,6 +8,7 @@ import { StageForm } from "./StageForm";
 import { useStageProgress } from "./hooks/useStageProgress";
 import { StageControls } from "./StageControls";
 import { StageHeader } from "./StageHeader";
+import { toast } from "sonner";  // Added toast import
 
 interface Flow {
   id: string;
