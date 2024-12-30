@@ -11,7 +11,7 @@ export const useFlowSteps = (flow: Flow) => {
   const queryClient = useQueryClient();
   const { steps, setSteps, handleAddStep, handleRemoveStep } = useStepOperations(flow.id);
 
-  // Fetch initial steps
+  // Fetch only explicitly added steps
   const { data: flowSteps } = useQuery({
     queryKey: ["flow-steps", flow.id],
     queryFn: async () => {
@@ -19,7 +19,7 @@ export const useFlowSteps = (flow: Flow) => {
       
       const { data, error } = await supabase
         .from("flow_steps")
-        .select("*")
+        .select("*, agents(name, description)")
         .eq("flow_id", flow.id)
         .order("order_index", { ascending: true });
 
