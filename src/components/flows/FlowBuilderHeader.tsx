@@ -21,8 +21,10 @@ export const FlowBuilderHeader = ({ flow, onClose }: FlowBuilderHeaderProps) => 
 
   // Update local state when flow prop changes
   useEffect(() => {
-    setName(flow.name);
-    setDescription(flow.description || "");
+    if (flow) {
+      setName(flow.name);
+      setDescription(flow.description || "");
+    }
   }, [flow]);
 
   const handleDeleteFlow = async () => {
@@ -52,16 +54,21 @@ export const FlowBuilderHeader = ({ flow, onClose }: FlowBuilderHeaderProps) => 
 
   const handleSaveEdit = async () => {
     try {
+      console.log("Saving flow with description:", description);
+      
       const { error } = await supabase
         .from("flows")
         .update({ 
           name, 
-          description,
+          description: description || null, // Ensure null is sent when empty
           updated_at: new Date().toISOString()
         })
         .eq("id", flow.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error updating flow:", error);
+        throw error;
+      }
 
       // Invalidate and refetch to ensure UI is updated
       await queryClient.invalidateQueries({ queryKey: ["flows"] });
