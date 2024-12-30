@@ -3,6 +3,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { BriefOutput } from "@/types/workflow";
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface WorkflowOutputProps {
   briefId: string;
@@ -55,18 +61,26 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                 </h4>
                 <div className="text-muted-foreground">
                   {output.content.outputs?.map((agentOutput: any, index: number) => (
-                    <div key={index} className="mt-6 space-y-4">
-                      <h5 className="font-medium text-lg">{agentOutput.agent}</h5>
-                      {agentOutput.outputs?.map((outputItem: any, outputIndex: number) => (
-                        <div key={outputIndex} className="ml-4 p-4 bg-muted rounded-lg">
-                          <h6 className="font-semibold mb-2">{outputItem.text}</h6>
-                          {outputItem.content && (
-                            <div className="text-sm mt-2">
-                              <p className="whitespace-pre-wrap">{outputItem.content}</p>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                    <div key={index} className="mt-6">
+                      <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value={`agent-${index}`}>
+                          <AccordionTrigger className="text-lg font-medium">
+                            {agentOutput.agent}
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            {agentOutput.outputs?.map((outputItem: any, outputIndex: number) => (
+                              <div key={outputIndex} className="ml-4 p-4 bg-muted rounded-lg mt-2">
+                                <h6 className="font-semibold mb-2">{outputItem.text}</h6>
+                                {outputItem.content && (
+                                  <div className="text-sm mt-2">
+                                    <p className="whitespace-pre-wrap">{outputItem.content}</p>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
                     </div>
                   ))}
                 </div>
