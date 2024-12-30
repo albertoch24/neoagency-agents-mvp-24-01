@@ -33,7 +33,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
     },
     enabled: !!briefId && !!stageId,
     staleTime: 0, // Disable stale time to always fetch fresh data
-    cacheTime: 0, // Disable caching
+    gcTime: 0, // Disable caching
   });
 
   if (!outputs?.length) {

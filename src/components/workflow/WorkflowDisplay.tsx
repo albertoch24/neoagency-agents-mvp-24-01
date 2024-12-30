@@ -42,10 +42,9 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
     },
     enabled: !!briefId && !!currentStage,
     staleTime: 0, // Always fetch fresh data
-    cacheTime: 0, // Don't cache the data
+    gcTime: 0, // Don't cache the data
   });
 
-  // Fetch all stages to determine progression
   const { data: stages } = useQuery({
     queryKey: ["stages"],
     queryFn: async () => {
