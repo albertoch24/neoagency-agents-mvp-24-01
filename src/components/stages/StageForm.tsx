@@ -37,10 +37,12 @@ export const StageForm = ({ onClose, editingStage }: StageFormProps) => {
   const { data: flows } = useQuery({
     queryKey: ["flows"],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
       const { data, error } = await supabase
         .from("flows")
         .select("*")
-        .eq("user_id", user?.id)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -135,14 +137,14 @@ export const StageForm = ({ onClose, editingStage }: StageFormProps) => {
         </div>
         <div>
           <Select
-            value={selectedFlowId || ""}
-            onValueChange={(value) => setSelectedFlowId(value || null)}
+            value={selectedFlowId || undefined}
+            onValueChange={(value) => setSelectedFlowId(value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select a workflow (optional)" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No workflow</SelectItem>
+              <SelectItem value="none">No workflow</SelectItem>
               {flows?.map((flow) => (
                 <SelectItem key={flow.id} value={flow.id}>
                   {flow.name}
