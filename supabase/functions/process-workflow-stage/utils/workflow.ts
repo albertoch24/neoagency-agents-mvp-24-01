@@ -9,6 +9,7 @@ export async function processAgent(
   requirements?: string
 ) {
   console.log('Processing agent:', agent.name);
+  console.log('Flow step requirements:', requirements);
 
   try {
     // Create personalized prompt for the agent
@@ -18,10 +19,10 @@ ${agent.description}
 Your skills include:
 ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join("\n") || "No specific skills listed"}
 
-Requirements for this step:
+Your task requirements for this step:
 ${requirements || "No specific requirements provided"}
 
-Please analyze the following brief and provide your expert perspective based on your role, skills, and the requirements:
+Please analyze the following brief based on the requirements above and provide your expert perspective:
 
 Brief Title: ${brief.title}
 Description: ${brief.description || "Not provided"}
@@ -30,8 +31,14 @@ Target Audience: ${brief.target_audience || "Not provided"}
 Budget: ${brief.budget || "Not provided"}
 Timeline: ${brief.timeline || "Not provided"}
 
-Please provide a detailed analysis and recommendations from your specific perspective as ${agent.name}, focusing on the requirements provided.`;
+Based on the requirements provided and your expertise as ${agent.name}, please provide:
+1. A detailed analysis of the brief
+2. Specific recommendations aligned with the requirements
+3. Any concerns or potential challenges you identify
+4. Actionable next steps`;
 
+    console.log('Generating response for prompt:', agentPrompt);
+    
     // Get response from OpenAI
     const response = await generateAgentResponse(agentPrompt);
     
