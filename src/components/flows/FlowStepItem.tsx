@@ -52,6 +52,7 @@ export const FlowStepItem = ({
   const handleSave = async () => {
     try {
       console.log('Starting save operation for step:', step.id);
+      console.log('Flow ID:', flowId);
       
       // Format outputs array from the textarea content
       const formattedOutputs = editedOutputs
@@ -103,7 +104,6 @@ export const FlowStepItem = ({
       
       // Invalidate and refetch queries
       await queryClient.invalidateQueries({ queryKey: ["flow-steps", flowId] });
-      await queryClient.invalidateQueries({ queryKey: ["stages"] });
       
       toast.success("Step updated successfully");
     } catch (error) {
