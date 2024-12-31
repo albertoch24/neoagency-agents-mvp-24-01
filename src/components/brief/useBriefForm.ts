@@ -33,6 +33,37 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       setIsProcessing(true);
       toast.info(initialData ? "Updating your brief..." : "Creating your brief...");
 
+      // If this is an update, first delete existing outputs and conversations
+      if (initialData?.id) {
+        console.log("Cleaning up existing brief data:", initialData.id);
+        
+        const { error: deleteOutputsError } = await supabase
+          .from("brief_outputs")
+          .delete()
+          .eq("brief_id", initialData.id);
+
+        if (deleteOutputsError) {
+          console.error("Error deleting existing outputs:", deleteOutputsError);
+          toast.error("Failed to clean up existing brief outputs");
+          setIsProcessing(false);
+          return;
+        }
+
+        const { error: deleteConversationsError } = await supabase
+          .from("workflow_conversations")
+          .delete()
+          .eq("brief_id", initialData.id);
+
+        if (deleteConversationsError) {
+          console.error("Error deleting existing conversations:", deleteConversationsError);
+          toast.error("Failed to clean up existing conversations");
+          setIsProcessing(false);
+          return;
+        }
+
+        console.log("Successfully cleaned up existing brief data");
+      }
+
       // Create/update the brief
       const { data: brief, error: briefError } = await supabase
         .from("briefs")
