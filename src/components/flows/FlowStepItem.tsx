@@ -61,6 +61,25 @@ export const FlowStepItem = ({
 
       console.log('Formatted outputs for saving:', outputs);
 
+      // First verify the flow exists
+      const { data: flow, error: flowError } = await supabase
+        .from("flows")
+        .select("id")
+        .eq("id", flowId)
+        .maybeSingle();
+
+      if (flowError) {
+        console.error('Error verifying flow:', flowError);
+        toast.error("Failed to verify flow");
+        return;
+      }
+
+      if (!flow) {
+        console.error('Flow not found:', flowId);
+        toast.error("Flow not found");
+        return;
+      }
+
       // Update the step
       const { data: updatedStep, error: updateError } = await supabase
         .from("flow_steps")
@@ -70,6 +89,7 @@ export const FlowStepItem = ({
           updated_at: new Date().toISOString(),
         })
         .eq("id", step.id)
+        .eq("flow_id", flowId)  // Ensure the step belongs to the flow
         .select()
         .maybeSingle();
 

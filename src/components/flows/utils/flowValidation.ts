@@ -1,21 +1,19 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const validateFlowOwnership = async (flowId: string, userId: string) => {
-  console.log('Validating flow ownership:', { flowId, userId });
-  
-  const { data: flow, error } = await supabase
-    .from('flows')
-    .select('user_id')
-    .eq('id', flowId)
+  const { data: flow, error: flowError } = await supabase
+    .from("flows")
+    .select("user_id")
+    .eq("id", flowId)
     .maybeSingle();
 
-  if (error) {
-    console.error('Error verifying flow ownership:', error);
-    throw error;
+  if (flowError) {
+    console.error('Error verifying flow ownership:', flowError);
+    throw new Error("Failed to verify flow ownership");
   }
 
   if (!flow) {
-    console.error('Flow not found');
+    console.error('Flow not found:', flowId);
     throw new Error("Flow not found");
   }
 
