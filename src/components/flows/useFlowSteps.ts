@@ -56,23 +56,23 @@ export const useFlowSteps = (flow: Flow) => {
       
       // Transform the data to match FlowStep type
       const transformedSteps: FlowStep[] = (data || []).map(step => ({
-        ...step,
+        id: step.id,
+        flow_id: step.flow_id,
+        agent_id: step.agent_id,
+        order_index: step.order_index,
         outputs: Array.isArray(step.outputs) 
           ? step.outputs.map(output => {
               if (typeof output === 'string') {
                 return { text: output };
               }
               if (typeof output === 'object' && output !== null) {
-                // Handle both cases where output might be { text: string } or have a nested text property
-                const textValue = typeof output === 'object' && 'text' in output 
-                  ? output.text as string 
-                  : '';
-                return { text: textValue };
+                return { text: output.text || '' };
               }
               return { text: '' };
             })
           : [],
-        requirements: step.requirements || ""
+        requirements: step.requirements || "",
+        agents: step.agents
       }));
       
       return transformedSteps;
@@ -99,13 +99,16 @@ export const useFlowSteps = (flow: Flow) => {
       console.log('Saving current steps state:', steps);
       
       await saveFlowSteps(flow.id, steps);
+      
+      // Invalidate and refetch to ensure UI is in sync
       await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
       
       toast.success("Steps saved successfully");
     } catch (error) {
       console.error("Error in handleSaveSteps:", error);
       toast.error("Failed to save steps");
-      queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
+      // Refetch to ensure UI shows current server state
+      await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
     } finally {
       setIsSaving(false);
     }
