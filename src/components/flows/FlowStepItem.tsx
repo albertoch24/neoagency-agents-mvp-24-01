@@ -53,21 +53,21 @@ export const FlowStepItem = ({
     try {
       console.log('Starting save operation for step:', step.id);
       
-      // Format outputs array from the textarea content with specific structure
-      const outputs = editedOutputs
+      // Format outputs array from the textarea content
+      const formattedOutputs = editedOutputs
         .split('\n')
-        .filter(line => line.trim()) // Remove empty lines
+        .filter(line => line.trim())
         .map(text => ({
           text: text.trim(),
-          type: 'required_output', // Adding type for better AI interpretation
-          format: 'text', // Specifying format for AI processing
-          context: editedRequirements.trim() // Including requirements as context
+          type: 'required_output',
+          format: 'text',
+          context: editedRequirements.trim()
         }));
 
-      console.log('Formatted outputs for saving:', outputs);
+      console.log('Formatted outputs for saving:', formattedOutputs);
 
       // First verify the flow exists
-      const { error: flowError } = await supabase
+      const { data: flowData, error: flowError } = await supabase
         .from("flows")
         .select("id")
         .eq("id", flowId)
@@ -79,13 +79,13 @@ export const FlowStepItem = ({
         return;
       }
 
-      // Update the step with the formatted data
+      // Update the step
       const { error: updateError } = await supabase
         .from("flow_steps")
         .update({
-          outputs,
+          outputs: formattedOutputs,
           requirements: editedRequirements.trim(),
-          updated_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .eq("id", step.id)
         .eq("flow_id", flowId);
