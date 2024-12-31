@@ -65,25 +65,28 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         await processWorkflowStage(brief.id, stage, flowSteps);
         toast.dismiss(toastId);
         toast.success(initialData ? "Brief updated and workflow restarted!" : "Brief submitted and workflow started successfully!");
+
+        // Invalidate queries before navigation
+        await queryClient.invalidateQueries({ queryKey: ["briefs"] });
+        await queryClient.invalidateQueries({ queryKey: ["brief"] });
+        await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+        await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+
+        setIsProcessing(false);
+        onSubmitSuccess?.();
+        
+        // Add a small delay to ensure data is refreshed before navigation
+        setTimeout(() => {
+          navigate(`/?stage=${stage.name}&briefId=${brief.id}&showOutputs=true`, {
+            replace: true // Use replace to avoid back button issues
+          });
+        }, 500);
       } catch (error) {
         console.error("Error starting workflow:", error);
         toast.dismiss(toastId);
         toast.error("Brief saved but workflow failed to start. Please try again or contact support.");
         setIsProcessing(false);
-        return;
       }
-
-      // Update queries and navigate
-      queryClient.invalidateQueries({ queryKey: ["briefs"] });
-      queryClient.invalidateQueries({ queryKey: ["brief"] });
-      queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
-      queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
-
-      setIsProcessing(false);
-      onSubmitSuccess?.();
-      
-      // Navigate to home with the first stage and show outputs
-      navigate(`/?stage=${stage.name}&briefId=${brief.id}&showOutputs=true`);
     } catch (error) {
       console.error("Error submitting brief:", error);
       toast.error("Error submitting brief. Please try again.");
