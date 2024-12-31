@@ -1,11 +1,22 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Stage } from "@/types/brief";
+import { validateWorkflowEntities } from "./validationService";
+import { toast } from "sonner";
 
 export const processWorkflowStage = async (
   briefId: string,
   stage: Stage,
   flowSteps: any[]
 ) => {
+  console.log("Starting workflow stage processing");
+  
+  // Validate all required entities exist
+  const validation = await validateWorkflowEntities(briefId, stage.id);
+  if (!validation.isValid) {
+    toast.error(validation.message || "Workflow validation failed");
+    throw new Error(validation.message);
+  }
+
   if (!stage.flow_id) {
     throw new Error(`Stage "${stage.name}" has no associated flow`);
   }

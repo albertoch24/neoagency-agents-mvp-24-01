@@ -17,21 +17,44 @@ serve(async (req) => {
   try {
     const { briefId, stageId, flowId, flowSteps } = await req.json();
     
-    // Validate required parameters
-    if (!briefId) {
-      throw new Error("Missing required parameter: briefId");
-    }
-    if (!stageId) {
-      throw new Error("Missing required parameter: stageId");
-    }
-    if (!flowId) {
-      throw new Error("Missing required parameter: flowId");
+    // Enhanced validation
+    if (!briefId || !stageId || !flowId || !flowSteps) {
+      throw new Error("Missing required parameters");
     }
 
     console.log("Processing workflow stage with parameters:", { briefId, stageId, flowId, flowSteps });
 
     // Initialize Supabase client
     const supabaseClient = createSupabaseClient();
+
+    // Additional validation to ensure all entities exist
+    const { data: validationData, error: validationError } = await supabaseClient
+      .from("stages")
+      .select(`
+        *,
+        flows (
+          id,
+          flow_steps (
+            id,
+            agent_id,
+            agents (
+              id,
+              name,
+              skills (*)
+            )
+          )
+        )
+      `)
+      .eq("id", stageId)
+      .maybeSingle();
+
+    if (validationError || !validationData) {
+      throw new Error("Failed to validate workflow entities");
+    }
+
+    if (!validationData.flows?.flow_steps?.length) {
+      throw new Error("No valid flow steps found for this stage");
+    }
 
     // Fetch brief details
     const brief = await fetchBriefDetails(supabaseClient, briefId);
@@ -51,7 +74,7 @@ serve(async (req) => {
     }
 
     for (const step of flowSteps) {
-      // Fetch agent details including skills
+      // Enhanced agent validation
       const { data: agent, error: agentError } = await supabaseClient
         .from("agents")
         .select(`
@@ -59,26 +82,20 @@ serve(async (req) => {
           skills (*)
         `)
         .eq("id", step.agent_id)
-        .single();
+        .maybeSingle();
 
-      if (agentError) {
+      if (agentError || !agent) {
         console.error("Error fetching agent:", agentError);
-        continue;
-      }
-
-      if (!agent) {
-        console.log("No agent found for step:", step);
-        continue;
+        throw new Error(`Agent not found for step: ${step.id}`);
       }
 
       const output = await processAgent(supabaseClient, agent, brief, stageId, step.requirements);
       outputs.push(output);
 
-      // Save the conversation - ensure content is never null
       if (output && output.outputs && output.outputs[0] && output.outputs[0].content) {
         await saveConversation(supabaseClient, briefId, stageId, agent.id, output.outputs[0].content);
       } else {
-        console.error("Invalid output format from agent:", output);
+        throw new Error(`Invalid output format from agent: ${agent.name}`);
       }
     }
 
