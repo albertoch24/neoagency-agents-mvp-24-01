@@ -49,7 +49,7 @@ export const FlowsContent = ({
         <FlowList
           flows={flows}
           selectedFlow={selectedFlow}
-          onSelectFlow={setSelectedFlow}
+          onSelect={setSelectedFlow}  // Changed from onSelectFlow to onSelect
           onShowHistory={(flow) => {
             setSelectedFlow(flow);
             setShowHistory(true);
