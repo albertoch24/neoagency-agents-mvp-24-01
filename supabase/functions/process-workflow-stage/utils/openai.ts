@@ -10,8 +10,6 @@ const createOpenAIClient = () => {
 export const generateAgentResponse = async (agentPrompt: string) => {
   console.log('Generating response for prompt:', agentPrompt);
   
-  const openai = createOpenAIClient();
-  
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

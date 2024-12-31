@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { generateAgentResponse } from "./openai.ts";
 
 export async function processAgent(
   supabase: any,
@@ -7,48 +8,44 @@ export async function processAgent(
   stageId: string,
   requirements?: string
 ) {
-  console.log("Starting agent processing with IDs:", {
-    briefId: brief.id,
-    stageId: stageId,
-    agentId: agent.id,
-    requirements: requirements
+  console.log("Starting agent processing with full context:", {
+    brief: {
+      id: brief.id,
+      title: brief.title,
+      description: brief.description,
+      objectives: brief.objectives,
+      status: brief.status
+    },
+    stage: {
+      id: stageId
+    },
+    agent: {
+      id: agent.id,
+      name: agent.name,
+      description: agent.description,
+      skillCount: agent.skills?.length || 0
+    }
   });
 
   try {
-    // Validate all required IDs exist
+    // Validate all required data exists
     if (!brief.id || !stageId || !agent.id) {
-      const missingIds = [];
-      if (!brief.id) missingIds.push('briefId');
-      if (!stageId) missingIds.push('stageId');
-      if (!agent.id) missingIds.push('agentId');
+      const missingData = [];
+      if (!brief.id) missingData.push('briefId');
+      if (!stageId) missingData.push('stageId');
+      if (!agent.id) missingData.push('agentId');
       
-      console.error("Missing required IDs:", missingIds);
-      throw new Error(`Missing required IDs: ${missingIds.join(', ')}`);
+      console.error("Missing required data:", missingData);
+      throw new Error(`Missing required data: ${missingData.join(', ')}`);
     }
 
-    // Log successful ID validation
-    console.log("All required IDs validated successfully:", {
-      brief: {
-        id: brief.id,
-        title: brief.title,
-        status: brief.status
-      },
-      stage: {
-        id: stageId
-      },
-      agent: {
-        id: agent.id,
-        name: agent.name,
-        description: agent.description
-      }
-    });
-
-    // Process the agent's skills
-    if (agent.skills) {
+    // Log agent skills
+    if (agent.skills && agent.skills.length > 0) {
       console.log("Processing agent skills:", agent.skills.map((skill: any) => ({
         skillId: skill.id,
         name: skill.name,
-        type: skill.type
+        type: skill.type,
+        hasContent: !!skill.content
       })));
     } else {
       console.warn("Agent has no skills:", {
@@ -57,10 +54,33 @@ export async function processAgent(
       });
     }
 
-    // Mock response for now - replace with actual agent processing logic
+    // Construct prompt from brief and agent data
+    const prompt = `
+      As ${agent.name}, analyze this creative brief:
+      Title: ${brief.title}
+      Description: ${brief.description}
+      Objectives: ${brief.objectives}
+      Requirements: ${requirements || 'None specified'}
+      
+      ${agent.description}
+      
+      Provide a detailed analysis and recommendations.
+    `;
+
+    console.log("Generating response with prompt:", prompt);
+
+    // Generate response using OpenAI
+    const content = await generateAgentResponse(prompt);
+    
+    console.log("Generated agent response:", {
+      agentId: agent.id,
+      contentLength: content.length,
+      timestamp: new Date().toISOString()
+    });
+
     const response = {
       outputs: [{
-        content: `Processed by agent ${agent.name} for brief ${brief.title}`,
+        content: content,
         timestamp: new Date().toISOString()
       }]
     };
@@ -69,8 +89,8 @@ export async function processAgent(
       briefId: brief.id,
       stageId: stageId,
       agentId: agent.id,
-      timestamp: new Date().toISOString(),
-      response: response
+      outputSize: response.outputs.length,
+      timestamp: new Date().toISOString()
     });
 
     return response;
