@@ -60,15 +60,28 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
           *,
           flows (
             id,
+            name,
             flow_steps (
-              *,
-              agents (*)
+              id,
+              agent_id,
+              order_index,
+              requirements,
+              agents (
+                id,
+                name,
+                description
+              )
             )
           )
         `)
         .order("order_index", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching stages:", error);
+        throw error;
+      }
+
+      console.log("Fetched stages with flows:", data);
       return data;
     },
   });
@@ -83,19 +96,25 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
       // Get the flow and flow steps for the next stage
       const flow = nextStage.flows?.[0];
       if (!flow) {
+        console.error("No flow found for stage:", nextStage.id);
         throw new Error("No flow found for this stage");
       }
 
       const flowSteps = flow.flow_steps || [];
       if (flowSteps.length === 0) {
+        console.error("No flow steps found for stage:", nextStage.id);
         throw new Error("No flow steps found for this stage");
       }
+
+      // Sort flow steps by order_index
+      const sortedFlowSteps = [...flowSteps].sort((a, b) => a.order_index - b.order_index);
 
       console.log("Processing stage with flow:", {
         briefId,
         stageId: nextStage.id,
         flowId: flow.id,
-        flowStepsCount: flowSteps.length
+        flowSteps: sortedFlowSteps,
+        flowStepsCount: sortedFlowSteps.length
       });
 
       const { error: workflowError } = await supabase.functions.invoke(
@@ -105,12 +124,15 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
             briefId, 
             stageId: nextStage.id,
             flowId: flow.id,
-            flowSteps: flowSteps
+            flowSteps: sortedFlowSteps
           },
         }
       );
 
-      if (workflowError) throw workflowError;
+      if (workflowError) {
+        console.error("Workflow processing error:", workflowError);
+        throw workflowError;
+      }
 
       // Update URL params to show outputs for the next stage
       const newParams = new URLSearchParams(searchParams);
