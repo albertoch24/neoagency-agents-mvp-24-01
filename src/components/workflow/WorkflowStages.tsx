@@ -3,9 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { WorkflowStage } from "@/types/workflow";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/components/auth/AuthProvider";
 
 const iconMap = {
   flag: Flag,
@@ -16,34 +13,13 @@ const iconMap = {
 };
 
 interface WorkflowStagesProps {
+  stages: WorkflowStage[];
   currentStage: string;
   onStageSelect: (stage: WorkflowStage) => void;
   disabled?: boolean;
 }
 
-export function WorkflowStages({ currentStage, onStageSelect, disabled }: WorkflowStagesProps) {
-  const { user } = useAuth();
-
-  // Fetch stages from the database
-  const { data: stages } = useQuery({
-    queryKey: ["stages", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("stages")
-        .select("*")
-        .eq("user_id", user?.id)
-        .order("order_index", { ascending: true });
-
-      if (error) {
-        console.error("Error fetching stages:", error);
-        return [];
-      }
-
-      return data;
-    },
-    enabled: !!user,
-  });
-
+export function WorkflowStages({ stages, currentStage, onStageSelect, disabled }: WorkflowStagesProps) {
   if (!stages || stages.length === 0) {
     return null;
   }
