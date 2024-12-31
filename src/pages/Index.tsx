@@ -24,11 +24,23 @@ const Index = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedBriefId, setSelectedBriefId] = useState<string | null>(null);
 
-  // Read stage from URL params on mount and when URL changes
+  // Read stage and briefId from URL params on mount and when URL changes
   useEffect(() => {
     const stageFromUrl = searchParams.get("stage");
+    const briefIdFromUrl = searchParams.get("briefId");
+    const showOutputs = searchParams.get("showOutputs");
+    
     if (stageFromUrl) {
       setCurrentStage(stageFromUrl);
+    }
+    
+    if (briefIdFromUrl) {
+      setSelectedBriefId(briefIdFromUrl);
+      // If showOutputs is true, ensure we're showing the brief display
+      if (showOutputs === "true") {
+        setShowNewBrief(false);
+        setIsEditing(false);
+      }
     }
   }, [searchParams]);
 
@@ -83,19 +95,20 @@ const Index = () => {
 
   const handleStageSelect = (stage: WorkflowStage) => {
     setCurrentStage(stage.id);
-    // Update URL with new stage
-    setSearchParams({ stage: stage.id });
+    // Update URL with new stage while preserving briefId
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set("stage", stage.id);
+    setSearchParams(newParams);
   };
 
   const handleSelectBrief = (briefId: string) => {
     setSelectedBriefId(briefId);
     setShowNewBrief(false);
     setIsEditing(false);
-  };
-
-  const handleEditBrief = () => {
-    setIsEditing(true);
-    setShowNewBrief(false);
+    // Update URL with selected brief
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set("briefId", briefId);
+    setSearchParams(newParams);
   };
 
   return (
@@ -114,7 +127,7 @@ const Index = () => {
           </Button>
           {currentBrief && !showNewBrief && !isEditing && (
             <Button
-              onClick={handleEditBrief}
+              onClick={() => setIsEditing(true)}
               variant="outline"
               className="flex items-center gap-2"
             >

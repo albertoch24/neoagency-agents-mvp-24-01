@@ -82,8 +82,8 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       setIsProcessing(false);
       onSubmitSuccess?.();
       
-      // Navigate to home with the first stage
-      navigate(`/?stage=${stage.name}&briefId=${brief.id}`);
+      // Navigate to home with the first stage and show outputs
+      navigate(`/?stage=${stage.name}&briefId=${brief.id}&showOutputs=true`);
     } catch (error) {
       console.error("Error submitting brief:", error);
       toast.error("Error submitting brief. Please try again.");
