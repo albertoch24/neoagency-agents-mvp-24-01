@@ -2,7 +2,7 @@ import { format } from "date-fns";
 import { WorkflowStageList } from "./WorkflowStageList";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Trash2, Clock, GitFlow } from "lucide-react";
+import { Trash2, Clock, Workflow } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -51,7 +51,7 @@ export const WorkflowLogItem = ({ brief }: WorkflowLogItemProps) => {
               </Badge>
               {brief.flows && (
                 <div className="flex items-center gap-2">
-                  <GitFlow className="h-4 w-4 text-muted-foreground" />
+                  <Workflow className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
                     Flow: {brief.flows.name || "No flow assigned"}
                   </span>
