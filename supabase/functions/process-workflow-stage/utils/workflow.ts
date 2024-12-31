@@ -44,7 +44,7 @@ Please provide a detailed analysis and recommendations from your specific perspe
       }]
     };
   } catch (error) {
-    console.error("Error processing agent:", agent.name, error);
+    console.error("Error processing agent:", error);
     throw error;
   }
 }
