@@ -17,11 +17,18 @@ serve(async (req) => {
   try {
     const { briefId, stageId, flowId, flowSteps } = await req.json();
     
-    if (!briefId || !stageId || !flowId) {
-      throw new Error("Missing required parameters: briefId, stageId, or flowId");
+    // Validate required parameters
+    if (!briefId) {
+      throw new Error("Missing required parameter: briefId");
+    }
+    if (!stageId) {
+      throw new Error("Missing required parameter: stageId");
+    }
+    if (!flowId) {
+      throw new Error("Missing required parameter: flowId");
     }
 
-    console.log("Processing workflow stage:", { briefId, stageId, flowId, flowSteps });
+    console.log("Processing workflow stage with parameters:", { briefId, stageId, flowId, flowSteps });
 
     // Initialize Supabase client
     const supabaseClient = createSupabaseClient();
@@ -38,6 +45,10 @@ serve(async (req) => {
     const outputs = [];
     
     console.log("Processing flow steps:", flowSteps);
+
+    if (!flowSteps || !Array.isArray(flowSteps)) {
+      throw new Error("Invalid or missing flowSteps parameter");
+    }
 
     for (const step of flowSteps) {
       // Fetch agent details including skills
