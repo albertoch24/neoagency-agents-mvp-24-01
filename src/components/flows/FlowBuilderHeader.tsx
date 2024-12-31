@@ -21,7 +21,18 @@ export const FlowBuilderHeader = ({ flow, onClose }: FlowBuilderHeaderProps) => 
       setIsDeleting(true);
       console.log("Starting flow deletion process for flow:", flow.id);
 
-      // First delete all stages associated with this flow
+      // First delete all flow steps
+      const { error: flowStepsError } = await supabase
+        .from("flow_steps")
+        .delete()
+        .eq("flow_id", flow.id);
+
+      if (flowStepsError) {
+        console.error("Error deleting flow steps:", flowStepsError);
+        throw flowStepsError;
+      }
+
+      // Then delete all stages associated with this flow
       const { error: stagesError } = await supabase
         .from("stages")
         .delete()
@@ -32,7 +43,7 @@ export const FlowBuilderHeader = ({ flow, onClose }: FlowBuilderHeaderProps) => 
         throw stagesError;
       }
 
-      // Then delete the flow
+      // Finally delete the flow
       const { error: flowError } = await supabase
         .from("flows")
         .delete()
