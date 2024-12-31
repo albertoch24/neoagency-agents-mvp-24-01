@@ -6,6 +6,7 @@ import { Flow, FlowStep } from "@/types/flow";
 import { useStepOperations } from "./hooks/useStepOperations";
 import { saveFlowSteps } from "./utils/stepUtils";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { Json } from "@/integrations/supabase/types";
 
 export const useFlowSteps = (flow: Flow) => {
   const [isSaving, setIsSaving] = useState(false);
@@ -61,12 +62,12 @@ export const useFlowSteps = (flow: Flow) => {
         agent_id: step.agent_id,
         order_index: step.order_index,
         outputs: Array.isArray(step.outputs) 
-          ? step.outputs.map(output => {
+          ? step.outputs.map((output: Json) => {
               if (typeof output === 'string') {
                 return { text: output };
               }
-              if (typeof output === 'object' && output !== null) {
-                return { text: output.text || '' };
+              if (typeof output === 'object' && output !== null && 'text' in output) {
+                return { text: (output as { text: string }).text || '' };
               }
               return { text: '' };
             })
