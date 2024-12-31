@@ -7,6 +7,7 @@ import { useStepOperations } from "./useStepOperations";
 import { saveFlowSteps } from "../utils/stepUtils";
 import { validateFlowOwnership } from "../utils/flowValidation";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { Json } from "@/integrations/supabase/types";
 
 export const useFlowSteps = (flow: Flow) => {
   const [isSaving, setIsSaving] = useState(false);
@@ -42,15 +43,27 @@ export const useFlowSteps = (flow: Flow) => {
       console.log('Fetched flow steps:', data);
       
       // Transform the data to match FlowStep type
-      return data?.map(step => ({
+      const transformedSteps: FlowStep[] = (data || []).map(step => ({
         id: step.id,
         flow_id: step.flow_id,
         agent_id: step.agent_id,
         order_index: step.order_index,
-        outputs: step.outputs || [],
+        outputs: Array.isArray(step.outputs) 
+          ? step.outputs.map((output: Json) => {
+              if (typeof output === 'string') {
+                return { text: output };
+              }
+              if (typeof output === 'object' && output !== null && 'text' in output) {
+                return { text: String((output as { text: unknown }).text || '') };
+              }
+              return { text: '' };
+            })
+          : [],
         requirements: step.requirements || "",
         agents: step.agents
-      })) || [];
+      }));
+      
+      return transformedSteps;
     },
     enabled: !!user && !!flow.id,
     staleTime: 0,
