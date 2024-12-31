@@ -32,6 +32,17 @@ export const FlowBuilderHeader = ({ flow, onClose }: FlowBuilderHeaderProps) => 
         throw flowStepsError;
       }
 
+      // Then delete all flow history
+      const { error: historyError } = await supabase
+        .from("flow_history")
+        .delete()
+        .eq("flow_id", flow.id);
+
+      if (historyError) {
+        console.error("Error deleting flow history:", historyError);
+        throw historyError;
+      }
+
       // Then delete all stages associated with this flow
       const { error: stagesError } = await supabase
         .from("stages")
@@ -43,7 +54,7 @@ export const FlowBuilderHeader = ({ flow, onClose }: FlowBuilderHeaderProps) => 
         throw stagesError;
       }
 
-      // Finally delete the flow
+      // Finally delete the flow itself
       const { error: flowError } = await supabase
         .from("flows")
         .delete()
@@ -74,10 +85,7 @@ export const FlowBuilderHeader = ({ flow, onClose }: FlowBuilderHeaderProps) => 
         )}
       </div>
       <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          onClick={onClose}
-        >
+        <Button variant="outline" onClick={onClose}>
           Close
         </Button>
         <Button
