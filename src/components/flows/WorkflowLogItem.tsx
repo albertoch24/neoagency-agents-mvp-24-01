@@ -53,7 +53,7 @@ export const WorkflowLogItem = ({ brief }: WorkflowLogItemProps) => {
                 <div className="flex items-center gap-2">
                   <Workflow className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    Flow: {brief.flows.name || "No flow assigned"}
+                    Flow: {brief.flows.name || "No flow assigned"} (ID: {brief.flow_id || "N/A"})
                   </span>
                 </div>
               )}
