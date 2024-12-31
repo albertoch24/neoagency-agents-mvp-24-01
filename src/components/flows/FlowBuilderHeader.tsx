@@ -43,14 +43,14 @@ export const FlowBuilderHeader = ({ flow, onClose }: FlowBuilderHeaderProps) => 
         throw historyError;
       }
 
-      // Then delete all stages associated with this flow
+      // Update stages to remove reference to this flow instead of deleting them
       const { error: stagesError } = await supabase
         .from("stages")
-        .delete()
+        .update({ flow_id: null })
         .eq("flow_id", flow.id);
 
       if (stagesError) {
-        console.error("Error deleting stages:", stagesError);
+        console.error("Error updating stages:", stagesError);
         throw stagesError;
       }
 
