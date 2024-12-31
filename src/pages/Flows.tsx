@@ -41,6 +41,10 @@ const Flows = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+      
+      // Add logging to see what flows are being fetched
+      console.log("Flows fetched from database:", data);
+      
       return data as Flow[];
     },
     staleTime: 0,  // Always fetch fresh data
@@ -51,6 +55,8 @@ const Flows = () => {
     queryKey: ["flow-steps", selectedFlow?.id],
     queryFn: async () => {
       if (!selectedFlow?.id) return null;
+      
+      console.log("Fetching flow steps for flow:", selectedFlow.id);
       
       const { data, error } = await supabase
         .from("flow_steps")
@@ -65,6 +71,8 @@ const Flows = () => {
         .order("order_index", { ascending: true });
 
       if (error) throw error;
+
+      console.log("Flow steps fetched:", data);
 
       return (data || []).map(step => ({
         ...step,
