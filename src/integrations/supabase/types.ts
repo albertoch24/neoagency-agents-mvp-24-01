@@ -98,6 +98,7 @@ export type Database = {
           created_at: string
           current_stage: string | null
           description: string | null
+          flow_id: string | null
           id: string
           objectives: string | null
           status: string | null
@@ -112,6 +113,7 @@ export type Database = {
           created_at?: string
           current_stage?: string | null
           description?: string | null
+          flow_id?: string | null
           id?: string
           objectives?: string | null
           status?: string | null
@@ -126,6 +128,7 @@ export type Database = {
           created_at?: string
           current_stage?: string | null
           description?: string | null
+          flow_id?: string | null
           id?: string
           objectives?: string | null
           status?: string | null
@@ -136,6 +139,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "briefs_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flows"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "briefs_user_id_fkey"
             columns: ["user_id"]
