@@ -53,11 +53,16 @@ export const FlowStepItem = ({
     try {
       console.log('Starting save operation for step:', step.id);
       
-      // Format outputs array from the textarea content
+      // Format outputs array from the textarea content with specific structure
       const outputs = editedOutputs
         .split('\n')
         .filter(line => line.trim()) // Remove empty lines
-        .map(text => ({ text: text.trim() }));
+        .map(text => ({
+          text: text.trim(),
+          type: 'required_output', // Adding type for better AI interpretation
+          format: 'text', // Specifying format for AI processing
+          context: editedRequirements.trim() // Including requirements as context
+        }));
 
       console.log('Formatted outputs for saving:', outputs);
 
