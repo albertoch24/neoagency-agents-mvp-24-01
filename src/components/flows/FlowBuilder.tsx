@@ -49,37 +49,12 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
     gcTime: 0
   });
 
-  // Update stages when flow steps change
-  useEffect(() => {
-    const updateStages = async () => {
-      if (!user?.id || !flow.id) return;
-
-      try {
-        // Update stages table to reflect the current flow
-        const { error: updateError } = await supabase
-          .from('stages')
-          .update({ flow_id: flow.id })
-          .eq('user_id', user.id)
-          .eq('flow_id', flow.id);
-
-        if (updateError) {
-          console.error('Error updating stages:', updateError);
-          toast.error('Failed to update stages');
-        }
-      } catch (error) {
-        console.error('Error in updateStages:', error);
-      }
-    };
-
-    updateStages();
-  }, [flow.id, user?.id, steps]);
-
   // Subscribe to real-time changes on flow_steps
   useEffect(() => {
     console.log('Setting up real-time subscription for flow steps');
     
     const channel = supabase
-      .channel('flow_steps_changes')
+      .channel(`flow_steps_${flow.id}`)
       .on(
         'postgres_changes',
         {
@@ -90,16 +65,19 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
         },
         async (payload) => {
           console.log('Flow steps changed:', payload);
+          // Invalidate both queries to ensure UI is updated
           await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
-          // Also invalidate stages query to ensure UI is updated
           await queryClient.invalidateQueries({ queryKey: ["stages"] });
+          await queryClient.invalidateQueries({ queryKey: ["flows"] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
 
     return () => {
       console.log('Cleaning up real-time subscription');
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
   }, [flow.id, queryClient]);
 
