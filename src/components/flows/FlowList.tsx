@@ -8,11 +8,17 @@ import { useAuth } from "@/components/auth/AuthProvider";
 
 interface FlowListProps {
   flows?: Flow[];
+  selectedFlow?: Flow | null;  // Added optional selectedFlow prop
   onSelect: (flow: Flow) => void;
   onShowHistory: (flow: Flow) => void;
 }
 
-export const FlowList = ({ flows = [], onSelect, onShowHistory }: FlowListProps) => {
+export const FlowList = ({ 
+  flows = [], 
+  selectedFlow, 
+  onSelect, 
+  onShowHistory 
+}: FlowListProps) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -75,7 +81,9 @@ export const FlowList = ({ flows = [], onSelect, onShowHistory }: FlowListProps)
       {flows.map((flow) => (
         <div
           key={flow.id}
-          className="flex items-center justify-between p-4 rounded-lg border"
+          className={`flex items-center justify-between p-4 rounded-lg border ${
+            selectedFlow?.id === flow.id ? 'bg-muted' : ''
+          }`}
         >
           <div>
             <h3 className="font-medium">{flow.name}</h3>
