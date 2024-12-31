@@ -35,14 +35,18 @@ const Flows = () => {
   const { data: flows, isLoading } = useQuery({
     queryKey: ["flows"],
     queryFn: async () => {
+      console.log("Fetching flows from database...");
+      
       const { data, error } = await supabase
         .from("flows")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching flows:", error);
+        throw error;
+      }
       
-      // Add logging to see what flows are being fetched
       console.log("Flows fetched from database:", data);
       
       return data as Flow[];
@@ -85,6 +89,14 @@ const Flows = () => {
     staleTime: 0,  // Always fetch fresh data
     gcTime: 0   // Don't cache the data
   });
+
+  // Reset selectedFlow if it's not in the flows list
+  React.useEffect(() => {
+    if (selectedFlow && flows && !flows.find(f => f.id === selectedFlow.id)) {
+      console.log("Selected flow not found in database, resetting selection");
+      setSelectedFlow(null);
+    }
+  }, [flows, selectedFlow]);
 
   if (isLoading) {
     return (
