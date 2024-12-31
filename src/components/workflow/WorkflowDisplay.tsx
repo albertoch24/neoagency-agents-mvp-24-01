@@ -27,7 +27,7 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
     queryKey: ["brief-outputs", briefId, currentStage],
     queryFn: async () => {
       if (!briefId) return [];
-
+      
       console.log("Fetching outputs for stage:", currentStage);
       
       const { data, error } = await supabase
@@ -50,12 +50,22 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
     gcTime: 0,
   });
 
+  // Fetch stages with their associated flows and flow steps
   const { data: stages } = useQuery({
     queryKey: ["stages"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stages")
-        .select("*")
+        .select(`
+          *,
+          flows (
+            id,
+            flow_steps (
+              *,
+              agents (*)
+            )
+          )
+        `)
         .order("order_index", { ascending: true });
 
       if (error) throw error;
@@ -70,12 +80,32 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
     const toastId = toast.loading("Processing next stage...");
 
     try {
+      // Get the flow and flow steps for the next stage
+      const flow = nextStage.flows?.[0];
+      if (!flow) {
+        throw new Error("No flow found for this stage");
+      }
+
+      const flowSteps = flow.flow_steps || [];
+      if (flowSteps.length === 0) {
+        throw new Error("No flow steps found for this stage");
+      }
+
+      console.log("Processing stage with flow:", {
+        briefId,
+        stageId: nextStage.id,
+        flowId: flow.id,
+        flowStepsCount: flowSteps.length
+      });
+
       const { error: workflowError } = await supabase.functions.invoke(
         "process-workflow-stage",
         {
           body: { 
             briefId, 
-            stageId: nextStage.id 
+            stageId: nextStage.id,
+            flowId: flow.id,
+            flowSteps: flowSteps
           },
         }
       );
@@ -93,6 +123,7 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
       onStageSelect(nextStage);
     } catch (error) {
       console.error("Error processing next stage:", error);
+      toast.dismiss(toastId);
       toast.error("Failed to process next stage");
     } finally {
       setIsProcessing(false);
