@@ -32,6 +32,7 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
         .from("agents")
         .select("*")
         .eq("user_id", user?.id)
+        .eq("is_paused", false)  // Only fetch active agents
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -44,9 +45,34 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
       return data;
     },
     enabled: !!user,
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 0  // Don't cache the data
+    staleTime: 0,
+    gcTime: 0
   });
+
+  // Update stages when flow steps change
+  useEffect(() => {
+    const updateStages = async () => {
+      if (!user?.id || !flow.id) return;
+
+      try {
+        // Update stages table to reflect the current flow
+        const { error: updateError } = await supabase
+          .from('stages')
+          .update({ flow_id: flow.id })
+          .eq('user_id', user.id)
+          .eq('flow_id', flow.id);
+
+        if (updateError) {
+          console.error('Error updating stages:', updateError);
+          toast.error('Failed to update stages');
+        }
+      } catch (error) {
+        console.error('Error in updateStages:', error);
+      }
+    };
+
+    updateStages();
+  }, [flow.id, user?.id, steps]);
 
   // Subscribe to real-time changes on flow_steps
   useEffect(() => {
@@ -64,8 +90,9 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
         },
         async (payload) => {
           console.log('Flow steps changed:', payload);
-          // Refetch the steps when changes occur
           await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
+          // Also invalidate stages query to ensure UI is updated
+          await queryClient.invalidateQueries({ queryKey: ["stages"] });
         }
       )
       .subscribe();

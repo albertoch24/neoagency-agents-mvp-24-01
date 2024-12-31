@@ -67,7 +67,7 @@ export const useFlowSteps = (flow: Flow) => {
                 return { text: output };
               }
               if (typeof output === 'object' && output !== null && 'text' in output) {
-                return { text: (output as { text: string }).text || '' };
+                return { text: String((output as { text: unknown }).text || '') };
               }
               return { text: '' };
             })
@@ -101,8 +101,9 @@ export const useFlowSteps = (flow: Flow) => {
       
       await saveFlowSteps(flow.id, steps);
       
-      // Invalidate and refetch to ensure UI is in sync
+      // Invalidate and refetch queries to ensure UI is in sync
       await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
+      await queryClient.invalidateQueries({ queryKey: ["stages"] });
       
       toast.success("Steps saved successfully");
     } catch (error) {
