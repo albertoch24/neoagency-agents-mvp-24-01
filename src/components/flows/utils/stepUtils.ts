@@ -16,25 +16,22 @@ export const saveFlowSteps = async (flowId: string, steps: FlowStep[]) => {
     throw deleteError;
   }
 
-  // Then insert the current steps with their correct order
+  // Then insert the new steps
   if (steps.length > 0) {
-    const stepsToInsert = steps.map((step, index) => ({
-      id: step.id,
-      flow_id: flowId,
-      agent_id: step.agent_id,
-      order_index: index,
-      outputs: step.outputs || [],
-      requirements: step.requirements || "",
-    }));
-
-    console.log('Inserting steps:', stepsToInsert);
-
     const { error: insertError } = await supabase
       .from("flow_steps")
-      .insert(stepsToInsert);
+      .insert(
+        steps.map((step, index) => ({
+          flow_id: flowId,
+          agent_id: step.agent_id,
+          order_index: index,
+          outputs: step.outputs || [],
+          requirements: step.requirements || ""
+        }))
+      );
 
     if (insertError) {
-      console.error("Error inserting steps:", insertError);
+      console.error("Error inserting new steps:", insertError);
       throw insertError;
     }
   }
