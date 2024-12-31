@@ -63,8 +63,12 @@ serve(async (req) => {
       const output = await processAgent(supabaseClient, agent, brief, stageId, step.requirements);
       outputs.push(output);
 
-      // Save the conversation
-      await saveConversation(supabaseClient, briefId, stageId, agent.id, output.content);
+      // Save the conversation - ensure content is never null
+      if (output && output.outputs && output.outputs[0] && output.outputs[0].content) {
+        await saveConversation(supabaseClient, briefId, stageId, agent.id, output.outputs[0].content);
+      } else {
+        console.error("Invalid output format from agent:", output);
+      }
     }
 
     // Save the final output

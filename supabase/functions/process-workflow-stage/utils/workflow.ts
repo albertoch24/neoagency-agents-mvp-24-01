@@ -34,6 +34,11 @@ Please provide a detailed analysis and recommendations from your specific perspe
 
     // Get response from OpenAI
     const response = await generateAgentResponse(agentPrompt);
+    
+    if (!response) {
+      throw new Error(`Failed to get response from agent ${agent.name}`);
+    }
+    
     console.log('Received response from OpenAI for agent:', agent.name);
 
     return {
@@ -45,6 +50,13 @@ Please provide a detailed analysis and recommendations from your specific perspe
     };
   } catch (error) {
     console.error("Error processing agent:", error);
-    throw error;
+    // Return a default error message instead of null
+    return {
+      agent: agent.name,
+      outputs: [{
+        text: "Error",
+        content: `Failed to process agent ${agent.name}: ${error.message || 'Unknown error'}`
+      }]
+    };
   }
 }
