@@ -104,6 +104,8 @@ export const FlowStepItem = ({
       
       // Invalidate and refetch queries
       await queryClient.invalidateQueries({ queryKey: ["flow-steps", flowId] });
+      await queryClient.invalidateQueries({ queryKey: ["stages"] });
+      await queryClient.invalidateQueries({ queryKey: ["flows"] });
       
       toast.success("Step updated successfully");
     } catch (error) {
