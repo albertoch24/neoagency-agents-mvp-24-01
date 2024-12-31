@@ -18,9 +18,10 @@ const iconMap = {
 interface WorkflowStagesProps {
   currentStage: string;
   onStageSelect: (stage: WorkflowStage) => void;
+  disabled?: boolean;
 }
 
-export function WorkflowStages({ currentStage, onStageSelect }: WorkflowStagesProps) {
+export function WorkflowStages({ currentStage, onStageSelect, disabled }: WorkflowStagesProps) {
   const { user } = useAuth();
 
   // Fetch stages from the database
@@ -73,11 +74,13 @@ export function WorkflowStages({ currentStage, onStageSelect }: WorkflowStagesPr
           <Card
             key={stage.id}
             className={cn(
-              "cursor-pointer transition-all hover:shadow-md",
+              "transition-all",
               isActive && "border-primary",
-              isCompleted && "bg-muted"
+              isCompleted && "bg-muted",
+              !disabled && "hover:shadow-md cursor-pointer",
+              disabled && "opacity-50 cursor-not-allowed"
             )}
-            onClick={() => onStageSelect(stage)}
+            onClick={() => !disabled && onStageSelect(stage)}
           >
             <CardHeader className="space-y-1">
               <CardTitle className="flex items-center gap-2 text-lg">

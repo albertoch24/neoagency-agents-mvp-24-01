@@ -6,9 +6,10 @@ interface WorkflowActionsProps {
   stages: any[];
   currentStage: string;
   onNextStage: () => void;
+  disabled?: boolean;
 }
 
-export const WorkflowActions = ({ stages, currentStage, onNextStage }: WorkflowActionsProps) => {
+export const WorkflowActions = ({ stages, currentStage, onNextStage, disabled }: WorkflowActionsProps) => {
   if (!stages?.length) return null;
 
   const currentIndex = stages.findIndex(stage => stage.id === currentStage);
@@ -22,6 +23,7 @@ export const WorkflowActions = ({ stages, currentStage, onNextStage }: WorkflowA
         <Button 
           onClick={onNextStage}
           className="flex items-center gap-2"
+          disabled={disabled}
         >
           Next Stage
           <ArrowRight className="h-4 w-4" />

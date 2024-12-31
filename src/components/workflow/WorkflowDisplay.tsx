@@ -10,6 +10,7 @@ import { WorkflowOutput } from "./WorkflowOutput";
 import { WorkflowProgress } from "./WorkflowProgress";
 import { WorkflowActions } from "./WorkflowActions";
 import { WorkflowConversation } from "./WorkflowConversation";
+import { useSearchParams } from "react-router-dom";
 
 interface WorkflowDisplayProps {
   currentStage: string;
@@ -18,6 +19,9 @@ interface WorkflowDisplayProps {
 }
 
 const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDisplayProps) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [isProcessing, setIsProcessing] = useState(false);
+
   // Fetch stage outputs
   const { data: stageOutputs, isLoading: outputsLoading } = useQuery({
     queryKey: ["brief-outputs", briefId, currentStage],
@@ -59,17 +63,13 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
     },
   });
 
-  const handleNextStage = async () => {
+  const processNextStage = async (nextStage: any) => {
     if (!briefId || !stages) return;
-
-    const currentIndex = stages.findIndex(stage => stage.id === currentStage);
-    if (currentIndex === -1 || currentIndex === stages.length - 1) return;
-
-    const nextStage = stages[currentIndex + 1];
     
-    try {
-      const toastId = toast.loading("Processing next stage...");
+    setIsProcessing(true);
+    const toastId = toast.loading("Processing next stage...");
 
+    try {
       const { error: workflowError } = await supabase.functions.invoke(
         "process-workflow-stage",
         {
@@ -82,18 +82,54 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
 
       if (workflowError) throw workflowError;
 
+      // Update URL params to show outputs for the next stage
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("stage", nextStage.id);
+      newParams.set("showOutputs", "true");
+      setSearchParams(newParams);
+
       toast.dismiss(toastId);
       toast.success(`Moving to ${nextStage.name} stage`);
       onStageSelect(nextStage);
     } catch (error) {
       console.error("Error processing next stage:", error);
       toast.error("Failed to process next stage");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleNextStage = async () => {
+    if (!briefId || !stages) return;
+
+    const currentIndex = stages.findIndex(stage => stage.id === currentStage);
+    if (currentIndex === -1 || currentIndex === stages.length - 1) return;
+
+    const nextStage = stages[currentIndex + 1];
+    await processNextStage(nextStage);
+  };
+
+  const handleStageSelect = async (stage: any) => {
+    if (!briefId || !stages || isProcessing) return;
+
+    const currentIndex = stages.findIndex(s => s.id === currentStage);
+    const selectedIndex = stages.findIndex(s => s.id === stage.id);
+
+    // Only process if selecting the next stage
+    if (selectedIndex === currentIndex + 1) {
+      await processNextStage(stage);
+    } else {
+      onStageSelect(stage);
     }
   };
 
   return (
     <div className="space-y-8 px-4">
-      <WorkflowStages currentStage={currentStage} onStageSelect={onStageSelect} />
+      <WorkflowStages 
+        currentStage={currentStage} 
+        onStageSelect={handleStageSelect}
+        disabled={isProcessing}
+      />
       
       <WorkflowProgress stages={stages} currentStage={currentStage} />
 
@@ -108,6 +144,7 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
         stages={stages} 
         currentStage={currentStage}
         onNextStage={handleNextStage}
+        disabled={isProcessing}
       />
     </div>
   );
