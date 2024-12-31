@@ -7,21 +7,19 @@ export async function processAgent(
   stageId: string,
   requirements?: string
 ) {
-  console.log("Processing workflow with IDs:", {
+  console.log("Starting agent processing with IDs:", {
     briefId: brief.id,
     stageId: stageId,
-    flowId: brief.flow_id,
     agentId: agent.id,
     requirements: requirements
   });
 
   try {
     // Validate all required IDs exist
-    if (!brief.id || !stageId || !brief.flow_id || !agent.id) {
+    if (!brief.id || !stageId || !agent.id) {
       const missingIds = [];
       if (!brief.id) missingIds.push('briefId');
       if (!stageId) missingIds.push('stageId');
-      if (!brief.flow_id) missingIds.push('flowId');
       if (!agent.id) missingIds.push('agentId');
       
       console.error("Missing required IDs:", missingIds);
@@ -33,14 +31,15 @@ export async function processAgent(
       brief: {
         id: brief.id,
         title: brief.title,
-        flowId: brief.flow_id
+        status: brief.status
       },
       stage: {
         id: stageId
       },
       agent: {
         id: agent.id,
-        name: agent.name
+        name: agent.name,
+        description: agent.description
       }
     });
 
@@ -51,6 +50,11 @@ export async function processAgent(
         name: skill.name,
         type: skill.type
       })));
+    } else {
+      console.warn("Agent has no skills:", {
+        agentId: agent.id,
+        agentName: agent.name
+      });
     }
 
     // Mock response for now - replace with actual agent processing logic
@@ -61,20 +65,22 @@ export async function processAgent(
       }]
     };
 
-    console.log("Workflow processing completed successfully:", {
+    console.log("Agent processing completed successfully:", {
       briefId: brief.id,
       stageId: stageId,
       agentId: agent.id,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      response: response
     });
 
     return response;
   } catch (error) {
-    console.error("Error in workflow processing:", {
+    console.error("Error in agent processing:", {
       error: error.message,
       briefId: brief?.id,
       stageId: stageId,
-      agentId: agent?.id
+      agentId: agent?.id,
+      stack: error.stack
     });
     throw error;
   }
