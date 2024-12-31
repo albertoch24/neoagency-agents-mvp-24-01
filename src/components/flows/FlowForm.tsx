@@ -27,19 +27,26 @@ export const FlowForm = ({ onClose }: FlowFormProps) => {
       return;
     }
 
+    console.log("Creating flow with data:", { name, description, user_id: user.id });
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("flows")
         .insert([{ 
           name, 
           description,
           user_id: user.id 
-        }]);
+        }])
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error creating flow:", error);
+        throw error;
+      }
 
+      console.log("Flow created successfully:", data);
       toast.success("Flow created successfully");
       queryClient.invalidateQueries({ queryKey: ["flows"] });
       onClose();
