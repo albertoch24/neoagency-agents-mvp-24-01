@@ -92,6 +92,8 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         return;
       }
 
+      console.log("Retrieved stage with flow:", stage);
+
       if (!stage.flow_id) {
         console.error("No flow associated with stage:", stage.name);
         toast.error(`Stage "${stage.name}" has no associated flow. Please assign a flow to this stage.`);
@@ -108,7 +110,10 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
 
       // Get the flow steps in the correct order from the existing flow
       const flowSteps = stage.flows?.flow_steps || [];
+      console.log("Retrieved flow steps before sorting:", flowSteps);
+      
       flowSteps.sort((a, b) => a.order_index - b.order_index);
+      console.log("Flow steps after sorting:", flowSteps);
 
       console.log("Invoking process-workflow-stage function for brief:", brief.id);
       console.log("Flow steps to process:", flowSteps);
