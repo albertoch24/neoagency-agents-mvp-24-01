@@ -30,11 +30,16 @@ export const useFlowSteps = (flow: Flow) => {
         .from('flows')
         .select('user_id')
         .eq('id', flow.id)
-        .single();
+        .maybeSingle();
 
-      if (flowError || !flowData) {
+      if (flowError) {
         console.error('Error verifying flow ownership:', flowError);
         throw flowError;
+      }
+
+      if (!flowData) {
+        console.error('Flow not found');
+        throw new Error("Flow not found");
       }
 
       if (flowData.user_id !== user.id) {
