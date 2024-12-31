@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { WorkflowStage } from "@/types/workflow";
 import BriefForm from "@/components/brief/BriefForm";
 import BriefDisplay from "@/components/brief/BriefDisplay";
-import WorkflowDisplay from "@/components/workflow/WorkflowDisplay";
+import { WorkflowDisplay } from "@/components/workflow/WorkflowDisplay";
 import { Button } from "@/components/ui/button";
 import { FilePlus, FolderOpen, Edit } from "lucide-react";
 import { useSearchParams } from "react-router-dom";

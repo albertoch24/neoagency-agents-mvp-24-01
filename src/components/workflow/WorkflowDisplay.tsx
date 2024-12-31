@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { WorkflowStages } from "./WorkflowStages";
@@ -155,15 +155,12 @@ export const WorkflowDisplay = ({
       <WorkflowProgress
         stages={stages}
         currentStage={currentStage}
-        onStageSelect={handleStageSelect}
-        isProcessing={isProcessing}
       />
       
       <WorkflowStages
-        stages={stages}
         currentStage={currentStage}
         onStageSelect={handleStageSelect}
-        isProcessing={isProcessing}
+        disabled={isProcessing}
       />
 
       {briefId && currentStage && (
@@ -176,8 +173,14 @@ export const WorkflowDisplay = ({
           <WorkflowActions
             stages={stages}
             currentStage={currentStage}
-            onNextStage={processNextStage}
-            isProcessing={isProcessing}
+            onNextStage={() => {
+              const currentIndex = stages.findIndex(s => s.id === currentStage);
+              const nextStage = stages[currentIndex + 1];
+              if (nextStage) {
+                processNextStage(nextStage);
+              }
+            }}
+            disabled={isProcessing}
           />
         </>
       )}
