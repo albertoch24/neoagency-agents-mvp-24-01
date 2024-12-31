@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkflowStageList } from "@/components/flows/WorkflowStageList";
 
@@ -8,6 +8,8 @@ interface WorkflowConversationProps {
 }
 
 export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversationProps) => {
+  const queryClient = useQueryClient();
+
   // Query to fetch conversations with no caching to ensure fresh data
   const { data: conversations } = useQuery({
     queryKey: ["workflow-conversations", briefId, currentStage],

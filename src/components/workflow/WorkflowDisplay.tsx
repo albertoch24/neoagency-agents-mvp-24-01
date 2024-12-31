@@ -1,58 +1,31 @@
-import { useState, useEffect } from "react";
-import { WorkflowStages } from "@/components/workflow/WorkflowStages";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { WorkflowOutput } from "./WorkflowOutput";
-import { WorkflowProgress } from "./WorkflowProgress";
-import { WorkflowActions } from "./WorkflowActions";
+import { WorkflowStages } from "./WorkflowStages";
 import { WorkflowConversation } from "./WorkflowConversation";
-import { useSearchParams } from "react-router-dom";
+import { WorkflowActions } from "./WorkflowActions";
+import { WorkflowProgress } from "./WorkflowProgress";
 
 interface WorkflowDisplayProps {
+  briefId?: string;
   currentStage: string;
   onStageSelect: (stage: any) => void;
-  briefId?: string;
 }
 
-const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDisplayProps) => {
+export const WorkflowDisplay = ({
+  briefId,
+  currentStage,
+  onStageSelect,
+}: WorkflowDisplayProps) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isProcessing, setIsProcessing] = useState(false);
+  const queryClient = useQueryClient();
 
-  // Fetch stage outputs
-  const { data: stageOutputs, isLoading: outputsLoading } = useQuery({
-    queryKey: ["brief-outputs", briefId, currentStage],
-    queryFn: async () => {
-      if (!briefId) return [];
-      
-      console.log("Fetching outputs for stage:", currentStage);
-      
-      const { data, error } = await supabase
-        .from("brief_outputs")
-        .select("*")
-        .eq("brief_id", briefId)
-        .eq("stage", currentStage)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error("Error fetching outputs:", error);
-        return [];
-      }
-
-      console.log("Found outputs:", data);
-      return data;
-    },
-    enabled: !!briefId && !!currentStage,
-    staleTime: 0,
-    gcTime: 0,
-  });
-
-  // Fetch stages with their associated flows and flow steps
+  // Query to fetch stages with their associated flows and steps
   const { data: stages } = useQuery({
-    queryKey: ["stages"],
+    queryKey: ["stages", briefId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stages")
@@ -87,11 +60,9 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
   });
 
   const processNextStage = async (nextStage: any) => {
-    if (!briefId || !stages) return;
-    
-    setIsProcessing(true);
-    const toastId = toast.loading("Processing next stage...");
+    if (!briefId || isProcessing) return;
 
+    setIsProcessing(true);
     try {
       // Get the flow and flow steps for the next stage
       const flow = nextStage.flows?.[0];
@@ -120,7 +91,7 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
       const { error: workflowError } = await supabase.functions.invoke(
         "process-workflow-stage",
         {
-          body: { 
+          body: {
             briefId, 
             stageId: nextStage.id,
             flowId: flow.id,
@@ -134,73 +105,82 @@ const WorkflowDisplay = ({ currentStage, onStageSelect, briefId }: WorkflowDispl
         throw workflowError;
       }
 
+      // Invalidate queries to refresh the data
+      await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+      await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+      await queryClient.invalidateQueries({ queryKey: ["briefs"] });
+
       // Update URL params to show outputs for the next stage
       const newParams = new URLSearchParams(searchParams);
       newParams.set("stage", nextStage.id);
       newParams.set("showOutputs", "true");
       setSearchParams(newParams);
 
-      toast.dismiss(toastId);
-      toast.success(`Moving to ${nextStage.name} stage`);
+      // Update the current stage in the parent component
       onStageSelect(nextStage);
-    } catch (error) {
+      
+      toast.success("Stage processed successfully");
+    } catch (error: any) {
       console.error("Error processing next stage:", error);
-      toast.dismiss(toastId);
-      toast.error("Failed to process next stage");
+      toast.error(error.message || "Failed to process stage");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleNextStage = async () => {
-    if (!briefId || !stages) return;
-
-    const currentIndex = stages.findIndex(stage => stage.id === currentStage);
-    if (currentIndex === -1 || currentIndex === stages.length - 1) return;
-
-    const nextStage = stages[currentIndex + 1];
-    await processNextStage(nextStage);
-  };
-
   const handleStageSelect = async (stage: any) => {
-    if (!briefId || !stages || isProcessing) return;
+    if (isProcessing) return;
 
-    const currentIndex = stages.findIndex(s => s.id === currentStage);
-    const selectedIndex = stages.findIndex(s => s.id === stage.id);
+    const currentIndex = stages?.findIndex((s) => s.id === currentStage) ?? -1;
+    const selectedIndex = stages?.findIndex((s) => s.id === stage.id) ?? -1;
 
-    // Only process if selecting the next stage
+    // If selecting the next stage in sequence, process it
     if (selectedIndex === currentIndex + 1) {
       await processNextStage(stage);
     } else {
+      // Otherwise just update the UI to show the selected stage
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("stage", stage.id);
+      setSearchParams(newParams);
       onStageSelect(stage);
     }
   };
 
+  if (!stages?.length) {
+    return null;
+  }
+
   return (
-    <div className="space-y-8 px-4">
-      <WorkflowStages 
-        currentStage={currentStage} 
+    <div className="space-y-8">
+      <WorkflowProgress
+        stages={stages}
+        currentStage={currentStage}
         onStageSelect={handleStageSelect}
-        disabled={isProcessing}
+        isProcessing={isProcessing}
       />
       
-      <WorkflowProgress stages={stages} currentStage={currentStage} />
+      <WorkflowStages
+        stages={stages}
+        currentStage={currentStage}
+        onStageSelect={handleStageSelect}
+        isProcessing={isProcessing}
+      />
 
       {briefId && currentStage && (
         <>
-          <WorkflowOutput briefId={briefId} stageId={currentStage} />
-          <WorkflowConversation briefId={briefId} currentStage={currentStage} />
+          <WorkflowConversation
+            briefId={briefId}
+            currentStage={currentStage}
+          />
+          
+          <WorkflowActions
+            stages={stages}
+            currentStage={currentStage}
+            onNextStage={processNextStage}
+            isProcessing={isProcessing}
+          />
         </>
       )}
-
-      <WorkflowActions 
-        stages={stages} 
-        currentStage={currentStage}
-        onNextStage={handleNextStage}
-        disabled={isProcessing}
-      />
     </div>
   );
 };
-
-export default WorkflowDisplay;
