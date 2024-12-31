@@ -68,7 +68,8 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
               id,
               agent_id,
               requirements,
-              order_index
+              order_index,
+              outputs
             )
           )
         `)
@@ -105,7 +106,12 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         { duration: Infinity }
       );
 
+      // Get the flow steps in the correct order
+      const flowSteps = stage.flows?.flow_steps || [];
+      flowSteps.sort((a, b) => a.order_index - b.order_index);
+
       console.log("Invoking process-workflow-stage function for brief:", brief.id);
+      console.log("Flow steps to process:", flowSteps);
       
       const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
         "process-workflow-stage",
@@ -114,7 +120,7 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
             briefId: brief.id, 
             stageId: stage.id,
             flowId: stage.flow_id,
-            flowSteps: stage.flows?.flow_steps || []
+            flowSteps: flowSteps
           },
         }
       );
