@@ -52,34 +52,59 @@ export const FlowStepItem = ({
 
   const handleSave = async () => {
     try {
-      console.log('Saving step:', step.id);
+      console.log('Starting save operation for step:', step.id);
+      console.log('Current step data:', step);
       console.log('Edited outputs:', editedOutputs);
       console.log('Edited requirements:', editedRequirements);
 
+      // Prepare outputs array
       const outputs = editedOutputs
         .split('\n')
         .filter(output => output.trim())
         .map(text => ({ text }));
 
-      const { data, error } = await supabase
+      console.log('Formatted outputs for saving:', outputs);
+
+      // First verify the step exists
+      const { data: existingStep, error: verifyError } = await supabase
+        .from("flow_steps")
+        .select()
+        .eq("id", step.id)
+        .maybeSingle();
+
+      if (verifyError) {
+        console.error('Error verifying step existence:', verifyError);
+        toast.error("Failed to verify step");
+        throw verifyError;
+      }
+
+      if (!existingStep) {
+        console.error('Step not found:', step.id);
+        toast.error("Step not found");
+        return;
+      }
+
+      // Update the step
+      const { data: updatedStep, error: updateError } = await supabase
         .from("flow_steps")
         .update({
           outputs,
           requirements: editedRequirements,
+          updated_at: new Date().toISOString(),
         })
         .eq("id", step.id)
         .select()
         .single();
 
-      if (error) {
-        console.error('Error saving step:', error);
+      if (updateError) {
+        console.error('Error updating step:', updateError);
         toast.error("Failed to save step");
-        throw error;
+        throw updateError;
       }
 
-      console.log('Step saved successfully:', data);
+      console.log('Step updated successfully:', updatedStep);
       
-      // Update the local state
+      // Update local state
       setIsEditing(false);
       
       // Invalidate and refetch queries to update UI
@@ -90,6 +115,9 @@ export const FlowStepItem = ({
     } catch (error) {
       console.error("Error updating step:", error);
       toast.error("Failed to update step");
+      
+      // Refetch to ensure UI shows current server state
+      await queryClient.invalidateQueries({ queryKey: ["flow-steps", flowId] });
     }
   };
 
