@@ -1,5 +1,5 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createOpenAIClient, generateAgentResponse } from "./openai.ts";
+import { saveConversation } from "./database.ts";
 
 export async function processAgent(
   supabaseClient: any,
@@ -9,10 +9,11 @@ export async function processAgent(
 ) {
   console.log('Processing agent:', agent.name);
 
-  const openai = createOpenAIClient();
+  try {
+    const openai = createOpenAIClient();
 
-  // Create personalized prompt for the agent
-  const agentPrompt = `You are ${agent.name}, an expert with the following profile:
+    // Create personalized prompt for the agent
+    const agentPrompt = `You are ${agent.name}, an expert with the following profile:
 ${agent.description}
 
 Your skills include:
@@ -29,25 +30,12 @@ Timeline: ${brief.timeline || "Not provided"}
 
 Please provide a detailed analysis and recommendations from your specific perspective as ${agent.name}.`;
 
-  try {
     // Get response from OpenAI
     const response = await generateAgentResponse(openai, agentPrompt);
     console.log('Received response from OpenAI for agent:', agent.name);
 
     // Save the conversation
-    const { error: conversationError } = await supabaseClient
-      .from("workflow_conversations")
-      .insert({
-        brief_id: brief.id,
-        stage_id: stageId,
-        agent_id: agent.id,
-        content: response
-      });
-
-    if (conversationError) {
-      console.error("Error saving conversation:", conversationError);
-      throw conversationError;
-    }
+    await saveConversation(supabaseClient, brief.id, stageId, agent.id, response);
 
     return {
       agent: agent.name,

@@ -10,13 +10,18 @@ export const createOpenAIClient = () => {
 export const generateAgentResponse = async (openai: OpenAIApi, agentPrompt: string) => {
   console.log('Generating response for prompt:', agentPrompt);
   
-  const completion = await openai.createChatCompletion({
-    model: 'gpt-4o',
-    messages: [
-      { role: 'system', content: 'You are a professional creative agency expert.' },
-      { role: 'user', content: agentPrompt }
-    ],
-  });
-  
-  return completion.data.choices[0].message?.content || '';
+  try {
+    const completion = await openai.createChatCompletion({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: 'You are a professional creative agency expert.' },
+        { role: 'user', content: agentPrompt }
+      ],
+    });
+    
+    return completion.data.choices[0].message?.content || '';
+  } catch (error) {
+    console.error('Error generating OpenAI response:', error);
+    throw new Error(`Failed to generate AI response: ${error.message}`);
+  }
 };
