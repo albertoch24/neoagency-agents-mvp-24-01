@@ -53,16 +53,16 @@ export const FlowStepItem = ({
     try {
       console.log('Starting save operation for step:', step.id);
       
-      // Prepare outputs array
+      // Format outputs array from the textarea content
       const outputs = editedOutputs
         .split('\n')
-        .filter(output => output.trim())
-        .map(text => ({ text }));
+        .filter(line => line.trim()) // Remove empty lines
+        .map(text => ({ text: text.trim() }));
 
       console.log('Formatted outputs for saving:', outputs);
 
       // First verify the flow exists
-      const { data: flow, error: flowError } = await supabase
+      const { error: flowError } = await supabase
         .from("flows")
         .select("id")
         .eq("id", flowId)
@@ -74,16 +74,16 @@ export const FlowStepItem = ({
         return;
       }
 
-      // Update the step
+      // Update the step with the formatted data
       const { error: updateError } = await supabase
         .from("flow_steps")
         .update({
           outputs,
-          requirements: editedRequirements,
+          requirements: editedRequirements.trim(),
           updated_at: new Date().toISOString(),
         })
         .eq("id", step.id)
-        .eq("flow_id", flowId);  // Ensure the step belongs to the flow
+        .eq("flow_id", flowId);
 
       if (updateError) {
         console.error('Error updating step:', updateError);
