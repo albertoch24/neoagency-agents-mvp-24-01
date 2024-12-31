@@ -59,10 +59,7 @@ export const FlowStepItem = ({
         .split('\n')
         .filter(line => line.trim())
         .map(text => ({
-          text: text.trim(),
-          type: 'required_output',
-          format: 'text',
-          context: editedRequirements.trim()
+          text: text.trim()
         }));
 
       console.log('Formatted outputs for saving:', formattedOutputs);
@@ -72,11 +69,17 @@ export const FlowStepItem = ({
         .from("flows")
         .select("id")
         .eq("id", flowId)
-        .single();
+        .maybeSingle();
 
       if (flowError) {
         console.error('Error verifying flow:', flowError);
         toast.error("Failed to verify flow");
+        return;
+      }
+
+      if (!flowData) {
+        console.error('Flow not found:', flowId);
+        toast.error("Flow not found");
         return;
       }
 
