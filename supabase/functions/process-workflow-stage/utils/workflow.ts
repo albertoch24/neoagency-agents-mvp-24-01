@@ -5,7 +5,8 @@ export async function processAgent(
   supabaseClient: any,
   agent: any,
   brief: any,
-  stageId: string
+  stageId: string,
+  requirements?: string
 ) {
   console.log('Processing agent:', agent.name);
 
@@ -17,7 +18,10 @@ ${agent.description}
 Your skills include:
 ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join("\n") || "No specific skills listed"}
 
-Please analyze the following brief and provide your expert perspective based on your role and skills:
+Requirements for this step:
+${requirements || "No specific requirements provided"}
+
+Please analyze the following brief and provide your expert perspective based on your role, skills, and the requirements:
 
 Brief Title: ${brief.title}
 Description: ${brief.description || "Not provided"}
@@ -26,14 +30,11 @@ Target Audience: ${brief.target_audience || "Not provided"}
 Budget: ${brief.budget || "Not provided"}
 Timeline: ${brief.timeline || "Not provided"}
 
-Please provide a detailed analysis and recommendations from your specific perspective as ${agent.name}.`;
+Please provide a detailed analysis and recommendations from your specific perspective as ${agent.name}, focusing on the requirements provided.`;
 
     // Get response from OpenAI
     const response = await generateAgentResponse(agentPrompt);
     console.log('Received response from OpenAI for agent:', agent.name);
-
-    // Save the conversation
-    await saveConversation(supabaseClient, brief.id, stageId, agent.id, response);
 
     return {
       agent: agent.name,

@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSupabaseClient } from "./utils/database.ts";
-import { fetchBriefDetails, fetchStageDetails, saveBriefOutput } from "./utils/database.ts";
+import { fetchBriefDetails, fetchStageDetails, saveBriefOutput, saveConversation } from "./utils/database.ts";
 import { processAgent } from "./utils/workflow.ts";
 
 const corsHeaders = {
@@ -15,13 +15,13 @@ serve(async (req) => {
   }
 
   try {
-    const { briefId, stageId } = await req.json();
+    const { briefId, stageId, flowId, flowSteps } = await req.json();
     
-    if (!briefId || !stageId) {
-      throw new Error("Missing required parameters: briefId or stageId");
+    if (!briefId || !stageId || !flowId) {
+      throw new Error("Missing required parameters: briefId, stageId, or flowId");
     }
 
-    console.log("Processing workflow stage:", { briefId, stageId });
+    console.log("Processing workflow stage:", { briefId, stageId, flowId, flowSteps });
 
     // Initialize Supabase client
     const supabaseClient = createSupabaseClient();
@@ -30,32 +30,48 @@ serve(async (req) => {
     const brief = await fetchBriefDetails(supabaseClient, briefId);
     console.log("Found brief:", brief);
 
-    // Fetch stage with its associated flow and steps
+    // Fetch stage with its associated flow
     const stage = await fetchStageDetails(supabaseClient, stageId);
-    console.log("Found stage with flow:", stage);
+    console.log("Found stage:", stage);
 
-    // Process each agent in the flow
+    // Process each agent in the flow steps
     const outputs = [];
-    const flowSteps = stage.flows?.flow_steps || [];
     
     console.log("Processing flow steps:", flowSteps);
 
     for (const step of flowSteps) {
-      const agent = step.agents;
+      // Fetch agent details including skills
+      const { data: agent, error: agentError } = await supabaseClient
+        .from("agents")
+        .select(`
+          *,
+          skills (*)
+        `)
+        .eq("id", step.agent_id)
+        .single();
+
+      if (agentError) {
+        console.error("Error fetching agent:", agentError);
+        continue;
+      }
+
       if (!agent) {
         console.log("No agent found for step:", step);
         continue;
       }
 
-      const output = await processAgent(supabaseClient, agent, brief, stageId);
+      const output = await processAgent(supabaseClient, agent, brief, stageId, step.requirements);
       outputs.push(output);
+
+      // Save the conversation
+      await saveConversation(supabaseClient, briefId, stageId, agent.id, output.content);
     }
 
     // Save the final output
     await saveBriefOutput(supabaseClient, briefId, stageId, stage.name, outputs);
 
     return new Response(
-      JSON.stringify({ message: "Stage processed successfully" }),
+      JSON.stringify({ message: "Stage processed successfully", outputs }),
       { 
         headers: { 
           ...corsHeaders,

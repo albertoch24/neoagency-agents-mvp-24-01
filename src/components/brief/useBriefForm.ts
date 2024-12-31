@@ -33,6 +33,7 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       setIsProcessing(true);
       toast.info(initialData ? "Updating your brief..." : "Creating your brief...");
 
+      // Create/update the brief
       const { data: brief, error: briefError } = await supabase
         .from("briefs")
         .upsert({
@@ -53,10 +54,24 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
 
       console.log("Brief created/updated successfully:", brief);
 
-      // Get the first stage by order_index
+      // Get the first stage by order_index and its associated flow
       const { data: stage, error: stageError } = await supabase
         .from("stages")
-        .select("id, name")
+        .select(`
+          id,
+          name,
+          flow_id,
+          flows (
+            id,
+            name,
+            flow_steps (
+              id,
+              agent_id,
+              requirements,
+              order_index
+            )
+          )
+        `)
         .eq("user_id", user.id)
         .order("order_index", { ascending: true })
         .limit(1)
@@ -76,7 +91,14 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         return;
       }
 
-      console.log("Starting workflow with first stage:", stage);
+      if (!stage.flow_id) {
+        console.error("No flow associated with stage:", stage.name);
+        toast.error(`Stage "${stage.name}" has no associated flow. Please assign a flow to this stage.`);
+        setIsProcessing(false);
+        return;
+      }
+
+      console.log("Starting workflow with first stage and flow:", { stage, flow: stage.flows });
 
       const toastId = toast.loading(
         "Starting workflow process... This may take around 2 minutes. Rome wasn't built in a day 😃",
@@ -88,7 +110,12 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
         "process-workflow-stage",
         {
-          body: { briefId: brief.id, stageId: stage.id },
+          body: { 
+            briefId: brief.id, 
+            stageId: stage.id,
+            flowId: stage.flow_id,
+            flowSteps: stage.flows?.flow_steps || []
+          },
         }
       );
 
@@ -107,12 +134,14 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       
       queryClient.invalidateQueries({ queryKey: ["briefs"] });
       queryClient.invalidateQueries({ queryKey: ["brief"] });
+      queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
 
       setIsProcessing(false);
       onSubmitSuccess?.();
       
       // Navigate to home with the first stage
-      navigate(`/?stage=${stage.name}`);
+      navigate(`/?stage=${stage.name}&briefId=${brief.id}`);
     } catch (error) {
       console.error("Error submitting brief:", error);
       toast.error("Error submitting brief. Please try again.");
