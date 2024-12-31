@@ -34,17 +34,6 @@ serve(async (req) => {
     const stage = await fetchStageDetails(supabaseClient, stageId);
     console.log("Found stage with flow:", stage);
 
-    // Update brief's current stage
-    const { error: updateError } = await supabaseClient
-      .from("briefs")
-      .update({ current_stage: stage.name })
-      .eq("id", briefId);
-
-    if (updateError) {
-      console.error("Error updating brief stage:", updateError);
-      throw updateError;
-    }
-
     // Process each agent in the flow
     const outputs = [];
     const flowSteps = stage.flows?.flow_steps || [];

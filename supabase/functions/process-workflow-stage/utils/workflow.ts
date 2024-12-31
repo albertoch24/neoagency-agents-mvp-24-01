@@ -1,4 +1,4 @@
-import { createOpenAIClient, generateAgentResponse } from "./openai.ts";
+import { generateAgentResponse } from "./openai.ts";
 import { saveConversation } from "./database.ts";
 
 export async function processAgent(
@@ -10,8 +10,6 @@ export async function processAgent(
   console.log('Processing agent:', agent.name);
 
   try {
-    const openai = createOpenAIClient();
-
     // Create personalized prompt for the agent
     const agentPrompt = `You are ${agent.name}, an expert with the following profile:
 ${agent.description}
@@ -31,7 +29,7 @@ Timeline: ${brief.timeline || "Not provided"}
 Please provide a detailed analysis and recommendations from your specific perspective as ${agent.name}.`;
 
     // Get response from OpenAI
-    const response = await generateAgentResponse(openai, agentPrompt);
+    const response = await generateAgentResponse(agentPrompt);
     console.log('Received response from OpenAI for agent:', agent.name);
 
     // Save the conversation
@@ -40,7 +38,8 @@ Please provide a detailed analysis and recommendations from your specific perspe
     return {
       agent: agent.name,
       outputs: [{
-        text: response
+        text: "Analysis and Recommendations",
+        content: response
       }]
     };
   } catch (error) {
