@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, Trash, Edit, User } from "lucide-react";
+import { ArrowRight, User } from "lucide-react";
 import { toast } from "sonner";
 import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { FlowStepContent } from "./FlowStepContent";
 
 interface Agent {
   id: string;
@@ -53,10 +52,7 @@ export const FlowStepItem = ({
   const handleSave = async () => {
     try {
       console.log('Starting save operation for step:', step.id);
-      console.log('Current step data:', step);
-      console.log('Edited outputs:', editedOutputs);
-      console.log('Edited requirements:', editedRequirements);
-
+      
       // Prepare outputs array
       const outputs = editedOutputs
         .split('\n')
@@ -64,25 +60,6 @@ export const FlowStepItem = ({
         .map(text => ({ text }));
 
       console.log('Formatted outputs for saving:', outputs);
-
-      // First verify the step exists
-      const { data: existingStep, error: verifyError } = await supabase
-        .from("flow_steps")
-        .select()
-        .eq("id", step.id)
-        .maybeSingle();
-
-      if (verifyError) {
-        console.error('Error verifying step existence:', verifyError);
-        toast.error("Failed to verify step");
-        throw verifyError;
-      }
-
-      if (!existingStep) {
-        console.error('Step not found:', step.id);
-        toast.error("Step not found");
-        return;
-      }
 
       // Update the step
       const { data: updatedStep, error: updateError } = await supabase
@@ -94,7 +71,7 @@ export const FlowStepItem = ({
         })
         .eq("id", step.id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (updateError) {
         console.error('Error updating step:', updateError);
@@ -102,12 +79,18 @@ export const FlowStepItem = ({
         throw updateError;
       }
 
+      if (!updatedStep) {
+        console.error('Step not found:', step.id);
+        toast.error("Step not found");
+        return;
+      }
+
       console.log('Step updated successfully:', updatedStep);
       
       // Update local state
       setIsEditing(false);
       
-      // Invalidate and refetch queries to update UI
+      // Invalidate and refetch queries
       await queryClient.invalidateQueries({ queryKey: ["flow-steps", flowId] });
       await queryClient.invalidateQueries({ queryKey: ["stages"] });
       
@@ -134,82 +117,19 @@ export const FlowStepItem = ({
           </div>
         </AccordionTrigger>
         <AccordionContent>
-          {isEditing ? (
-            <div className="space-y-4 p-4">
-              <div>
-                <label className="text-sm font-medium">
-                  Required Outputs (one per line):
-                </label>
-                <Textarea
-                  value={editedOutputs}
-                  onChange={(e) => setEditedOutputs(e.target.value)}
-                  className="mt-1"
-                  rows={4}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">
-                  Requirements:
-                </label>
-                <Textarea
-                  value={editedRequirements}
-                  onChange={(e) => setEditedRequirements(e.target.value)}
-                  className="mt-1"
-                  rows={4}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditing(false)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleSave}>
-                  Save Changes
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4 p-4">
-              <div>
-                <h4 className="text-sm font-medium mb-2">
-                  Required Outputs:
-                </h4>
-                <ul className="list-disc pl-4 space-y-1">
-                  {step.outputs?.map((output, i) => (
-                    <li key={i} className="text-sm">
-                      {output.text}
-                    </li>
-                  )) || <li>No outputs defined</li>}
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium mb-2">
-                  Requirements:
-                </h4>
-                <p className="text-sm">
-                  {step.requirements || "No requirements defined"}
-                </p>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditing(true)}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => onRemove(step.id)}
-                >
-                  <Trash className="h-4 w-4 mr-2" />
-                  Remove
-                </Button>
-              </div>
-            </div>
-          )}
+          <FlowStepContent
+            isEditing={isEditing}
+            editedOutputs={editedOutputs}
+            editedRequirements={editedRequirements}
+            step={step}
+            onEditOutputs={setEditedOutputs}
+            onEditRequirements={setEditedRequirements}
+            onStartEdit={() => setIsEditing(true)}
+            onCancelEdit={() => setIsEditing(false)}
+            onSave={handleSave}
+            onRemove={onRemove}
+            stepId={step.id}
+          />
         </AccordionContent>
       </AccordionItem>
       {!isLast && (
