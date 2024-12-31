@@ -1,13 +1,13 @@
 import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.3.0";
 
-export function createOpenAIClient() {
+export const createOpenAIClient = () => {
   const configuration = new Configuration({
     apiKey: Deno.env.get('OPENAI_API_KEY'),
   });
   return new OpenAIApi(configuration);
-}
+};
 
-export async function generateAgentResponse(openai: OpenAIApi, agentPrompt: string) {
+export const generateAgentResponse = async (openai: OpenAIApi, agentPrompt: string) => {
   console.log('Generating response for prompt:', agentPrompt);
   
   const completion = await openai.createChatCompletion({
@@ -19,4 +19,4 @@ export async function generateAgentResponse(openai: OpenAIApi, agentPrompt: stri
   });
   
   return completion.data.choices[0].message?.content || '';
-}
+};

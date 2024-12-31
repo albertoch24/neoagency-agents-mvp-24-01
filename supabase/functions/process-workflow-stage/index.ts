@@ -1,14 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.3.0";
+import { createSupabaseClient } from "./utils/database.ts";
+import { fetchBriefDetails, fetchStageDetails, saveBriefOutput } from "./utils/database.ts";
+import { processAgent } from "./utils/workflow.ts";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -22,58 +24,14 @@ serve(async (req) => {
     console.log("Processing workflow stage:", { briefId, stageId });
 
     // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
-    // Initialize OpenAI
-    const configuration = new Configuration({
-      apiKey: Deno.env.get("OPENAI_API_KEY"),
-    });
-    const openai = new OpenAIApi(configuration);
+    const supabaseClient = createSupabaseClient();
 
     // Fetch brief details
-    const { data: brief, error: briefError } = await supabaseClient
-      .from("briefs")
-      .select("*")
-      .eq("id", briefId)
-      .single();
-
-    if (briefError) {
-      console.error("Error fetching brief:", briefError);
-      throw briefError;
-    }
-
+    const brief = await fetchBriefDetails(supabaseClient, briefId);
     console.log("Found brief:", brief);
 
     // Fetch stage with its associated flow and steps
-    const { data: stage, error: stageError } = await supabaseClient
-      .from("stages")
-      .select(`
-        *,
-        flows (
-          id,
-          name,
-          flow_steps (
-            *,
-            agents (
-              id,
-              name,
-              description,
-              skills (*)
-            )
-          )
-        )
-      `)
-      .eq("id", stageId)
-      .single();
-
-    if (stageError) {
-      console.error("Error fetching stage:", stageError);
-      throw stageError;
-    }
-
+    const stage = await fetchStageDetails(supabaseClient, stageId);
     console.log("Found stage with flow:", stage);
 
     // Update brief's current stage
@@ -100,81 +58,12 @@ serve(async (req) => {
         continue;
       }
 
-      try {
-        // Create personalized prompt for the agent
-        const agentPrompt = `You are ${agent.name}, an expert with the following profile:
-${agent.description}
-
-Your skills include:
-${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join("\n") || "No specific skills listed"}
-
-Please analyze the following brief and provide your expert perspective based on your role and skills:
-
-Brief Title: ${brief.title}
-Description: ${brief.description || "Not provided"}
-Objectives: ${brief.objectives || "Not provided"}
-Target Audience: ${brief.target_audience || "Not provided"}
-Budget: ${brief.budget || "Not provided"}
-Timeline: ${brief.timeline || "Not provided"}
-
-Please provide a detailed analysis and recommendations from your specific perspective as ${agent.name}.`;
-
-        // Get response from OpenAI
-        const completion = await openai.createChatCompletion({
-          model: "gpt-4o",
-          messages: [
-            { role: "system", content: "You are a professional creative agency expert." },
-            { role: "user", content: agentPrompt }
-          ],
-        });
-
-        const response = completion.data.choices[0].message?.content || "";
-        console.log('Received response from OpenAI for agent:', agent.name);
-
-        // Save the conversation
-        const { error: conversationError } = await supabaseClient
-          .from("workflow_conversations")
-          .insert({
-            brief_id: briefId,
-            stage_id: stageId,
-            agent_id: agent.id,
-            content: response
-          });
-
-        if (conversationError) {
-          console.error("Error saving conversation:", conversationError);
-          throw conversationError;
-        }
-
-        outputs.push({
-          agent: agent.name,
-          outputs: [{
-            text: response
-          }]
-        });
-      } catch (error) {
-        console.error("Error processing agent:", agent.name, error);
-        throw error;
-      }
+      const output = await processAgent(supabaseClient, agent, brief, stageId);
+      outputs.push(output);
     }
 
     // Save the final output
-    const { error: outputError } = await supabaseClient
-      .from("brief_outputs")
-      .insert({
-        brief_id: briefId,
-        stage: stageId,
-        stage_id: stageId,
-        content: {
-          stage_name: stage.name,
-          outputs: outputs
-        }
-      });
-
-    if (outputError) {
-      console.error("Error saving output:", outputError);
-      throw outputError;
-    }
+    await saveBriefOutput(supabaseClient, briefId, stageId, stage.name, outputs);
 
     return new Response(
       JSON.stringify({ message: "Stage processed successfully" }),
