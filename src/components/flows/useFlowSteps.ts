@@ -14,7 +14,7 @@ export const useFlowSteps = (flow: Flow) => {
   const { steps, setSteps, handleAddStep, handleRemoveStep } = useStepOperations(flow.id);
   const { user } = useAuth();
 
-  // Fetch flow steps
+  // Fetch flow steps with no caching
   const { data: flowSteps } = useQuery({
     queryKey: ["flow-steps", flow.id],
     queryFn: async () => {
@@ -79,6 +79,9 @@ export const useFlowSteps = (flow: Flow) => {
       return transformedSteps;
     },
     enabled: !!user && !!flow.id,
+    staleTime: 0,  // Always consider data stale
+    gcTime: 0,     // Don't cache the data
+    refetchInterval: 1000, // Refetch every second
   });
 
   // Update steps when flowSteps changes
@@ -104,6 +107,7 @@ export const useFlowSteps = (flow: Flow) => {
       // Invalidate and refetch queries to ensure UI is in sync
       await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
       await queryClient.invalidateQueries({ queryKey: ["stages"] });
+      await queryClient.invalidateQueries({ queryKey: ["flows"] }); // Also invalidate flows query
       
       toast.success("Steps saved successfully");
     } catch (error) {
