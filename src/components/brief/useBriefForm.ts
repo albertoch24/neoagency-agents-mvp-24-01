@@ -106,13 +106,22 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         { duration: Infinity }
       );
 
-      // Get the flow steps in the correct order
+      // Get the flow steps in the correct order from the existing flow
       const flowSteps = stage.flows?.flow_steps || [];
       flowSteps.sort((a, b) => a.order_index - b.order_index);
 
       console.log("Invoking process-workflow-stage function for brief:", brief.id);
       console.log("Flow steps to process:", flowSteps);
       
+      // Only proceed if we have flow steps
+      if (flowSteps.length === 0) {
+        console.error("No flow steps found for flow:", stage.flow_id);
+        toast.dismiss(toastId);
+        toast.error("No flow steps found. Please configure flow steps first.");
+        setIsProcessing(false);
+        return;
+      }
+
       const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
         "process-workflow-stage",
         {
