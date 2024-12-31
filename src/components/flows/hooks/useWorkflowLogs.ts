@@ -11,7 +11,7 @@ export const useWorkflowLogs = () => {
           .from("briefs")
           .select(`
             *,
-            flows (
+            flow:flows!briefs_flow_id_fkey (
               id,
               name,
               description
@@ -24,12 +24,12 @@ export const useWorkflowLogs = () => {
           throw briefsError;
         }
 
-        console.log("Fetched briefs:", briefsData);
+        console.log("Fetched briefs with flows:", briefsData);
 
         const briefsWithDetails = await Promise.all(
           briefsData.map(async (brief) => {
             try {
-              console.log(`Fetching details for brief ${brief.id}`);
+              console.log(`Fetching details for brief ${brief.id}, flow_id: ${brief.flow_id}`);
 
               const { data: conversations, error: convsError } = await supabase
                 .from("workflow_conversations")
