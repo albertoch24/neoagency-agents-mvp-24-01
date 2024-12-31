@@ -52,23 +52,40 @@ export const FlowStepItem = ({
 
   const handleSave = async () => {
     try {
+      console.log('Saving step:', step.id);
+      console.log('Edited outputs:', editedOutputs);
+      console.log('Edited requirements:', editedRequirements);
+
       const outputs = editedOutputs
         .split('\n')
         .filter(output => output.trim())
         .map(text => ({ text }));
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("flow_steps")
         .update({
           outputs,
           requirements: editedRequirements,
         })
-        .eq("id", step.id);
+        .eq("id", step.id)
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving step:', error);
+        toast.error("Failed to save step");
+        throw error;
+      }
 
+      console.log('Step saved successfully:', data);
+      
+      // Update the local state
       setIsEditing(false);
-      queryClient.invalidateQueries({ queryKey: ["flow-steps", flowId] });
+      
+      // Invalidate and refetch queries to update UI
+      await queryClient.invalidateQueries({ queryKey: ["flow-steps", flowId] });
+      await queryClient.invalidateQueries({ queryKey: ["stages"] });
+      
       toast.success("Step updated successfully");
     } catch (error) {
       console.error("Error updating step:", error);
