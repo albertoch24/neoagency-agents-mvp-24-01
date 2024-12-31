@@ -18,7 +18,14 @@ export const WorkflowLogs = () => {
       try {
         const { data: briefsData, error: briefsError } = await supabase
           .from("briefs")
-          .select("*")
+          .select(`
+            *,
+            flows (
+              id,
+              name,
+              description
+            )
+          `)
           .order("created_at", { ascending: false });
 
         if (briefsError) {
