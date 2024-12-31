@@ -49,14 +49,13 @@ export const WorkflowLogItem = ({ brief }: WorkflowLogItemProps) => {
               <Badge variant="secondary">
                 Stage: {brief.current_stage || "Not started"}
               </Badge>
-              {brief.flows && (
-                <div className="flex items-center gap-2">
-                  <Workflow className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    Flow: {brief.flows.name || "No flow assigned"} (ID: {brief.flow_id || "N/A"})
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <Workflow className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  Flow ID: {brief.flow_id || "N/A"}
+                  {brief.flows && ` - ${brief.flows.name}`}
+                </span>
+              </div>
             </div>
             <Button
               variant="destructive"
