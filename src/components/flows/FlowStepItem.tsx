@@ -66,7 +66,7 @@ export const FlowStepItem = ({
         .from("flows")
         .select("id")
         .eq("id", flowId)
-        .maybeSingle();
+        .single();
 
       if (flowError) {
         console.error('Error verifying flow:', flowError);
@@ -74,14 +74,8 @@ export const FlowStepItem = ({
         return;
       }
 
-      if (!flow) {
-        console.error('Flow not found:', flowId);
-        toast.error("Flow not found");
-        return;
-      }
-
       // Update the step
-      const { data: updatedStep, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from("flow_steps")
         .update({
           outputs,
@@ -89,9 +83,7 @@ export const FlowStepItem = ({
           updated_at: new Date().toISOString(),
         })
         .eq("id", step.id)
-        .eq("flow_id", flowId)  // Ensure the step belongs to the flow
-        .select()
-        .maybeSingle();
+        .eq("flow_id", flowId);  // Ensure the step belongs to the flow
 
       if (updateError) {
         console.error('Error updating step:', updateError);
@@ -99,13 +91,7 @@ export const FlowStepItem = ({
         throw updateError;
       }
 
-      if (!updatedStep) {
-        console.error('Step not found:', step.id);
-        toast.error("Step not found");
-        return;
-      }
-
-      console.log('Step updated successfully:', updatedStep);
+      console.log('Step updated successfully');
       
       // Update local state
       setIsEditing(false);
@@ -116,7 +102,7 @@ export const FlowStepItem = ({
       
       toast.success("Step updated successfully");
     } catch (error) {
-      console.error("Error updating step:", error);
+      console.error("Error in handleSave:", error);
       toast.error("Failed to update step");
       
       // Refetch to ensure UI shows current server state
