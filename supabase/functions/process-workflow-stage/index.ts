@@ -9,7 +9,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -17,18 +16,24 @@ serve(async (req) => {
   try {
     const { briefId, stageId, flowId, flowSteps } = await req.json();
     
-    // Enhanced validation
-    if (!briefId || !stageId || !flowId || !flowSteps) {
-      throw new Error("Missing required parameters");
-    }
+    console.log("Received request with parameters:", { briefId, stageId, flowId, flowSteps });
 
-    console.log("Processing workflow stage with parameters:", { briefId, stageId, flowId, flowSteps });
+    if (!briefId || !stageId || !flowId || !flowSteps) {
+      const missingParams = [];
+      if (!briefId) missingParams.push('briefId');
+      if (!stageId) missingParams.push('stageId');
+      if (!flowId) missingParams.push('flowId');
+      if (!flowSteps) missingParams.push('flowSteps');
+
+      console.error("Missing required parameters:", missingParams);
+      throw new Error(`Missing required parameters: ${missingParams.join(', ')}`);
+    }
 
     // Initialize Supabase client
     const supabaseClient = createSupabaseClient();
 
-    // Additional validation to ensure all entities exist
-    const { data: validationData, error: validationError } = await supabaseClient
+    // Validate stage exists and has required data
+    const { data: stage, error: stageError } = await supabaseClient
       .from("stages")
       .select(`
         *,
@@ -48,30 +53,42 @@ serve(async (req) => {
       .eq("id", stageId)
       .maybeSingle();
 
-    if (validationError || !validationData) {
-      throw new Error("Failed to validate workflow entities");
+    if (stageError || !stage) {
+      console.error("Stage validation failed:", stageError || "Stage not found");
+      throw new Error("Stage not found or invalid");
     }
 
-    if (!validationData.flows?.flow_steps?.length) {
+    console.log("Stage validation successful:", {
+      stageId: stage.id,
+      stageName: stage.name,
+      flowId: stage.flow_id
+    });
+
+    if (!stage.flows?.flow_steps?.length) {
+      console.error("No flow steps found for stage:", {
+        stageId: stage.id,
+        flowId: stage.flow_id
+      });
       throw new Error("No valid flow steps found for this stage");
     }
 
-    // Fetch brief details
+    // Fetch brief details with validation
     const brief = await fetchBriefDetails(supabaseClient, briefId);
-    console.log("Found brief:", brief);
+    if (!brief) {
+      console.error("Brief not found:", briefId);
+      throw new Error("Brief not found");
+    }
 
-    // Fetch stage with its associated flow
-    const stage = await fetchStageDetails(supabaseClient, stageId);
-    console.log("Found stage:", stage);
+    console.log("Brief validation successful:", {
+      briefId: brief.id,
+      title: brief.title,
+      currentStage: brief.current_stage
+    });
 
     // Process each agent in the flow steps
     const outputs = [];
     
     console.log("Processing flow steps:", flowSteps);
-
-    if (!flowSteps || !Array.isArray(flowSteps)) {
-      throw new Error("Invalid or missing flowSteps parameter");
-    }
 
     for (const step of flowSteps) {
       // Enhanced agent validation
@@ -85,9 +102,19 @@ serve(async (req) => {
         .maybeSingle();
 
       if (agentError || !agent) {
-        console.error("Error fetching agent:", agentError);
+        console.error("Agent validation failed:", {
+          stepId: step.id,
+          agentId: step.agent_id,
+          error: agentError
+        });
         throw new Error(`Agent not found for step: ${step.id}`);
       }
+
+      console.log("Agent validation successful:", {
+        agentId: agent.id,
+        agentName: agent.name,
+        skillsCount: agent.skills?.length || 0
+      });
 
       const output = await processAgent(supabaseClient, agent, brief, stageId, step.requirements);
       outputs.push(output);
@@ -95,6 +122,11 @@ serve(async (req) => {
       if (output && output.outputs && output.outputs[0] && output.outputs[0].content) {
         await saveConversation(supabaseClient, briefId, stageId, agent.id, output.outputs[0].content);
       } else {
+        console.error("Invalid output format from agent:", {
+          agentId: agent.id,
+          agentName: agent.name,
+          output
+        });
         throw new Error(`Invalid output format from agent: ${agent.name}`);
       }
     }
