@@ -1,18 +1,15 @@
 import { useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-
-interface BriefFormData {
-  title: string;
-  description: string;
-  objectives: string;
-  target_audience: string;
-  budget: string;
-  timeline: string;
-}
+import { toast } from "sonner";
+import { BriefFormData } from "@/types/brief";
+import { 
+  cleanupExistingBriefData,
+  createOrUpdateBrief,
+  fetchFirstStage
+} from "@/services/briefService";
+import { processWorkflowStage } from "@/services/workflowService";
 
 export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) => {
   const { user } = useAuth();
@@ -33,91 +30,18 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       setIsProcessing(true);
       toast.info(initialData ? "Updating your brief..." : "Creating your brief...");
 
-      // If this is an update, first delete existing outputs and conversations
+      // Clean up existing data if updating
       if (initialData?.id) {
-        console.log("Cleaning up existing brief data:", initialData.id);
-        
-        const { error: deleteOutputsError } = await supabase
-          .from("brief_outputs")
-          .delete()
-          .eq("brief_id", initialData.id);
-
-        if (deleteOutputsError) {
-          console.error("Error deleting existing outputs:", deleteOutputsError);
-          toast.error("Failed to clean up existing brief outputs");
-          setIsProcessing(false);
-          return;
-        }
-
-        const { error: deleteConversationsError } = await supabase
-          .from("workflow_conversations")
-          .delete()
-          .eq("brief_id", initialData.id);
-
-        if (deleteConversationsError) {
-          console.error("Error deleting existing conversations:", deleteConversationsError);
-          toast.error("Failed to clean up existing conversations");
-          setIsProcessing(false);
-          return;
-        }
-
-        console.log("Successfully cleaned up existing brief data");
+        await cleanupExistingBriefData(initialData.id);
       }
 
       // Create/update the brief
-      const { data: brief, error: briefError } = await supabase
-        .from("briefs")
-        .upsert({
-          ...values,
-          id: initialData?.id,
-          user_id: user.id,
-          current_stage: "kickoff",
-        })
-        .select()
-        .single();
-
-      if (briefError) {
-        console.error("Error creating/updating brief:", briefError);
-        toast.error(briefError.message || "Failed to submit brief");
-        setIsProcessing(false);
-        return;
-      }
-
+      const brief = await createOrUpdateBrief(values, user.id, initialData?.id);
       console.log("Brief created/updated successfully:", brief);
 
-      // Get the first stage by order_index and its associated flow
-      const { data: stage, error: stageError } = await supabase
-        .from("stages")
-        .select(`
-          id,
-          name,
-          flow_id,
-          flows (
-            id,
-            name,
-            flow_steps (
-              id,
-              agent_id,
-              requirements,
-              order_index,
-              outputs
-            )
-          )
-        `)
-        .eq("user_id", user.id)
-        .order("order_index", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (stageError) {
-        console.error("Error fetching stage:", stageError);
-        toast.error("Failed to fetch stage information");
-        setIsProcessing(false);
-        return;
-      }
-
+      // Get the first stage and its flow
+      const stage = await fetchFirstStage(user.id);
       if (!stage) {
-        console.error("No stages found");
         toast.error("No stages found. Please create stages first.");
         setIsProcessing(false);
         return;
@@ -125,64 +49,31 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
 
       console.log("Retrieved stage with flow:", stage);
 
-      if (!stage.flow_id) {
-        console.error("No flow associated with stage:", stage.name);
-        toast.error(`Stage "${stage.name}" has no associated flow. Please assign a flow to this stage.`);
-        setIsProcessing(false);
-        return;
-      }
+      // Sort flow steps by order_index
+      const flowSteps = stage.flows?.flow_steps || [];
+      console.log("Retrieved flow steps before sorting:", flowSteps);
+      flowSteps.sort((a, b) => a.order_index - b.order_index);
+      console.log("Flow steps after sorting:", flowSteps);
 
-      console.log("Starting workflow with first stage and flow:", { stage, flow: stage.flows });
-
+      // Start workflow processing
       const toastId = toast.loading(
         "Starting workflow process... This may take around 2 minutes. Rome wasn't built in a day 😃",
         { duration: Infinity }
       );
 
-      // Get the flow steps in the correct order from the existing flow
-      const flowSteps = stage.flows?.flow_steps || [];
-      console.log("Retrieved flow steps before sorting:", flowSteps);
-      
-      flowSteps.sort((a, b) => a.order_index - b.order_index);
-      console.log("Flow steps after sorting:", flowSteps);
-
-      console.log("Invoking process-workflow-stage function for brief:", brief.id);
-      console.log("Flow steps to process:", flowSteps);
-      
-      // Only proceed if we have flow steps
-      if (flowSteps.length === 0) {
-        console.error("No flow steps found for flow:", stage.flow_id);
+      try {
+        await processWorkflowStage(brief.id, stage, flowSteps);
         toast.dismiss(toastId);
-        toast.error("No flow steps found. Please configure flow steps first.");
-        setIsProcessing(false);
-        return;
-      }
-
-      const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
-        "process-workflow-stage",
-        {
-          body: { 
-            briefId: brief.id, 
-            stageId: stage.id,
-            flowId: stage.flow_id,
-            flowSteps: flowSteps
-          },
-        }
-      );
-
-      console.log("Workflow function response:", { data: workflowData, error: workflowError });
-
-      if (workflowError) {
-        console.error("Error starting workflow:", workflowError);
+        toast.success(initialData ? "Brief updated and workflow restarted!" : "Brief submitted and workflow started successfully!");
+      } catch (error) {
+        console.error("Error starting workflow:", error);
         toast.dismiss(toastId);
         toast.error("Brief saved but workflow failed to start. Please try again or contact support.");
         setIsProcessing(false);
         return;
       }
 
-      toast.dismiss(toastId);
-      toast.success(initialData ? "Brief updated and workflow restarted!" : "Brief submitted and workflow started successfully!");
-      
+      // Update queries and navigate
       queryClient.invalidateQueries({ queryKey: ["briefs"] });
       queryClient.invalidateQueries({ queryKey: ["brief"] });
       queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
