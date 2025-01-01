@@ -47,26 +47,60 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
     return null;
   }
 
+  const formatLine = (line: string) => {
+    // Handle ### (bold and underlined)
+    if (line.startsWith('###')) {
+      return (
+        <h3 className="text-xl font-bold underline decoration-2 mb-4">
+          {line.replace('###', '').trim()}
+        </h3>
+      );
+    }
+    
+    // Handle #### (bold)
+    if (line.startsWith('####')) {
+      return (
+        <h4 className="text-lg font-bold mb-3">
+          {line.replace('####', '').trim()}
+        </h4>
+      );
+    }
+    
+    // Handle ** ** (underlined)
+    if (line.includes('**')) {
+      const parts = line.split('**');
+      const formattedParts = parts.map((part, index) => {
+        // Even indices are normal text, odd indices are underlined
+        return index % 2 === 1 ? (
+          <span key={index} className="underline decoration-1">
+            {part}
+          </span>
+        ) : (
+          <span key={index}>{part}</span>
+        );
+      });
+      
+      return <p className="mb-4 leading-relaxed">{formattedParts}</p>;
+    }
+    
+    // Return regular paragraph if not empty and no special formatting
+    if (line.trim()) {
+      return (
+        <p className="mb-4 leading-relaxed">
+          {line}
+        </p>
+      );
+    }
+    
+    return null;
+  };
+
   const formatContent = (text: string) => {
-    return text.split('\n').map((line, index) => {
-      // Check if line is a header (starts with # or contains : at the end)
-      if (line.startsWith('#') || line.endsWith(':')) {
-        return (
-          <h4 key={index} className="text-lg font-semibold text-primary mt-6 mb-3">
-            {line.replace('#', '').trim()}
-          </h4>
-        );
-      }
-      // Return regular paragraph if not empty
-      if (line.trim()) {
-        return (
-          <p key={index} className="mb-4 leading-relaxed">
-            {line}
-          </p>
-        );
-      }
-      return null;
-    });
+    return text.split('\n').map((line, index) => (
+      <div key={index}>
+        {formatLine(line)}
+      </div>
+    ));
   };
 
   return (
