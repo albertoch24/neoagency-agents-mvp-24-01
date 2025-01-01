@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Command,
   CommandEmpty,
@@ -14,14 +14,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Voice {
   id: string;
   name: string;
   description: string;
+  available?: boolean;
 }
 
-const voices: Voice[] = [
+const defaultVoices: Voice[] = [
   {
     id: "21m00Tcm4TlvDq8ikWAM",
     name: "Rachel",
@@ -56,7 +58,55 @@ interface VoiceSelectorProps {
 
 export function VoiceSelector({ value, onValueChange }: VoiceSelectorProps) {
   const [open, setOpen] = React.useState(false);
+  const [voices, setVoices] = useState<Voice[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkVoiceAvailability = async () => {
+      try {
+        const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+          headers: {
+            'Content-Type': 'application/json',
+            'xi-api-key': process.env.ELEVEN_LABS_API_KEY || '',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch voices');
+        }
+
+        const data = await response.json();
+        const availableVoiceIds = new Set(data.voices.map((v: any) => v.voice_id));
+        
+        // Mark voices as available or not
+        const updatedVoices = defaultVoices.map(voice => ({
+          ...voice,
+          available: availableVoiceIds.has(voice.id)
+        }));
+
+        setVoices(updatedVoices);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error checking voice availability:', error);
+        toast.error('Failed to check voice availability');
+        // Fallback to default voices if API check fails
+        setVoices(defaultVoices.map(voice => ({ ...voice, available: true })));
+        setIsLoading(false);
+      }
+    };
+
+    checkVoiceAvailability();
+  }, []);
+
   const selectedVoice = voices.find(voice => voice.id === value);
+
+  if (isLoading) {
+    return (
+      <Button variant="outline" className="w-full justify-between" disabled>
+        Loading voices...
+      </Button>
+    );
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -81,9 +131,18 @@ export function VoiceSelector({ value, onValueChange }: VoiceSelectorProps) {
                 key={voice.id}
                 value={voice.id}
                 onSelect={() => {
+                  if (!voice.available) {
+                    toast.error(`Voice ${voice.name} is not available`);
+                    return;
+                  }
                   onValueChange(voice.id);
                   setOpen(false);
                 }}
+                disabled={!voice.available}
+                className={cn(
+                  "flex items-center",
+                  !voice.available && "opacity-50 cursor-not-allowed"
+                )}
               >
                 <Check
                   className={cn(
@@ -92,7 +151,10 @@ export function VoiceSelector({ value, onValueChange }: VoiceSelectorProps) {
                   )}
                 />
                 <div>
-                  <div className="font-medium">{voice.name}</div>
+                  <div className="font-medium">
+                    {voice.name}
+                    {!voice.available && " (Not Available)"}
+                  </div>
                   <div className="text-sm text-muted-foreground">
                     {voice.description}
                   </div>
