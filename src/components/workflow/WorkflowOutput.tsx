@@ -44,66 +44,19 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
   });
 
   const formatText = (text: string) => {
-    return text.split('\n').map((line, index) => {
-      const trimmedLine = line.trim();
-      
-      // Handle main headers (###)
-      if (trimmedLine.startsWith('###')) {
-        return (
-          <h3 key={index} className="text-2xl font-bold text-primary border-b-2 border-primary/20 pb-2 mb-6 mt-8">
-            {trimmedLine.replace(/^###\s*/, '')}
-          </h3>
-        );
-      }
-      
-      // Handle subheaders (####)
-      if (trimmedLine.startsWith('####')) {
-        return (
-          <h4 key={index} className="text-xl font-semibold text-primary/80 mb-4 mt-6">
-            {trimmedLine.replace(/^####\s*/, '')}
-          </h4>
-        );
-      }
-      
-      // Handle emphasized text (**)
-      if (trimmedLine.includes('**')) {
-        const parts = trimmedLine.split('**');
-        return (
-          <p key={index} className="mb-3 leading-relaxed text-foreground/90">
-            {parts.map((part, pIndex) => (
-              pIndex % 2 === 1 ? (
-                <span key={pIndex} className="font-medium bg-primary/5 px-1 rounded">
-                  {part}
-                </span>
-              ) : (
-                <span key={pIndex}>{part}</span>
-              )
-            ))}
-          </p>
-        );
-      }
-      
-      // Handle regular text with bullet points
-      if (trimmedLine.startsWith('-')) {
-        return (
-          <p key={index} className="mb-2 ml-4 leading-relaxed text-foreground/80 flex items-start">
-            <span className="mr-2 mt-1.5 h-1.5 w-1.5 rounded-full bg-primary/40 flex-shrink-0" />
-            {trimmedLine.substring(1).trim()}
-          </p>
-        );
-      }
-      
-      // Regular text
-      if (trimmedLine) {
-        return (
-          <p key={index} className="mb-3 leading-relaxed text-foreground/90">
-            {trimmedLine}
-          </p>
-        );
-      }
-      
-      return null;
-    });
+    // Rimuove i marcatori tecnici e formatta il testo in modo conversazionale
+    const cleanText = text
+      .replace(/###|####/g, '')
+      .replace(/\*\*/g, '')
+      .replace(/^-\s/gm, '')
+      .trim();
+
+    // Divide il testo in paragrafi
+    return cleanText.split('\n\n').map((paragraph, index) => (
+      <p key={index} className="mb-4 leading-relaxed text-foreground/90">
+        {paragraph.trim()}
+      </p>
+    ));
   };
 
   if (!outputs?.length) {
@@ -119,7 +72,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
               <div key={output.id} className="space-y-8">
                 <div className="flex items-center justify-between border-b pb-4">
                   <h3 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                    {output.content.stage_name || 'Stage Output'}
+                    {output.content.stage_name || 'Analisi'}
                   </h3>
                   <span className="text-sm text-muted-foreground">
                     {format(new Date(output.created_at), "PPpp")}
@@ -140,18 +93,11 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                           <AccordionContent className="px-6 pb-6">
                             {agentOutput.outputs?.map((outputItem: any, outputIndex: number) => (
                               <div key={outputIndex} className="mb-8 last:mb-0">
-                                {outputItem.text && (
-                                  <h4 className="text-lg font-semibold mb-4 text-primary">
-                                    {outputItem.text}
-                                  </h4>
-                                )}
-                                {outputItem.content && (
-                                  <div className="prose prose-sm max-w-none">
-                                    <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
-                                      {formatText(outputItem.content)}
-                                    </div>
+                                <div className="prose prose-sm max-w-none">
+                                  <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
+                                    {formatText(outputItem.content)}
                                   </div>
-                                )}
+                                </div>
                               </div>
                             ))}
                           </AccordionContent>
