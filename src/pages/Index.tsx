@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { WorkflowStage } from "@/types/workflow";
 import BriefForm from "@/components/brief/BriefForm";
 import BriefDisplay from "@/components/brief/BriefDisplay";
 import { WorkflowDisplay } from "@/components/workflow/WorkflowDisplay";
@@ -15,35 +14,28 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useStageProcessing } from "@/hooks/useStageProcessing";
+import { useStageHandling } from "@/hooks/useStageHandling";
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
-  const [currentStage, setCurrentStage] = useState("kickoff");
   const [showNewBrief, setShowNewBrief] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedBriefId, setSelectedBriefId] = useState<string | null>(null);
-  const { processStage } = useStageProcessing(selectedBriefId || "");
+  
+  const { currentStage, handleStageSelect } = useStageHandling(selectedBriefId);
 
-  // Read stage and briefId from URL params on mount and when URL changes
+  // Read briefId from URL params on mount and when URL changes
   useEffect(() => {
-    const stageFromUrl = searchParams.get("stage");
     const briefIdFromUrl = searchParams.get("briefId");
     const showOutputs = searchParams.get("showOutputs");
     
     if (briefIdFromUrl) {
       setSelectedBriefId(briefIdFromUrl);
-      // If showOutputs is true, ensure we're showing the brief display
       if (showOutputs === "true") {
         setShowNewBrief(false);
         setIsEditing(false);
-        setCurrentStage("kickoff");
       }
-    }
-    
-    if (stageFromUrl) {
-      setCurrentStage(stageFromUrl);
     }
   }, [searchParams]);
 
@@ -64,8 +56,8 @@ const Index = () => {
       return data;
     },
     enabled: !!user,
-    staleTime: 0,  // Always fetch fresh data
-    gcTime: 0   // Don't cache the data
+    staleTime: 0,
+    gcTime: 0
   });
 
   const { data: currentBrief } = useQuery({
@@ -92,39 +84,9 @@ const Index = () => {
       return data;
     },
     enabled: !!user,
-    staleTime: 0,  // Always fetch fresh data
-    gcTime: 0   // Don't cache the data
+    staleTime: 0,
+    gcTime: 0
   });
-
-  const handleStageSelect = async (stage: WorkflowStage) => {
-    if (!currentBrief?.id) return;
-
-    // Get the current stage index and selected stage index
-    const stages = await supabase
-      .from("stages")
-      .select("*")
-      .order("order_index", { ascending: true });
-
-    if (!stages.data) return;
-
-    const currentIndex = stages.data.findIndex(s => s.id === currentStage);
-    const selectedIndex = stages.data.findIndex(s => s.id === stage.id);
-
-    // Only process if moving to the next stage
-    if (selectedIndex === currentIndex + 1) {
-      await processStage(stage);
-    }
-
-    setCurrentStage(stage.id);
-    
-    // Update URL with new stage while preserving briefId and showOutputs
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set("stage", stage.id);
-    if (currentBrief?.id) {
-      newParams.set("briefId", currentBrief.id);
-    }
-    setSearchParams(newParams);
-  };
 
   const handleSelectBrief = (briefId: string) => {
     setSelectedBriefId(briefId);
