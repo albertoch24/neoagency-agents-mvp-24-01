@@ -9,6 +9,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -26,7 +27,15 @@ serve(async (req) => {
       if (!flowSteps) missingParams.push('flowSteps');
 
       console.error("Missing required parameters:", missingParams);
-      throw new Error(`Missing required parameters: ${missingParams.join(', ')}`);
+      return new Response(
+        JSON.stringify({ 
+          error: `Missing required parameters: ${missingParams.join(', ')}` 
+        }), 
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Initialize Supabase client
@@ -55,7 +64,13 @@ serve(async (req) => {
 
     if (stageError || !stage) {
       console.error("Stage validation failed:", stageError || "Stage not found");
-      throw new Error("Stage not found or invalid");
+      return new Response(
+        JSON.stringify({ error: "Stage not found or invalid" }), 
+        { 
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log("Stage validation successful:", {
@@ -69,14 +84,26 @@ serve(async (req) => {
         stageId: stage.id,
         flowId: stage.flow_id
       });
-      throw new Error("No valid flow steps found for this stage");
+      return new Response(
+        JSON.stringify({ error: "No valid flow steps found for this stage" }), 
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Fetch brief details with validation
     const brief = await fetchBriefDetails(supabaseClient, briefId);
     if (!brief) {
       console.error("Brief not found:", briefId);
-      throw new Error("Brief not found");
+      return new Response(
+        JSON.stringify({ error: "Brief not found" }), 
+        { 
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log("Brief validation successful:", {
@@ -107,7 +134,13 @@ serve(async (req) => {
           agentId: step.agent_id,
           error: agentError
         });
-        throw new Error(`Agent not found for step: ${step.id}`);
+        return new Response(
+          JSON.stringify({ error: `Agent not found for step: ${step.id}` }), 
+          { 
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
       }
 
       console.log("Agent validation successful:", {
@@ -127,7 +160,13 @@ serve(async (req) => {
           agentName: agent.name,
           output
         });
-        throw new Error(`Invalid output format from agent: ${agent.name}`);
+        return new Response(
+          JSON.stringify({ error: `Invalid output format from agent: ${agent.name}` }), 
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
       }
     }
 
@@ -135,11 +174,14 @@ serve(async (req) => {
     await saveBriefOutput(supabaseClient, briefId, stageId, stage.name, outputs);
 
     return new Response(
-      JSON.stringify({ message: "Stage processed successfully", outputs }),
+      JSON.stringify({ 
+        message: "Stage processed successfully", 
+        outputs 
+      }),
       { 
         headers: { 
           ...corsHeaders,
-          "Content-Type": "application/json"
+          'Content-Type': 'application/json'
         }
       }
     );
@@ -155,7 +197,7 @@ serve(async (req) => {
         status: 500,
         headers: {
           ...corsHeaders,
-          "Content-Type": "application/json"
+          'Content-Type': 'application/json'
         }
       }
     );
