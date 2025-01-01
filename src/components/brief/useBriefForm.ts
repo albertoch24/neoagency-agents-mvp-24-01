@@ -19,17 +19,19 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
 
   const handleSubmit = async (values: BriefFormData) => {
     if (!user) {
-      toast.error("You must be logged in to submit a brief");
+      toast.error("Devi essere loggato per inviare un brief");
       return;
     }
 
     console.log("Submitting brief with values:", values);
     console.log("Current user:", user);
 
+    let toastId: string | number;
+
     try {
       setIsProcessing(true);
-      const actionType = initialData ? "Updating" : "Creating";
-      toast.info(`${actionType} your brief... Please wait while we process your request.`, {
+      const actionType = initialData ? "Aggiornamento" : "Creazione";
+      toastId = toast.loading(`${actionType} del brief in corso...`, {
         duration: 5000
       });
 
@@ -45,7 +47,8 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       // Get the first stage and its flow
       const stage = await fetchFirstStage(user.id);
       if (!stage) {
-        toast.error("No stages found. Please create stages first.", {
+        toast.dismiss(toastId);
+        toast.error("Nessuno stage trovato. Crea prima gli stage.", {
           duration: 8000
         });
         setIsProcessing(false);
@@ -60,20 +63,14 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       flowSteps.sort((a, b) => a.order_index - b.order_index);
       console.log("Flow steps after sorting:", flowSteps);
 
-      // Start workflow processing
-      const toastId = toast.loading(
-        "Starting workflow process... This may take a few minutes. We're analyzing your brief and generating insights. Please don't close this window.",
-        { duration: 120000 } // 2 minutes
-      );
-
       try {
         await processWorkflowStage(brief.id, stage, flowSteps);
         toast.dismiss(toastId);
         toast.success(
           initialData 
-            ? "Brief updated and workflow restarted successfully! You can now view the results."
-            : "Brief submitted and workflow completed successfully! You can now view the results.",
-          { duration: 8000 }
+            ? "Brief aggiornato e workflow riavviato con successo!"
+            : "Brief inviato e workflow completato con successo!",
+          { duration: 5000 }
         );
 
         // Invalidate queries before navigation
@@ -86,7 +83,6 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         onSubmitSuccess?.();
         
         // Navigate to the index page with the stage and brief ID parameters
-        // and explicitly set showOutputs=true to ensure outputs are visible
         navigate(`/?briefId=${brief.id}&stage=${stage.id}&showOutputs=true`, {
           replace: true
         });
@@ -94,15 +90,16 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         console.error("Error starting workflow:", error);
         toast.dismiss(toastId);
         toast.error(
-          "Brief saved but workflow failed to start. Please try again or contact support if the issue persists.",
+          "Brief salvato ma il workflow non è partito. Riprova o contatta il supporto.",
           { duration: 8000 }
         );
         setIsProcessing(false);
       }
     } catch (error) {
       console.error("Error submitting brief:", error);
+      toast.dismiss(toastId);
       toast.error(
-        "Error submitting brief. Please check your input and try again.",
+        "Errore nell'invio del brief. Controlla i dati e riprova.",
         { duration: 8000 }
       );
       setIsProcessing(false);

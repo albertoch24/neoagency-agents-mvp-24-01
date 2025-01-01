@@ -27,55 +27,50 @@ export const WorkflowProcessing = ({ isProcessing, stageName }: WorkflowProcessi
       const interval = setInterval(() => {
         if (currentIndex < steps.length) {
           setCurrentStep(steps[currentIndex]);
-          setProgress((prev) => Math.min(prev + 20, 100));
+          setProgress((prev) => Math.min(prev + 20, 95));
           currentIndex++;
-        } else {
-          clearInterval(interval);
         }
       }, 2000);
       
       return () => clearInterval(interval);
     } else {
-      setProgress(0);
-      setCurrentStep("");
+      setProgress(100);
     }
   }, [isProcessing]);
 
-  if (!isProcessing && !currentStep) return null;
+  if (!isProcessing && progress !== 100) return null;
 
   return (
-    <div className="space-y-4 my-8 animate-in fade-in-0">
-      <Alert 
-        variant="default"
-        className={!isProcessing ? "border-green-500 bg-green-50 dark:bg-green-900/10" : ""}
-      >
-        <div className="flex items-center gap-2">
-          {isProcessing ? (
-            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-          ) : (
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-          )}
-          <AlertTitle>
-            {isProcessing 
-              ? `Elaborazione ${stageName} in corso...` 
-              : `Elaborazione ${stageName} completata!`}
-          </AlertTitle>
-        </div>
-        <AlertDescription className="mt-2">
-          {isProcessing ? (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                {currentStep}
-              </p>
-              <Progress value={progress} className="h-2" />
-            </div>
-          ) : (
+    <Alert 
+      variant={isProcessing ? "default" : "default"}
+      className={`my-4 ${!isProcessing ? "border-green-500 bg-green-50 dark:bg-green-900/10" : ""}`}
+    >
+      <div className="flex items-center gap-2">
+        {isProcessing ? (
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+        ) : (
+          <CheckCircle2 className="h-4 w-4 text-green-500" />
+        )}
+        <AlertTitle>
+          {isProcessing 
+            ? `Elaborazione ${stageName} in corso...` 
+            : `Elaborazione ${stageName} completata!`}
+        </AlertTitle>
+      </div>
+      <AlertDescription className="mt-4">
+        {isProcessing ? (
+          <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Tutti gli output sono stati generati con successo.
+              {currentStep}
             </p>
-          )}
-        </AlertDescription>
-      </Alert>
-    </div>
+            <Progress value={progress} className="h-2" />
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Tutti gli output sono stati generati con successo.
+          </p>
+        )}
+      </AlertDescription>
+    </Alert>
   );
 };

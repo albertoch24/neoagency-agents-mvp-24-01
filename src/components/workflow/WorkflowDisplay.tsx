@@ -38,7 +38,7 @@ export const WorkflowDisplay = ({
   if (!stages.length) {
     return (
       <div className="text-center text-muted-foreground">
-        No stages found. Please create stages first.
+        Nessuno stage trovato. Crea prima gli stage.
       </div>
     );
   }
@@ -53,10 +53,12 @@ export const WorkflowDisplay = ({
       />
       {briefId && (
         <div className="space-y-6">
-          <WorkflowProcessing 
-            isProcessing={isProcessing} 
-            stageName={currentStageName}
-          />
+          {isProcessing && (
+            <WorkflowProcessing 
+              isProcessing={isProcessing} 
+              stageName={currentStageName}
+            />
+          )}
           <WorkflowConversation
             briefId={briefId}
             currentStage={currentStage}
