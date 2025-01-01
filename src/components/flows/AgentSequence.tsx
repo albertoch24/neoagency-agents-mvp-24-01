@@ -2,6 +2,7 @@ import { User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AgentSkills } from "./AgentSkills";
 import { Card, CardContent } from "@/components/ui/card";
+import ReactMarkdown from 'react-markdown';
 
 interface AgentSequenceProps {
   conversations: any[];
@@ -27,9 +28,9 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
               
               <h5 className="text-sm font-medium mt-4 mb-2">Agent Output:</h5>
               <div className="bg-muted rounded-lg p-4">
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {conv.content}
-                </p>
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown>{conv.content}</ReactMarkdown>
+                </div>
               </div>
             </div>
           </CardContent>
