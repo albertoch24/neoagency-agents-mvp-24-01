@@ -65,19 +65,30 @@ export function VoiceSelector({ value, onValueChange }: VoiceSelectorProps) {
   useEffect(() => {
     const checkVoiceAvailability = async () => {
       try {
-        const { data: { secret: apiKey }, error: secretError } = await supabase
+        setIsLoading(true);
+        const { data, error } = await supabase
           .from('secrets')
           .select('secret')
           .eq('name', 'ELEVEN_LABS_API_KEY')
           .maybeSingle();
 
-        if (secretError || !apiKey) {
+        if (error) {
+          console.error('Error fetching API key:', error);
+          toast.error('Failed to fetch ElevenLabs API key');
+          setVoices(defaultVoices.map(voice => ({ ...voice, available: false })));
+          setIsLoading(false);
+          return;
+        }
+
+        if (!data) {
+          console.error('ElevenLabs API key not found');
           toast.error('ElevenLabs API key not found. Please add it in settings.');
           setVoices(defaultVoices.map(voice => ({ ...voice, available: false })));
           setIsLoading(false);
           return;
         }
 
+        const apiKey = data.secret;
         const response = await fetch('https://api.elevenlabs.io/v1/voices', {
           headers: {
             'Content-Type': 'application/json',
@@ -89,22 +100,20 @@ export function VoiceSelector({ value, onValueChange }: VoiceSelectorProps) {
           throw new Error('Failed to fetch voices');
         }
 
-        const data = await response.json();
-        const availableVoiceIds = new Set(data.voices.map((v: any) => v.voice_id));
+        const responseData = await response.json();
+        const availableVoiceIds = new Set(responseData.voices.map((v: any) => v.voice_id));
         
-        // Mark voices as available or not
         const updatedVoices = defaultVoices.map(voice => ({
           ...voice,
           available: availableVoiceIds.has(voice.id)
         }));
 
         setVoices(updatedVoices);
-        setIsLoading(false);
       } catch (error) {
         console.error('Error checking voice availability:', error);
         toast.error('Failed to check voice availability');
-        // Fallback to default voices if API check fails
         setVoices(defaultVoices.map(voice => ({ ...voice, available: false })));
+      } finally {
         setIsLoading(false);
       }
     };
