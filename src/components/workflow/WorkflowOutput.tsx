@@ -43,74 +43,62 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
     refetchInterval: 5000,
   });
 
+  const formatText = (text: string) => {
+    // Split text into lines and process each line
+    return text.split('\n').map((line, index) => {
+      const trimmedLine = line.trim();
+      
+      // Handle headers
+      if (trimmedLine.startsWith('###')) {
+        return (
+          <h3 key={index} className="text-xl font-bold underline decoration-2 mb-4">
+            {trimmedLine.replace(/^###\s*/, '')}
+          </h3>
+        );
+      }
+      
+      if (trimmedLine.startsWith('####')) {
+        return (
+          <h4 key={index} className="text-lg font-bold mb-3">
+            {trimmedLine.replace(/^####\s*/, '')}
+          </h4>
+        );
+      }
+      
+      // Handle bold/underline markers
+      if (trimmedLine.includes('**')) {
+        const parts = trimmedLine.split('**');
+        return (
+          <p key={index} className="mb-4 leading-relaxed">
+            {parts.map((part, pIndex) => (
+              pIndex % 2 === 1 ? (
+                <span key={pIndex} className="underline decoration-1">
+                  {part}
+                </span>
+              ) : (
+                <span key={pIndex}>{part}</span>
+              )
+            ))}
+          </p>
+        );
+      }
+      
+      // Regular text
+      if (trimmedLine) {
+        return (
+          <p key={index} className="mb-4 leading-relaxed">
+            {trimmedLine}
+          </p>
+        );
+      }
+      
+      return null;
+    });
+  };
+
   if (!outputs?.length) {
     return null;
   }
-
-  const formatLine = (line: string) => {
-    // Rimuovi gli spazi iniziali e finali
-    const trimmedLine = line.trim();
-    
-    // Gestisci i titoli con ### (grassetto e sottolineato)
-    if (trimmedLine.startsWith('###')) {
-      const content = trimmedLine.replace('###', '').trim();
-      return (
-        <h3 className="text-xl font-bold underline decoration-2 mb-4">
-          {content}
-        </h3>
-      );
-    }
-    
-    // Gestisci i sottotitoli con #### (grassetto)
-    if (trimmedLine.startsWith('####')) {
-      const content = trimmedLine.replace('####', '').trim();
-      return (
-        <h4 className="text-lg font-bold mb-3">
-          {content}
-        </h4>
-      );
-    }
-    
-    // Gestisci il testo tra ** ** (sottolineato)
-    if (trimmedLine.includes('**')) {
-      const parts = trimmedLine.split('**');
-      return (
-        <p className="mb-4 leading-relaxed">
-          {parts.map((part, index) => {
-            // Indici dispari sono tra ** **
-            if (index % 2 === 1) {
-              return (
-                <span key={index} className="underline decoration-1">
-                  {part}
-                </span>
-              );
-            }
-            // Indici pari sono testo normale
-            return <span key={index}>{part}</span>;
-          })}
-        </p>
-      );
-    }
-    
-    // Gestisci il testo normale (se non vuoto)
-    if (trimmedLine) {
-      return (
-        <p className="mb-4 leading-relaxed">
-          {trimmedLine}
-        </p>
-      );
-    }
-    
-    return null;
-  };
-
-  const formatContent = (text: string) => {
-    return text.split('\n').map((line, index) => (
-      <div key={index}>
-        {formatLine(line)}
-      </div>
-    ));
-  };
 
   return (
     <Card className="w-full bg-background shadow-lg">
@@ -150,7 +138,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                                 {outputItem.content && (
                                   <div className="prose prose-sm max-w-none">
                                     <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
-                                      {formatContent(outputItem.content)}
+                                      {formatText(outputItem.content)}
                                     </div>
                                   </div>
                                 )}
