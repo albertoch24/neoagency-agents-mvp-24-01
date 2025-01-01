@@ -7,9 +7,15 @@ export const useStageProcessing = (briefId: string) => {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const processStage = async (nextStage: any) => {
+    if (!briefId || !nextStage?.id) {
+      console.error("Missing required data:", { briefId, nextStageId: nextStage?.id });
+      toast.error("Dati mancanti per l'elaborazione dello stage");
+      return;
+    }
+
     setIsProcessing(true);
     const toastId = toast.loading(
-      `Processing ${nextStage.name} stage... This may take a few minutes. We're analyzing your brief and generating insights. Please don't close this window.`,
+      `Elaborazione stage ${nextStage.name}... Questo potrebbe richiedere qualche minuto. Stiamo analizzando il brief e generando insights. Non chiudere questa finestra.`,
       { duration: 120000 } // 2 minutes
     );
 
@@ -51,7 +57,7 @@ export const useStageProcessing = (briefId: string) => {
 
         if (stageError) {
           console.error("Error fetching stage data:", stageError);
-          throw new Error(`Error fetching stage data: ${stageError.message}`);
+          throw new Error(`Errore nel recupero dei dati dello stage: ${stageError.message}`);
         }
 
         flow = stageData?.flows;
@@ -62,7 +68,7 @@ export const useStageProcessing = (briefId: string) => {
           stageId: nextStage.id,
           stageName: nextStage.name
         });
-        throw new Error(`No flow found for stage "${nextStage.name}"`);
+        throw new Error(`Nessun flusso trovato per lo stage "${nextStage.name}"`);
       }
 
       const flowSteps = flow.flow_steps || [];
@@ -72,7 +78,7 @@ export const useStageProcessing = (briefId: string) => {
           stageName: nextStage.name,
           flowId: flow.id
         });
-        throw new Error("No flow steps found for this stage");
+        throw new Error("Nessuno step trovato per questo stage");
       }
 
       console.log("Found flow steps:", {
@@ -89,7 +95,7 @@ export const useStageProcessing = (briefId: string) => {
       // Process the workflow stage
       await processWorkflowStage(briefId, nextStage, flowSteps);
       toast.dismiss(toastId);
-      toast.success(`${nextStage.name} stage processed successfully! You can now view the results.`, {
+      toast.success(`Stage ${nextStage.name} elaborato con successo! Puoi ora visualizzare i risultati.`, {
         duration: 8000
       });
     } catch (error) {
@@ -97,8 +103,8 @@ export const useStageProcessing = (briefId: string) => {
       toast.dismiss(toastId);
       toast.error(
         error instanceof Error 
-          ? `Failed to process stage: ${error.message}. Please try again or contact support.`
-          : "Failed to process stage. Please try again or contact support.",
+          ? `Errore nell'elaborazione dello stage: ${error.message}. Riprova o contatta il supporto.`
+          : "Errore nell'elaborazione dello stage. Riprova o contatta il supporto.",
         { duration: 8000 }
       );
     } finally {
