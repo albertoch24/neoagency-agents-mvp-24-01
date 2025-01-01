@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Voice {
   id: string;
@@ -64,10 +65,23 @@ export function VoiceSelector({ value, onValueChange }: VoiceSelectorProps) {
   useEffect(() => {
     const checkVoiceAvailability = async () => {
       try {
+        const { data: { secret: apiKey }, error: secretError } = await supabase
+          .from('secrets')
+          .select('secret')
+          .eq('name', 'ELEVEN_LABS_API_KEY')
+          .maybeSingle();
+
+        if (secretError || !apiKey) {
+          toast.error('ElevenLabs API key not found. Please add it in settings.');
+          setVoices(defaultVoices.map(voice => ({ ...voice, available: false })));
+          setIsLoading(false);
+          return;
+        }
+
         const response = await fetch('https://api.elevenlabs.io/v1/voices', {
           headers: {
             'Content-Type': 'application/json',
-            'xi-api-key': process.env.ELEVEN_LABS_API_KEY || '',
+            'xi-api-key': apiKey
           },
         });
 
@@ -90,7 +104,7 @@ export function VoiceSelector({ value, onValueChange }: VoiceSelectorProps) {
         console.error('Error checking voice availability:', error);
         toast.error('Failed to check voice availability');
         // Fallback to default voices if API check fails
-        setVoices(defaultVoices.map(voice => ({ ...voice, available: true })));
+        setVoices(defaultVoices.map(voice => ({ ...voice, available: false })));
         setIsLoading(false);
       }
     };
