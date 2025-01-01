@@ -72,8 +72,7 @@ export async function processAgent(
       ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
       
       Share your thoughts as if you're speaking in a creative agency meeting. Be natural, use conversational language, 
-      express your professional opinion, and make it feel like a real conversation. After your detailed analysis, 
-      provide a concise summary of key points starting with "### Summary:".
+      express your professional opinion, and make it feel like a real conversation.
       
       Remember to:
       1. Use first-person pronouns ("I think...", "In my experience...")
@@ -86,39 +85,49 @@ export async function processAgent(
       8. Use informal but professional language
     `;
 
-    console.log("Generating response with conversational prompt:", conversationalPrompt);
+    // Construct schematic prompt (pre-edit 313 style)
+    const schematicPrompt = `
+      As ${agent.name}, provide a structured analysis of this brief:
+      
+      Brief Details:
+      Title: ${brief.title}
+      Description: ${brief.description}
+      Objectives: ${brief.objectives}
+      Requirements: ${requirements || 'None specified'}
+      
+      Your Role:
+      ${agent.description}
+      
+      Skills Applied:
+      ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
+      
+      Provide a clear, bullet-pointed list of key points and recommendations. 
+      Focus on actionable insights and concrete steps.
+      Format your response as a structured list with clear categories and sub-points.
+    `;
 
-    // Generate response using OpenAI
-    const content = await generateAgentResponse(conversationalPrompt);
+    console.log("Generating conversational response...");
+    const conversationalContent = await generateAgentResponse(conversationalPrompt);
     
-    console.log("Generated agent response:", {
-      agentId: agent.id,
-      contentLength: content.length,
-      timestamp: new Date().toISOString()
-    });
+    console.log("Generating schematic response...");
+    const schematicContent = await generateAgentResponse(schematicPrompt);
 
-    // Split the response into conversational analysis and summary
-    const [analysis, summary] = content.split(/###\s*Summary:/i);
-
-    if (!analysis || !summary) {
-      throw new Error('Failed to generate both analysis and summary');
-    }
-
-    // Save both the conversational output and the summary
+    // Save the conversational output
     const conversationalOutput = {
       brief_id: brief.id,
       stage_id: stageId,
       agent_id: agent.id,
-      content: analysis.trim(),
+      content: conversationalContent.trim(),
       output_type: 'conversational',
       created_at: new Date().toISOString()
     };
 
-    const summaryOutput = {
+    // Save the schematic output
+    const schematicOutput = {
       brief_id: brief.id,
       stage_id: stageId,
       agent_id: agent.id,
-      content: summary.trim(),
+      content: schematicContent.trim(),
       output_type: 'summary',
       created_at: new Date().toISOString()
     };
@@ -132,12 +141,12 @@ export async function processAgent(
       throw new Error(`Error saving conversational output: ${conversationalError.message}`);
     }
 
-    const { error: summaryError } = await supabase
+    const { error: schematicError } = await supabase
       .from('workflow_conversations')
-      .insert([summaryOutput]);
+      .insert([schematicOutput]);
 
-    if (summaryError) {
-      throw new Error(`Error saving summary output: ${summaryError.message}`);
+    if (schematicError) {
+      throw new Error(`Error saving schematic output: ${schematicError.message}`);
     }
 
     console.log("Agent processing completed successfully:", {
@@ -148,11 +157,8 @@ export async function processAgent(
     });
 
     return {
-      outputs: [{
-        content: analysis.trim(),
-        timestamp: new Date().toISOString()
-      }],
-      summary: summary.trim()
+      conversational: conversationalContent.trim(),
+      summary: schematicContent.trim()
     };
   } catch (error) {
     console.error("Error in agent processing:", {
