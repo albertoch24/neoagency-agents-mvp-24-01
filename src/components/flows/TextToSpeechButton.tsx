@@ -19,6 +19,8 @@ export const TextToSpeechButton = ({
   onPlayStateChange,
   onAudioElement
 }: TextToSpeechButtonProps) => {
+  const [isLoading, setIsLoading] = useState(false);
+
   const handleTextToSpeech = async () => {
     try {
       if (isPlaying) {
@@ -27,7 +29,9 @@ export const TextToSpeechButton = ({
         return;
       }
 
-      console.log('Fetching ElevenLabs API key from Supabase...');
+      setIsLoading(true);
+
+      // Fetch API key from Supabase
       const { data: secretData, error: secretError } = await supabase
         .from('secrets')
         .select('secret')
@@ -41,7 +45,7 @@ export const TextToSpeechButton = ({
       }
 
       if (!secretData?.secret) {
-        console.error('ElevenLabs API key not found in secrets');
+        console.error('ElevenLabs API key not found');
         toast.error('ElevenLabs API key not found. Please add it in settings.');
         return;
       }
@@ -52,7 +56,23 @@ export const TextToSpeechButton = ({
         return;
       }
 
-      console.log('Making request to ElevenLabs API...');
+      // First verify the API key by checking available voices
+      const verifyResponse = await fetch('https://api.elevenlabs.io/v1/voices', {
+        headers: {
+          'Accept': 'application/json',
+          'xi-api-key': apiKey
+        }
+      });
+
+      if (!verifyResponse.ok) {
+        if (verifyResponse.status === 401) {
+          toast.error('Invalid ElevenLabs API key. Please check your API key in settings.');
+          return;
+        }
+        throw new Error('Failed to verify ElevenLabs API key');
+      }
+
+      // If verification passed, proceed with text-to-speech
       const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL', {
         method: 'POST',
         headers: {
@@ -111,6 +131,8 @@ export const TextToSpeechButton = ({
       toast.error('Failed to generate speech. Please check your ElevenLabs API key.');
       onPlayStateChange(false);
       onAudioElement(null);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -119,6 +141,7 @@ export const TextToSpeechButton = ({
       variant="outline"
       size="sm"
       onClick={handleTextToSpeech}
+      disabled={isLoading}
     >
       {isPlaying ? (
         <VolumeX className="h-4 w-4" />
