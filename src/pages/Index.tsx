@@ -19,7 +19,7 @@ import {
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
-  const [currentStage, setCurrentStage] = useState("kickoff");
+  const [currentStage, setCurrentStage] = useState<string>("kickoff");
   const [showNewBrief, setShowNewBrief] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedBriefId, setSelectedBriefId] = useState<string | null>(null);
