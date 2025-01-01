@@ -73,7 +73,7 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
       }
 
       console.log('Making request to ElevenLabs API...');
-      const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
+      const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL', {
         method: 'POST',
         headers: {
           'Accept': 'audio/mpeg',
@@ -82,7 +82,7 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
         },
         body: JSON.stringify({
           text,
-          model_id: "eleven_monolingual_v1",
+          model_id: "eleven_multilingual_v2",
           voice_settings: {
             stability: 0.5,
             similarity_boost: 0.5
@@ -91,17 +91,22 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('ElevenLabs API error:', errorData);
-        
-        // More specific error messages based on response
-        if (response.status === 401) {
-          toast.error('Invalid ElevenLabs API key. Please check your API key in settings.');
-        } else if (response.status === 429) {
-          toast.error('ElevenLabs API rate limit exceeded. Please try again later.');
-        } else {
-          toast.error(`ElevenLabs API error: ${errorData.detail?.message || 'Unknown error'}`);
+        let errorMessage = 'Failed to generate speech';
+        try {
+          const errorData = await response.json();
+          console.error('ElevenLabs API error:', errorData);
+          
+          if (response.status === 401) {
+            errorMessage = 'Invalid ElevenLabs API key. Please check your API key in settings.';
+          } else if (response.status === 429) {
+            errorMessage = 'ElevenLabs API rate limit exceeded. Please try again later.';
+          } else {
+            errorMessage = `ElevenLabs API error: ${errorData.detail?.message || 'Unknown error'}`;
+          }
+        } catch (e) {
+          console.error('Error parsing error response:', e);
         }
+        toast.error(errorMessage);
         return;
       }
 
