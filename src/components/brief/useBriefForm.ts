@@ -28,7 +28,10 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
 
     try {
       setIsProcessing(true);
-      toast.info(initialData ? "Updating your brief..." : "Creating your brief...");
+      const actionType = initialData ? "Updating" : "Creating";
+      toast.info(`${actionType} your brief... Please wait while we process your request.`, {
+        duration: 5000
+      });
 
       // Clean up existing data if updating
       if (initialData?.id) {
@@ -42,7 +45,9 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       // Get the first stage and its flow
       const stage = await fetchFirstStage(user.id);
       if (!stage) {
-        toast.error("No stages found. Please create stages first.");
+        toast.error("No stages found. Please create stages first.", {
+          duration: 8000
+        });
         setIsProcessing(false);
         return;
       }
@@ -57,14 +62,19 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
 
       // Start workflow processing
       const toastId = toast.loading(
-        "Starting workflow process... This may take around 2 minutes. Rome wasn't built in a day 😃",
-        { duration: Infinity }
+        "Starting workflow process... This may take a few minutes. We're analyzing your brief and generating insights. Please don't close this window.",
+        { duration: 120000 } // 2 minutes
       );
 
       try {
         await processWorkflowStage(brief.id, stage, flowSteps);
         toast.dismiss(toastId);
-        toast.success(initialData ? "Brief updated and workflow restarted!" : "Brief submitted and workflow started successfully!");
+        toast.success(
+          initialData 
+            ? "Brief updated and workflow restarted successfully! You can now view the results."
+            : "Brief submitted and workflow completed successfully! You can now view the results.",
+          { duration: 8000 }
+        );
 
         // Invalidate queries before navigation
         await queryClient.invalidateQueries({ queryKey: ["briefs"] });
@@ -83,12 +93,18 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       } catch (error) {
         console.error("Error starting workflow:", error);
         toast.dismiss(toastId);
-        toast.error("Brief saved but workflow failed to start. Please try again or contact support.");
+        toast.error(
+          "Brief saved but workflow failed to start. Please try again or contact support if the issue persists.",
+          { duration: 8000 }
+        );
         setIsProcessing(false);
       }
     } catch (error) {
       console.error("Error submitting brief:", error);
-      toast.error("Error submitting brief. Please try again.");
+      toast.error(
+        "Error submitting brief. Please check your input and try again.",
+        { duration: 8000 }
+      );
       setIsProcessing(false);
     }
   };

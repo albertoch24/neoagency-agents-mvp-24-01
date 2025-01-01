@@ -8,6 +8,11 @@ export const useStageProcessing = (briefId: string) => {
 
   const processStage = async (nextStage: any) => {
     setIsProcessing(true);
+    const toastId = toast.loading(
+      `Processing ${nextStage.name} stage... This may take a few minutes. We're analyzing your brief and generating insights. Please don't close this window.`,
+      { duration: 120000 } // 2 minutes
+    );
+
     try {
       console.log("Processing stage:", {
         stageId: nextStage.id,
@@ -83,10 +88,19 @@ export const useStageProcessing = (briefId: string) => {
 
       // Process the workflow stage
       await processWorkflowStage(briefId, nextStage, flowSteps);
-      toast.success("Stage processed successfully!");
+      toast.dismiss(toastId);
+      toast.success(`${nextStage.name} stage processed successfully! You can now view the results.`, {
+        duration: 8000
+      });
     } catch (error) {
       console.error("Error processing stage:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to process stage");
+      toast.dismiss(toastId);
+      toast.error(
+        error instanceof Error 
+          ? `Failed to process stage: ${error.message}. Please try again or contact support.`
+          : "Failed to process stage. Please try again or contact support.",
+        { duration: 8000 }
+      );
     } finally {
       setIsProcessing(false);
     }
