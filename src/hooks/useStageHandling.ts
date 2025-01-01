@@ -21,6 +21,7 @@ export const useStageHandling = (selectedBriefId: string | null) => {
         .select("*")
         .eq("brief_id", selectedBriefId)
         .eq("stage", currentStage)
+        .order("created_at", { ascending: false })
         .maybeSingle();
       
       return data;
@@ -69,6 +70,7 @@ export const useStageHandling = (selectedBriefId: string | null) => {
     newParams.set("stage", stage.id);
     if (selectedBriefId) {
       newParams.set("briefId", selectedBriefId);
+      newParams.set("showOutputs", "true");
     }
     setSearchParams(newParams);
   };

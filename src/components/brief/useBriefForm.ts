@@ -87,7 +87,7 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         
         // Navigate to the index page with the stage and brief ID parameters
         // and explicitly set showOutputs=true to ensure outputs are visible
-        navigate(`/?stage=kickoff&briefId=${brief.id}&showOutputs=true`, {
+        navigate(`/?briefId=${brief.id}&stage=${stage.id}&showOutputs=true`, {
           replace: true
         });
       } catch (error) {
