@@ -25,7 +25,7 @@ const Index = () => {
   
   const { currentStage, handleStageSelect } = useStageHandling(selectedBriefId);
 
-  // Read briefId from URL params on mount and when URL changes
+  // Read briefId and showOutputs from URL params on mount and when URL changes
   useEffect(() => {
     const briefIdFromUrl = searchParams.get("briefId");
     const showOutputs = searchParams.get("showOutputs");
@@ -92,10 +92,11 @@ const Index = () => {
     setSelectedBriefId(briefId);
     setShowNewBrief(false);
     setIsEditing(false);
-    // Update URL with selected brief while preserving stage
+    // Update URL with selected brief and ensure showOutputs is set to true
     const newParams = new URLSearchParams(searchParams);
     newParams.set("briefId", briefId);
     newParams.set("stage", currentStage);
+    newParams.set("showOutputs", "true");
     setSearchParams(newParams);
   };
 

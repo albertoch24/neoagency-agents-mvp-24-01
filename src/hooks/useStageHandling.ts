@@ -31,10 +31,23 @@ export const useStageHandling = (selectedBriefId: string | null) => {
 
   useEffect(() => {
     const stageFromUrl = searchParams.get("stage");
+    const showOutputs = searchParams.get("showOutputs");
+    
     if (stageFromUrl) {
       setCurrentStage(stageFromUrl);
+      
+      // If showOutputs is true, ensure the URL maintains this parameter
+      if (showOutputs === "true") {
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set("stage", stageFromUrl);
+        newParams.set("showOutputs", "true");
+        if (selectedBriefId) {
+          newParams.set("briefId", selectedBriefId);
+        }
+        setSearchParams(newParams);
+      }
     }
-  }, [searchParams]);
+  }, [searchParams, selectedBriefId]);
 
   const handleStageSelect = async (stage: WorkflowStage) => {
     if (!selectedBriefId) return;
@@ -65,12 +78,12 @@ export const useStageHandling = (selectedBriefId: string | null) => {
 
     setCurrentStage(stage.id);
     
-    // Update URL with new stage while preserving briefId and showOutputs
+    // Always update URL with showOutputs=true when selecting a stage
     const newParams = new URLSearchParams(searchParams);
     newParams.set("stage", stage.id);
+    newParams.set("showOutputs", "true");
     if (selectedBriefId) {
       newParams.set("briefId", selectedBriefId);
-      newParams.set("showOutputs", "true");
     }
     setSearchParams(newParams);
   };
