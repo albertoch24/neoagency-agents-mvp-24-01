@@ -2,13 +2,14 @@ import React from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Volume2 } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { CardContent } from "@/components/ui/card";
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  audioUrl?: string;
 }
 
 interface AgentCardContentProps {
@@ -46,7 +47,17 @@ export const AgentCardContent: React.FC<AgentCardContentProps> = ({
                     : 'bg-muted'
                 }`}
               >
-                {message.content}
+                <div className="flex flex-col gap-2">
+                  <div>{message.content}</div>
+                  {message.audioUrl && (
+                    <div className="mt-2">
+                      <audio controls className="w-full">
+                        <source src={message.audioUrl} type="audio/mpeg" />
+                        Your browser does not support the audio element.
+                      </audio>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}

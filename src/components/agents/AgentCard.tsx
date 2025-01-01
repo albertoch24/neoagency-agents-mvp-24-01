@@ -13,6 +13,7 @@ import { AgentDescriptionContent } from "./AgentDescriptionContent";
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  audioUrl?: string;
 }
 
 interface AgentCardProps {
@@ -43,7 +44,11 @@ export const AgentCard = ({ agent, onClick }: AgentCardProps) => {
     try {
       const response = await getAgentResponse(agent.id, userMessage);
       if (response) {
-        setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: response.response,
+          audioUrl: response.audioUrl 
+        }]);
       }
     } catch (error) {
       console.error('Error getting agent response:', error);
