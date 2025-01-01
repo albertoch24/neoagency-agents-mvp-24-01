@@ -26,6 +26,11 @@ interface Voice {
 
 const defaultVoices: Voice[] = [
   {
+    id: "EXAVITQu4vr4xnSDxMaL",
+    name: "Sarah",
+    description: "Professional and versatile female voice"
+  },
+  {
     id: "21m00Tcm4TlvDq8ikWAM",
     name: "Rachel",
     description: "Calm and professional female voice"
@@ -36,19 +41,14 @@ const defaultVoices: Voice[] = [
     description: "Confident and friendly male voice"
   },
   {
-    id: "EXAVITQu4vr4xnSDxMaL",
-    name: "Bella",
-    description: "Warm and engaging female voice"
-  },
-  {
-    id: "ErXwobaYiN019PkySvjV",
-    name: "Antoni",
-    description: "Warm and engaging male voice"
-  },
-  {
     id: "MF3mGyEYCl7XYWbV9V6O",
     name: "Elli",
     description: "Gentle and soothing female voice"
+  },
+  {
+    id: "TX3LPaxmHKxFdv7VOQHJ",
+    name: "Liam",
+    description: "Professional and authoritative male voice"
   }
 ];
 
