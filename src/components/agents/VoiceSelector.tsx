@@ -1,6 +1,4 @@
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import React from 'react';
 import {
   Command,
   CommandEmpty,
@@ -13,38 +11,55 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const voices = [
   {
     id: "21m00Tcm4TlvDq8ikWAM",
-    name: "Rachel (Default)",
-    description: "Professional female voice"
+    name: "Rachel",
+    description: "Calm and professional female voice"
   },
   {
-    id: "9BWtsMINqrJLrRacOk9x",
-    name: "Aria",
-    description: "Professional female voice"
-  },
-  {
-    id: "CwhRBWXzGAHq8TQ4Fs17",
-    name: "Roger",
-    description: "Authoritative male voice"
+    id: "AZnzlk1XvdvUeBnXmlld",
+    name: "Domi",
+    description: "Confident and friendly male voice"
   },
   {
     id: "EXAVITQu4vr4xnSDxMaL",
-    name: "Sarah",
-    description: "Friendly female voice"
+    name: "Bella",
+    description: "Warm and engaging female voice"
   },
   {
-    id: "IKne3meq5aSn9XLyUdCD",
-    name: "Charlie",
-    description: "Young male voice"
+    id: "ErXwobaYiN019PkySvjV",
+    name: "Antoni",
+    description: "Warm and engaging male voice"
   },
   {
-    id: "onwK4e9ZLuTAKqWW03F9",
-    name: "Daniel",
-    description: "Calm male voice"
+    id: "MF3mGyEYCl7XYWbV9V6O",
+    name: "Elli",
+    description: "Gentle and soothing female voice"
+  },
+  {
+    id: "TxGEqnHWrfWFTfGW9XjX",
+    name: "Josh",
+    description: "Friendly and conversational male voice"
+  },
+  {
+    id: "VR6AewLTigWG4xSOukaG",
+    name: "Arnold",
+    description: "Deep and authoritative male voice"
+  },
+  {
+    id: "pNInz6obpgDQGcFmaJgB",
+    name: "Adam",
+    description: "Natural and professional male voice"
+  },
+  {
+    id: "yoZ06aMxZJJ28mfd3POQ",
+    name: "Sam",
+    description: "Serious and measured male voice"
   }
 ];
 
@@ -53,9 +68,9 @@ interface VoiceSelectorProps {
   onValueChange: (value: string) => void;
 }
 
-export function VoiceSelector({ value, onValueChange }: VoiceSelectorProps) {
-  const [open, setOpen] = useState(false);
-  const selectedVoice = voices.find((voice) => voice.id === value);
+export const VoiceSelector = ({ value, onValueChange }: VoiceSelectorProps) => {
+  const [open, setOpen] = React.useState(false);
+  const selectedVoice = voices.find(voice => voice.id === value);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -66,7 +81,7 @@ export function VoiceSelector({ value, onValueChange }: VoiceSelectorProps) {
           aria-expanded={open}
           className="w-full justify-between"
         >
-          {selectedVoice?.name ?? "Select voice..."}
+          {selectedVoice?.name || "Select voice..."}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -78,9 +93,9 @@ export function VoiceSelector({ value, onValueChange }: VoiceSelectorProps) {
             {voices.map((voice) => (
               <CommandItem
                 key={voice.id}
-                value={voice.id}
-                onSelect={(currentValue) => {
-                  onValueChange(currentValue);
+                value={voice.name}
+                onSelect={() => {
+                  onValueChange(voice.id);
                   setOpen(false);
                 }}
               >
@@ -90,11 +105,11 @@ export function VoiceSelector({ value, onValueChange }: VoiceSelectorProps) {
                     value === voice.id ? "opacity-100" : "opacity-0"
                   )}
                 />
-                <div className="flex flex-col">
-                  <span>{voice.name}</span>
-                  <span className="text-sm text-muted-foreground">
+                <div>
+                  <div className="font-medium">{voice.name}</div>
+                  <div className="text-sm text-muted-foreground">
                     {voice.description}
-                  </span>
+                  </div>
                 </div>
               </CommandItem>
             ))}
@@ -103,4 +118,4 @@ export function VoiceSelector({ value, onValueChange }: VoiceSelectorProps) {
       </PopoverContent>
     </Popover>
   );
-}
+};
