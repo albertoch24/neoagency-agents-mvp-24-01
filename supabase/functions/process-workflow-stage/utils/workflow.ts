@@ -1,6 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
-import { Configuration, OpenAIApi } from "openai";
-import { corsHeaders } from "./cors.ts";
+import { Configuration, OpenAIApi } from "https://esm.sh/openai@4.28.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const configuration = new Configuration({ apiKey: openAIApiKey });
@@ -8,6 +7,8 @@ const openai = new OpenAIApi(configuration);
 
 export async function generateStageSummary(outputs: any[]) {
   try {
+    console.log("Generating stage summary for outputs:", outputs);
+    
     const formattedOutputs = outputs.map(output => {
       if (Array.isArray(output.outputs)) {
         return output.outputs.map(o => o.content).join('\n');
@@ -29,6 +30,7 @@ export async function generateStageSummary(outputs: any[]) {
       ],
     });
 
+    console.log("Generated summary response:", response.data);
     return response.data.choices[0].message?.content || '';
   } catch (error) {
     console.error('Error generating stage summary:', error);
@@ -43,21 +45,32 @@ export async function saveBriefOutput(
   stageName: string,
   outputs: any[]
 ) {
-  // Generate comprehensive summary of all outputs
-  const stageSummary = await generateStageSummary(outputs);
+  try {
+    // Generate comprehensive summary of all outputs
+    const stageSummary = await generateStageSummary(outputs);
+    console.log("Generated stage summary:", stageSummary);
 
-  const { error: outputError } = await supabase
-    .from("brief_outputs")
-    .insert({
-      brief_id: briefId,
-      stage: stageId,
-      stage_id: stageId,
-      content: {
-        stage_name: stageName,
-        outputs: outputs,
-      },
-      stage_summary: stageSummary
-    });
+    const { error: outputError } = await supabase
+      .from("brief_outputs")
+      .insert({
+        brief_id: briefId,
+        stage: stageId,
+        stage_id: stageId,
+        content: {
+          stage_name: stageName,
+          outputs: outputs,
+        },
+        stage_summary: stageSummary
+      });
 
-  if (outputError) throw outputError;
+    if (outputError) {
+      console.error("Error saving brief output:", outputError);
+      throw outputError;
+    }
+
+    console.log("Successfully saved brief output with summary");
+  } catch (error) {
+    console.error("Error in saveBriefOutput:", error);
+    throw error;
+  }
 }
