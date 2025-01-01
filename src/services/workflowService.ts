@@ -26,6 +26,13 @@ export const processWorkflowStage = async (
   }
 
   try {
+    console.log("Calling process-workflow-stage function with:", {
+      briefId,
+      stageId: stage.id,
+      flowId: stage.flow_id,
+      flowStepsCount: flowSteps.length
+    });
+
     const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
       "process-workflow-stage",
       {
@@ -50,6 +57,7 @@ export const processWorkflowStage = async (
       throw new Error("No data returned from workflow processing");
     }
 
+    console.log("Workflow processing completed successfully:", workflowData);
     return workflowData;
   } catch (error) {
     console.error("Error in processWorkflowStage:", error);
