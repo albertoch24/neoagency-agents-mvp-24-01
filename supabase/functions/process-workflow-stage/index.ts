@@ -5,6 +5,8 @@ import { validateRequest, validateStage, validateBrief } from "./utils/validatio
 import { processAgents } from "./utils/agentProcessing.ts";
 
 serve(async (req) => {
+  console.log("Process workflow stage function called");
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { 
@@ -63,7 +65,6 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error processing workflow stage:", error);
     
-    // Return a structured error response
     return new Response(
       JSON.stringify({ 
         error: error.message || "An unexpected error occurred",

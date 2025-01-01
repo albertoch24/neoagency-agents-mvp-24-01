@@ -25,18 +25,34 @@ export const processWorkflowStage = async (
     throw new Error("No flow steps found");
   }
 
-  const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
-    "process-workflow-stage",
-    {
-      body: { 
-        briefId, 
-        stageId: stage.id,
-        flowId: stage.flow_id,
-        flowSteps: flowSteps
-      },
-    }
-  );
+  try {
+    const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
+      "process-workflow-stage",
+      {
+        body: { 
+          briefId, 
+          stageId: stage.id,
+          flowId: stage.flow_id,
+          flowSteps: flowSteps
+        },
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
+    );
 
-  if (workflowError) throw workflowError;
-  return workflowData;
+    if (workflowError) {
+      console.error("Workflow processing error:", workflowError);
+      throw workflowError;
+    }
+
+    if (!workflowData) {
+      throw new Error("No data returned from workflow processing");
+    }
+
+    return workflowData;
+  } catch (error) {
+    console.error("Error in processWorkflowStage:", error);
+    throw error;
+  }
 };
