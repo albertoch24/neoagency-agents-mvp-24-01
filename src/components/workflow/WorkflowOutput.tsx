@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
+import { marked } from "marked";
 
 interface WorkflowOutputProps {
   briefId: string;
@@ -44,23 +45,33 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
   });
 
   const formatText = (text: string) => {
-    // Remove technical markers and format text in a conversational way
-    const cleanText = text
+    // Prepara il testo per la conversione in HTML
+    const preparedText = text
+      // Rimuove i marcatori tecnici non necessari
       .replace(/###|####/g, '')
-      .replace(/\*\*/g, '')
-      .replace(/^-\s/gm, '')
+      .replace(/\*\*/g, '*')  // Converte ** in * per il markdown standard
+      .replace(/^-\s/gm, '• ') // Converte i trattini in bullet points
       .trim();
 
-    // Split into paragraphs and format each one
-    return cleanText.split('\n').map((paragraph, index) => {
-      if (!paragraph.trim()) return null;
-      
-      return (
-        <p key={index} className="mb-4 last:mb-0 text-foreground/90 leading-relaxed">
-          {paragraph.trim()}
-        </p>
-      );
-    }).filter(Boolean);
+    // Configura marked per output sicuro e personalizzato
+    marked.setOptions({
+      gfm: true, // GitHub Flavored Markdown
+      breaks: true, // Converte i ritorni a capo in <br>
+      sanitize: false, // L'output è già sanitizzato da React
+      smartLists: true,
+      smartypants: true,
+    });
+
+    // Converte il markdown in HTML
+    const htmlContent = marked(preparedText);
+
+    // Wrappa il contenuto HTML in un div con stili appropriati
+    return (
+      <div 
+        className="prose prose-gray max-w-none dark:prose-invert"
+        dangerouslySetInnerHTML={{ __html: htmlContent }} 
+      />
+    );
   };
 
   if (!outputs?.length) {

@@ -58,6 +58,29 @@ export default {
           border: "hsl(var(--agent-border))",
         },
       },
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none',
+            color: 'hsl(var(--foreground))',
+            p: {
+              color: 'hsl(var(--foreground))',
+              marginTop: '1rem',
+              marginBottom: '1rem',
+              lineHeight: '1.75',
+            },
+            li: {
+              color: 'hsl(var(--foreground))',
+              marginTop: '0.5rem',
+              marginBottom: '0.5rem',
+            },
+            strong: {
+              color: 'hsl(var(--foreground))',
+              fontWeight: '600',
+            },
+          },
+        },
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
@@ -89,5 +112,5 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
 } satisfies Config;
