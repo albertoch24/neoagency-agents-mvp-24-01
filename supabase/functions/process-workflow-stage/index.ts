@@ -5,8 +5,6 @@ import { validateRequest, validateStage, validateBrief } from "./utils/validatio
 import { processAgents } from "./utils/agentProcessing.ts";
 
 serve(async (req) => {
-  console.log("Process workflow stage function called");
-  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { 
@@ -21,6 +19,12 @@ serve(async (req) => {
   try {
     console.log("Starting workflow stage processing");
     
+    // Get the authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
     // Validate request and parameters
     const { briefId, stageId, flowId, flowSteps } = await validateRequest(req);
     console.log("Request validated:", { briefId, stageId, flowId, flowStepsCount: flowSteps?.length });

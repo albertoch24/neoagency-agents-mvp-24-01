@@ -33,6 +33,13 @@ export const processWorkflowStage = async (
       flowStepsCount: flowSteps.length
     });
 
+    // Get the current session
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      throw new Error("No active session found");
+    }
+
     const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
       "process-workflow-stage",
       {
@@ -44,7 +51,7 @@ export const processWorkflowStage = async (
         },
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.auth.getSession()}`
+          'Authorization': `Bearer ${session.access_token}`
         }
       }
     );
