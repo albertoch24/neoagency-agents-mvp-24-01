@@ -17,12 +17,11 @@ export const useStageHandling = (selectedBriefId: string | null) => {
       if (!selectedBriefId) return null;
       
       const { data } = await supabase
-        .from("brief_outputs")
+        .from("workflow_conversations")
         .select("*")
         .eq("brief_id", selectedBriefId)
-        .eq("stage", currentStage)
-        .order("created_at", { ascending: false })
-        .maybeSingle();
+        .eq("stage_id", currentStage)
+        .order("created_at", { ascending: false });
       
       return data;
     },
@@ -62,10 +61,10 @@ export const useStageHandling = (selectedBriefId: string | null) => {
 
     // Check if stage already has outputs
     const { data: existingOutputs } = await supabase
-      .from("brief_outputs")
+      .from("workflow_conversations")
       .select("*")
       .eq("brief_id", selectedBriefId)
-      .eq("stage", stage.id)
+      .eq("stage_id", stage.id)
       .maybeSingle();
 
     // Only process if moving to the next stage AND no outputs exist
