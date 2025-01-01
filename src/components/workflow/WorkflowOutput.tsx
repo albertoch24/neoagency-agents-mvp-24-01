@@ -44,18 +44,23 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
   });
 
   const formatText = (text: string) => {
-    // Rimuove i marcatori tecnici e formatta il testo in modo conversazionale
-    return text
+    // Remove technical markers and format text in a conversational way
+    const cleanText = text
       .replace(/###|####/g, '')
       .replace(/\*\*/g, '')
       .replace(/^-\s/gm, '')
-      .trim()
-      .split('\n\n')
-      .map((paragraph, index) => (
-        <p key={index} className="mb-4 leading-relaxed text-foreground/90">
+      .trim();
+
+    // Split into paragraphs and format each one
+    return cleanText.split('\n').map((paragraph, index) => {
+      if (!paragraph.trim()) return null;
+      
+      return (
+        <p key={index} className="mb-4 last:mb-0 text-foreground/90 leading-relaxed">
           {paragraph.trim()}
         </p>
-      ));
+      );
+    }).filter(Boolean);
   };
 
   if (!outputs?.length) {
