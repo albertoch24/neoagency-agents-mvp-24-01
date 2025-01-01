@@ -45,7 +45,7 @@ export const WorkflowProcessing = ({ isProcessing, stageName }: WorkflowProcessi
 
   return (
     <div className="space-y-4 my-8">
-      <Alert variant={isProcessing ? "default" : "success"}>
+      <Alert variant="default" className={!isProcessing ? "border-green-500 bg-green-50" : undefined}>
         <div className="flex items-center gap-2">
           {isProcessing ? (
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
