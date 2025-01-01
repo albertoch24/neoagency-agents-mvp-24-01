@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { VoiceSelector } from './VoiceSelector';
 
 interface AgentCardHeaderProps {
   agent: Agent;
@@ -28,12 +29,14 @@ export const AgentCardHeader = ({
   const [editedName, setEditedName] = useState(agent.name);
   const [editedDescription, setEditedDescription] = useState(agent.description || '');
   const [isPausing, setIsPausing] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState(agent.voice_id || '21m00Tcm4TlvDq8ikWAM');
   const queryClient = useQueryClient();
 
   const handleSave = () => {
     onSave({
       name: editedName,
       description: editedDescription,
+      voice_id: selectedVoice,
     });
     setIsEditing(false);
   };
@@ -41,7 +44,29 @@ export const AgentCardHeader = ({
   const handleEdit = () => {
     setEditedName(agent.name);
     setEditedDescription(agent.description || '');
+    setSelectedVoice(agent.voice_id || '21m00Tcm4TlvDq8ikWAM');
     setIsEditing(true);
+  };
+
+  const handleVoiceChange = async (voiceId: string) => {
+    try {
+      const { error } = await supabase
+        .from('agents')
+        .update({ 
+          voice_id: voiceId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', agent.id);
+
+      if (error) throw error;
+
+      setSelectedVoice(voiceId);
+      toast.success('Voice updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+    } catch (error) {
+      console.error('Error updating voice:', error);
+      toast.error('Failed to update voice');
+    }
   };
 
   const handleTogglePause = async () => {
@@ -121,12 +146,18 @@ export const AgentCardHeader = ({
         </div>
       </div>
       {isEditing ? (
-        <Textarea
-          value={editedDescription}
-          onChange={(e) => setEditedDescription(e.target.value)}
-          className="mt-2"
-          placeholder="Enter agent description"
-        />
+        <>
+          <Textarea
+            value={editedDescription}
+            onChange={(e) => setEditedDescription(e.target.value)}
+            className="mt-2"
+            placeholder="Enter agent description"
+          />
+          <div className="mt-4">
+            <label className="text-sm font-medium mb-2 block">Voice</label>
+            <VoiceSelector value={selectedVoice} onValueChange={handleVoiceChange} />
+          </div>
+        </>
       ) : (
         <CardDescription>{agent.description}</CardDescription>
       )}

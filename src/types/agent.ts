@@ -18,6 +18,7 @@ export interface Agent {
   updated_at: string;
   user_id: string;
   is_paused: boolean | null;
+  voice_id: string | null;
 }
 
 export interface Flow {
