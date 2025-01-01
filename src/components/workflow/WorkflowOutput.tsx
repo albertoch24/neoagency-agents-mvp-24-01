@@ -8,6 +8,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { format } from "date-fns";
 
 interface WorkflowOutputProps {
   briefId: string;
@@ -15,7 +17,6 @@ interface WorkflowOutputProps {
 }
 
 export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
-  // Query to fetch outputs with no caching to ensure fresh data
   const { data: outputs } = useQuery({
     queryKey: ["brief-outputs", briefId, stageId],
     queryFn: async () => {
@@ -37,9 +38,9 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
       return data as BriefOutput[];
     },
     enabled: !!briefId && !!stageId,
-    staleTime: 0, // Disable stale time to always fetch fresh data
-    gcTime: 0, // Disable caching
-    refetchInterval: 5000, // Refetch every 5 seconds to ensure we have the latest data
+    staleTime: 0,
+    gcTime: 0,
+    refetchInterval: 5000,
   });
 
   if (!outputs?.length) {
@@ -49,40 +50,65 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
   return (
     <Card className="w-full">
       <CardContent className="p-6">
-        <div className="space-y-6">
-          {outputs.map((output) => (
-            <div key={output.id} className="space-y-6">
-              <h4 className="text-lg font-semibold text-primary">
-                {output.content.stage_name || 'Stage Output'}
-              </h4>
-              <div className="text-muted-foreground">
-                {output.content.outputs?.map((agentOutput: any, index: number) => (
-                  <div key={index} className="mt-6">
-                    <Accordion type="single" collapsible className="w-full">
-                      <AccordionItem value={`agent-${index}`}>
-                        <AccordionTrigger className="text-lg font-medium">
-                          {agentOutput.agent}
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          {agentOutput.outputs?.map((outputItem: any, outputIndex: number) => (
-                            <div key={outputIndex} className="ml-4 p-4 bg-muted rounded-lg mt-2">
-                              <h6 className="font-semibold mb-2">{outputItem.text}</h6>
-                              {outputItem.content && (
-                                <div className="text-sm mt-2">
-                                  <p className="whitespace-pre-wrap">{outputItem.content}</p>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                  </div>
-                ))}
+        <ScrollArea className="h-[600px] pr-4">
+          <div className="space-y-8">
+            {outputs.map((output) => (
+              <div key={output.id} className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-bold text-primary">
+                    {output.content.stage_name || 'Stage Output'}
+                  </h3>
+                  <span className="text-sm text-muted-foreground">
+                    {format(new Date(output.created_at), "PPpp")}
+                  </span>
+                </div>
+                
+                <div className="text-muted-foreground">
+                  {output.content.outputs?.map((agentOutput: any, index: number) => (
+                    <div key={index} className="mt-8 bg-card rounded-lg border shadow-sm">
+                      <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value={`agent-${index}`} className="border-none">
+                          <AccordionTrigger className="px-6 py-4 text-lg font-semibold hover:no-underline">
+                            {agentOutput.agent}
+                          </AccordionTrigger>
+                          <AccordionContent className="px-6 pb-4">
+                            {agentOutput.outputs?.map((outputItem: any, outputIndex: number) => (
+                              <div key={outputIndex} className="mb-6 last:mb-0">
+                                {outputItem.text && (
+                                  <h4 className="text-base font-semibold mb-3 text-foreground">
+                                    {outputItem.text}
+                                  </h4>
+                                )}
+                                {outputItem.content && (
+                                  <div className="prose prose-sm max-w-none">
+                                    <div className="whitespace-pre-wrap rounded-md bg-muted/50 p-4">
+                                      {outputItem.content.split('\n').map((paragraph: string, pIndex: number) => (
+                                        paragraph.trim() && (
+                                          <p 
+                                            key={pIndex} 
+                                            className={`mb-3 last:mb-0 ${
+                                              paragraph.endsWith(':') ? 'font-semibold' : ''
+                                            }`}
+                                          >
+                                            {paragraph}
+                                          </p>
+                                        )
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </ScrollArea>
       </CardContent>
     </Card>
   );
