@@ -48,46 +48,55 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
   }
 
   const formatLine = (line: string) => {
-    // Handle ### (bold and underlined)
-    if (line.startsWith('###')) {
+    // Rimuovi gli spazi iniziali e finali
+    const trimmedLine = line.trim();
+    
+    // Gestisci i titoli con ### (grassetto e sottolineato)
+    if (trimmedLine.startsWith('###')) {
+      const content = trimmedLine.replace('###', '').trim();
       return (
         <h3 className="text-xl font-bold underline decoration-2 mb-4">
-          {line.replace('###', '').trim()}
+          {content}
         </h3>
       );
     }
     
-    // Handle #### (bold)
-    if (line.startsWith('####')) {
+    // Gestisci i sottotitoli con #### (grassetto)
+    if (trimmedLine.startsWith('####')) {
+      const content = trimmedLine.replace('####', '').trim();
       return (
         <h4 className="text-lg font-bold mb-3">
-          {line.replace('####', '').trim()}
+          {content}
         </h4>
       );
     }
     
-    // Handle ** ** (underlined)
-    if (line.includes('**')) {
-      const parts = line.split('**');
-      const formattedParts = parts.map((part, index) => {
-        // Even indices are normal text, odd indices are underlined
-        return index % 2 === 1 ? (
-          <span key={index} className="underline decoration-1">
-            {part}
-          </span>
-        ) : (
-          <span key={index}>{part}</span>
-        );
-      });
-      
-      return <p className="mb-4 leading-relaxed">{formattedParts}</p>;
-    }
-    
-    // Return regular paragraph if not empty and no special formatting
-    if (line.trim()) {
+    // Gestisci il testo tra ** ** (sottolineato)
+    if (trimmedLine.includes('**')) {
+      const parts = trimmedLine.split('**');
       return (
         <p className="mb-4 leading-relaxed">
-          {line}
+          {parts.map((part, index) => {
+            // Indici dispari sono tra ** **
+            if (index % 2 === 1) {
+              return (
+                <span key={index} className="underline decoration-1">
+                  {part}
+                </span>
+              );
+            }
+            // Indici pari sono testo normale
+            return <span key={index}>{part}</span>;
+          })}
+        </p>
+      );
+    }
+    
+    // Gestisci il testo normale (se non vuoto)
+    if (trimmedLine) {
+      return (
+        <p className="mb-4 leading-relaxed">
+          {trimmedLine}
         </p>
       );
     }
