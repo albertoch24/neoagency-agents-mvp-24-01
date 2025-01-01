@@ -119,38 +119,35 @@ export async function processAgent(
     console.log("Generating schematic response...");
     const schematicContent = await generateAgentResponse(schematicPrompt);
 
+    if (!conversationalContent || !schematicContent) {
+      throw new Error(`Failed to generate content for agent: ${agent.name}`);
+    }
+
     // Save the conversational output
-    const conversationalOutput = {
-      brief_id: brief.id,
-      stage_id: stageId,
-      agent_id: agent.id,
-      content: conversationalContent.trim(),
-      output_type: 'conversational',
-      created_at: new Date().toISOString()
-    };
-
-    // Save the schematic output
-    const schematicOutput = {
-      brief_id: brief.id,
-      stage_id: stageId,
-      agent_id: agent.id,
-      content: schematicContent.trim(),
-      output_type: 'summary',
-      created_at: new Date().toISOString()
-    };
-
-    // Insert both outputs into the database
     const { error: conversationalError } = await supabase
       .from('workflow_conversations')
-      .insert([conversationalOutput]);
+      .insert([{
+        brief_id: brief.id,
+        stage_id: stageId,
+        agent_id: agent.id,
+        content: conversationalContent.trim(),
+        output_type: 'conversational'
+      }]);
 
     if (conversationalError) {
       throw new Error(`Error saving conversational output: ${conversationalError.message}`);
     }
 
+    // Save the schematic output
     const { error: schematicError } = await supabase
       .from('workflow_conversations')
-      .insert([schematicOutput]);
+      .insert([{
+        brief_id: brief.id,
+        stage_id: stageId,
+        agent_id: agent.id,
+        content: schematicContent.trim(),
+        output_type: 'summary'
+      }]);
 
     if (schematicError) {
       throw new Error(`Error saving schematic output: ${schematicError.message}`);
@@ -164,8 +161,12 @@ export async function processAgent(
     });
 
     return {
-      conversational: conversationalContent.trim(),
-      summary: schematicContent.trim()
+      agent: agent.name,
+      outputs: [
+        {
+          content: conversationalContent.trim()
+        }
+      ]
     };
   } catch (error) {
     console.error("Error in agent processing:", {
