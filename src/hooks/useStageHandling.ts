@@ -21,7 +21,7 @@ export const useStageHandling = (selectedBriefId: string | null) => {
         .select("*")
         .eq("brief_id", selectedBriefId)
         .eq("stage", currentStage)
-        .single();
+        .maybeSingle();
       
       return data;
     },
