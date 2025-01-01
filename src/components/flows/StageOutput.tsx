@@ -1,4 +1,10 @@
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface StageOutputProps {
   output: {
@@ -80,12 +86,20 @@ export const StageOutput = ({ output }: StageOutputProps) => {
   return (
     <Card className="mt-4">
       <CardContent className="p-4">
-        <p className="text-sm font-medium mb-2">Stage Summary:</p>
-        <div className="bg-muted rounded-lg p-4">
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-            {formattedOutput}
-          </p>
-        </div>
+        <Accordion type="single" collapsible>
+          <AccordionItem value="stage-summary">
+            <AccordionTrigger className="text-sm font-medium">
+              Stage Summary
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="bg-muted rounded-lg p-4 mt-2">
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {formattedOutput}
+                </p>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </CardContent>
     </Card>
   );
