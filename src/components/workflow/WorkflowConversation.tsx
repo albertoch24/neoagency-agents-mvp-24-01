@@ -68,11 +68,13 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
       }
 
       // Transform the outputs to match the expected format
-      const transformedOutputs = outputsData?.map((output) => ({
+      const transformedOutputs: BriefOutput[] = outputsData?.map((output) => ({
         ...output,
         content: typeof output.content === 'string' 
           ? { response: output.content }
-          : output.content
+          : typeof output.content === 'object' && output.content !== null
+            ? output.content
+            : { response: String(output.content) }
       })) || [];
 
       console.log("Found outputs:", transformedOutputs);
