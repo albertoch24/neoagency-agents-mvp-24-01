@@ -14,7 +14,8 @@ export async function processAgent(
       title: brief.title,
       description: brief.description,
       objectives: brief.objectives,
-      status: brief.status
+      status: brief.status,
+      current_stage: brief.current_stage
     },
     stage: {
       id: stageId
@@ -54,6 +55,13 @@ export async function processAgent(
       });
     }
 
+    // Log current stage status
+    console.log("Current stage status:", {
+      stageId: stageId,
+      briefCurrentStage: brief.current_stage,
+      timestamp: new Date().toISOString()
+    });
+
     // Construct prompt from brief and agent data
     const prompt = `
       As ${agent.name}, analyze this creative brief:
@@ -75,6 +83,14 @@ export async function processAgent(
     console.log("Generated agent response:", {
       agentId: agent.id,
       contentLength: content.length,
+      timestamp: new Date().toISOString()
+    });
+
+    // Log conversation save attempt
+    console.log("Attempting to save conversation:", {
+      briefId: brief.id,
+      stageId: stageId,
+      agentId: agent.id,
       timestamp: new Date().toISOString()
     });
 
@@ -100,7 +116,8 @@ export async function processAgent(
       briefId: brief?.id,
       stageId: stageId,
       agentId: agent?.id,
-      stack: error.stack
+      stack: error.stack,
+      timestamp: new Date().toISOString()
     });
     throw error;
   }
