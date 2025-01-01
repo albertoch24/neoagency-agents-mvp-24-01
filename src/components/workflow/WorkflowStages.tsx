@@ -76,26 +76,30 @@ export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, 
             onClick={() => !disabled && onStageSelect(stage)}
           >
             <CardHeader className="space-y-1">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Icon className={cn(
-                  "h-5 w-5",
-                  isCompleted && "text-green-500"
-                )} />
-                {stage.name}
-                {isCompleted && (
-                  <Badge variant="secondary" className="ml-auto text-green-500 border-green-500">
-                    Completed
-                  </Badge>
-                )}
-                {isNext && !isCompleted && (
-                  <Badge variant="outline" className="ml-auto">
-                    Next
-                  </Badge>
-                )}
-              </CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Icon className={cn(
+                    "h-5 w-5",
+                    isCompleted && "text-green-500"
+                  )} />
+                  <span className="truncate">{stage.name}</span>
+                </CardTitle>
+                <div className="flex-shrink-0">
+                  {isCompleted && (
+                    <Badge variant="secondary" className="text-green-500 border-green-500">
+                      Completed
+                    </Badge>
+                  )}
+                  {isNext && !isCompleted && (
+                    <Badge variant="outline">
+                      Next
+                    </Badge>
+                  )}
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">{stage.description}</p>
+              <p className="text-sm text-muted-foreground line-clamp-2">{stage.description}</p>
             </CardContent>
           </Card>
         );
