@@ -1,7 +1,7 @@
 import { WorkflowStages } from "./WorkflowStages";
 import { WorkflowConversation } from "./WorkflowConversation";
 import { WorkflowDisplayActions } from "./WorkflowDisplayActions";
-import { WorkflowProcessing } from "./WorkflowProcessing"; // Nuovo import
+import { WorkflowProcessing } from "./WorkflowProcessing";
 import { useStagesData } from "@/hooks/useStagesData";
 import { useStageProcessing } from "@/hooks/useStageProcessing";
 
@@ -52,7 +52,7 @@ export const WorkflowDisplay = ({
         briefId={briefId}
       />
       {briefId && (
-        <>
+        <div className="space-y-6">
           <WorkflowProcessing 
             isProcessing={isProcessing} 
             stageName={currentStageName}
@@ -67,7 +67,7 @@ export const WorkflowDisplay = ({
             onNextStage={handleNextStage}
             isProcessing={isProcessing}
           />
-        </>
+        </div>
       )}
     </div>
   );
