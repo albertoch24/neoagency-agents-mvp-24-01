@@ -3,16 +3,21 @@ import { StageOutput } from "./StageOutput";
 
 interface WorkflowStageListProps {
   stages: [string, any[]][];
-  briefOutputs: any[];
+  briefOutputs: Array<{
+    stage: string;
+    content: any;
+    [key: string]: any;
+  }>;
 }
 
-export const WorkflowStageList = ({ stages, briefOutputs }: WorkflowStageListProps) => {
+export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageListProps) => {
   return (
     <div className="space-y-6">
       {stages.map(([stageId, conversations]) => {
-        const output = briefOutputs?.find(
-          (output: any) => output.stage === stageId
-        );
+        // Ensure briefOutputs is an array and find the matching output
+        const output = Array.isArray(briefOutputs) 
+          ? briefOutputs.find((output) => output.stage === stageId)
+          : null;
 
         return (
           <div key={stageId} className="space-y-4">
