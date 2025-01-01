@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { WorkflowStage } from "@/types/workflow";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const iconMap = {
   flag: Flag,
@@ -17,9 +19,26 @@ interface WorkflowStagesProps {
   currentStage: string;
   onStageSelect: (stage: WorkflowStage) => void;
   disabled?: boolean;
+  briefId?: string;
 }
 
-export function WorkflowStages({ stages, currentStage, onStageSelect, disabled }: WorkflowStagesProps) {
+export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, briefId }: WorkflowStagesProps) {
+  const { data: completedStages } = useQuery({
+    queryKey: ["completed-stages", briefId],
+    queryFn: async () => {
+      if (!briefId) return [];
+      
+      const { data } = await supabase
+        .from("workflow_conversations")
+        .select("stage_id")
+        .eq("brief_id", briefId)
+        .order("created_at", { ascending: true });
+      
+      return data?.map(item => item.stage_id) || [];
+    },
+    enabled: !!briefId
+  });
+
   if (!stages || stages.length === 0) {
     return null;
   }
@@ -29,12 +48,10 @@ export function WorkflowStages({ stages, currentStage, onStageSelect, disabled }
   return (
     <div className="grid gap-4 md:grid-cols-5">
       {stages.map((stage, index) => {
-        // Skip rendering if stage is empty or invalid
         if (!stage.name || !stage.description) {
           return null;
         }
 
-        // Determine icon based on stage name or default to Flag
         const iconKey = stage.name.toLowerCase().includes("kick") ? "flag" :
                        stage.name.toLowerCase().includes("insight") ? "search" :
                        stage.name.toLowerCase().includes("concept") ? "lightbulb" :
@@ -43,7 +60,7 @@ export function WorkflowStages({ stages, currentStage, onStageSelect, disabled }
                        
         const Icon = iconMap[iconKey as keyof typeof iconMap];
         const isActive = currentStage === stage.id;
-        const isCompleted = index < currentStageIndex;
+        const isCompleted = completedStages?.includes(stage.id);
         const isNext = index === currentStageIndex + 1;
 
         return (
@@ -60,14 +77,17 @@ export function WorkflowStages({ stages, currentStage, onStageSelect, disabled }
           >
             <CardHeader className="space-y-1">
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Icon className="h-5 w-5" />
+                <Icon className={cn(
+                  "h-5 w-5",
+                  isCompleted && "text-green-500"
+                )} />
                 {stage.name}
                 {isCompleted && (
-                  <Badge variant="secondary" className="ml-auto">
+                  <Badge variant="secondary" className="ml-auto text-green-500 border-green-500">
                     Completed
                   </Badge>
                 )}
-                {isNext && (
+                {isNext && !isCompleted && (
                   <Badge variant="outline" className="ml-auto">
                     Next
                   </Badge>

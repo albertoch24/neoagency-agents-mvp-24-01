@@ -3,29 +3,47 @@ import { useSearchParams } from "react-router-dom";
 import { WorkflowStage } from "@/types/workflow";
 import { supabase } from "@/integrations/supabase/client";
 import { useStageProcessing } from "@/hooks/useStageProcessing";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const useStageHandling = (selectedBriefId: string | null) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentStage, setCurrentStage] = useState("kickoff");
   const { processStage } = useStageProcessing(selectedBriefId || "");
+  const queryClient = useQueryClient();
 
   // Query to check if stage has outputs
   const { data: stageOutputs } = useQuery({
-    queryKey: ["brief-outputs", selectedBriefId, currentStage],
+    queryKey: ["workflow-conversations", selectedBriefId, currentStage],
     queryFn: async () => {
       if (!selectedBriefId) return null;
       
-      const { data } = await supabase
+      console.log("Fetching conversations for stage:", currentStage);
+      const { data, error } = await supabase
         .from("workflow_conversations")
-        .select("*")
+        .select(`
+          *,
+          agents (
+            id,
+            name,
+            description,
+            skills (*)
+          )
+        `)
         .eq("brief_id", selectedBriefId)
         .eq("stage_id", currentStage)
-        .order("created_at", { ascending: false });
-      
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("Error fetching conversations:", error);
+        return null;
+      }
+
+      console.log("Found conversations:", data);
       return data;
     },
-    enabled: !!selectedBriefId && !!currentStage
+    enabled: !!selectedBriefId && !!currentStage,
+    staleTime: 0,
+    gcTime: 0
   });
 
   // Initialize state from URL parameters
@@ -64,12 +82,15 @@ export const useStageHandling = (selectedBriefId: string | null) => {
       .from("workflow_conversations")
       .select("*")
       .eq("brief_id", selectedBriefId)
-      .eq("stage_id", stage.id)
-      .maybeSingle();
+      .eq("stage_id", stage.id);
+
+    console.log("Checking existing outputs for stage:", stage.id, existingOutputs);
 
     // Only process if moving to the next stage AND no outputs exist
-    if (selectedIndex === currentIndex + 1 && !existingOutputs) {
+    if (selectedIndex === currentIndex + 1 && (!existingOutputs || existingOutputs.length === 0)) {
       await processStage(stage);
+      // Invalidate queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
     }
 
     setCurrentStage(stage.id);
