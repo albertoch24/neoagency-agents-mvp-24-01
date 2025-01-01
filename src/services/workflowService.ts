@@ -25,50 +25,18 @@ export const processWorkflowStage = async (
     throw new Error("No flow steps found");
   }
 
-  try {
-    console.log("Calling process-workflow-stage function with:", {
-      briefId,
-      stageId: stage.id,
-      flowId: stage.flow_id,
-      flowStepsCount: flowSteps.length
-    });
-
-    // Get the current session
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      throw new Error("No active session found");
+  const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
+    "process-workflow-stage",
+    {
+      body: { 
+        briefId, 
+        stageId: stage.id,
+        flowId: stage.flow_id,
+        flowSteps: flowSteps
+      },
     }
+  );
 
-    const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
-      "process-workflow-stage",
-      {
-        body: { 
-          briefId, 
-          stageId: stage.id,
-          flowId: stage.flow_id,
-          flowSteps: flowSteps
-        },
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      }
-    );
-
-    if (workflowError) {
-      console.error("Workflow processing error:", workflowError);
-      throw workflowError;
-    }
-
-    if (!workflowData) {
-      throw new Error("No data returned from workflow processing");
-    }
-
-    console.log("Workflow processing completed successfully:", workflowData);
-    return workflowData;
-  } catch (error) {
-    console.error("Error in processWorkflowStage:", error);
-    throw error;
-  }
+  if (workflowError) throw workflowError;
+  return workflowData;
 };

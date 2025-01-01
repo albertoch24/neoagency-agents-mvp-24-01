@@ -86,30 +86,12 @@ export const useStageProcessing = (briefId: string) => {
         }))
       });
 
-      // Process the workflow stage with retries
-      const maxRetries = 3;
-      let lastError;
-      
-      for (let i = 0; i < maxRetries; i++) {
-        try {
-          await processWorkflowStage(briefId, nextStage, flowSteps);
-          toast.dismiss(toastId);
-          toast.success(`${nextStage.name} stage processed successfully! You can now view the results.`, {
-            duration: 8000
-          });
-          return;
-        } catch (error) {
-          console.error(`Attempt ${i + 1} failed:`, error);
-          lastError = error;
-          if (i < maxRetries - 1) {
-            // Wait before retrying (exponential backoff)
-            await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
-          }
-        }
-      }
-      
-      // If we get here, all retries failed
-      throw lastError;
+      // Process the workflow stage
+      await processWorkflowStage(briefId, nextStage, flowSteps);
+      toast.dismiss(toastId);
+      toast.success(`${nextStage.name} stage processed successfully! You can now view the results.`, {
+        duration: 8000
+      });
     } catch (error) {
       console.error("Error processing stage:", error);
       toast.dismiss(toastId);

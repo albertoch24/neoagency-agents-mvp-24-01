@@ -15,7 +15,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useStageHandling } from "@/hooks/useStageHandling";
-import { toast } from "sonner";
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -45,91 +44,54 @@ const Index = () => {
     }
   }, [searchParams.get("briefId")]);
 
-  const { data: briefs, error: briefsError } = useQuery({
+  const { data: briefs } = useQuery({
     queryKey: ["briefs", user?.id],
     queryFn: async () => {
-      try {
-        console.log("Fetching briefs for user:", user?.id);
-        const { data, error } = await supabase
-          .from("briefs")
-          .select("*")
-          .eq("user_id", user?.id)
-          .order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("briefs")
+        .select("*")
+        .eq("user_id", user?.id)
+        .order("created_at", { ascending: false });
 
-        if (error) {
-          console.error("Error fetching briefs:", error);
-          throw error;
-        }
-
-        console.log("Fetched briefs:", data);
-        return data;
-      } catch (error) {
+      if (error) {
         console.error("Error fetching briefs:", error);
-        throw error;
+        return [];
       }
+
+      return data;
     },
     enabled: !!user,
     staleTime: 0,
-    gcTime: 0,
-    retry: 3,
+    gcTime: 0
   });
 
-  const { data: currentBrief, error: currentBriefError } = useQuery({
+  const { data: currentBrief } = useQuery({
     queryKey: ["brief", selectedBriefId || "latest", user?.id],
     queryFn: async () => {
-      try {
-        console.log("Fetching brief:", selectedBriefId);
-        const query = supabase
-          .from("briefs")
-          .select(`
-            *,
-            brief_outputs (
-              id,
-              stage,
-              content,
-              stage_summary,
-              created_at
-            )
-          `)
-          .eq("user_id", user?.id);
+      const query = supabase
+        .from("briefs")
+        .select("*, brief_outputs(*)")
+        .eq("user_id", user?.id);
 
-        if (selectedBriefId) {
-          query.eq("id", selectedBriefId);
-        } else {
-          query.order("created_at", { ascending: false });
-        }
-
-        const { data, error } = await query.limit(1).maybeSingle();
-
-        if (error) {
-          console.error("Error fetching brief:", error);
-          throw error;
-        }
-
-        console.log("Fetched brief:", data);
-        return data;
-      } catch (error) {
-        console.error("Error fetching brief:", error);
-        throw error;
+      if (selectedBriefId) {
+        query.eq("id", selectedBriefId);
+      } else {
+        query.order("created_at", { ascending: false });
       }
+
+      const { data, error } = await query.limit(1).maybeSingle();
+
+      if (error) {
+        console.error("Error fetching brief:", error);
+        return null;
+      }
+
+      return data;
     },
     enabled: !!user,
     staleTime: 0,
-    gcTime: 0,
-    retry: 3,
+    gcTime: 0
   });
-
-  // Handle errors
-  useEffect(() => {
-    if (briefsError) {
-      console.error("Briefs error:", briefsError);
-      toast.error("Failed to load briefs. Please try again.");
-    }
-    if (currentBriefError) {
-      console.error("Current brief error:", currentBriefError);
-      toast.error("Failed to load brief details. Please try again.");
-    }
-  }, [briefsError, currentBriefError]);
 
   const handleSelectBrief = (briefId: string) => {
     setSelectedBriefId(briefId);
