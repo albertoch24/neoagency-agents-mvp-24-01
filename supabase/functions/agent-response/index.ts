@@ -52,15 +52,17 @@ serve(async (req) => {
     Remember to maintain a balance between being approachable and professional, as if you're having a face-to-face conversation in a creative agency setting.`;
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    const elevenLabsApiKey = Deno.env.get('ELEVEN_LABS_API_KEY');
     
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Get text response from OpenAI
+    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: input }
@@ -69,8 +71,43 @@ serve(async (req) => {
       }),
     });
 
-    const data = await response.json();
-    return new Response(JSON.stringify({ response: data.choices[0].message.content }), {
+    const openAIData = await openAIResponse.json();
+    const textResponse = openAIData.choices[0].message.content;
+
+    // If agent has a voice_id, generate audio
+    let audioUrl = null;
+    if (agent.voice_id && elevenLabsApiKey) {
+      try {
+        const voiceResponse = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${agent.voice_id}`, {
+          method: 'POST',
+          headers: {
+            'xi-api-key': elevenLabsApiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text: textResponse,
+            model_id: 'eleven_monolingual_v1',
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.5,
+            },
+          }),
+        });
+
+        if (voiceResponse.ok) {
+          const audioBlob = await voiceResponse.blob();
+          const base64Audio = await blobToBase64(audioBlob);
+          audioUrl = `data:audio/mpeg;base64,${base64Audio}`;
+        }
+      } catch (error) {
+        console.error('Error generating voice response:', error);
+      }
+    }
+
+    return new Response(JSON.stringify({ 
+      response: textResponse,
+      audioUrl
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
@@ -82,3 +119,14 @@ serve(async (req) => {
     });
   }
 });
+
+// Helper function to convert Blob to base64
+async function blobToBase64(blob: Blob): Promise<string> {
+  const buffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
