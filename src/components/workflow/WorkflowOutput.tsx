@@ -44,35 +44,35 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
   });
 
   const formatText = (text: string) => {
-    // Split text into lines and process each line
     return text.split('\n').map((line, index) => {
       const trimmedLine = line.trim();
       
-      // Handle headers
+      // Handle main headers (###)
       if (trimmedLine.startsWith('###')) {
         return (
-          <h3 key={index} className="text-xl font-bold underline decoration-2 mb-4">
+          <h3 key={index} className="text-2xl font-bold text-primary border-b-2 border-primary/20 pb-2 mb-6 mt-8">
             {trimmedLine.replace(/^###\s*/, '')}
           </h3>
         );
       }
       
+      // Handle subheaders (####)
       if (trimmedLine.startsWith('####')) {
         return (
-          <h4 key={index} className="text-lg font-bold mb-3">
+          <h4 key={index} className="text-xl font-semibold text-primary/80 mb-4 mt-6">
             {trimmedLine.replace(/^####\s*/, '')}
           </h4>
         );
       }
       
-      // Handle bold/underline markers
+      // Handle emphasized text (**)
       if (trimmedLine.includes('**')) {
         const parts = trimmedLine.split('**');
         return (
-          <p key={index} className="mb-4 leading-relaxed">
+          <p key={index} className="mb-3 leading-relaxed text-foreground/90">
             {parts.map((part, pIndex) => (
               pIndex % 2 === 1 ? (
-                <span key={pIndex} className="underline decoration-1">
+                <span key={pIndex} className="font-medium bg-primary/5 px-1 rounded">
                   {part}
                 </span>
               ) : (
@@ -83,10 +83,20 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         );
       }
       
+      // Handle regular text with bullet points
+      if (trimmedLine.startsWith('-')) {
+        return (
+          <p key={index} className="mb-2 ml-4 leading-relaxed text-foreground/80 flex items-start">
+            <span className="mr-2 mt-1.5 h-1.5 w-1.5 rounded-full bg-primary/40 flex-shrink-0" />
+            {trimmedLine.substring(1).trim()}
+          </p>
+        );
+      }
+      
       // Regular text
       if (trimmedLine) {
         return (
-          <p key={index} className="mb-4 leading-relaxed">
+          <p key={index} className="mb-3 leading-relaxed text-foreground/90">
             {trimmedLine}
           </p>
         );
