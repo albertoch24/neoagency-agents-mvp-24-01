@@ -393,7 +393,9 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          output_type: string
           stage_id: string
+          summary: string | null
         }
         Insert: {
           agent_id: string
@@ -401,7 +403,9 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          output_type?: string
           stage_id: string
+          summary?: string | null
         }
         Update: {
           agent_id?: string
@@ -409,7 +413,9 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          output_type?: string
           stage_id?: string
+          summary?: string | null
         }
         Relationships: [
           {

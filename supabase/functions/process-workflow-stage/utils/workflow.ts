@@ -55,25 +55,24 @@ export async function processAgent(
       });
     }
 
-    // Log current stage status
-    console.log("Current stage status:", {
-      stageId: stageId,
-      briefCurrentStage: brief.current_stage,
-      timestamp: new Date().toISOString()
-    });
-
-    // Construct conversational prompt for detailed analysis
+    // Construct conversational prompt
     const conversationalPrompt = `
-      As ${agent.name}, analyze this creative brief in a conversational, professional manner:
+      As ${agent.name}, analyze this creative brief in a natural, conversational way:
+      
+      Brief Details:
       Title: ${brief.title}
       Description: ${brief.description}
       Objectives: ${brief.objectives}
       Requirements: ${requirements || 'None specified'}
       
+      Your Role and Background:
       ${agent.description}
       
-      Share your thoughts and insights as if you're speaking in a creative agency meeting.
-      After your detailed analysis, provide a concise, bullet-pointed summary of key points.
+      Your Skills:
+      ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
+      
+      Share your thoughts as if you're speaking in a creative agency meeting. Be natural, use conversational language, 
+      and express your professional opinion. After your detailed analysis, provide a concise summary of key points.
     `;
 
     console.log("Generating response with conversational prompt:", conversationalPrompt);
@@ -90,23 +89,56 @@ export async function processAgent(
     // Split the response into conversational analysis and summary
     const [analysis, summary] = content.split(/###\s*Summary:/i);
 
-    // Format the response to include both conversational analysis and structured summary
-    const formattedResponse = {
-      outputs: [{
-        content: `${analysis.trim()}\n\n### Summary:\n${summary ? summary.trim() : ''}`,
-        timestamp: new Date().toISOString()
-      }]
+    // Save both the conversational output and the summary
+    const conversationalOutput = {
+      brief_id: brief.id,
+      stage_id: stageId,
+      agent_id: agent.id,
+      content: analysis.trim(),
+      output_type: 'conversational',
+      created_at: new Date().toISOString()
     };
+
+    const summaryOutput = {
+      brief_id: brief.id,
+      stage_id: stageId,
+      agent_id: agent.id,
+      content: summary ? summary.trim() : '',
+      output_type: 'summary',
+      created_at: new Date().toISOString()
+    };
+
+    // Insert both outputs into the database
+    const { error: conversationalError } = await supabase
+      .from('workflow_conversations')
+      .insert([conversationalOutput]);
+
+    if (conversationalError) {
+      throw new Error(`Error saving conversational output: ${conversationalError.message}`);
+    }
+
+    const { error: summaryError } = await supabase
+      .from('workflow_conversations')
+      .insert([summaryOutput]);
+
+    if (summaryError) {
+      throw new Error(`Error saving summary output: ${summaryError.message}`);
+    }
 
     console.log("Agent processing completed successfully:", {
       briefId: brief.id,
       stageId: stageId,
       agentId: agent.id,
-      outputSize: formattedResponse.outputs.length,
       timestamp: new Date().toISOString()
     });
 
-    return formattedResponse;
+    return {
+      outputs: [{
+        content: analysis.trim(),
+        timestamp: new Date().toISOString()
+      }],
+      summary: summary ? summary.trim() : ''
+    };
   } catch (error) {
     console.error("Error in agent processing:", {
       error: error.message,
