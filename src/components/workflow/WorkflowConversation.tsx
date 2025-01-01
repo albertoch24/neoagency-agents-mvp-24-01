@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkflowStageList } from "@/components/flows/WorkflowStageList";
-import { BriefOutput, WorkflowOutputContent } from "@/types/workflow";
-import { toast } from "sonner";
+import { BriefOutput } from "@/types/workflow";
 
 interface WorkflowConversationProps {
   briefId: string;
@@ -11,15 +10,10 @@ interface WorkflowConversationProps {
 
 export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversationProps) => {
   // Query to fetch conversations with no caching to ensure fresh data
-  const { data: conversations, error: conversationsError } = useQuery({
+  const { data: conversations } = useQuery({
     queryKey: ["workflow-conversations", briefId, currentStage],
     queryFn: async () => {
       console.log("Fetching conversations for stage:", currentStage);
-      
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session) {
-        throw new Error("No active session");
-      }
       
       const { data: conversationsData, error: conversationsError } = await supabase
         .from("workflow_conversations")
@@ -42,8 +36,8 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
         .order("created_at", { ascending: true });
 
       if (conversationsError) {
-        console.error("Error fetching conversations:", conversationsError);
-        throw conversationsError;
+        console.log("Error fetching conversations:", conversationsError);
+        return [];
       }
 
       console.log("Found conversations:", conversationsData);
@@ -53,22 +47,13 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
     staleTime: 0,
     gcTime: 0,
     refetchInterval: 5000,
-    retry: 3,
-    meta: {
-      errorMessage: "Errore nel caricamento delle conversazioni"
-    }
   });
 
   // Query to fetch outputs
-  const { data: outputs, error: outputsError } = useQuery({
+  const { data: outputs } = useQuery({
     queryKey: ["brief-outputs", briefId, currentStage],
     queryFn: async () => {
       console.log("Fetching outputs for stage:", currentStage);
-      
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session) {
-        throw new Error("No active session");
-      }
       
       const { data: outputsData, error: outputsError } = await supabase
         .from("brief_outputs")
@@ -78,16 +63,18 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
         .order("created_at", { ascending: false });
 
       if (outputsError) {
-        console.error("Error fetching outputs:", outputsError);
-        throw outputsError;
+        console.log("Error fetching outputs:", outputsError);
+        return [];
       }
 
       // Transform the outputs to match the expected format
       const transformedOutputs: BriefOutput[] = outputsData?.map((output) => ({
         ...output,
         content: typeof output.content === 'string' 
-          ? { response: output.content } as WorkflowOutputContent
-          : (output.content as WorkflowOutputContent) || { response: '' }
+          ? { response: output.content }
+          : typeof output.content === 'object' && output.content !== null
+            ? output.content
+            : { response: String(output.content) }
       })) || [];
 
       console.log("Found outputs:", transformedOutputs);
@@ -96,16 +83,7 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
     enabled: !!briefId && !!currentStage,
     staleTime: 0,
     gcTime: 0,
-    retry: 3,
-    meta: {
-      errorMessage: "Errore nel caricamento degli output"
-    }
   });
-
-  // Show errors using toast
-  if (conversationsError || outputsError) {
-    toast.error("Errore nel caricamento dei dati. Riprova più tardi.");
-  }
 
   // Group conversations by stage
   const groupedConversations = conversations?.reduce((acc: Record<string, any[]>, conv: any) => {
