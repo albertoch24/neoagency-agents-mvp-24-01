@@ -143,7 +143,6 @@ export function VoiceSelector({ value, onValueChange }: VoiceSelectorProps) {
             {voices.map((voice) => (
               <CommandItem
                 key={voice.id}
-                value={voice.id}
                 onSelect={() => {
                   if (!voice.available) {
                     toast.error(`Voice ${voice.name} is not available`);
