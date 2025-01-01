@@ -47,15 +47,37 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
     return null;
   }
 
+  const formatContent = (text: string) => {
+    return text.split('\n').map((line, index) => {
+      // Check if line is a header (starts with # or contains : at the end)
+      if (line.startsWith('#') || line.endsWith(':')) {
+        return (
+          <h4 key={index} className="text-lg font-semibold text-primary mt-6 mb-3">
+            {line.replace('#', '').trim()}
+          </h4>
+        );
+      }
+      // Return regular paragraph if not empty
+      if (line.trim()) {
+        return (
+          <p key={index} className="mb-4 leading-relaxed">
+            {line}
+          </p>
+        );
+      }
+      return null;
+    });
+  };
+
   return (
-    <Card className="w-full">
-      <CardContent className="p-6">
-        <ScrollArea className="h-[600px] pr-4">
-          <div className="space-y-8">
+    <Card className="w-full bg-background shadow-lg">
+      <CardContent className="p-8">
+        <ScrollArea className="h-[600px] pr-6">
+          <div className="space-y-12">
             {outputs.map((output) => (
-              <div key={output.id} className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-2xl font-bold text-primary">
+              <div key={output.id} className="space-y-8">
+                <div className="flex items-center justify-between border-b pb-4">
+                  <h3 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                     {output.content.stage_name || 'Stage Output'}
                   </h3>
                   <span className="text-sm text-muted-foreground">
@@ -63,37 +85,29 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                   </span>
                 </div>
                 
-                <div className="text-muted-foreground">
+                <div className="text-foreground">
                   {output.content.outputs?.map((agentOutput: any, index: number) => (
-                    <div key={index} className="mt-8 bg-card rounded-lg border shadow-sm">
+                    <div key={index} className="mt-8">
                       <Accordion type="single" collapsible className="w-full">
-                        <AccordionItem value={`agent-${index}`} className="border-none">
-                          <AccordionTrigger className="px-6 py-4 text-lg font-semibold hover:no-underline">
+                        <AccordionItem 
+                          value={`agent-${index}`} 
+                          className="border rounded-lg shadow-sm bg-card/50 backdrop-blur-sm"
+                        >
+                          <AccordionTrigger className="px-6 py-4 text-xl font-semibold hover:no-underline data-[state=open]:text-primary">
                             {agentOutput.agent}
                           </AccordionTrigger>
-                          <AccordionContent className="px-6 pb-4">
+                          <AccordionContent className="px-6 pb-6">
                             {agentOutput.outputs?.map((outputItem: any, outputIndex: number) => (
-                              <div key={outputIndex} className="mb-6 last:mb-0">
+                              <div key={outputIndex} className="mb-8 last:mb-0">
                                 {outputItem.text && (
-                                  <h4 className="text-base font-semibold mb-3 text-foreground">
+                                  <h4 className="text-lg font-semibold mb-4 text-primary">
                                     {outputItem.text}
                                   </h4>
                                 )}
                                 {outputItem.content && (
                                   <div className="prose prose-sm max-w-none">
-                                    <div className="whitespace-pre-wrap rounded-md bg-muted/50 p-4">
-                                      {outputItem.content.split('\n').map((paragraph: string, pIndex: number) => (
-                                        paragraph.trim() && (
-                                          <p 
-                                            key={pIndex} 
-                                            className={`mb-3 last:mb-0 ${
-                                              paragraph.endsWith(':') ? 'font-semibold' : ''
-                                            }`}
-                                          >
-                                            {paragraph}
-                                          </p>
-                                        )
-                                      ))}
+                                    <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
+                                      {formatContent(outputItem.content)}
                                     </div>
                                   </div>
                                 )}
