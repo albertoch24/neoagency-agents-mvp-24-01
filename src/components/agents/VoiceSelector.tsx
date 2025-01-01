@@ -15,11 +15,11 @@ import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Voice = {
+interface Voice {
   id: string;
   name: string;
   description: string;
-};
+}
 
 const voices: Voice[] = [
   {
@@ -54,7 +54,7 @@ interface VoiceSelectorProps {
   onValueChange: (value: string) => void;
 }
 
-export const VoiceSelector = ({ value, onValueChange }: VoiceSelectorProps) => {
+export function VoiceSelector({ value, onValueChange }: VoiceSelectorProps) {
   const [open, setOpen] = React.useState(false);
   const selectedVoice = voices.find(voice => voice.id === value);
 
@@ -79,7 +79,7 @@ export const VoiceSelector = ({ value, onValueChange }: VoiceSelectorProps) => {
             {voices.map((voice) => (
               <CommandItem
                 key={voice.id}
-                value={voice.id}
+                value={voice.name.toLowerCase()}
                 onSelect={() => {
                   onValueChange(voice.id);
                   setOpen(false);
@@ -104,4 +104,4 @@ export const VoiceSelector = ({ value, onValueChange }: VoiceSelectorProps) => {
       </PopoverContent>
     </Popover>
   );
-};
+}
