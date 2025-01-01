@@ -1,6 +1,7 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkflowStageList } from "@/components/flows/WorkflowStageList";
+import { BriefOutput } from "@/types/workflow";
 
 interface WorkflowConversationProps {
   briefId: string;
@@ -8,8 +9,6 @@ interface WorkflowConversationProps {
 }
 
 export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversationProps) => {
-  const queryClient = useQueryClient();
-
   // Query to fetch conversations with no caching to ensure fresh data
   const { data: conversations } = useQuery({
     queryKey: ["workflow-conversations", briefId, currentStage],
@@ -37,7 +36,7 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
         .order("created_at", { ascending: true });
 
       if (conversationsError) {
-        console.error("Error fetching conversations:", conversationsError);
+        console.log("Error fetching conversations:", conversationsError);
         return [];
       }
 
@@ -64,12 +63,20 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
         .order("created_at", { ascending: false });
 
       if (outputsError) {
-        console.error("Error fetching outputs:", outputsError);
+        console.log("Error fetching outputs:", outputsError);
         return [];
       }
 
-      console.log("Found outputs:", outputsData);
-      return outputsData;
+      // Transform the outputs to match the expected format
+      const transformedOutputs = outputsData?.map((output) => ({
+        ...output,
+        content: typeof output.content === 'string' 
+          ? { response: output.content }
+          : output.content
+      })) || [];
+
+      console.log("Found outputs:", transformedOutputs);
+      return transformedOutputs;
     },
     enabled: !!briefId && !!currentStage,
     staleTime: 0,
