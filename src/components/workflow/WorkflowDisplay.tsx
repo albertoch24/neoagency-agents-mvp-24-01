@@ -1,7 +1,6 @@
 import { WorkflowStages } from "./WorkflowStages";
 import { WorkflowConversation } from "./WorkflowConversation";
 import { WorkflowDisplayActions } from "./WorkflowDisplayActions";
-import { WorkflowProcessing } from "./WorkflowProcessing";
 import { useStagesData } from "@/hooks/useStagesData";
 import { useStageProcessing } from "@/hooks/useStageProcessing";
 
@@ -32,13 +31,10 @@ export const WorkflowDisplay = ({
     onStageSelect(nextStage);
   };
 
-  // Trova il nome dello stage corrente
-  const currentStageName = stages.find(stage => stage.id === currentStage)?.name || "";
-
   if (!stages.length) {
     return (
       <div className="text-center text-muted-foreground">
-        Nessuno stage trovato. Crea prima gli stage.
+        No stages found. Please create stages first.
       </div>
     );
   }
@@ -52,13 +48,7 @@ export const WorkflowDisplay = ({
         briefId={briefId}
       />
       {briefId && (
-        <div className="space-y-6">
-          {isProcessing && (
-            <WorkflowProcessing 
-              isProcessing={isProcessing} 
-              stageName={currentStageName}
-            />
-          )}
+        <>
           <WorkflowConversation
             briefId={briefId}
             currentStage={currentStage}
@@ -69,7 +59,7 @@ export const WorkflowDisplay = ({
             onNextStage={handleNextStage}
             isProcessing={isProcessing}
           />
-        </div>
+        </>
       )}
     </div>
   );
