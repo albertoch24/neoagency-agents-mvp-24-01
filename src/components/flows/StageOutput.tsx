@@ -32,8 +32,9 @@ export const StageOutput = ({ output }: StageOutputProps) => {
             return agentOutput.outputs
               .map((output: any) => {
                 if (output.content) {
+                  // Manteniamo i marker per i punti elenco ma rimuoviamo altri marker
                   return output.content
-                    .replace(/###|####|\*\*|-\s/g, '')
+                    .replace(/####|\*\*/g, '')
                     .trim();
                 }
                 return '';
@@ -47,7 +48,8 @@ export const StageOutput = ({ output }: StageOutputProps) => {
 
     // Se il contenuto è una stringa, la puliamo e la restituiamo
     if (typeof content === 'string') {
-      return content.replace(/###|####|\*\*|-\s/g, '').trim();
+      // Manteniamo i marker per i punti elenco ma rimuoviamo altri marker
+      return content.replace(/####|\*\*/g, '').trim();
     }
 
     // Se è un oggetto, cerchiamo proprietà rilevanti
@@ -56,7 +58,7 @@ export const StageOutput = ({ output }: StageOutputProps) => {
       for (const key of relevantKeys) {
         if (content[key]) {
           return typeof content[key] === 'string' 
-            ? content[key].replace(/###|####|\*\*|-\s/g, '').trim()
+            ? content[key].replace(/####|\*\*/g, '').trim()
             : content[key];
         }
       }
