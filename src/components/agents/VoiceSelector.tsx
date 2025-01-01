@@ -15,13 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface Voice {
-  id: string;
-  name: string;
-  description: string;
-}
-
-const voices: Voice[] = [
+const voices = [
   {
     id: "21m00Tcm4TlvDq8ikWAM",
     name: "Rachel",
