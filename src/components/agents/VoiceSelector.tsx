@@ -15,7 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const voices = [
+interface Voice {
+  id: string;
+  name: string;
+  description: string;
+}
+
+const voices: Voice[] = [
   {
     id: "21m00Tcm4TlvDq8ikWAM",
     name: "Rachel",
@@ -73,6 +79,7 @@ export function VoiceSelector({ value, onValueChange }: VoiceSelectorProps) {
             {voices.map((voice) => (
               <CommandItem
                 key={voice.id}
+                value={voice.id}
                 onSelect={() => {
                   onValueChange(voice.id);
                   setOpen(false);
