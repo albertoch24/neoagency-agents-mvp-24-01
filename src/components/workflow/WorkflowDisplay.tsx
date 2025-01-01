@@ -31,15 +31,18 @@ export const WorkflowDisplay = ({
         .select("content")
         .eq("brief_id", briefId)
         .eq("stage", currentStage)
-        .order("created_at", { ascending: true })
-        .single();
+        .order("created_at", { ascending: true });
 
       if (error) {
         console.error("Error fetching outputs:", error);
         return null;
       }
 
-      return data?.content?.outputs || null;
+      // Safely handle the outputs data
+      const outputs = data?.[0]?.content;
+      return outputs && typeof outputs === 'object' && 'outputs' in outputs
+        ? outputs.outputs
+        : null;
     },
     enabled: !!briefId && !!currentStage
   });

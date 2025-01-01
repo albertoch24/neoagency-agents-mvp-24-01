@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkflowStageList } from "@/components/flows/WorkflowStageList";
 import { BriefOutput } from "@/types/workflow";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 interface WorkflowConversationProps {
   briefId: string;
@@ -10,8 +10,6 @@ interface WorkflowConversationProps {
 }
 
 export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversationProps) => {
-  const { toast } = useToast();
-
   // Query to fetch conversations with no caching to ensure fresh data
   const { data: conversations, error: conversationsError } = useQuery({
     queryKey: ["workflow-conversations", briefId, currentStage],
@@ -56,14 +54,9 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
     gcTime: 0,
     refetchInterval: 5000,
     retry: 3,
-    onError: (error) => {
-      console.error("Error in conversations query:", error);
-      toast({
-        title: "Error fetching conversations",
-        description: "Please try refreshing the page",
-        variant: "destructive",
-      });
-    },
+    meta: {
+      errorMessage: "Errore nel caricamento delle conversazioni"
+    }
   });
 
   // Query to fetch outputs
@@ -94,9 +87,7 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
         ...output,
         content: typeof output.content === 'string' 
           ? { response: output.content }
-          : typeof output.content === 'object' && output.content !== null
-            ? output.content
-            : { response: String(output.content) }
+          : output.content || { response: '' }
       })) || [];
 
       console.log("Found outputs:", transformedOutputs);
@@ -106,15 +97,15 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
     staleTime: 0,
     gcTime: 0,
     retry: 3,
-    onError: (error) => {
-      console.error("Error in outputs query:", error);
-      toast({
-        title: "Error fetching outputs",
-        description: "Please try refreshing the page",
-        variant: "destructive",
-      });
-    },
+    meta: {
+      errorMessage: "Errore nel caricamento degli output"
+    }
   });
+
+  // Show errors using toast
+  if (conversationsError || outputsError) {
+    toast.error("Errore nel caricamento dei dati. Riprova più tardi.");
+  }
 
   // Group conversations by stage
   const groupedConversations = conversations?.reduce((acc: Record<string, any[]>, conv: any) => {
@@ -127,14 +118,6 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
 
   // Convert to array of tuples [stageId, conversations[]]
   const stages = groupedConversations ? Object.entries(groupedConversations) : [];
-
-  if (conversationsError || outputsError) {
-    return (
-      <div className="p-4 text-center text-muted-foreground">
-        There was an error loading the workflow data. Please try refreshing the page.
-      </div>
-    );
-  }
 
   if (!conversations?.length && !outputs?.length) {
     return null;
