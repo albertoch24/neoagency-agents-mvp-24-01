@@ -1,12 +1,10 @@
-import { User, Volume2, VolumeX } from "lucide-react";
+import { User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AgentSkills } from "./AgentSkills";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import ReactMarkdown from 'react-markdown';
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { TextToSpeechButton } from "./TextToSpeechButton";
 
 interface AgentSequenceProps {
   conversations: any[];
@@ -14,7 +12,7 @@ interface AgentSequenceProps {
 
 export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
   const [isPlaying, setIsPlaying] = useState<{[key: string]: boolean}>({});
-  const [audioElements, setAudioElements] = useState<{[key: string]: HTMLAudioElement}>({});
+  const [audioElements, setAudioElements] = useState<{[key: string]: HTMLAudioElement | null}>({});
 
   // Group conversations by agent and type
   const groupedConversations = conversations.reduce((acc: any, conv: any) => {
@@ -34,98 +32,16 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
     return acc;
   }, {});
 
-  const handleTextToSpeech = async (text: string, convId: string) => {
-    try {
-      if (isPlaying[convId]) {
-        // Stop playing
-        if (audioElements[convId]) {
-          audioElements[convId].pause();
-          audioElements[convId].currentTime = 0;
-        }
-        setIsPlaying(prev => ({ ...prev, [convId]: false }));
-        return;
-      }
+  const handlePlayStateChange = (convId: string, playing: boolean) => {
+    setIsPlaying(prev => ({ ...prev, [convId]: playing }));
+  };
 
-      console.log('Fetching ElevenLabs API key from Supabase...');
-      const { data: secretData, error: secretError } = await supabase
-        .from('secrets')
-        .select('secret')
-        .eq('name', 'ELEVEN_LABS_API_KEY')
-        .maybeSingle();
-
-      if (secretError) {
-        console.error('Error fetching API key:', secretError);
-        toast.error('Failed to fetch ElevenLabs API key');
-        return;
-      }
-
-      if (!secretData?.secret) {
-        console.error('ElevenLabs API key not found in secrets');
-        toast.error('ElevenLabs API key not found. Please add it in settings.');
-        return;
-      }
-
-      // Validate API key format (basic check)
-      if (typeof secretData.secret !== 'string' || secretData.secret.trim() === '') {
-        console.error('Invalid API key format');
-        toast.error('Invalid ElevenLabs API key format');
-        return;
-      }
-
-      console.log('Making request to ElevenLabs API...');
-      const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL', {
-        method: 'POST',
-        headers: {
-          'Accept': 'audio/mpeg',
-          'Content-Type': 'application/json',
-          'xi-api-key': secretData.secret.trim()
-        },
-        body: JSON.stringify({
-          text,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.5
-          }
-        })
-      });
-
-      if (!response.ok) {
-        let errorMessage = 'Failed to generate speech';
-        try {
-          const errorData = await response.json();
-          console.error('ElevenLabs API error:', errorData);
-          
-          if (response.status === 401) {
-            errorMessage = 'Invalid ElevenLabs API key. Please check your API key in settings.';
-          } else if (response.status === 429) {
-            errorMessage = 'ElevenLabs API rate limit exceeded. Please try again later.';
-          } else {
-            errorMessage = `ElevenLabs API error: ${errorData.detail?.message || 'Unknown error'}`;
-          }
-        } catch (e) {
-          console.error('Error parsing error response:', e);
-        }
-        toast.error(errorMessage);
-        return;
-      }
-
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      const audio = new Audio(audioUrl);
-      setAudioElements(prev => ({ ...prev, [convId]: audio }));
-      
-      audio.onended = () => {
-        setIsPlaying(prev => ({ ...prev, [convId]: false }));
-      };
-      
-      audio.play();
-      setIsPlaying(prev => ({ ...prev, [convId]: true }));
-    } catch (error) {
-      console.error('Error in text-to-speech:', error);
-      toast.error('Failed to generate speech. Please check your ElevenLabs API key.');
+  const handleAudioElement = (convId: string, audio: HTMLAudioElement | null) => {
+    if (audioElements[convId]) {
+      audioElements[convId]?.pause();
+      audioElements[convId]?.remove();
     }
+    setAudioElements(prev => ({ ...prev, [convId]: audio }));
   };
 
   return (
@@ -153,17 +69,13 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
                 <div>
                   <div className="flex justify-between items-center mb-3">
                     <h5 className="text-sm font-medium text-muted-foreground">Agent Output:</h5>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleTextToSpeech(group.conversational.content, group.conversational.id)}
-                    >
-                      {isPlaying[group.conversational.id] ? (
-                        <VolumeX className="h-4 w-4" />
-                      ) : (
-                        <Volume2 className="h-4 w-4" />
-                      )}
-                    </Button>
+                    <TextToSpeechButton
+                      text={group.conversational.content}
+                      convId={group.conversational.id}
+                      isPlaying={isPlaying[group.conversational.id]}
+                      onPlayStateChange={(playing) => handlePlayStateChange(group.conversational.id, playing)}
+                      onAudioElement={(audio) => handleAudioElement(group.conversational.id, audio)}
+                    />
                   </div>
                   <div className="bg-agent/5 rounded-lg p-6 shadow-sm">
                     <div className={`prose prose-sm max-w-none dark:prose-invert 
@@ -182,17 +94,13 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
                 <div>
                   <div className="flex justify-between items-center mb-3">
                     <h5 className="text-sm font-medium text-muted-foreground">Summary:</h5>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleTextToSpeech(group.summary.content, group.summary.id)}
-                    >
-                      {isPlaying[group.summary.id] ? (
-                        <VolumeX className="h-4 w-4" />
-                      ) : (
-                        <Volume2 className="h-4 w-4" />
-                      )}
-                    </Button>
+                    <TextToSpeechButton
+                      text={group.summary.content}
+                      convId={group.summary.id}
+                      isPlaying={isPlaying[group.summary.id]}
+                      onPlayStateChange={(playing) => handlePlayStateChange(group.summary.id, playing)}
+                      onAudioElement={(audio) => handleAudioElement(group.summary.id, audio)}
+                    />
                   </div>
                   <div className="bg-muted rounded-lg p-6">
                     <div className={`prose prose-sm max-w-none dark:prose-invert ${isPlaying[group.summary.id] ? 'hidden' : ''}`}>
