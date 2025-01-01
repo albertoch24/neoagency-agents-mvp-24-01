@@ -15,6 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useStageProcessing } from "@/hooks/useStageProcessing";
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -23,6 +24,7 @@ const Index = () => {
   const [showNewBrief, setShowNewBrief] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedBriefId, setSelectedBriefId] = useState<string | null>(null);
+  const { processStage } = useStageProcessing(selectedBriefId || "");
 
   // Read stage and briefId from URL params on mount and when URL changes
   useEffect(() => {
@@ -94,8 +96,27 @@ const Index = () => {
     gcTime: 0   // Don't cache the data
   });
 
-  const handleStageSelect = (stage: WorkflowStage) => {
+  const handleStageSelect = async (stage: WorkflowStage) => {
+    if (!currentBrief?.id) return;
+
+    // Get the current stage index and selected stage index
+    const stages = await supabase
+      .from("stages")
+      .select("*")
+      .order("order_index", { ascending: true });
+
+    if (!stages.data) return;
+
+    const currentIndex = stages.data.findIndex(s => s.id === currentStage);
+    const selectedIndex = stages.data.findIndex(s => s.id === stage.id);
+
+    // Only process if moving to the next stage
+    if (selectedIndex === currentIndex + 1) {
+      await processStage(stage);
+    }
+
     setCurrentStage(stage.id);
+    
     // Update URL with new stage while preserving briefId and showOutputs
     const newParams = new URLSearchParams(searchParams);
     newParams.set("stage", stage.id);
