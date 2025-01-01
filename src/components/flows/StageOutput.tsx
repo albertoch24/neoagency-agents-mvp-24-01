@@ -1,10 +1,4 @@
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 
 interface StageOutputProps {
   output: {
@@ -38,12 +32,9 @@ export const StageOutput = ({ output }: StageOutputProps) => {
             return agentOutput.outputs
               .map((output: any) => {
                 if (output.content) {
-                  // Rimuoviamo i marker tecnici ma preserviamo i bullet points
+                  // Manteniamo i marker per i punti elenco ma rimuoviamo altri marker
                   return output.content
-                    .replace(/###|####/g, '')
-                    .replace(/\*\*/g, '')
-                    .replace(/^-\s/gm, '• ') // Convertiamo i trattini in bullet points
-                    .replace(/•\s*•\s*/g, '• ') // Rimuoviamo bullet points duplicati
+                    .replace(/####|\*\*/g, '')
                     .trim();
                 }
                 return '';
@@ -57,12 +48,8 @@ export const StageOutput = ({ output }: StageOutputProps) => {
 
     // Se il contenuto è una stringa, la puliamo e la restituiamo
     if (typeof content === 'string') {
-      return content
-        .replace(/###|####/g, '')
-        .replace(/\*\*/g, '')
-        .replace(/^-\s/gm, '• ')
-        .replace(/•\s*•\s*/g, '• ') // Rimuoviamo bullet points duplicati
-        .trim();
+      // Manteniamo i marker per i punti elenco ma rimuoviamo altri marker
+      return content.replace(/####|\*\*/g, '').trim();
     }
 
     // Se è un oggetto, cerchiamo proprietà rilevanti
@@ -71,12 +58,7 @@ export const StageOutput = ({ output }: StageOutputProps) => {
       for (const key of relevantKeys) {
         if (content[key]) {
           return typeof content[key] === 'string' 
-            ? content[key]
-                .replace(/###|####/g, '')
-                .replace(/\*\*/g, '')
-                .replace(/^-\s/gm, '• ')
-                .replace(/•\s*•\s*/g, '• ') // Rimuoviamo bullet points duplicati
-                .trim()
+            ? content[key].replace(/####|\*\*/g, '').trim()
             : content[key];
         }
       }
@@ -98,20 +80,12 @@ export const StageOutput = ({ output }: StageOutputProps) => {
   return (
     <Card className="mt-4">
       <CardContent className="p-4">
-        <Accordion type="single" collapsible>
-          <AccordionItem value="stage-summary">
-            <AccordionTrigger className="text-sm font-medium">
-              Stage Summary
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="bg-muted rounded-lg p-4 mt-2">
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {formattedOutput}
-                </p>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+        <p className="text-sm font-medium mb-2">Stage Summary:</p>
+        <div className="bg-muted rounded-lg p-4">
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+            {formattedOutput}
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
