@@ -55,7 +55,7 @@ export async function processAgent(
       });
     }
 
-    // Construct conversational prompt
+    // Construct conversational prompt with natural dialogue focus
     const conversationalPrompt = `
       As ${agent.name}, analyze this creative brief in a natural, conversational way:
       
@@ -85,9 +85,9 @@ export async function processAgent(
       8. Use informal but professional language
     `;
 
-    // Construct schematic prompt (pre-edit 313 style)
+    // Construct pre-edit 313 style schematic prompt
     const schematicPrompt = `
-      As ${agent.name}, provide a structured analysis of this brief:
+      As ${agent.name}, analyze this creative brief and provide a structured response:
       
       Brief Details:
       Title: ${brief.title}
@@ -101,9 +101,16 @@ export async function processAgent(
       Skills Applied:
       ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
       
-      Provide a clear, bullet-pointed list of key points and recommendations. 
-      Focus on actionable insights and concrete steps.
-      Format your response as a structured list with clear categories and sub-points.
+      Provide a clear, structured analysis following these guidelines:
+      1. Key Insights
+      2. Strategic Recommendations
+      3. Action Items
+      4. Potential Challenges
+      5. Success Metrics
+      
+      Format your response with clear headings and bullet points.
+      Focus on concrete, actionable items and measurable outcomes.
+      Keep the tone professional and direct.
     `;
 
     console.log("Generating conversational response...");
