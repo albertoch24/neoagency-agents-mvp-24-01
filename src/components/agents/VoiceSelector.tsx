@@ -93,7 +93,7 @@ export const VoiceSelector = ({ value, onValueChange }: VoiceSelectorProps) => {
             {voices.map((voice) => (
               <CommandItem
                 key={voice.id}
-                value={voice.name}
+                value={voice.id}
                 onSelect={() => {
                   onValueChange(voice.id);
                   setOpen(false);
