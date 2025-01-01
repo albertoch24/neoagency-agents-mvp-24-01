@@ -28,7 +28,7 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
               
               <h5 className="text-sm font-medium mt-4 mb-2">Agent Output:</h5>
               <div className="bg-muted rounded-lg p-4">
-                <div className="prose prose-sm max-w-none dark:prose-invert [&>ul]:list-none [&>ul]:pl-0">
+                <div className="prose prose-sm max-w-none dark:prose-invert [&>ul]:list-none [&>ul]:pl-0 [&>ul>li]:relative [&>ul>li]:pl-4">
                   <ReactMarkdown>{conv.content}</ReactMarkdown>
                 </div>
               </div>
