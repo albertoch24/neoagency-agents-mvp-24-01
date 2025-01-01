@@ -45,18 +45,17 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
 
   const formatText = (text: string) => {
     // Rimuove i marcatori tecnici e formatta il testo in modo conversazionale
-    const cleanText = text
+    return text
       .replace(/###|####/g, '')
       .replace(/\*\*/g, '')
       .replace(/^-\s/gm, '')
-      .trim();
-
-    // Divide il testo in paragrafi
-    return cleanText.split('\n\n').map((paragraph, index) => (
-      <p key={index} className="mb-4 leading-relaxed text-foreground/90">
-        {paragraph.trim()}
-      </p>
-    ));
+      .trim()
+      .split('\n\n')
+      .map((paragraph, index) => (
+        <p key={index} className="mb-4 leading-relaxed text-foreground/90">
+          {paragraph.trim()}
+        </p>
+      ));
   };
 
   if (!outputs?.length) {
@@ -91,15 +90,17 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                             {agentOutput.agent}
                           </AccordionTrigger>
                           <AccordionContent className="px-6 pb-6">
-                            {agentOutput.outputs?.map((outputItem: any, outputIndex: number) => (
-                              <div key={outputIndex} className="mb-8 last:mb-0">
-                                <div className="prose prose-sm max-w-none">
-                                  <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
-                                    {formatText(outputItem.content)}
-                                  </div>
-                                </div>
+                            <div className="prose prose-sm max-w-none">
+                              <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
+                                {typeof agentOutput.outputs === 'string' 
+                                  ? formatText(agentOutput.outputs)
+                                  : agentOutput.outputs?.map((output: any, outputIndex: number) => (
+                                      <div key={outputIndex} className="mb-8 last:mb-0">
+                                        {formatText(output.content)}
+                                      </div>
+                                    ))}
                               </div>
-                            ))}
+                            </div>
                           </AccordionContent>
                         </AccordionItem>
                       </Accordion>
