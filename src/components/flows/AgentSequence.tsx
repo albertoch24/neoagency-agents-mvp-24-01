@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import ReactMarkdown from 'react-markdown';
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface AgentSequenceProps {
   conversations: any[];
@@ -45,17 +46,30 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
         return;
       }
 
-      const { data: { secret: apiKey } } = await supabase
+      const { data: secretData, error: secretError } = await supabase
         .from('secrets')
         .select('secret')
         .eq('name', 'ELEVEN_LABS_API_KEY')
-        .single();
+        .maybeSingle();
 
+      if (secretError) {
+        console.error('Error fetching API key:', secretError);
+        toast.error('Failed to fetch ElevenLabs API key');
+        return;
+      }
+
+      if (!secretData?.secret) {
+        console.error('ElevenLabs API key not found');
+        toast.error('ElevenLabs API key not found. Please add it in settings.');
+        return;
+      }
+
+      console.log('Making request to ElevenLabs API...');
       const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'xi-api-key': apiKey
+          'xi-api-key': secretData.secret
         },
         body: JSON.stringify({
           text,
@@ -67,7 +81,11 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
         })
       });
 
-      if (!response.ok) throw new Error('Failed to convert text to speech');
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('ElevenLabs API error:', errorData);
+        throw new Error(`ElevenLabs API error: ${errorData.detail?.message || 'Unknown error'}`);
+      }
 
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
@@ -83,6 +101,7 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
       setIsPlaying(prev => ({ ...prev, [convId]: true }));
     } catch (error) {
       console.error('Error in text-to-speech:', error);
+      toast.error('Failed to generate speech. Please check your ElevenLabs API key.');
     }
   };
 
