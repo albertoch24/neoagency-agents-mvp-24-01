@@ -30,17 +30,24 @@ const Index = () => {
     const briefIdFromUrl = searchParams.get("briefId");
     const showOutputs = searchParams.get("showOutputs");
     
-    if (stageFromUrl) {
-      setCurrentStage(stageFromUrl);
-    }
-    
     if (briefIdFromUrl) {
       setSelectedBriefId(briefIdFromUrl);
       // If showOutputs is true, ensure we're showing the brief display
       if (showOutputs === "true") {
         setShowNewBrief(false);
         setIsEditing(false);
+        // Automatically set currentStage to "kickoff" when showOutputs is true
+        setCurrentStage("kickoff");
+        // Update URL to reflect the kickoff stage
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set("stage", "kickoff");
+        setSearchParams(newParams);
       }
+    }
+    
+    // Only update stage from URL if showOutputs is not true
+    if (stageFromUrl && showOutputs !== "true") {
+      setCurrentStage(stageFromUrl);
     }
   }, [searchParams]);
 
@@ -95,7 +102,7 @@ const Index = () => {
 
   const handleStageSelect = (stage: WorkflowStage) => {
     setCurrentStage(stage.id);
-    // Update URL with new stage while preserving briefId
+    // Update URL with new stage while preserving briefId and showOutputs
     const newParams = new URLSearchParams(searchParams);
     newParams.set("stage", stage.id);
     setSearchParams(newParams);
@@ -105,7 +112,7 @@ const Index = () => {
     setSelectedBriefId(briefId);
     setShowNewBrief(false);
     setIsEditing(false);
-    // Update URL with selected brief
+    // Update URL with selected brief while preserving stage
     const newParams = new URLSearchParams(searchParams);
     newParams.set("briefId", briefId);
     setSearchParams(newParams);
