@@ -6,6 +6,7 @@ import { useStagesData } from "@/hooks/useStagesData";
 import { useStageProcessing } from "@/hooks/useStageProcessing";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { WorkflowOutputContent } from "@/types/workflow";
 
 interface WorkflowDisplayProps {
   currentStage: string;
@@ -39,10 +40,8 @@ export const WorkflowDisplay = ({
       }
 
       // Safely handle the outputs data
-      const outputs = data?.[0]?.content;
-      return outputs && typeof outputs === 'object' && 'outputs' in outputs
-        ? outputs.outputs
-        : null;
+      const outputs = data?.[0]?.content as WorkflowOutputContent;
+      return outputs?.outputs || null;
     },
     enabled: !!briefId && !!currentStage
   });

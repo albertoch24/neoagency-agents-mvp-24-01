@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkflowStageList } from "@/components/flows/WorkflowStageList";
-import { BriefOutput } from "@/types/workflow";
+import { BriefOutput, WorkflowOutputContent } from "@/types/workflow";
 import { toast } from "sonner";
 
 interface WorkflowConversationProps {
@@ -86,8 +86,8 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
       const transformedOutputs: BriefOutput[] = outputsData?.map((output) => ({
         ...output,
         content: typeof output.content === 'string' 
-          ? { response: output.content }
-          : output.content || { response: '' }
+          ? { response: output.content } as WorkflowOutputContent
+          : (output.content as WorkflowOutputContent) || { response: '' }
       })) || [];
 
       console.log("Found outputs:", transformedOutputs);

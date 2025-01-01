@@ -28,7 +28,7 @@ export type WorkflowOutputContent = {
   outputs?: Array<{
     agent: string;
     requirements?: string;
-    outputs?: Array<{ text: string }>;
+    outputs: Array<{ content: string }>;
   }>;
   [key: string]: any;
 };
@@ -41,4 +41,5 @@ export type BriefOutput = {
   content: WorkflowOutputContent;
   created_at: string;
   updated_at: string;
+  stage_summary: string | null;
 };
