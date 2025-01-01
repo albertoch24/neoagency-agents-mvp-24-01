@@ -5,7 +5,11 @@ interface WorkflowStageListProps {
   stages: [string, any[]][];
   briefOutputs: Array<{
     stage: string;
-    content: any;
+    content: {
+      response?: string;
+      [key: string]: any;
+    };
+    created_at?: string;
     [key: string]: any;
   }>;
 }
