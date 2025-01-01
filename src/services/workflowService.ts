@@ -44,6 +44,7 @@ export const processWorkflowStage = async (
         },
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.auth.getSession()}`
         }
       }
     );
