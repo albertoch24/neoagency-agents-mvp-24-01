@@ -19,7 +19,7 @@ import {
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
-  const [currentStage, setCurrentStage] = useState<string>("kickoff");
+  const [currentStage, setCurrentStage] = useState("kickoff");
   const [showNewBrief, setShowNewBrief] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedBriefId, setSelectedBriefId] = useState<string | null>(null);
@@ -36,17 +36,11 @@ const Index = () => {
       if (showOutputs === "true") {
         setShowNewBrief(false);
         setIsEditing(false);
-        // Automatically set currentStage to "kickoff" when showOutputs is true
         setCurrentStage("kickoff");
-        // Update URL to reflect the kickoff stage
-        const newParams = new URLSearchParams(searchParams);
-        newParams.set("stage", "kickoff");
-        setSearchParams(newParams);
       }
     }
     
-    // Only update stage from URL if showOutputs is not true
-    if (stageFromUrl && showOutputs !== "true") {
+    if (stageFromUrl) {
       setCurrentStage(stageFromUrl);
     }
   }, [searchParams]);
@@ -105,6 +99,9 @@ const Index = () => {
     // Update URL with new stage while preserving briefId and showOutputs
     const newParams = new URLSearchParams(searchParams);
     newParams.set("stage", stage.id);
+    if (currentBrief?.id) {
+      newParams.set("briefId", currentBrief.id);
+    }
     setSearchParams(newParams);
   };
 
@@ -115,6 +112,7 @@ const Index = () => {
     // Update URL with selected brief while preserving stage
     const newParams = new URLSearchParams(searchParams);
     newParams.set("briefId", briefId);
+    newParams.set("stage", currentStage);
     setSearchParams(newParams);
   };
 
