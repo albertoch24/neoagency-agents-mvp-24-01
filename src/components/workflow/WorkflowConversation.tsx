@@ -56,14 +56,9 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
     gcTime: 0,
     refetchInterval: 5000,
     retry: 3,
-    onError: (error) => {
-      console.error("Error in conversations query:", error);
-      toast({
-        title: "Error fetching conversations",
-        description: "Please try refreshing the page",
-        variant: "destructive",
-      });
-    },
+    meta: {
+      errorMessage: "Error fetching conversations"
+    }
   });
 
   // Query to fetch outputs
@@ -106,14 +101,9 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
     staleTime: 0,
     gcTime: 0,
     retry: 3,
-    onError: (error) => {
-      console.error("Error in outputs query:", error);
-      toast({
-        title: "Error fetching outputs",
-        description: "Please try refreshing the page",
-        variant: "destructive",
-      });
-    },
+    meta: {
+      errorMessage: "Error fetching outputs"
+    }
   });
 
   // Group conversations by stage
@@ -131,7 +121,7 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
   if (conversationsError || outputsError) {
     return (
       <div className="p-4 text-center text-muted-foreground">
-        There was an error loading the workflow data. Please try refreshing the page.
+        Si è verificato un errore durante il caricamento dei dati. Riprova a ricaricare la pagina.
       </div>
     );
   }
@@ -142,7 +132,7 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
 
   return (
     <div className="mt-8">
-      <h3 className="text-lg font-semibold mb-4">Stage Progress</h3>
+      <h3 className="text-lg font-semibold mb-4">Progresso Stage</h3>
       <WorkflowStageList 
         stages={stages} 
         briefOutputs={outputs || []} 

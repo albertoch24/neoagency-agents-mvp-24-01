@@ -1,6 +1,7 @@
 import { WorkflowStages } from "./WorkflowStages";
 import { WorkflowConversation } from "./WorkflowConversation";
 import { WorkflowDisplayActions } from "./WorkflowDisplayActions";
+import { WorkflowProcessing } from "./WorkflowProcessing"; // Nuovo import
 import { useStagesData } from "@/hooks/useStagesData";
 import { useStageProcessing } from "@/hooks/useStageProcessing";
 
@@ -31,6 +32,9 @@ export const WorkflowDisplay = ({
     onStageSelect(nextStage);
   };
 
+  // Trova il nome dello stage corrente
+  const currentStageName = stages.find(stage => stage.id === currentStage)?.name || "";
+
   if (!stages.length) {
     return (
       <div className="text-center text-muted-foreground">
@@ -49,6 +53,10 @@ export const WorkflowDisplay = ({
       />
       {briefId && (
         <>
+          <WorkflowProcessing 
+            isProcessing={isProcessing} 
+            stageName={currentStageName}
+          />
           <WorkflowConversation
             briefId={briefId}
             currentStage={currentStage}
