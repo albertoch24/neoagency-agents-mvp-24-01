@@ -80,7 +80,7 @@ export const StageOutput = ({ output }: StageOutputProps) => {
   return (
     <Card className="mt-4">
       <CardContent className="p-4">
-        <p className="text-sm font-medium mb-2">Riepilogo:</p>
+        <p className="text-sm font-medium mb-2">Stage Summary:</p>
         <div className="bg-muted rounded-lg p-4">
           <p className="text-sm text-muted-foreground whitespace-pre-wrap">
             {formattedOutput}

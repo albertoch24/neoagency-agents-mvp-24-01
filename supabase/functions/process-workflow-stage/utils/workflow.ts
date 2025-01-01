@@ -72,7 +72,18 @@ export async function processAgent(
       ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
       
       Share your thoughts as if you're speaking in a creative agency meeting. Be natural, use conversational language, 
-      and express your professional opinion. After your detailed analysis, provide a concise summary of key points.
+      express your professional opinion, and make it feel like a real conversation. After your detailed analysis, 
+      provide a concise summary of key points starting with "### Summary:".
+      
+      Remember to:
+      1. Use first-person pronouns ("I think...", "In my experience...")
+      2. Include verbal fillers and transitions natural to spoken language
+      3. Express enthusiasm and emotion where appropriate
+      4. Reference team dynamics and collaborative aspects
+      5. Use industry jargon naturally but explain complex concepts
+      6. Share personal insights and experiences
+      7. Ask rhetorical questions to engage others
+      8. Use informal but professional language
     `;
 
     console.log("Generating response with conversational prompt:", conversationalPrompt);
@@ -89,6 +100,10 @@ export async function processAgent(
     // Split the response into conversational analysis and summary
     const [analysis, summary] = content.split(/###\s*Summary:/i);
 
+    if (!analysis || !summary) {
+      throw new Error('Failed to generate both analysis and summary');
+    }
+
     // Save both the conversational output and the summary
     const conversationalOutput = {
       brief_id: brief.id,
@@ -103,7 +118,7 @@ export async function processAgent(
       brief_id: brief.id,
       stage_id: stageId,
       agent_id: agent.id,
-      content: summary ? summary.trim() : '',
+      content: summary.trim(),
       output_type: 'summary',
       created_at: new Date().toISOString()
     };
@@ -137,7 +152,7 @@ export async function processAgent(
         content: analysis.trim(),
         timestamp: new Date().toISOString()
       }],
-      summary: summary ? summary.trim() : ''
+      summary: summary.trim()
     };
   } catch (error) {
     console.error("Error in agent processing:", {
