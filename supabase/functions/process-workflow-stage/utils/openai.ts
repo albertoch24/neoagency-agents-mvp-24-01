@@ -20,7 +20,10 @@ export const generateAgentResponse = async (agentPrompt: string) => {
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: "You are a professional creative agency expert." },
+          { 
+            role: "system", 
+            content: "You are a professional creative agency expert. Your responses should be in two parts:\n1. First, provide a detailed analysis in a natural, conversational tone as if speaking in a meeting.\n2. Then, after '### Summary:', provide a concise, bullet-pointed list of key points." 
+          },
           { role: "user", content: agentPrompt }
         ],
         temperature: 0.7,

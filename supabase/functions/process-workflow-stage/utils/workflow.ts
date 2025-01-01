@@ -62,9 +62,9 @@ export async function processAgent(
       timestamp: new Date().toISOString()
     });
 
-    // Construct prompt from brief and agent data
-    const prompt = `
-      As ${agent.name}, analyze this creative brief:
+    // Construct conversational prompt for detailed analysis
+    const conversationalPrompt = `
+      As ${agent.name}, analyze this creative brief in a conversational, professional manner:
       Title: ${brief.title}
       Description: ${brief.description}
       Objectives: ${brief.objectives}
@@ -72,13 +72,14 @@ export async function processAgent(
       
       ${agent.description}
       
-      Provide a detailed analysis and recommendations.
+      Share your thoughts and insights as if you're speaking in a creative agency meeting.
+      After your detailed analysis, provide a concise, bullet-pointed summary of key points.
     `;
 
-    console.log("Generating response with prompt:", prompt);
+    console.log("Generating response with conversational prompt:", conversationalPrompt);
 
     // Generate response using OpenAI
-    const content = await generateAgentResponse(prompt);
+    const content = await generateAgentResponse(conversationalPrompt);
     
     console.log("Generated agent response:", {
       agentId: agent.id,
@@ -86,17 +87,13 @@ export async function processAgent(
       timestamp: new Date().toISOString()
     });
 
-    // Log conversation save attempt
-    console.log("Attempting to save conversation:", {
-      briefId: brief.id,
-      stageId: stageId,
-      agentId: agent.id,
-      timestamp: new Date().toISOString()
-    });
+    // Split the response into conversational analysis and summary
+    const [analysis, summary] = content.split(/###\s*Summary:/i);
 
-    const response = {
+    // Format the response to include both conversational analysis and structured summary
+    const formattedResponse = {
       outputs: [{
-        content: content,
+        content: `${analysis.trim()}\n\n### Summary:\n${summary ? summary.trim() : ''}`,
         timestamp: new Date().toISOString()
       }]
     };
@@ -105,11 +102,11 @@ export async function processAgent(
       briefId: brief.id,
       stageId: stageId,
       agentId: agent.id,
-      outputSize: response.outputs.length,
+      outputSize: formattedResponse.outputs.length,
       timestamp: new Date().toISOString()
     });
 
-    return response;
+    return formattedResponse;
   } catch (error) {
     console.error("Error in agent processing:", {
       error: error.message,
