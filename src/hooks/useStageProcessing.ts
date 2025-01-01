@@ -2,28 +2,29 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { processWorkflowStage } from "@/services/workflowService";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const useStageProcessing = (briefId: string) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const queryClient = useQueryClient();
 
   const processStage = async (nextStage: any) => {
     setIsProcessing(true);
     const toastId = toast.loading(
-      `Processing ${nextStage.name} stage... This may take a few minutes. We're analyzing your brief and generating insights. Please don't close this window.`,
-      { duration: 120000 } // 2 minutes
+      `Elaborazione dello stage ${nextStage.name} in corso... Questo potrebbe richiedere qualche minuto. Stiamo analizzando il brief e generando gli output. Non chiudere questa finestra.`,
+      { duration: 120000 }
     );
 
     try {
-      console.log("Processing stage:", {
+      console.log("Elaborazione stage:", {
         stageId: nextStage.id,
         stageName: nextStage.name,
         flows: nextStage.flows
       });
 
-      // Fetch the flow directly from the database if not already included
       let flow = nextStage.flows;
       if (!flow) {
-        console.log("Fetching flow for stage:", nextStage.id);
+        console.log("Recupero flow per lo stage:", nextStage.id);
         const { data: stageData, error: stageError } = await supabase
           .from("stages")
           .select(`
@@ -50,32 +51,32 @@ export const useStageProcessing = (briefId: string) => {
           .single();
 
         if (stageError) {
-          console.error("Error fetching stage data:", stageError);
-          throw new Error(`Error fetching stage data: ${stageError.message}`);
+          console.error("Errore nel recupero dei dati dello stage:", stageError);
+          throw new Error(`Errore nel recupero dei dati dello stage: ${stageError.message}`);
         }
 
         flow = stageData?.flows;
       }
 
       if (!flow) {
-        console.error("No flow found for stage:", {
+        console.error("Nessun flow trovato per lo stage:", {
           stageId: nextStage.id,
           stageName: nextStage.name
         });
-        throw new Error(`No flow found for stage "${nextStage.name}"`);
+        throw new Error(`Nessun flow trovato per lo stage "${nextStage.name}"`);
       }
 
       const flowSteps = flow.flow_steps || [];
       if (flowSteps.length === 0) {
-        console.error("No flow steps found for stage:", {
+        console.error("Nessun flow step trovato per lo stage:", {
           stageId: nextStage.id,
           stageName: nextStage.name,
           flowId: flow.id
         });
-        throw new Error("No flow steps found for this stage");
+        throw new Error("Nessun flow step trovato per questo stage");
       }
 
-      console.log("Found flow steps:", {
+      console.log("Flow steps trovati:", {
         stageId: nextStage.id,
         flowId: flow.id,
         stepsCount: flowSteps.length,
@@ -86,19 +87,23 @@ export const useStageProcessing = (briefId: string) => {
         }))
       });
 
-      // Process the workflow stage
       await processWorkflowStage(briefId, nextStage, flowSteps);
+      
+      // Invalidiamo le query per aggiornare i dati
+      queryClient.invalidateQueries({ queryKey: ["stage-outputs"] });
+      queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+      
       toast.dismiss(toastId);
-      toast.success(`${nextStage.name} stage processed successfully! You can now view the results.`, {
+      toast.success(`Stage ${nextStage.name} elaborato con successo! Puoi ora visualizzare i risultati.`, {
         duration: 8000
       });
     } catch (error) {
-      console.error("Error processing stage:", error);
+      console.error("Errore nell'elaborazione dello stage:", error);
       toast.dismiss(toastId);
       toast.error(
         error instanceof Error 
-          ? `Failed to process stage: ${error.message}. Please try again or contact support.`
-          : "Failed to process stage. Please try again or contact support.",
+          ? `Errore nell'elaborazione dello stage: ${error.message}. Riprova o contatta il supporto.`
+          : "Errore nell'elaborazione dello stage. Riprova o contatta il supporto.",
         { duration: 8000 }
       );
     } finally {

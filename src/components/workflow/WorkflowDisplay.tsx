@@ -1,8 +1,11 @@
 import { WorkflowStages } from "./WorkflowStages";
 import { WorkflowConversation } from "./WorkflowConversation";
 import { WorkflowDisplayActions } from "./WorkflowDisplayActions";
+import { WorkflowProcessing } from "./WorkflowProcessing";
 import { useStagesData } from "@/hooks/useStagesData";
 import { useStageProcessing } from "@/hooks/useStageProcessing";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WorkflowDisplayProps {
   currentStage: string;
@@ -17,6 +20,29 @@ export const WorkflowDisplay = ({
 }: WorkflowDisplayProps) => {
   const { data: stages = [] } = useStagesData(briefId);
   const { isProcessing, processStage } = useStageProcessing(briefId || "");
+
+  const { data: currentOutputs } = useQuery({
+    queryKey: ["stage-outputs", briefId, currentStage],
+    queryFn: async () => {
+      if (!briefId) return null;
+      
+      const { data, error } = await supabase
+        .from("brief_outputs")
+        .select("content")
+        .eq("brief_id", briefId)
+        .eq("stage", currentStage)
+        .order("created_at", { ascending: true })
+        .single();
+
+      if (error) {
+        console.error("Error fetching outputs:", error);
+        return null;
+      }
+
+      return data?.content?.outputs || null;
+    },
+    enabled: !!briefId && !!currentStage
+  });
 
   const handleNextStage = async () => {
     if (!briefId) return;
@@ -34,7 +60,7 @@ export const WorkflowDisplay = ({
   if (!stages.length) {
     return (
       <div className="text-center text-muted-foreground">
-        No stages found. Please create stages first.
+        Nessuno stage trovato. Per favore, crea prima gli stage.
       </div>
     );
   }
@@ -49,6 +75,11 @@ export const WorkflowDisplay = ({
       />
       {briefId && (
         <>
+          <WorkflowProcessing 
+            isProcessing={isProcessing}
+            currentStage={currentStage}
+            outputs={currentOutputs}
+          />
           <WorkflowConversation
             briefId={briefId}
             currentStage={currentStage}
