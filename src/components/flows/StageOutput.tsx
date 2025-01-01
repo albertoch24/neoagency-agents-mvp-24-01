@@ -19,6 +19,7 @@ interface StageOutputProps {
       }>;
       [key: string]: any;
     };
+    stage_summary?: string;
     [key: string]: any;
   };
 }
@@ -38,12 +39,13 @@ export const StageOutput = ({ output }: StageOutputProps) => {
             return agentOutput.outputs
               .map((output: any) => {
                 if (output.content) {
-                  // Rimuoviamo i marker tecnici ma preserviamo i bullet points
+                  // Rimuoviamo i marker tecnici ma preserviamo i bullet points con spaziatura corretta
                   return output.content
                     .replace(/###|####/g, '')
                     .replace(/\*\*/g, '')
-                    .replace(/^-\s/gm, '• ') // Convertiamo i trattini in bullet points
-                    .replace(/•\s*•\s*/g, '• ') // Rimuoviamo bullet points duplicati
+                    .replace(/^-\s*/gm, '• ') // Convertiamo i trattini in bullet points con spaziatura uniforme
+                    .replace(/•\s+•\s*/g, '• ') // Rimuoviamo bullet points duplicati
+                    .replace(/^•\s*([A-Za-z])/gm, '• $1') // Assicuriamo uno spazio dopo il bullet point
                     .trim();
                 }
                 return '';
@@ -60,8 +62,9 @@ export const StageOutput = ({ output }: StageOutputProps) => {
       return content
         .replace(/###|####/g, '')
         .replace(/\*\*/g, '')
-        .replace(/^-\s/gm, '• ')
-        .replace(/•\s*•\s*/g, '• ') // Rimuoviamo bullet points duplicati
+        .replace(/^-\s*/gm, '• ')
+        .replace(/•\s+•\s*/g, '• ')
+        .replace(/^•\s*([A-Za-z])/gm, '• $1')
         .trim();
     }
 
@@ -74,8 +77,9 @@ export const StageOutput = ({ output }: StageOutputProps) => {
             ? content[key]
                 .replace(/###|####/g, '')
                 .replace(/\*\*/g, '')
-                .replace(/^-\s/gm, '• ')
-                .replace(/•\s*•\s*/g, '• ') // Rimuoviamo bullet points duplicati
+                .replace(/^-\s*/gm, '• ')
+                .replace(/•\s+•\s*/g, '• ')
+                .replace(/^•\s*([A-Za-z])/gm, '• $1')
                 .trim()
             : content[key];
         }
@@ -90,27 +94,44 @@ export const StageOutput = ({ output }: StageOutputProps) => {
   }
 
   const formattedOutput = formatOutput(output.content);
+  const stageSummary = output.stage_summary;
 
-  if (!formattedOutput) {
+  if (!formattedOutput && !stageSummary) {
     return null;
   }
 
   return (
     <Card className="mt-4">
       <CardContent className="p-4">
-        <Accordion type="single" collapsible>
-          <AccordionItem value="stage-summary">
-            <AccordionTrigger className="text-sm font-medium">
-              Stage Summary
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="bg-muted rounded-lg p-4 mt-2">
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {formattedOutput}
-                </p>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
+        <Accordion type="single" collapsible defaultValue="">
+          {stageSummary && (
+            <AccordionItem value="stage-summary" className="border-b">
+              <AccordionTrigger className="text-sm font-medium">
+                Stage Summary
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="bg-muted rounded-lg p-4 mt-2">
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {stageSummary}
+                  </p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          )}
+          {formattedOutput && (
+            <AccordionItem value="detailed-output">
+              <AccordionTrigger className="text-sm font-medium">
+                Detailed Output
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="bg-muted rounded-lg p-4 mt-2">
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {formattedOutput}
+                  </p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          )}
         </Accordion>
       </CardContent>
     </Card>
