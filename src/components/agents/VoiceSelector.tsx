@@ -40,28 +40,8 @@ const voices = [
     id: "MF3mGyEYCl7XYWbV9V6O",
     name: "Elli",
     description: "Gentle and soothing female voice"
-  },
-  {
-    id: "TxGEqnHWrfWFTfGW9XjX",
-    name: "Josh",
-    description: "Friendly and conversational male voice"
-  },
-  {
-    id: "VR6AewLTigWG4xSOukaG",
-    name: "Arnold",
-    description: "Deep and authoritative male voice"
-  },
-  {
-    id: "pNInz6obpgDQGcFmaJgB",
-    name: "Adam",
-    description: "Natural and professional male voice"
-  },
-  {
-    id: "yoZ06aMxZJJ28mfd3POQ",
-    name: "Sam",
-    description: "Serious and measured male voice"
   }
-];
+] as const;
 
 interface VoiceSelectorProps {
   value: string;
@@ -94,8 +74,8 @@ export const VoiceSelector = ({ value, onValueChange }: VoiceSelectorProps) => {
               <CommandItem
                 key={voice.id}
                 value={voice.id}
-                onSelect={() => {
-                  onValueChange(voice.id);
+                onSelect={(currentValue) => {
+                  onValueChange(currentValue);
                   setOpen(false);
                 }}
               >
