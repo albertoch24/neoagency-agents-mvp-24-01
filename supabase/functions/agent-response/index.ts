@@ -1,31 +1,26 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import OpenAI from "https://esm.sh/openai@4.28.0"
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { agentId, input } = await req.json()
+    const { agentId, input } = await req.json();
     
-    if (!agentId || !input) {
-      throw new Error('Missing required parameters: agentId and input must be provided')
-    }
-
-    // Create Supabase client
+    // Fetch agent details from database
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    );
 
-    // Fetch agent details and skills
     const { data: agent, error: agentError } = await supabaseClient
       .from('agents')
       .select(`
@@ -33,60 +28,57 @@ serve(async (req) => {
         skills (*)
       `)
       .eq('id', agentId)
-      .single()
+      .single();
 
-    if (agentError) {
-      console.error('Error fetching agent:', agentError)
-      throw new Error('Failed to fetch agent details')
-    }
-    if (!agent) throw new Error('Agent not found')
+    if (agentError) throw agentError;
 
-    // Initialize OpenAI with the latest SDK
-    const openai = new OpenAI({
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
-    })
-
-    // Prepare system message with agent description and skills
-    const systemMessage = `You are an AI assistant with the following description: ${agent.description}
+    const systemPrompt = `You are ${agent.name}, a professional creative agency expert. 
+    Your communication style is warm, engaging, and highly professional, as if you're speaking in a creative agency meeting.
     
-Your skills and knowledge include:
-${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n') || 'No specific skills defined yet.'}
+    Key characteristics of your communication:
+    - Use a natural, conversational tone while maintaining professionalism
+    - Share insights and recommendations as if you're speaking to colleagues
+    - Include relevant examples and analogies when appropriate
+    - Ask rhetorical questions to engage in deeper thinking
+    - Use industry terminology naturally but explain complex concepts clearly
+    - Structure your responses in a clear, logical flow
+    - Be encouraging and constructive in your feedback
+    
+    Your expertise and skills include:
+    ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.description}`).join('\n')}
+    
+    ${agent.description}
+    
+    Remember to maintain a balance between being approachable and professional, as if you're having a face-to-face conversation in a creative agency setting.`;
 
-Please use these skills and knowledge to provide accurate and helpful responses.`
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: input }
+        ],
+        temperature: 0.7,
+      }),
+    });
 
-    console.log('Calling OpenAI API with system message:', systemMessage)
-    console.log('User input:', input)
-
-    // Call OpenAI API with the latest SDK syntax
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4', // Fixed model name
-      messages: [
-        { role: 'system', content: systemMessage },
-        { role: 'user', content: input }
-      ],
-      temperature: 0.7,
-    })
-
-    const response = completion.choices[0].message.content
-
-    console.log('Received response from OpenAI:', response)
-
-    return new Response(
-      JSON.stringify({ response }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    const data = await response.json();
+    return new Response(JSON.stringify({ response: data.choices[0].message.content }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
-    console.error('Error in agent-response function:', error)
-    return new Response(
-      JSON.stringify({ 
-        error: error.message || 'An unexpected error occurred',
-        details: error.toString()
-      }),
-      { 
-        status: error.status || 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    )
+    console.error('Error:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
-})
+});
