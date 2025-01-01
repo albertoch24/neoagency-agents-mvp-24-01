@@ -80,8 +80,8 @@ export const VoiceSelector = ({ value, onValueChange }: VoiceSelectorProps) => {
               <CommandItem
                 key={voice.id}
                 value={voice.id}
-                onSelect={(currentValue) => {
-                  onValueChange(currentValue);
+                onSelect={() => {
+                  onValueChange(voice.id);
                   setOpen(false);
                 }}
               >
