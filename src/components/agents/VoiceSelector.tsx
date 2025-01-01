@@ -15,7 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const voices = [
+type Voice = {
+  id: string;
+  name: string;
+  description: string;
+};
+
+const voices: Voice[] = [
   {
     id: "21m00Tcm4TlvDq8ikWAM",
     name: "Rachel",
@@ -41,7 +47,7 @@ const voices = [
     name: "Elli",
     description: "Gentle and soothing female voice"
   }
-] as const;
+];
 
 interface VoiceSelectorProps {
   value: string;
