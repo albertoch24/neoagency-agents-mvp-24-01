@@ -57,8 +57,6 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
     marked.setOptions({
       gfm: true, // GitHub Flavored Markdown
       breaks: true, // Converte i ritorni a capo in <br>
-      smartLists: true,
-      smartypants: true,
     });
 
     // Converte il markdown in HTML
