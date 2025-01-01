@@ -75,12 +75,11 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         setIsProcessing(false);
         onSubmitSuccess?.();
         
-        // Add a small delay to ensure data is refreshed before navigation
-        setTimeout(() => {
-          navigate(`/?stage=${stage.name}&briefId=${brief.id}&showOutputs=true`, {
-            replace: true // Use replace to avoid back button issues
-          });
-        }, 500);
+        // Navigate to the index page with the stage and brief ID parameters
+        // and explicitly set showOutputs=true to ensure outputs are visible
+        navigate(`/?stage=kickoff&briefId=${brief.id}&showOutputs=true`, {
+          replace: true
+        });
       } catch (error) {
         console.error("Error starting workflow:", error);
         toast.dismiss(toastId);
