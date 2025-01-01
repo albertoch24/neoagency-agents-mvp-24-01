@@ -17,8 +17,11 @@ import {
 import { useStageHandling } from "@/hooks/useStageHandling";
 
 const Index = () => {
+  console.log("Index component rendering");
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
+  console.log("Current user:", user);
+  
   const [showNewBrief, setShowNewBrief] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedBriefId, setSelectedBriefId] = useState<string | null>(null);
@@ -27,8 +30,10 @@ const Index = () => {
 
   // Initialize state from URL parameters
   useEffect(() => {
+    console.log("URL params effect running");
     const briefIdFromUrl = searchParams.get("briefId");
     if (briefIdFromUrl) {
+      console.log("Brief ID from URL:", briefIdFromUrl);
       setSelectedBriefId(briefIdFromUrl);
       setShowNewBrief(false);
       setIsEditing(false);
@@ -44,9 +49,10 @@ const Index = () => {
     }
   }, [searchParams.get("briefId")]);
 
-  const { data: briefs } = useQuery({
+  const { data: briefs, error: briefsError } = useQuery({
     queryKey: ["briefs", user?.id],
     queryFn: async () => {
+      console.log("Fetching briefs for user:", user?.id);
       const { data, error } = await supabase
         .from("briefs")
         .select("*")
@@ -58,6 +64,7 @@ const Index = () => {
         return [];
       }
 
+      console.log("Fetched briefs:", data);
       return data;
     },
     enabled: !!user,
@@ -65,9 +72,14 @@ const Index = () => {
     gcTime: 0
   });
 
-  const { data: currentBrief } = useQuery({
+  if (briefsError) {
+    console.error("Error in briefs query:", briefsError);
+  }
+
+  const { data: currentBrief, error: currentBriefError } = useQuery({
     queryKey: ["brief", selectedBriefId || "latest", user?.id],
     queryFn: async () => {
+      console.log("Fetching current brief. Selected ID:", selectedBriefId);
       const query = supabase
         .from("briefs")
         .select("*, brief_outputs(*)")
@@ -82,10 +94,11 @@ const Index = () => {
       const { data, error } = await query.limit(1).maybeSingle();
 
       if (error) {
-        console.error("Error fetching brief:", error);
+        console.error("Error fetching current brief:", error);
         return null;
       }
 
+      console.log("Fetched current brief:", data);
       return data;
     },
     enabled: !!user,
@@ -93,7 +106,12 @@ const Index = () => {
     gcTime: 0
   });
 
+  if (currentBriefError) {
+    console.error("Error in current brief query:", currentBriefError);
+  }
+
   const handleSelectBrief = (briefId: string) => {
+    console.log("Selecting brief:", briefId);
     setSelectedBriefId(briefId);
     setShowNewBrief(false);
     setIsEditing(false);
