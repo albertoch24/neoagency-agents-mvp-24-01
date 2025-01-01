@@ -46,6 +46,7 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
         return;
       }
 
+      console.log('Fetching ElevenLabs API key from Supabase...');
       const { data: secretData, error: secretError } = await supabase
         .from('secrets')
         .select('secret')
@@ -59,8 +60,15 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
       }
 
       if (!secretData?.secret) {
-        console.error('ElevenLabs API key not found');
+        console.error('ElevenLabs API key not found in secrets');
         toast.error('ElevenLabs API key not found. Please add it in settings.');
+        return;
+      }
+
+      // Validate API key format (basic check)
+      if (typeof secretData.secret !== 'string' || secretData.secret.trim() === '') {
+        console.error('Invalid API key format');
+        toast.error('Invalid ElevenLabs API key format');
         return;
       }
 
@@ -68,8 +76,9 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
       const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
         method: 'POST',
         headers: {
+          'Accept': 'audio/mpeg',
           'Content-Type': 'application/json',
-          'xi-api-key': secretData.secret
+          'xi-api-key': secretData.secret.trim()
         },
         body: JSON.stringify({
           text,
@@ -84,7 +93,16 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('ElevenLabs API error:', errorData);
-        throw new Error(`ElevenLabs API error: ${errorData.detail?.message || 'Unknown error'}`);
+        
+        // More specific error messages based on response
+        if (response.status === 401) {
+          toast.error('Invalid ElevenLabs API key. Please check your API key in settings.');
+        } else if (response.status === 429) {
+          toast.error('ElevenLabs API rate limit exceeded. Please try again later.');
+        } else {
+          toast.error(`ElevenLabs API error: ${errorData.detail?.message || 'Unknown error'}`);
+        }
+        return;
       }
 
       const audioBlob = await response.blob();
