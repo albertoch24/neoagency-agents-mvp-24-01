@@ -25,19 +25,24 @@ const Index = () => {
   
   const { currentStage, handleStageSelect } = useStageHandling(selectedBriefId);
 
-  // Read briefId and showOutputs from URL params on mount and when URL changes
+  // Initialize state from URL parameters
   useEffect(() => {
     const briefIdFromUrl = searchParams.get("briefId");
-    const showOutputs = searchParams.get("showOutputs");
-    
     if (briefIdFromUrl) {
       setSelectedBriefId(briefIdFromUrl);
-      if (showOutputs === "true") {
-        setShowNewBrief(false);
-        setIsEditing(false);
+      setShowNewBrief(false);
+      setIsEditing(false);
+      
+      // Ensure showOutputs is set to true when loading a brief
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("briefId", briefIdFromUrl);
+      newParams.set("showOutputs", "true");
+      if (!searchParams.get("stage")) {
+        newParams.set("stage", "kickoff"); // Set default stage if none specified
       }
+      setSearchParams(newParams, { replace: true });
     }
-  }, [searchParams]);
+  }, [searchParams.get("briefId")]);
 
   const { data: briefs } = useQuery({
     queryKey: ["briefs", user?.id],
@@ -92,11 +97,14 @@ const Index = () => {
     setSelectedBriefId(briefId);
     setShowNewBrief(false);
     setIsEditing(false);
-    // Update URL with selected brief and ensure showOutputs is set to true
+    
+    // Update URL parameters ensuring outputs are visible
     const newParams = new URLSearchParams(searchParams);
     newParams.set("briefId", briefId);
-    newParams.set("stage", currentStage);
     newParams.set("showOutputs", "true");
+    if (!searchParams.get("stage")) {
+      newParams.set("stage", "kickoff");
+    }
     setSearchParams(newParams);
   };
 
