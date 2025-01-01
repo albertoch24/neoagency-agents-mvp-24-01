@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkflowStageList } from "@/components/flows/WorkflowStageList";
 import { BriefOutput } from "@/types/workflow";
+import { useToast } from "@/components/ui/use-toast";
 
 interface WorkflowConversationProps {
   briefId: string;
@@ -9,11 +10,18 @@ interface WorkflowConversationProps {
 }
 
 export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversationProps) => {
+  const { toast } = useToast();
+
   // Query to fetch conversations with no caching to ensure fresh data
-  const { data: conversations } = useQuery({
+  const { data: conversations, error: conversationsError } = useQuery({
     queryKey: ["workflow-conversations", briefId, currentStage],
     queryFn: async () => {
       console.log("Fetching conversations for stage:", currentStage);
+      
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session) {
+        throw new Error("No active session");
+      }
       
       const { data: conversationsData, error: conversationsError } = await supabase
         .from("workflow_conversations")
@@ -36,8 +44,8 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
         .order("created_at", { ascending: true });
 
       if (conversationsError) {
-        console.log("Error fetching conversations:", conversationsError);
-        return [];
+        console.error("Error fetching conversations:", conversationsError);
+        throw conversationsError;
       }
 
       console.log("Found conversations:", conversationsData);
@@ -47,13 +55,27 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
     staleTime: 0,
     gcTime: 0,
     refetchInterval: 5000,
+    retry: 3,
+    onError: (error) => {
+      console.error("Error in conversations query:", error);
+      toast({
+        title: "Error fetching conversations",
+        description: "Please try refreshing the page",
+        variant: "destructive",
+      });
+    },
   });
 
   // Query to fetch outputs
-  const { data: outputs } = useQuery({
+  const { data: outputs, error: outputsError } = useQuery({
     queryKey: ["brief-outputs", briefId, currentStage],
     queryFn: async () => {
       console.log("Fetching outputs for stage:", currentStage);
+      
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session) {
+        throw new Error("No active session");
+      }
       
       const { data: outputsData, error: outputsError } = await supabase
         .from("brief_outputs")
@@ -63,8 +85,8 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
         .order("created_at", { ascending: false });
 
       if (outputsError) {
-        console.log("Error fetching outputs:", outputsError);
-        return [];
+        console.error("Error fetching outputs:", outputsError);
+        throw outputsError;
       }
 
       // Transform the outputs to match the expected format
@@ -83,6 +105,15 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
     enabled: !!briefId && !!currentStage,
     staleTime: 0,
     gcTime: 0,
+    retry: 3,
+    onError: (error) => {
+      console.error("Error in outputs query:", error);
+      toast({
+        title: "Error fetching outputs",
+        description: "Please try refreshing the page",
+        variant: "destructive",
+      });
+    },
   });
 
   // Group conversations by stage
@@ -96,6 +127,14 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
 
   // Convert to array of tuples [stageId, conversations[]]
   const stages = groupedConversations ? Object.entries(groupedConversations) : [];
+
+  if (conversationsError || outputsError) {
+    return (
+      <div className="p-4 text-center text-muted-foreground">
+        There was an error loading the workflow data. Please try refreshing the page.
+      </div>
+    );
+  }
 
   if (!conversations?.length && !outputs?.length) {
     return null;
