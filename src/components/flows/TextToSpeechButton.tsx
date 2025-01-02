@@ -44,14 +44,11 @@ export const TextToSpeechButton = ({
         return;
       }
 
-      if (!secretData?.secret) {
-        toast.error('ElevenLabs API key not found. Please add it in settings.');
-        return;
-      }
+      let apiKey = secretData?.secret?.trim();
 
-      const apiKey = secretData.secret.trim();
+      // If no API key found, show error
       if (!apiKey) {
-        toast.error('Invalid ElevenLabs API key format');
+        toast.error('ElevenLabs API key not found. Please add it in settings.');
         return;
       }
 
@@ -67,8 +64,7 @@ export const TextToSpeechButton = ({
           model_id: "eleven_multilingual_v2",
           voice_settings: {
             stability: 0.5,
-            similarity_boost: 0.75,
-            use_speaker_boost: true
+            similarity_boost: 0.75
           }
         })
       });
@@ -80,20 +76,18 @@ export const TextToSpeechButton = ({
           console.error('ElevenLabs API error:', errorData);
           
           if (response.status === 401) {
-            // Notify user about invalid API key
-            toast.error('Invalid ElevenLabs API key. Please update your API key in settings.');
-            
             // Delete the invalid key from Supabase
             await supabase
               .from('secrets')
               .delete()
               .eq('name', 'ELEVEN_LABS_API_KEY');
-              
+            
+            toast.error('Invalid API key. Please add a valid ElevenLabs API key in settings.');
             return;
           } else if (response.status === 429) {
-            errorMessage = 'ElevenLabs API rate limit exceeded. Please try again later.';
+            errorMessage = 'API rate limit exceeded. Please try again later.';
           } else {
-            errorMessage = `ElevenLabs API error: ${errorData.detail?.message || 'Unknown error'}`;
+            errorMessage = `Error: ${errorData.detail?.message || 'Unknown error'}`;
           }
         } catch (e) {
           console.error('Error parsing error response:', e);
