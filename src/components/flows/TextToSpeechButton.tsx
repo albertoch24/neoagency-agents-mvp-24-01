@@ -44,14 +44,14 @@ export const TextToSpeechButton = ({
         return;
       }
 
-      let apiKey = secretData?.secret?.trim();
+      const apiKey = secretData?.secret?.trim();
 
-      // If no API key found, show error
       if (!apiKey) {
         toast.error('ElevenLabs API key not found. Please add it in settings.');
         return;
       }
 
+      // Make request to ElevenLabs API
       const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/pFZP5JQG7iQjIQuC4Bku', {
         method: 'POST',
         headers: {
@@ -76,7 +76,7 @@ export const TextToSpeechButton = ({
           console.error('ElevenLabs API error:', errorData);
           
           if (response.status === 401) {
-            // Delete the invalid key from Supabase
+            // Delete invalid API key
             await supabase
               .from('secrets')
               .delete()
@@ -87,7 +87,7 @@ export const TextToSpeechButton = ({
           } else if (response.status === 429) {
             errorMessage = 'API rate limit exceeded. Please try again later.';
           } else {
-            errorMessage = `Error: ${errorData.detail?.message || 'Unknown error'}`;
+            errorMessage = errorData.detail?.message || 'Unknown error';
           }
         } catch (e) {
           console.error('Error parsing error response:', e);
@@ -104,12 +104,13 @@ export const TextToSpeechButton = ({
       audio.onended = () => {
         onPlayStateChange(false);
         onAudioElement(null);
-        URL.revokeObjectURL(audioUrl); // Clean up the URL when done
+        URL.revokeObjectURL(audioUrl); // Clean up URL when done
       };
       
       onAudioElement(audio);
       audio.play();
       onPlayStateChange(true);
+
     } catch (error) {
       console.error('Error in text-to-speech:', error);
       toast.error('Failed to generate speech. Please try again.');
