@@ -5,6 +5,7 @@ import { useStagesData } from "@/hooks/useStagesData";
 import { useStageProcessing } from "@/hooks/useStageProcessing";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WorkflowDisplayProps {
   currentStage: string;
