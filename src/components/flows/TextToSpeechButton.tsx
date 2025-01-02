@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { fetchElevenLabsApiKey, generateSpeech } from "@/utils/elevenlabs/api";
 import { AudioManager } from "@/utils/elevenlabs/audio";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
