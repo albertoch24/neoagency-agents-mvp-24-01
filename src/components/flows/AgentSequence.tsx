@@ -74,7 +74,7 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
               {group.conversational && (
                 <div>
                   <div className="flex justify-between items-center mb-3">
-                    <h5 className="text-sm font-medium text-muted-foreground">Agent Output:</h5>
+                    <h5 className="text-sm font-medium text-muted-foreground">TEAM CONVERSATION</h5>
                     <TextToSpeechButton
                       text={group.conversational.content}
                       convId={group.conversational.id}
