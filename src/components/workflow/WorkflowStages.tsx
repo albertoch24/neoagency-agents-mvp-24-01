@@ -23,6 +23,48 @@ interface WorkflowStagesProps {
 }
 
 export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, briefId }: WorkflowStagesProps) {
+  // Query to fetch flow steps for each stage
+  const { data: stageFlowSteps } = useQuery({
+    queryKey: ["stage-flow-steps", currentStage],
+    queryFn: async () => {
+      console.log("Fetching flow steps for stage:", currentStage);
+      
+      const { data: stageData, error: stageError } = await supabase
+        .from("stages")
+        .select(`
+          *,
+          flows (
+            id,
+            name,
+            flow_steps (
+              id,
+              agent_id,
+              requirements,
+              order_index,
+              outputs,
+              agents (
+                id,
+                name,
+                description
+              )
+            )
+          )
+        `)
+        .eq("id", currentStage)
+        .single();
+
+      if (stageError) {
+        console.error("Error fetching stage flow steps:", stageError);
+        throw stageError;
+      }
+
+      console.log("Stage data with flow steps:", stageData);
+      return stageData;
+    },
+    enabled: !!currentStage
+  });
+
+  // Query to check completed stages
   const { data: completedStages } = useQuery({
     queryKey: ["completed-stages", briefId],
     queryFn: async () => {
@@ -63,6 +105,10 @@ export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, 
         const isCompleted = completedStages?.includes(stage.id);
         const isNext = index === currentStageIndex + 1;
 
+        // Get flow steps count for the current stage
+        const flowStepsCount = stageFlowSteps?.flows?.flow_steps?.length || 0;
+        console.log(`Flow steps count for stage ${stage.name}:`, flowStepsCount);
+
         return (
           <Card
             key={stage.id}
@@ -96,6 +142,11 @@ export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, 
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">{stage.description}</p>
+              {isActive && flowStepsCount > 0 && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Steps: {flowStepsCount}
+                </p>
+              )}
             </CardContent>
           </Card>
         );

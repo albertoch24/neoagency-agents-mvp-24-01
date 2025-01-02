@@ -6,7 +6,6 @@ import { useStageProcessing } from "@/hooks/useStageProcessing";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Tables } from "@/integrations/supabase/table.types";
 
 interface WorkflowDisplayProps {
   currentStage: string;
@@ -41,6 +40,7 @@ export const WorkflowDisplay = ({
       // Invalidate queries to refresh data
       await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
       await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+      await queryClient.invalidateQueries({ queryKey: ["stage-flow-steps"] });
     }
   };
 
