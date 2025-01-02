@@ -44,16 +44,14 @@ export const typography = {
       },
       'ol > li': {
         position: 'relative',
-        paddingLeft: '2.5em', // Increased padding to prevent overlap
-        counterIncrement: 'list-item',
-        listStyle: 'none', // Remove default numbering
+        paddingLeft: '1.75em',
       },
       'ol > li::before': {
         content: 'counter(list-item, var(--list-counter-style, decimal)) "."',
         position: 'absolute',
         fontWeight: '400',
         color: 'var(--tw-prose-counters)',
-        left: '0.5em', // Adjusted position
+        left: '0',
       },
       'ul > li': {
         position: 'relative',
