@@ -1,4 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface StageOutputProps {
   output: {
@@ -13,67 +15,56 @@ interface StageOutputProps {
       }>;
       [key: string]: any;
     };
+    stage_id?: string;
     [key: string]: any;
   };
 }
 
 export const StageOutput = ({ output }: StageOutputProps) => {
-  const formatOutput = (content: any): string => {
-    // Se c'è una risposta diretta, la usiamo
-    if (content.response) {
-      return content.response;
-    }
+  const { data: stageSummary } = useQuery({
+    queryKey: ["stage-summary", output.stage_id],
+    queryFn: async () => {
+      if (!output.stage_id) return null;
 
-    // Se ci sono outputs strutturati, li processiamo
-    if (content.outputs && Array.isArray(content.outputs)) {
-      return content.outputs
-        .map((agentOutput: any) => {
-          if (Array.isArray(agentOutput.outputs)) {
-            return agentOutput.outputs
-              .map((output: any) => {
-                if (output.content) {
-                  // Manteniamo i marker per i punti elenco ma rimuoviamo altri marker
-                  return output.content
-                    .replace(/####|\*\*/g, '')
-                    .trim();
-                }
-                return '';
-              })
-              .join('\n\n');
-          }
-          return '';
-        })
-        .join('\n\n');
-    }
+      // First, check if we already have a summary in the database
+      const { data: existingOutputs } = await supabase
+        .from('brief_outputs')
+        .select('stage_summary')
+        .eq('stage_id', output.stage_id)
+        .not('stage_summary', 'is', null)
+        .single();
 
-    // Se il contenuto è una stringa, la puliamo e la restituiamo
-    if (typeof content === 'string') {
-      // Manteniamo i marker per i punti elenco ma rimuoviamo altri marker
-      return content.replace(/####|\*\*/g, '').trim();
-    }
-
-    // Se è un oggetto, cerchiamo proprietà rilevanti
-    if (typeof content === 'object' && content !== null) {
-      const relevantKeys = ['summary', 'conclusion', 'result', 'message'];
-      for (const key of relevantKeys) {
-        if (content[key]) {
-          return typeof content[key] === 'string' 
-            ? content[key].replace(/####|\*\*/g, '').trim()
-            : content[key];
-        }
+      if (existingOutputs?.stage_summary) {
+        return existingOutputs.stage_summary;
       }
-    }
 
-    return '';
-  };
+      // If no summary exists, generate one using our edge function
+      const response = await fetch('/functions/v1/generate-stage-summary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          stageId: output.stage_id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate summary');
+      }
+
+      const data = await response.json();
+      return data.summary;
+    },
+    enabled: !!output?.stage_id,
+  });
 
   if (!output?.content) {
     return null;
   }
 
-  const formattedOutput = formatOutput(output.content);
-
-  if (!formattedOutput) {
+  if (!stageSummary) {
     return null;
   }
 
@@ -83,7 +74,7 @@ export const StageOutput = ({ output }: StageOutputProps) => {
         <p className="text-sm font-medium mb-2">Stage Summary:</p>
         <div className="bg-muted rounded-lg p-4">
           <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-            {formattedOutput}
+            {stageSummary}
           </p>
         </div>
       </CardContent>
