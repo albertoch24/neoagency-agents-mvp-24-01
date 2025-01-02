@@ -16,7 +16,7 @@ interface AgentSequenceProps {
   conversations: any[];
 }
 
-export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
+export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
   const [isPlaying, setIsPlaying] = useState<{[key: string]: boolean}>({});
   const [audioElements, setAudioElements] = useState<{[key: string]: HTMLAudioElement | null}>({});
   const [visibleTexts, setVisibleTexts] = useState<{[key: string]: boolean}>({});
@@ -26,7 +26,7 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
     const agentId = conv.agent_id;
     if (!acc[agentId]) {
       acc[agentId] = {
-        agent: conv.agents,
+        agent: conv.agents || { id: agentId, name: 'Unknown Agent' },
         conversational: null,
         summary: null
       };
@@ -62,7 +62,7 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
   return (
     <div className="space-y-4">
       {Object.values(groupedConversations).map((group: any, index: number) => (
-        <Card key={group.agent.id} className="overflow-hidden border-agent">
+        <Card key={group.agent?.id || `unknown-${index}`} className="overflow-hidden border-agent">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-4 pb-2 border-b">
               <User className="h-5 w-5 text-agent" />
@@ -77,7 +77,7 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
             <div className="pl-6 space-y-6">
               <div>
                 <h5 className="text-sm font-medium mb-2 text-muted-foreground">Skills Used:</h5>
-                <AgentSkills skills={group.agent?.skills} />
+                <AgentSkills skills={group.agent?.skills || []} />
               </div>
               
               {group.conversational && (
@@ -122,7 +122,7 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
                             prose-strong:text-foreground prose-strong:font-semibold
                             prose-li:text-foreground/90 prose-a:text-primary
                             [&>p]:leading-7 [&>ul]:mt-4 [&>ul]:list-none [&>ul]:pl-0
-                            [&>ul>li]:relative [&>ul>li]:pl-6 before:content-['•'] before:absolute before:left-0 before:top-0">
+                            [&>ul>li]:relative [&>ul>li]:pl-6">
                             <ReactMarkdown>{group.conversational.content}</ReactMarkdown>
                           </div>
                         </AccordionContent>
