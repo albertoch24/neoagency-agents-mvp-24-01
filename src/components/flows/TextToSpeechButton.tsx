@@ -45,7 +45,6 @@ export const TextToSpeechButton = ({
       }
 
       if (!secretData?.secret) {
-        console.error('ElevenLabs API key not found');
         toast.error('ElevenLabs API key not found. Please add it in settings.');
         return;
       }
@@ -56,24 +55,7 @@ export const TextToSpeechButton = ({
         return;
       }
 
-      // First verify the API key by checking available voices
-      const verifyResponse = await fetch('https://api.elevenlabs.io/v1/voices', {
-        headers: {
-          'Accept': 'application/json',
-          'xi-api-key': apiKey
-        }
-      });
-
-      if (!verifyResponse.ok) {
-        if (verifyResponse.status === 401) {
-          toast.error('Invalid ElevenLabs API key. Please check your API key in settings.');
-          return;
-        }
-        throw new Error('Failed to verify ElevenLabs API key');
-      }
-
-      // If verification passed, proceed with text-to-speech
-      const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL', {
+      const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/pFZP5JQG7iQjIQuC4Bku', {
         method: 'POST',
         headers: {
           'Accept': 'audio/mpeg',
@@ -85,8 +67,7 @@ export const TextToSpeechButton = ({
           model_id: "eleven_multilingual_v2",
           voice_settings: {
             stability: 0.5,
-            similarity_boost: 0.5,
-            style: 0.5,
+            similarity_boost: 0.75,
             use_speaker_boost: true
           }
         })
@@ -99,7 +80,16 @@ export const TextToSpeechButton = ({
           console.error('ElevenLabs API error:', errorData);
           
           if (response.status === 401) {
-            errorMessage = 'Invalid ElevenLabs API key. Please check your API key in settings.';
+            // Notify user about invalid API key
+            toast.error('Invalid ElevenLabs API key. Please update your API key in settings.');
+            
+            // Delete the invalid key from Supabase
+            await supabase
+              .from('secrets')
+              .delete()
+              .eq('name', 'ELEVEN_LABS_API_KEY');
+              
+            return;
           } else if (response.status === 429) {
             errorMessage = 'ElevenLabs API rate limit exceeded. Please try again later.';
           } else {
@@ -128,7 +118,7 @@ export const TextToSpeechButton = ({
       onPlayStateChange(true);
     } catch (error) {
       console.error('Error in text-to-speech:', error);
-      toast.error('Failed to generate speech. Please check your ElevenLabs API key.');
+      toast.error('Failed to generate speech. Please try again.');
       onPlayStateChange(false);
       onAudioElement(null);
     } finally {
