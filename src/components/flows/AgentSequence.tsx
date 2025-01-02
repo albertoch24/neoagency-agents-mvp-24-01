@@ -74,20 +74,40 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
               {group.conversational && (
                 <div>
                   <div className="flex justify-between items-center mb-3">
-                    <h5 className="text-sm font-medium text-muted-foreground">TEAM CONVERSATION</h5>
-                    <TextToSpeechButton
-                      text={group.conversational.content}
-                      convId={group.conversational.id}
-                      isPlaying={isPlaying[group.conversational.id]}
-                      onPlayStateChange={(playing) => handlePlayStateChange(group.conversational.id, playing)}
-                      onAudioElement={(audio) => handleAudioElement(group.conversational.id, audio)}
-                    />
+                    <h5 className="text-sm font-bold text-muted-foreground">TEAM CONVERSATION</h5>
+                    <div className="flex items-center gap-2">
+                      <TextToSpeechButton
+                        text={group.conversational.content}
+                        convId={group.conversational.id}
+                        isPlaying={isPlaying[group.conversational.id]}
+                        onPlayStateChange={(playing) => handlePlayStateChange(group.conversational.id, playing)}
+                        onAudioElement={(audio) => handleAudioElement(group.conversational.id, audio)}
+                      />
+                      <button
+                        onClick={() => {
+                          const accordionElement = document.querySelector(`[data-accordion-id="${group.conversational.id}"]`);
+                          if (accordionElement) {
+                            (accordionElement as HTMLButtonElement).click();
+                          }
+                        }}
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {isPlaying[group.conversational.id] ? "Show text" : "Hide text"}
+                      </button>
+                    </div>
                   </div>
                   <div className="bg-agent/5 rounded-lg p-6 shadow-sm">
-                    <Accordion type="single" collapsible defaultValue={isPlaying[group.conversational.id] ? undefined : "content"}>
+                    <Accordion 
+                      type="single" 
+                      collapsible 
+                      className="w-full"
+                    >
                       <AccordionItem value="content" className="border-none">
-                        <AccordionTrigger className="py-1 text-sm text-muted-foreground hover:no-underline">
-                          {isPlaying[group.conversational.id] ? "Show text" : "Hide text"}
+                        <AccordionTrigger 
+                          data-accordion-id={group.conversational.id}
+                          className="hidden"
+                        >
+                          Toggle Content
                         </AccordionTrigger>
                         <AccordionContent>
                           <div className="prose prose-sm max-w-none dark:prose-invert 
