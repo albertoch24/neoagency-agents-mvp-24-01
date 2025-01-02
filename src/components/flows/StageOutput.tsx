@@ -21,22 +21,32 @@ interface StageOutputProps {
 }
 
 export const StageOutput = ({ output }: StageOutputProps) => {
-  const { data: stageSummary } = useQuery({
+  const { data: stageSummary, isLoading, error } = useQuery({
     queryKey: ["stage-summary", output.stage_id],
     queryFn: async () => {
       if (!output.stage_id) return null;
 
+      console.log("Fetching summary for stage:", output.stage_id);
+
       // First, check if we already have a summary in the database
-      const { data: existingOutputs } = await supabase
+      const { data: existingOutputs, error: fetchError } = await supabase
         .from('brief_outputs')
         .select('stage_summary')
         .eq('stage_id', output.stage_id)
         .not('stage_summary', 'is', null)
-        .single();
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error("Error fetching existing summary:", fetchError);
+        throw fetchError;
+      }
 
       if (existingOutputs?.stage_summary) {
+        console.log("Found existing summary");
         return existingOutputs.stage_summary;
       }
+
+      console.log("No existing summary found, generating new one");
 
       // If no summary exists, generate one using our edge function
       const response = await fetch('/functions/v1/generate-stage-summary', {
@@ -51,6 +61,8 @@ export const StageOutput = ({ output }: StageOutputProps) => {
       });
 
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Failed to generate summary:", errorData);
         throw new Error('Failed to generate summary');
       }
 
@@ -58,12 +70,31 @@ export const StageOutput = ({ output }: StageOutputProps) => {
       return data.summary;
     },
     enabled: !!output?.stage_id,
+    retry: 1, // Only retry once to avoid too many attempts
   });
 
   if (!output?.content) {
     return null;
   }
 
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <Card className="mt-4">
+        <CardContent className="p-4">
+          <p className="text-sm font-medium mb-2">Generating Stage Summary...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Handle error state
+  if (error) {
+    console.error("Error in StageOutput:", error);
+    return null;
+  }
+
+  // Only show the summary if we have one
   if (!stageSummary) {
     return null;
   }
