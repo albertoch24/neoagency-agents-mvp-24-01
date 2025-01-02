@@ -19,6 +19,7 @@ interface AgentSequenceProps {
 export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
   const [isPlaying, setIsPlaying] = useState<{[key: string]: boolean}>({});
   const [audioElements, setAudioElements] = useState<{[key: string]: HTMLAudioElement | null}>({});
+  const [visibleTexts, setVisibleTexts] = useState<{[key: string]: boolean}>({});
 
   // Group conversations by agent and type
   const groupedConversations = conversations.reduce((acc: any, conv: any) => {
@@ -48,6 +49,14 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
       audioElements[convId]?.remove();
     }
     setAudioElements(prev => ({ ...prev, [convId]: audio }));
+  };
+
+  const toggleText = (convId: string) => {
+    setVisibleTexts(prev => ({ ...prev, [convId]: !prev[convId] }));
+    const accordionElement = document.querySelector(`[data-accordion-id="${convId}"]`);
+    if (accordionElement) {
+      (accordionElement as HTMLButtonElement).click();
+    }
   };
 
   return (
@@ -86,15 +95,10 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
                         onAudioElement={(audio) => handleAudioElement(group.conversational.id, audio)}
                       />
                       <button
-                        onClick={() => {
-                          const accordionElement = document.querySelector(`[data-accordion-id="${group.conversational.id}"]`);
-                          if (accordionElement) {
-                            (accordionElement as HTMLButtonElement).click();
-                          }
-                        }}
+                        onClick={() => toggleText(group.conversational.id)}
                         className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        {isPlaying[group.conversational.id] ? "Show text" : "Hide text"}
+                        {visibleTexts[group.conversational.id] ? "Hide text" : "Show text"}
                       </button>
                     </div>
                   </div>
@@ -103,6 +107,7 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
                       type="single" 
                       collapsible 
                       className="w-full"
+                      defaultValue=""
                     >
                       <AccordionItem value="content" className="border-none">
                         <AccordionTrigger 
