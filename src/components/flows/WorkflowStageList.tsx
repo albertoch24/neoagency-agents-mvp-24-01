@@ -16,19 +16,14 @@ interface WorkflowStageListProps {
 
 export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageListProps) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {stages.map(([stageId, conversations]) => {
-        // Ensure briefOutputs is an array and find the matching output
         const output = Array.isArray(briefOutputs) 
           ? briefOutputs.find((output) => output.stage === stageId)
           : null;
 
         return (
-          <div key={stageId} className="space-y-4">
-            <h4 className="text-lg font-semibold capitalize">
-              Stage: {stageId}
-            </h4>
-            
+          <div key={stageId} className="space-y-6">
             <div className="pl-4 space-y-4">
               <AgentSequence conversations={conversations} />
               {output && <StageOutput output={output} />}
