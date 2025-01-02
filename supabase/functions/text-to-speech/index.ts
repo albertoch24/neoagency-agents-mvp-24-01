@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -35,6 +36,23 @@ serve(async (req) => {
 
     const apiKey = secretData.secret;
 
+    // Test the API key first
+    const testResponse = await fetch('https://api.elevenlabs.io/v1/voices', {
+      headers: {
+        'xi-api-key': apiKey
+      }
+    });
+
+    if (!testResponse.ok) {
+      console.error('Invalid ElevenLabs API key');
+      // Remove invalid API key
+      await supabaseClient
+        .from('secrets')
+        .delete()
+        .eq('name', 'ELEVEN_LABS_API_KEY');
+      throw new Error('Invalid ElevenLabs API key');
+    }
+
     // Make request to ElevenLabs API
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
@@ -56,17 +74,6 @@ serve(async (req) => {
     if (!response.ok) {
       const errorData = await response.json();
       console.error('ElevenLabs API error:', errorData);
-      
-      if (response.status === 401) {
-        // Remove invalid API key
-        await supabaseClient
-          .from('secrets')
-          .delete()
-          .eq('name', 'ELEVEN_LABS_API_KEY');
-          
-        throw new Error('Invalid ElevenLabs API key');
-      }
-      
       throw new Error(errorData.detail?.message || 'Failed to generate speech');
     }
 
