@@ -6,6 +6,7 @@ import { useStageProcessing } from "@/hooks/useStageProcessing";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Tables } from "@/integrations/supabase/table.types";
 
 interface WorkflowDisplayProps {
   currentStage: string;
@@ -47,7 +48,7 @@ export const WorkflowDisplay = ({
     const checkAndProgressStage = async () => {
       if (!briefId || !currentStage || isProcessing) return;
 
-      const { data: conversations } = await queryClient.fetchQuery({
+      const { data: conversations } = await queryClient.fetchQuery<Tables<'workflow_conversations'>[]>({
         queryKey: ["workflow-conversations", briefId, currentStage],
         queryFn: async () => {
           const { data, error } = await supabase
@@ -57,7 +58,7 @@ export const WorkflowDisplay = ({
             .eq("stage_id", currentStage);
 
           if (error) throw error;
-          return data;
+          return data || [];
         }
       });
 
