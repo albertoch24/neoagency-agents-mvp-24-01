@@ -27,39 +27,50 @@ export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, 
   const { data: stageFlowSteps } = useQuery({
     queryKey: ["stage-flow-steps", currentStage],
     queryFn: async () => {
-      console.log("Fetching flow steps for stage:", currentStage);
-      
-      const { data: stageData, error: stageError } = await supabase
-        .from("stages")
-        .select(`
-          *,
-          flows (
-            id,
-            name,
-            flow_steps (
-              id,
-              agent_id,
-              requirements,
-              order_index,
-              outputs,
-              agents (
-                id,
-                name,
-                description
-              )
-            )
-          )
-        `)
-        .eq("id", currentStage)
-        .single();
-
-      if (stageError) {
-        console.error("Error fetching stage flow steps:", stageError);
-        throw stageError;
+      // Validate if currentStage is a valid UUID
+      if (!currentStage || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentStage)) {
+        console.log("Invalid stage ID format:", currentStage);
+        return null;
       }
 
-      console.log("Stage data with flow steps:", stageData);
-      return stageData;
+      console.log("Fetching flow steps for stage:", currentStage);
+      
+      try {
+        const { data: stageData, error: stageError } = await supabase
+          .from("stages")
+          .select(`
+            *,
+            flows (
+              id,
+              name,
+              flow_steps (
+                id,
+                agent_id,
+                requirements,
+                order_index,
+                outputs,
+                agents (
+                  id,
+                  name,
+                  description
+                )
+              )
+            )
+          `)
+          .eq("id", currentStage)
+          .single();
+
+        if (stageError) {
+          console.error("Error fetching stage flow steps:", stageError);
+          return null;
+        }
+
+        console.log("Stage data with flow steps:", stageData);
+        return stageData;
+      } catch (error) {
+        console.error("Error in stage flow steps query:", error);
+        return null;
+      }
     },
     enabled: !!currentStage
   });
