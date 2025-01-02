@@ -49,43 +49,63 @@ export const TextToSpeechButton = ({
       // Using Rachel's voice ID as default
       const voiceId = "21m00Tcm4TlvDq8ikWAM";
       
-      const response = await supabase.functions.invoke('text-to-speech', {
-        body: { text, voiceId }
+      const { data: secretData } = await supabase
+        .from('secrets')
+        .select('secret')
+        .eq('name', 'ELEVEN_LABS_API_KEY')
+        .maybeSingle();
+
+      if (!secretData?.secret) {
+        setShowApiKeyDialog(true);
+        throw new Error('ElevenLabs API key not found');
+      }
+
+      const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'xi-api-key': secretData.secret
+        },
+        body: JSON.stringify({
+          text,
+          model_id: "eleven_monolingual_v1",
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.5
+          }
+        })
       });
 
-      if (response.error) {
-        throw new Error(response.error.message);
+      if (!response.ok) {
+        if (response.status === 401) {
+          setShowApiKeyDialog(true);
+          throw new Error('Invalid ElevenLabs API key');
+        }
+        throw new Error('Failed to generate speech');
       }
 
-      if (response.data instanceof ArrayBuffer) {
-        console.log('Successfully received audio response');
-        const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
-        
-        console.log('Creating audio element...');
-        const audio = await audioManager.playAudio(audioBlob);
-        
-        audio.onended = () => {
-          console.log('Audio playback completed');
-          onPlayStateChange(false);
-          onAudioElement(null);
-          audioManager.cleanup();
-          console.log('Audio resources cleaned up');
-        };
-        
-        onAudioElement(audio);
-        audio.play();
-        onPlayStateChange(true);
-        console.log('Audio playback started');
-      } else {
-        throw new Error('Invalid response format from text-to-speech function');
-      }
+      const audioBlob = await response.blob();
+      console.log('Successfully received audio response');
+      
+      console.log('Creating audio element...');
+      const audio = await audioManager.playAudio(audioBlob);
+      
+      audio.onended = () => {
+        console.log('Audio playback completed');
+        onPlayStateChange(false);
+        onAudioElement(null);
+        audioManager.cleanup();
+        console.log('Audio resources cleaned up');
+      };
+      
+      onAudioElement(audio);
+      audio.play();
+      onPlayStateChange(true);
+      console.log('Audio playback started');
 
     } catch (error) {
-      console.error('Unexpected error in text-to-speech process:', error);
+      console.error('Error in text-to-speech process:', error);
       if (error instanceof Error) {
-        if (error.message.includes('Invalid API key')) {
-          setShowApiKeyDialog(true);
-        }
         toast.error(error.message);
       } else {
         toast.error('Failed to generate speech. Please try again.');
@@ -102,6 +122,17 @@ export const TextToSpeechButton = ({
   const handleApiKeySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Test the API key before saving
+      const testResponse = await fetch('https://api.elevenlabs.io/v1/voices', {
+        headers: {
+          'xi-api-key': apiKey.trim()
+        }
+      });
+
+      if (!testResponse.ok) {
+        throw new Error('Invalid API key');
+      }
+
       const { error } = await supabase
         .from('secrets')
         .upsert({ 
@@ -116,7 +147,7 @@ export const TextToSpeechButton = ({
       handleTextToSpeech();
     } catch (error) {
       console.error('Error saving API key:', error);
-      toast.error('Failed to save API key');
+      toast.error('Invalid API key');
     }
   };
 
