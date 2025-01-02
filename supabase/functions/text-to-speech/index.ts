@@ -19,24 +19,33 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Log Supabase connection details (without sensitive info)
+    console.log('Supabase URL:', Deno.env.get('SUPABASE_URL'));
+    console.log('Service Role Key exists:', !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+
     const { text, voiceId } = await req.json();
     console.log('Generating speech for text:', text, 'with voice:', voiceId);
 
-    // Get ElevenLabs API key from Supabase secrets
+    // Get ElevenLabs API key from Supabase secrets with better error handling
     const { data: secretData, error: secretError } = await supabaseClient
       .from('secrets')
       .select('secret')
       .eq('name', 'ELEVEN_LABS_API_KEY')
       .maybeSingle();
 
-    if (secretError || !secretData?.secret) {
+    if (secretError) {
       console.error('Error fetching ElevenLabs API key:', secretError);
       throw new Error('Failed to fetch ElevenLabs API key');
     }
 
+    if (!secretData?.secret) {
+      console.error('ElevenLabs API key not found in secrets');
+      throw new Error('ElevenLabs API key not found');
+    }
+
     const apiKey = secretData.secret;
 
-    // Test the API key first
+    // Validate the API key by testing it
     const testResponse = await fetch('https://api.elevenlabs.io/v1/voices', {
       headers: {
         'xi-api-key': apiKey
@@ -44,7 +53,7 @@ serve(async (req) => {
     });
 
     if (!testResponse.ok) {
-      console.error('Invalid ElevenLabs API key');
+      console.error('Invalid ElevenLabs API key - test request failed:', testResponse.status);
       // Remove invalid API key
       await supabaseClient
         .from('secrets')
