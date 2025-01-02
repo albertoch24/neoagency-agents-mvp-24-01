@@ -153,6 +153,18 @@ export async function processAgent(
       throw new Error(`Error saving schematic output: ${schematicError.message}`);
     }
 
+    // Generate and save stage summary
+    const { error: summaryError } = await supabase.functions.invoke('generate-stage-summary', {
+      body: { 
+        briefId: brief.id,
+        stageId: stageId
+      }
+    });
+
+    if (summaryError) {
+      console.error("Error generating stage summary:", summaryError);
+    }
+
     console.log("Agent processing completed successfully:", {
       briefId: brief.id,
       stageId: stageId,

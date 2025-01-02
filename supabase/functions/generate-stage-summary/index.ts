@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,58 +7,45 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { stageId } = await req.json();
+    const { briefId, stageId } = await req.json();
+    console.log("Generating stage summary for:", { briefId, stageId });
 
-    // Create Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Fetch all outputs for this stage
-    const { data: outputs, error: fetchError } = await supabaseClient
-      .from('brief_outputs')
-      .select('content')
-      .eq('stage_id', stageId);
+    const { data: outputs, error: outputsError } = await supabase
+      .from('workflow_conversations')
+      .select('content, output_type')
+      .eq('brief_id', briefId)
+      .eq('stage_id', stageId)
+      .eq('output_type', 'summary');
 
-    if (fetchError) {
-      throw new Error(`Error fetching outputs: ${fetchError.message}`);
+    if (outputsError) {
+      throw outputsError;
     }
 
-    if (!outputs?.length) {
-      return new Response(
-        JSON.stringify({ summary: "No outputs found for this stage." }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (!outputs || outputs.length === 0) {
+      throw new Error('No outputs found for summary generation');
     }
 
-    // Extract all summaries from the outputs
-    const summaries = outputs.map(output => {
-      if (output.content.outputs) {
-        return output.content.outputs
-          .map((agentOutput: any) => {
-            if (Array.isArray(agentOutput.outputs)) {
-              return agentOutput.outputs
-                .map((output: any) => output.content || '')
-                .join('\n');
-            }
-            return '';
-          })
-          .join('\n');
-      }
-      return output.content.response || '';
-    }).filter(Boolean);
+    // Combine all summaries
+    const combinedContent = outputs.map(o => o.content).join('\n\n');
 
-    // Use OpenAI to generate a comprehensive summary
+    // Generate summary using OpenAI
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -66,44 +53,40 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a professional summarizer. Create a concise, clear summary of the following workflow outputs. Focus on key points and actionable insights.'
+            content: 'You are a professional summarizer. Create a concise summary of the following content, highlighting the key points and insights.'
           },
           {
             role: 'user',
-            content: `Please summarize these workflow outputs:\n\n${summaries.join('\n\n')}`
+            content: combinedContent
           }
         ],
-        temperature: 0.7,
-        max_tokens: 500
       }),
     });
 
-    const openAIResponse = await response.json();
-    const summary = openAIResponse.choices[0].message.content;
+    const data = await response.json();
+    const summary = data.choices[0].message.content;
 
-    // Update the brief_outputs table with the new summary
-    const { error: updateError } = await supabaseClient
+    // Save the summary
+    const { error: updateError } = await supabase
       .from('brief_outputs')
       .update({ stage_summary: summary })
-      .eq('stage_id', stageId);
+      .eq('brief_id', briefId)
+      .eq('stage', stageId);
 
     if (updateError) {
-      throw new Error(`Error updating summary: ${updateError.message}`);
+      throw updateError;
     }
 
-    return new Response(
-      JSON.stringify({ summary }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.log("Stage summary generated successfully");
 
+    return new Response(JSON.stringify({ success: true, summary }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
-    console.error('Error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    console.error('Error in generate-stage-summary function:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

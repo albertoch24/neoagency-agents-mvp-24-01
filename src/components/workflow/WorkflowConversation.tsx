@@ -10,7 +10,7 @@ interface WorkflowConversationProps {
 
 export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversationProps) => {
   // Query to fetch conversations with no caching to ensure fresh data
-  const { data: conversations } = useQuery({
+  const { data: conversations, isError: isConversationsError } = useQuery({
     queryKey: ["workflow-conversations", briefId, currentStage],
     queryFn: async () => {
       console.log("Fetching conversations for stage:", currentStage);
@@ -36,8 +36,8 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
         .order("created_at", { ascending: true });
 
       if (conversationsError) {
-        console.log("Error fetching conversations:", conversationsError);
-        return [];
+        console.error("Error fetching conversations:", conversationsError);
+        throw conversationsError;
       }
 
       console.log("Found conversations:", conversationsData);
@@ -49,8 +49,8 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
     refetchInterval: 5000,
   });
 
-  // Query to fetch outputs
-  const { data: outputs } = useQuery({
+  // Query to fetch outputs with proper error handling
+  const { data: outputs, isError: isOutputsError } = useQuery({
     queryKey: ["brief-outputs", briefId, currentStage],
     queryFn: async () => {
       console.log("Fetching outputs for stage:", currentStage);
@@ -63,8 +63,8 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
         .order("created_at", { ascending: false });
 
       if (outputsError) {
-        console.log("Error fetching outputs:", outputsError);
-        return [];
+        console.error("Error fetching outputs:", outputsError);
+        throw outputsError;
       }
 
       // Transform the outputs to match the expected format
@@ -83,6 +83,7 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
     enabled: !!briefId && !!currentStage,
     staleTime: 0,
     gcTime: 0,
+    retry: 3,
   });
 
   // Group conversations by stage
@@ -96,6 +97,23 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
 
   // Convert to array of tuples [stageId, conversations[]]
   const stages = groupedConversations ? Object.entries(groupedConversations) : [];
+
+  // Log any errors for debugging
+  if (isConversationsError || isOutputsError) {
+    console.error("Errors in workflow conversation:", {
+      conversationsError: isConversationsError,
+      outputsError: isOutputsError
+    });
+  }
+
+  // Log workflow progress for debugging
+  console.log("Workflow progress:", {
+    briefId,
+    currentStage,
+    conversationsCount: conversations?.length,
+    outputsCount: outputs?.length,
+    stages: stages.length
+  });
 
   if (!conversations?.length && !outputs?.length) {
     return null;
