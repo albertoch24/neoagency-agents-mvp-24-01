@@ -30,18 +30,26 @@ serve(async (req) => {
       .eq('output_type', 'summary');
 
     if (outputsError) {
+      console.error("Error fetching outputs:", outputsError);
       throw outputsError;
     }
 
     if (!outputs || outputs.length === 0) {
+      console.error("No outputs found for summary generation");
       throw new Error('No outputs found for summary generation');
     }
 
     // Combine all summaries
     const combinedContent = outputs.map(o => o.content).join('\n\n');
+    console.log("Combined content length:", combinedContent.length);
 
     // Generate summary using OpenAI
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not found');
+    }
+
+    console.log("Calling OpenAI API for summary generation");
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -49,7 +57,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
@@ -60,11 +68,20 @@ serve(async (req) => {
             content: combinedContent
           }
         ],
+        max_tokens: 500,
+        temperature: 0.7,
       }),
     });
 
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("OpenAI API error:", error);
+      throw new Error(`OpenAI API error: ${error.error?.message || 'Unknown error'}`);
+    }
+
     const data = await response.json();
     const summary = data.choices[0].message.content;
+    console.log("Summary generated successfully");
 
     // Save the summary
     const { error: updateError } = await supabase
@@ -74,10 +91,11 @@ serve(async (req) => {
       .eq('stage', stageId);
 
     if (updateError) {
+      console.error("Error saving summary:", updateError);
       throw updateError;
     }
 
-    console.log("Stage summary generated successfully");
+    console.log("Stage summary saved successfully");
 
     return new Response(JSON.stringify({ success: true, summary }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
