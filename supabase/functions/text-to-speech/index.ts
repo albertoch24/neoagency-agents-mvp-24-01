@@ -14,15 +14,15 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voiceId } = await req.json();
-    console.log('Generating speech for text:', text, 'with voice:', voiceId);
-
-    // Get ElevenLabs API key from Supabase secrets
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    const { text, voiceId } = await req.json();
+    console.log('Generating speech for text:', text, 'with voice:', voiceId);
+
+    // Get ElevenLabs API key from Supabase secrets
     const { data: secretData, error: secretError } = await supabaseClient
       .from('secrets')
       .select('secret')
