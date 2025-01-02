@@ -48,7 +48,7 @@ export const WorkflowDisplay = ({
     const checkAndProgressStage = async () => {
       if (!briefId || !currentStage || isProcessing) return;
 
-      const { data: conversations } = await queryClient.fetchQuery<Tables<'workflow_conversations'>[]>({
+      const conversations = await queryClient.fetchQuery<Tables<'workflow_conversations'>[]>({
         queryKey: ["workflow-conversations", briefId, currentStage],
         queryFn: async () => {
           const { data, error } = await supabase
