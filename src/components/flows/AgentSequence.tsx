@@ -122,7 +122,7 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
                             prose-strong:text-foreground prose-strong:font-semibold
                             prose-li:text-foreground/90 prose-a:text-primary
                             [&>p]:leading-7 [&>ul]:mt-4 [&>ul]:list-none [&>ul]:pl-0
-                            [&>ul>li]:relative [&>ul>li]:pl-4">
+                            [&>ul>li]:relative [&>ul>li]:pl-6 before:content-['•'] before:absolute before:left-0 before:top-0">
                             <ReactMarkdown>{group.conversational.content}</ReactMarkdown>
                           </div>
                         </AccordionContent>

@@ -2,9 +2,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { processWorkflowStage } from "@/services/workflowService";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const useStageProcessing = (briefId: string) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const queryClient = useQueryClient();
 
   const processStage = async (nextStage: any) => {
     setIsProcessing(true);
@@ -47,7 +49,7 @@ export const useStageProcessing = (briefId: string) => {
             )
           `)
           .eq("id", nextStage.id)
-          .single();
+          .maybeSingle();
 
         if (stageError) {
           console.error("Error fetching stage data:", stageError);
@@ -75,6 +77,9 @@ export const useStageProcessing = (briefId: string) => {
         throw new Error("No flow steps found for this stage");
       }
 
+      // Sort flow steps by order_index to ensure correct processing order
+      flowSteps.sort((a, b) => a.order_index - b.order_index);
+
       console.log("Found flow steps:", {
         stageId: nextStage.id,
         flowId: flow.id,
@@ -88,10 +93,18 @@ export const useStageProcessing = (briefId: string) => {
 
       // Process the workflow stage
       await processWorkflowStage(briefId, nextStage, flowSteps);
+
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+      await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+
       toast.dismiss(toastId);
       toast.success(`${nextStage.name} stage processed successfully! You can now view the results.`, {
         duration: 8000
       });
+
+      // Return success to enable automatic progression
+      return true;
     } catch (error) {
       console.error("Error processing stage:", error);
       toast.dismiss(toastId);
@@ -101,6 +114,7 @@ export const useStageProcessing = (briefId: string) => {
           : "Failed to process stage. Please try again or contact support.",
         { duration: 8000 }
       );
+      return false;
     } finally {
       setIsProcessing(false);
     }

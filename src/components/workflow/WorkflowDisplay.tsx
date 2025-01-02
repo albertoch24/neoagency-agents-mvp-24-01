@@ -3,6 +3,8 @@ import { WorkflowConversation } from "./WorkflowConversation";
 import { WorkflowDisplayActions } from "./WorkflowDisplayActions";
 import { useStagesData } from "@/hooks/useStagesData";
 import { useStageProcessing } from "@/hooks/useStageProcessing";
+import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface WorkflowDisplayProps {
   currentStage: string;
@@ -17,6 +19,7 @@ export const WorkflowDisplay = ({
 }: WorkflowDisplayProps) => {
   const { data: stages = [] } = useStagesData(briefId);
   const { isProcessing, processStage } = useStageProcessing(briefId || "");
+  const queryClient = useQueryClient();
 
   const handleNextStage = async () => {
     if (!briefId) return;
@@ -27,9 +30,59 @@ export const WorkflowDisplay = ({
     const nextStage = stages[currentIndex + 1];
     if (!nextStage) return;
 
-    await processStage(nextStage);
-    onStageSelect(nextStage);
+    const success = await processStage(nextStage);
+    if (success) {
+      // Automatically select the next stage after successful processing
+      onStageSelect(nextStage);
+      
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+      await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+    }
   };
+
+  // Effect to handle automatic progression after initial stage processing
+  useEffect(() => {
+    const checkAndProgressStage = async () => {
+      if (!briefId || !currentStage || isProcessing) return;
+
+      const { data: conversations } = await queryClient.fetchQuery({
+        queryKey: ["workflow-conversations", briefId, currentStage],
+        queryFn: async () => {
+          const { data, error } = await supabase
+            .from("workflow_conversations")
+            .select("*")
+            .eq("brief_id", briefId)
+            .eq("stage_id", currentStage);
+
+          if (error) throw error;
+          return data;
+        }
+      });
+
+      // If we have conversations for the current stage, try to progress to the next
+      if (conversations?.length > 0) {
+        const currentIndex = stages.findIndex(stage => stage.id === currentStage);
+        const nextStage = stages[currentIndex + 1];
+        
+        if (nextStage) {
+          // Check if next stage already has conversations
+          const { data: nextStageConversations } = await supabase
+            .from("workflow_conversations")
+            .select("*")
+            .eq("brief_id", briefId)
+            .eq("stage_id", nextStage.id);
+
+          // Only process next stage if it hasn't been processed yet
+          if (!nextStageConversations?.length) {
+            await handleNextStage();
+          }
+        }
+      }
+    };
+
+    checkAndProgressStage();
+  }, [currentStage, briefId, stages, isProcessing]);
 
   if (!stages.length) {
     return (
