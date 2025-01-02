@@ -2,7 +2,6 @@ import { useState, useCallback } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { fetchElevenLabsApiKey, generateSpeech } from "@/utils/elevenlabs/api";
 import { AudioManager } from "@/utils/elevenlabs/audio";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -47,33 +46,39 @@ export const TextToSpeechButton = ({
       setIsLoading(true);
       console.log('Starting text-to-speech process...');
 
-      const apiKey = await fetchElevenLabsApiKey();
-      if (!apiKey) {
-        setShowApiKeyDialog(true);
-        return;
+      // Using Rachel's voice ID as default
+      const voiceId = "21m00Tcm4TlvDq8ikWAM";
+      
+      const response = await supabase.functions.invoke('text-to-speech', {
+        body: { text, voiceId }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
       }
 
-      // Using Rachel's voice ID as default
-      const response = await generateSpeech(text, "21m00Tcm4TlvDq8ikWAM", apiKey);
-      
-      console.log('Successfully received audio response from ElevenLabs');
-      const audioBlob = await response.blob();
-      
-      console.log('Creating audio element...');
-      const audio = await audioManager.playAudio(audioBlob);
-      
-      audio.onended = () => {
-        console.log('Audio playback completed');
-        onPlayStateChange(false);
-        onAudioElement(null);
-        audioManager.cleanup();
-        console.log('Audio resources cleaned up');
-      };
-      
-      onAudioElement(audio);
-      audio.play();
-      onPlayStateChange(true);
-      console.log('Audio playback started');
+      if (response.data instanceof ArrayBuffer) {
+        console.log('Successfully received audio response');
+        const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
+        
+        console.log('Creating audio element...');
+        const audio = await audioManager.playAudio(audioBlob);
+        
+        audio.onended = () => {
+          console.log('Audio playback completed');
+          onPlayStateChange(false);
+          onAudioElement(null);
+          audioManager.cleanup();
+          console.log('Audio resources cleaned up');
+        };
+        
+        onAudioElement(audio);
+        audio.play();
+        onPlayStateChange(true);
+        console.log('Audio playback started');
+      } else {
+        throw new Error('Invalid response format from text-to-speech function');
+      }
 
     } catch (error) {
       console.error('Unexpected error in text-to-speech process:', error);

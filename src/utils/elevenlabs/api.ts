@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// Keep these functions for potential future use or local development
 export const fetchElevenLabsApiKey = async () => {
   console.log('Fetching ElevenLabs API key from Supabase...');
   const { data: secretData, error: secretError } = await supabase
@@ -18,14 +19,6 @@ export const fetchElevenLabsApiKey = async () => {
   if (!apiKey) {
     console.log('No API key found in Supabase');
     throw new Error('No ElevenLabs API key found');
-  }
-
-  // Validate the API key before returning it
-  const isValid = await validateApiKey(apiKey);
-  if (!isValid) {
-    console.error('Invalid API key detected');
-    await removeInvalidApiKey();
-    throw new Error('Invalid ElevenLabs API key. Please add a valid key.');
   }
 
   return apiKey;
@@ -58,42 +51,7 @@ export const removeInvalidApiKey = async () => {
   }
 };
 
-export const generateSpeech = async (text: string, voiceId: string, apiKey: string): Promise<Response> => {
-  console.log(`Making request to ElevenLabs API...`);
-  
-  const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-    method: 'POST',
-    headers: {
-      'Accept': 'audio/mpeg',
-      'Content-Type': 'application/json',
-      'xi-api-key': apiKey
-    },
-    body: JSON.stringify({
-      text,
-      model_id: "eleven_multilingual_v2",
-      voice_settings: {
-        stability: 0.5,
-        similarity_boost: 0.75
-      }
-    })
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    console.error('ElevenLabs API error details:', {
-      status: response.status,
-      statusText: response.statusText,
-      errorData
-    });
-
-    if (response.status === 401) {
-      await removeInvalidApiKey();
-      toast.error('Invalid API key detected. Please add a valid key.');
-      throw new Error('Invalid API key');
-    }
-
-    throw new Error(errorData.detail?.message || 'Unknown error');
-  }
-
-  return response;
+// This function is now handled by the edge function
+export const generateSpeech = async () => {
+  throw new Error('This function has been moved to an edge function');
 };
