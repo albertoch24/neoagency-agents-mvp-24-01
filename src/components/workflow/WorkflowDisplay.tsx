@@ -32,9 +32,10 @@ export const WorkflowDisplay = ({
     const nextStage = stages[currentIndex + 1];
     if (!nextStage) return;
 
+    console.log("Processing next stage:", nextStage.id);
     const success = await processStage(nextStage);
     if (success) {
-      // Automatically select the next stage after successful processing
+      console.log("Stage processed successfully, selecting next stage:", nextStage.id);
       onStageSelect(nextStage);
       
       // Invalidate queries to refresh data
@@ -46,40 +47,54 @@ export const WorkflowDisplay = ({
   // Effect to handle automatic progression after initial stage processing
   useEffect(() => {
     const checkAndProgressStage = async () => {
-      if (!briefId || !currentStage || isProcessing) return;
+      if (!briefId || !currentStage || isProcessing) {
+        console.log("Skipping progression check:", { briefId, currentStage, isProcessing });
+        return;
+      }
 
-      const conversations = await queryClient.fetchQuery<Tables<'workflow_conversations'>[]>({
-        queryKey: ["workflow-conversations", briefId, currentStage],
-        queryFn: async () => {
-          const { data, error } = await supabase
-            .from("workflow_conversations")
-            .select("*")
-            .eq("brief_id", briefId)
-            .eq("stage_id", currentStage);
+      try {
+        console.log("Checking conversations for current stage:", currentStage);
+        const { data: conversations, error } = await supabase
+          .from("workflow_conversations")
+          .select("*")
+          .eq("brief_id", briefId)
+          .eq("stage_id", currentStage);
 
-          if (error) throw error;
-          return data || [];
+        if (error) {
+          console.error("Error fetching conversations:", error);
+          return;
         }
-      });
 
-      // If we have conversations for the current stage, try to progress to the next
-      if (conversations?.length > 0) {
-        const currentIndex = stages.findIndex(stage => stage.id === currentStage);
-        const nextStage = stages[currentIndex + 1];
+        console.log("Found conversations:", conversations?.length);
         
-        if (nextStage) {
-          // Check if next stage already has conversations
-          const { data: nextStageConversations } = await supabase
-            .from("workflow_conversations")
-            .select("*")
-            .eq("brief_id", briefId)
-            .eq("stage_id", nextStage.id);
+        // If we have conversations for the current stage, try to progress to the next
+        if (conversations?.length > 0) {
+          const currentIndex = stages.findIndex(stage => stage.id === currentStage);
+          const nextStage = stages[currentIndex + 1];
+          
+          if (nextStage) {
+            console.log("Checking next stage conversations:", nextStage.id);
+            // Check if next stage already has conversations
+            const { data: nextStageConversations, error: nextError } = await supabase
+              .from("workflow_conversations")
+              .select("*")
+              .eq("brief_id", briefId)
+              .eq("stage_id", nextStage.id);
 
-          // Only process next stage if it hasn't been processed yet
-          if (!nextStageConversations?.length) {
-            await handleNextStage();
+            if (nextError) {
+              console.error("Error checking next stage:", nextError);
+              return;
+            }
+
+            // Only process next stage if it hasn't been processed yet
+            if (!nextStageConversations?.length) {
+              console.log("Processing next stage automatically:", nextStage.id);
+              await handleNextStage();
+            }
           }
         }
+      } catch (error) {
+        console.error("Error in progression check:", error);
       }
     };
 
