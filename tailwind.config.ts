@@ -98,13 +98,10 @@ export default {
               marginBottom: '0.5rem',
             },
             'ul > li': {
-              paddingLeft: '1.5rem',
               position: 'relative',
+              paddingLeft: '1.5rem',
               '&::before': {
-                content: '"•"',
-                position: 'absolute',
-                left: '0.25rem',
-                color: 'hsl(var(--foreground))',
+                display: 'none', // Remove the default bullet
               },
             },
             strong: {
