@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { AudioManager } from "@/utils/elevenlabs/audio";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 interface TextToSpeechButtonProps {
   text: string;
@@ -155,14 +156,26 @@ export const TextToSpeechButton = ({
     <>
       <Button
         variant="outline"
-        size="sm"
+        size="lg"
         onClick={handleTextToSpeech}
         disabled={isLoading}
+        className={cn(
+          "flex items-center gap-2 px-6 py-3 text-base transition-all duration-200",
+          isPlaying && "bg-primary text-primary-foreground animate-pulse"
+        )}
       >
-        {isPlaying ? (
-          <VolumeX className="h-4 w-4" />
+        {isLoading ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : isPlaying ? (
+          <>
+            <VolumeX className="h-5 w-5" />
+            <span>Stop Audio</span>
+          </>
         ) : (
-          <Volume2 className="h-4 w-4" />
+          <>
+            <Volume2 className="h-5 w-5" />
+            <span>Listen</span>
+          </>
         )}
       </Button>
 

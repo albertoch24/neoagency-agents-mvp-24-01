@@ -5,6 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import ReactMarkdown from 'react-markdown';
 import { useState } from "react";
 import { TextToSpeechButton } from "./TextToSpeechButton";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface AgentSequenceProps {
   conversations: any[];
@@ -78,14 +84,23 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
                     />
                   </div>
                   <div className="bg-agent/5 rounded-lg p-6 shadow-sm">
-                    <div className={`prose prose-sm max-w-none dark:prose-invert 
-                      prose-p:text-foreground/90 prose-headings:text-foreground
-                      prose-strong:text-foreground prose-strong:font-semibold
-                      prose-li:text-foreground/90 prose-a:text-primary
-                      [&>p]:leading-7 [&>ul]:mt-4 [&>ul]:list-none [&>ul]:pl-0
-                      [&>ul>li]:relative [&>ul>li]:pl-4 ${isPlaying[group.conversational.id] ? 'hidden' : ''}`}>
-                      <ReactMarkdown>{group.conversational.content}</ReactMarkdown>
-                    </div>
+                    <Accordion type="single" collapsible defaultValue={isPlaying[group.conversational.id] ? undefined : "content"}>
+                      <AccordionItem value="content" className="border-none">
+                        <AccordionTrigger className="py-1 text-sm text-muted-foreground hover:no-underline">
+                          {isPlaying[group.conversational.id] ? "Show text" : "Hide text"}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="prose prose-sm max-w-none dark:prose-invert 
+                            prose-p:text-foreground/90 prose-headings:text-foreground
+                            prose-strong:text-foreground prose-strong:font-semibold
+                            prose-li:text-foreground/90 prose-a:text-primary
+                            [&>p]:leading-7 [&>ul]:mt-4 [&>ul]:list-none [&>ul]:pl-0
+                            [&>ul>li]:relative [&>ul>li]:pl-4">
+                            <ReactMarkdown>{group.conversational.content}</ReactMarkdown>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
                   </div>
                 </div>
               )}
@@ -94,16 +109,9 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
                 <div>
                   <div className="flex justify-between items-center mb-3">
                     <h5 className="text-sm font-medium text-muted-foreground">Summary:</h5>
-                    <TextToSpeechButton
-                      text={group.summary.content}
-                      convId={group.summary.id}
-                      isPlaying={isPlaying[group.summary.id]}
-                      onPlayStateChange={(playing) => handlePlayStateChange(group.summary.id, playing)}
-                      onAudioElement={(audio) => handleAudioElement(group.summary.id, audio)}
-                    />
                   </div>
                   <div className="bg-muted rounded-lg p-6">
-                    <div className={`prose prose-sm max-w-none dark:prose-invert ${isPlaying[group.summary.id] ? 'hidden' : ''}`}>
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
                       <ReactMarkdown>{group.summary.content}</ReactMarkdown>
                     </div>
                   </div>
