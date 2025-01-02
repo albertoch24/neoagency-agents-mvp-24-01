@@ -48,7 +48,13 @@ export const TextToSpeechButton = ({
       console.log('Starting text-to-speech process...');
 
       const apiKey = await fetchElevenLabsApiKey();
-      const response = await generateSpeech(text, "pFZP5JQG7iQjIQuC4Bku", apiKey);
+      if (!apiKey) {
+        setShowApiKeyDialog(true);
+        return;
+      }
+
+      // Using Rachel's voice ID as default
+      const response = await generateSpeech(text, "21m00Tcm4TlvDq8ikWAM", apiKey);
       
       console.log('Successfully received audio response from ElevenLabs');
       const audioBlob = await response.blob();
@@ -72,6 +78,9 @@ export const TextToSpeechButton = ({
     } catch (error) {
       console.error('Unexpected error in text-to-speech process:', error);
       if (error instanceof Error) {
+        if (error.message.includes('Invalid API key')) {
+          setShowApiKeyDialog(true);
+        }
         toast.error(error.message);
       } else {
         toast.error('Failed to generate speech. Please try again.');

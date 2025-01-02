@@ -58,8 +58,8 @@ export const removeInvalidApiKey = async () => {
   }
 };
 
-export const generateSpeech = async (text: string, voiceId: string, apiKey: string, retryCount = 0): Promise<Response> => {
-  console.log(`Making request to ElevenLabs API (attempt ${retryCount + 1})...`);
+export const generateSpeech = async (text: string, voiceId: string, apiKey: string): Promise<Response> => {
+  console.log(`Making request to ElevenLabs API...`);
   
   const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
     method: 'POST',
