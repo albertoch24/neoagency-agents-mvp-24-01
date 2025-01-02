@@ -73,8 +73,10 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
               
               {group.conversational && (
                 <div>
-                  <div className="flex justify-between items-center mb-3">
-                    <h5 className="text-sm font-bold text-muted-foreground">TEAM CONVERSATION</h5>
+                  <div className="flex items-center gap-4 mb-3">
+                    <h5 className="text-sm font-bold text-muted-foreground flex-shrink-0">
+                      TEAM CONVERSATION
+                    </h5>
                     <div className="flex items-center gap-2">
                       <TextToSpeechButton
                         text={group.conversational.content}
@@ -90,7 +92,7 @@ export const AgentSequence = ({ conversations }: AgentSequenceProps) => {
                             (accordionElement as HTMLButtonElement).click();
                           }
                         }}
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                       >
                         {isPlaying[group.conversational.id] ? "Show text" : "Hide text"}
                       </button>
