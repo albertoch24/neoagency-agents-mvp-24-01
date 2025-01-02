@@ -1,9 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 2000;
-
 export const fetchElevenLabsApiKey = async () => {
   console.log('Fetching ElevenLabs API key from Supabase...');
   const { data: secretData, error: secretError } = await supabase
@@ -21,6 +18,14 @@ export const fetchElevenLabsApiKey = async () => {
   if (!apiKey) {
     console.log('No API key found in Supabase');
     throw new Error('No ElevenLabs API key found');
+  }
+
+  // Validate the API key before returning it
+  const isValid = await validateApiKey(apiKey);
+  if (!isValid) {
+    console.error('Invalid API key detected');
+    await removeInvalidApiKey();
+    throw new Error('Invalid ElevenLabs API key. Please add a valid key.');
   }
 
   return apiKey;
@@ -83,13 +88,8 @@ export const generateSpeech = async (text: string, voiceId: string, apiKey: stri
 
     if (response.status === 401) {
       await removeInvalidApiKey();
+      toast.error('Invalid API key detected. Please add a valid key.');
       throw new Error('Invalid API key');
-    }
-
-    if (response.status === 429 && retryCount < MAX_RETRIES) {
-      console.log(`Rate limit exceeded, retrying in ${RETRY_DELAY}ms...`);
-      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (retryCount + 1)));
-      return generateSpeech(text, voiceId, apiKey, retryCount + 1);
     }
 
     throw new Error(errorData.detail?.message || 'Unknown error');
