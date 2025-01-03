@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { WorkflowStage } from "@/types/workflow";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const iconMap = {
   flag: Flag,
@@ -27,7 +28,6 @@ export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, 
   const { data: stageFlowSteps } = useQuery({
     queryKey: ["stage-flow-steps", currentStage],
     queryFn: async () => {
-      // Validate if currentStage is a valid UUID
       if (!currentStage || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentStage)) {
         console.log("Invalid stage ID format:", currentStage);
         return null;
@@ -92,6 +92,27 @@ export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, 
     enabled: !!briefId
   });
 
+  const handleStageClick = (stage: WorkflowStage, index: number) => {
+    if (disabled) return;
+
+    const currentIndex = stages.findIndex(s => s.id === currentStage);
+    const isCompleted = completedStages?.includes(stage.id);
+    const isPreviousCompleted = index > 0 ? completedStages?.includes(stages[index - 1].id) : true;
+    const isNextStage = index === currentIndex + 1;
+
+    if (!isCompleted && !isPreviousCompleted) {
+      toast.error("Please complete the previous stage first");
+      return;
+    }
+
+    if (!isCompleted && !isNextStage) {
+      toast.error("Please complete stages in order");
+      return;
+    }
+
+    onStageSelect(stage);
+  };
+
   if (!stages || stages.length === 0) {
     return null;
   }
@@ -115,10 +136,11 @@ export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, 
         const isActive = currentStage === stage.id;
         const isCompleted = completedStages?.includes(stage.id);
         const isNext = index === currentStageIndex + 1;
+        const isPreviousCompleted = index > 0 ? completedStages?.includes(stages[index - 1].id) : true;
+        const isClickable = !disabled && (isCompleted || (isPreviousCompleted && isNext));
 
         // Get flow steps count for the current stage
         const flowStepsCount = stageFlowSteps?.flows?.flow_steps?.length || 0;
-        console.log(`Flow steps count for stage ${stage.name}:`, flowStepsCount);
 
         return (
           <Card
@@ -127,10 +149,10 @@ export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, 
               "transition-all",
               isActive && "border-primary",
               isCompleted && "bg-muted",
-              !disabled && "hover:shadow-md cursor-pointer",
-              disabled && "opacity-50 cursor-not-allowed"
+              isClickable && "hover:shadow-md cursor-pointer",
+              (!isClickable || disabled) && "opacity-50 cursor-not-allowed"
             )}
-            onClick={() => !disabled && onStageSelect(stage)}
+            onClick={() => handleStageClick(stage, index)}
           >
             <CardHeader className="space-y-1">
               <CardTitle className="flex items-center gap-2 text-lg">

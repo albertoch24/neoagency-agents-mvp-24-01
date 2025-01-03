@@ -52,27 +52,21 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         return;
       }
 
-      console.log("Retrieved stage with flow:", stage);
+      console.log("Retrieved first stage:", stage);
 
-      // Sort flow steps by order_index
-      const flowSteps = stage.flows?.flow_steps || [];
-      console.log("Retrieved flow steps before sorting:", flowSteps);
-      flowSteps.sort((a, b) => a.order_index - b.order_index);
-      console.log("Flow steps after sorting:", flowSteps);
-
-      // Start workflow processing
+      // Automatically start processing for the first stage only
       const toastId = toast.loading(
-        "Starting workflow process... This may take a few minutes. We're analyzing your brief and generating insights. Please don't close this window.",
+        "Starting initial workflow process... This may take a few minutes. We're analyzing your brief and generating insights. Please don't close this window.",
         { duration: 120000 } // 2 minutes
       );
 
       try {
-        await processWorkflowStage(brief.id, stage, flowSteps);
+        await processWorkflowStage(brief.id, stage);
         toast.dismiss(toastId);
         toast.success(
           initialData 
-            ? "Brief updated and workflow restarted successfully! You can now view the results."
-            : "Brief submitted and workflow completed successfully! You can now view the results.",
+            ? "Brief updated and initial workflow started successfully! You can now view the results."
+            : "Brief submitted and initial workflow completed successfully! You can now view the results.",
           { duration: 8000 }
         );
 
@@ -86,7 +80,6 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         onSubmitSuccess?.();
         
         // Navigate to the index page with the stage and brief ID parameters
-        // and explicitly set showOutputs=true to ensure outputs are visible
         navigate(`/?briefId=${brief.id}&stage=${stage.id}&showOutputs=true`, {
           replace: true
         });
