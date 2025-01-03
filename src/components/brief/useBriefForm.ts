@@ -61,7 +61,13 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       );
 
       try {
-        await processWorkflowStage(brief.id, stage);
+        // Get flow steps from the stage's flow
+        const flowSteps = stage.flows?.flow_steps || [];
+        if (!flowSteps.length) {
+          throw new Error("No flow steps found for the first stage");
+        }
+
+        await processWorkflowStage(brief.id, stage, flowSteps);
         toast.dismiss(toastId);
         toast.success(
           initialData 
