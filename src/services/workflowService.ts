@@ -21,18 +21,22 @@ export const processWorkflowStage = async (
     throw new Error(`Stage "${stage.name}" has no associated flow`);
   }
 
-  if (flowSteps.length === 0) {
-    throw new Error("No flow steps found");
+  // Use the validated flow steps from the database
+  const validatedFlowSteps = validation.flowSteps;
+  if (!validatedFlowSteps || validatedFlowSteps.length === 0) {
+    throw new Error("No valid flow steps found");
   }
-
-  // Ensure steps are sorted by order_index
-  flowSteps.sort((a, b) => a.order_index - b.order_index);
 
   console.log("Processing workflow steps:", {
     briefId,
     stageId: stage.id,
     flowId: stage.flow_id,
-    stepsCount: flowSteps.length
+    stepsCount: validatedFlowSteps.length,
+    steps: validatedFlowSteps.map(step => ({
+      id: step.id,
+      agentId: step.agent_id,
+      orderIndex: step.order_index
+    }))
   });
 
   const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
@@ -42,7 +46,7 @@ export const processWorkflowStage = async (
         briefId, 
         stageId: stage.id,
         flowId: stage.flow_id,
-        flowSteps: flowSteps
+        flowSteps: validatedFlowSteps
       },
     }
   );

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 interface ValidationResult {
   isValid: boolean;
   message?: string;
+  flowSteps?: any[];
 }
 
 export const validateWorkflowEntities = async (
@@ -34,7 +35,7 @@ export const validateWorkflowEntities = async (
     };
   }
 
-  // Validate flow steps exist
+  // Validate flow steps exist and get their details
   const { data: flowSteps, error: flowStepsError } = await supabase
     .from("flow_steps")
     .select(`
@@ -49,24 +50,35 @@ export const validateWorkflowEntities = async (
     .eq("flow_id", stage.flow_id)
     .order("order_index", { ascending: true });
 
-  if (flowStepsError || !flowSteps?.length) {
+  if (flowStepsError) {
     console.error("Flow steps validation failed:", flowStepsError);
     return {
       isValid: false,
-      message: "No flow steps found for this stage"
+      message: "Error fetching flow steps"
     };
   }
 
-  // Validate each flow step has an agent
-  const invalidSteps = flowSteps.filter(step => !step.agent_id || !step.agents);
+  if (!flowSteps?.length) {
+    console.error("No flow steps found for flow:", stage.flow_id);
+    return {
+      isValid: false,
+      message: "No flow steps found for this stage's flow"
+    };
+  }
+
+  // Validate each flow step has required data
+  const invalidSteps = flowSteps.filter(step => !step.id || !step.agent_id || !step.agents);
   if (invalidSteps.length > 0) {
     console.error("Invalid flow steps found:", invalidSteps);
     return {
       isValid: false,
-      message: "Some flow steps are missing required agents"
+      message: "Some flow steps are missing required data"
     };
   }
 
   console.log("All workflow entities validated successfully");
-  return { isValid: true };
+  return { 
+    isValid: true,
+    flowSteps 
+  };
 };
