@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { generateAgentResponse } from "./openai.ts";
+import { buildPrompt } from "./promptBuilder.ts";
 
 export async function processAgent(
   supabase: any,
@@ -40,25 +41,26 @@ export async function processAgent(
       throw new Error(`Missing required data: ${missingData.join(', ')}`);
     }
 
-    // Fetch previous stage outputs
-    const { data: previousOutputs, error: outputsError } = await supabase
+    // Check if this is the first stage
+    const { data: stages, error: stagesError } = await supabase
+      .from('stages')
+      .select('id, order_index')
+      .order('order_index', { ascending: true });
+
+    if (stagesError) {
+      console.error("Error fetching stages:", stagesError);
+      throw stagesError;
+    }
+
+    const currentStageIndex = stages.findIndex((s: any) => s.id === stageId);
+    const isFirstStage = currentStageIndex === 0;
+
+    // Fetch previous stage outputs if not first stage
+    const previousOutputs = isFirstStage ? [] : await supabase
       .from('brief_outputs')
       .select('*')
       .eq('brief_id', brief.id)
       .order('created_at', { ascending: true });
-
-    if (outputsError) {
-      console.error("Error fetching previous outputs:", outputsError);
-      throw outputsError;
-    }
-
-    // Format previous outputs for the prompt
-    const previousStageOutputs = previousOutputs
-      ?.map((output: any) => `
-        Stage: ${output.stage}
-        Content: ${typeof output.content === 'object' ? JSON.stringify(output.content, null, 2) : output.content}
-      `)
-      .join('\n\n') || 'No previous outputs available';
 
     // Log agent skills
     if (agent.skills && agent.skills.length > 0) {
@@ -75,70 +77,14 @@ export async function processAgent(
       });
     }
 
-    // Construct conversational prompt with natural dialogue focus and previous outputs
-    const conversationalPrompt = `
-      As ${agent.name}, analyze this creative brief and previous stage outputs in a natural, conversational way:
-      
-      Brief Details:
-      Title: ${brief.title}
-      Description: ${brief.description}
-      Objectives: ${brief.objectives}
-      Requirements: ${requirements || 'None specified'}
-      
-      Previous Stage Outputs:
-      ${previousStageOutputs}
-      
-      Your Role and Background:
-      ${agent.description}
-      
-      Your Skills:
-      ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
-      
-      Share your thoughts as if you're speaking in a creative agency meeting. Be natural, use conversational language, 
-      express your professional opinion, and make it feel like a real conversation.
-      
-      Remember to:
-      1. Reference and build upon insights from previous stages
-      2. Use first-person pronouns ("I think...", "In my experience...")
-      3. Include verbal fillers and transitions natural to spoken language
-      4. Express enthusiasm and emotion where appropriate
-      5. Reference team dynamics and collaborative aspects
-      6. Use industry jargon naturally but explain complex concepts
-      7. Share personal insights and experiences
-      8. Ask rhetorical questions to engage others
-      9. Use informal but professional language
-    `;
-
-    // Construct pre-edit 313 style schematic prompt
-    const schematicPrompt = `
-      As ${agent.name}, analyze this creative brief and previous stage outputs:
-      
-      Brief Details:
-      Title: ${brief.title}
-      Description: ${brief.description}
-      Objectives: ${brief.objectives}
-      Requirements: ${requirements || 'None specified'}
-      
-      Previous Stage Outputs:
-      ${previousStageOutputs}
-      
-      Your Role:
-      ${agent.description}
-      
-      Skills Applied:
-      ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
-      
-      Provide a clear, structured analysis following these guidelines:
-      1. Key Insights from Previous Stages
-      2. Strategic Recommendations
-      3. Action Items
-      4. Potential Challenges
-      5. Success Metrics
-      
-      Format your response with clear headings and bullet points.
-      Focus on concrete, actionable items and measurable outcomes.
-      Keep the tone professional and direct.
-    `;
+    // Build prompts using the promptBuilder
+    const { conversationalPrompt, schematicPrompt } = buildPrompt(
+      agent,
+      brief,
+      previousOutputs?.data || [],
+      requirements,
+      isFirstStage
+    );
 
     console.log("Generating conversational response...");
     const conversationalContent = await generateAgentResponse(conversationalPrompt);

@@ -169,6 +169,7 @@ export type Database = {
           results: Json | null
           started_at: string
           status: string
+          step_id: string | null
         }
         Insert: {
           completed_at?: string | null
@@ -177,6 +178,7 @@ export type Database = {
           results?: Json | null
           started_at?: string
           status: string
+          step_id?: string | null
         }
         Update: {
           completed_at?: string | null
@@ -185,6 +187,7 @@ export type Database = {
           results?: Json | null
           started_at?: string
           status?: string
+          step_id?: string | null
         }
         Relationships: [
           {
@@ -192,6 +195,13 @@ export type Database = {
             columns: ["flow_id"]
             isOneToOne: false
             referencedRelation: "flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_history_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "flow_steps"
             referencedColumns: ["id"]
           },
         ]
@@ -422,6 +432,7 @@ export type Database = {
           brief_id: string
           content: string
           created_at: string
+          flow_step_id: string | null
           id: string
           output_type: string
           stage_id: string
@@ -432,6 +443,7 @@ export type Database = {
           brief_id: string
           content: string
           created_at?: string
+          flow_step_id?: string | null
           id?: string
           output_type?: string
           stage_id: string
@@ -442,6 +454,7 @@ export type Database = {
           brief_id?: string
           content?: string
           created_at?: string
+          flow_step_id?: string | null
           id?: string
           output_type?: string
           stage_id?: string
@@ -460,6 +473,13 @@ export type Database = {
             columns: ["brief_id"]
             isOneToOne: false
             referencedRelation: "briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_conversations_flow_step_id_fkey"
+            columns: ["flow_step_id"]
+            isOneToOne: false
+            referencedRelation: "flow_steps"
             referencedColumns: ["id"]
           },
         ]
