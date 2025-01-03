@@ -22,43 +22,39 @@ export const useStageProcessing = (briefId: string) => {
         flows: nextStage.flows
       });
 
-      // Fetch the flow directly from the database if not already included
-      let flow = nextStage.flows;
-      if (!flow) {
-        console.log("Fetching flow for stage:", nextStage.id);
-        const { data: stageData, error: stageError } = await supabase
-          .from("stages")
-          .select(`
-            *,
-            flows (
+      // Fetch the flow directly from the database to ensure we have the latest data
+      console.log("Fetching flow for stage:", nextStage.id);
+      const { data: stageData, error: stageError } = await supabase
+        .from("stages")
+        .select(`
+          *,
+          flows (
+            id,
+            name,
+            flow_steps (
               id,
-              name,
-              flow_steps (
+              agent_id,
+              requirements,
+              order_index,
+              outputs,
+              agents (
                 id,
-                agent_id,
-                requirements,
-                order_index,
-                outputs,
-                agents (
-                  id,
-                  name,
-                  description,
-                  skills (*)
-                )
+                name,
+                description,
+                skills (*)
               )
             )
-          `)
-          .eq("id", nextStage.id)
-          .maybeSingle();
+          )
+        `)
+        .eq("id", nextStage.id)
+        .maybeSingle();
 
-        if (stageError) {
-          console.error("Error fetching stage data:", stageError);
-          throw new Error(`Error fetching stage data: ${stageError.message}`);
-        }
-
-        flow = stageData?.flows;
+      if (stageError) {
+        console.error("Error fetching stage data:", stageError);
+        throw new Error(`Error fetching stage data: ${stageError.message}`);
       }
 
+      const flow = stageData?.flows;
       if (!flow) {
         console.error("No flow found for stage:", {
           stageId: nextStage.id,
@@ -87,12 +83,13 @@ export const useStageProcessing = (briefId: string) => {
         steps: flowSteps.map(step => ({
           id: step.id,
           agentId: step.agent_id,
-          orderIndex: step.order_index
+          orderIndex: step.order_index,
+          requirements: step.requirements
         }))
       });
 
-      // Process the workflow stage
-      await processWorkflowStage(briefId, nextStage, flowSteps);
+      // Process the workflow stage with the sorted flow steps
+      await processWorkflowStage(briefId, stageData, flowSteps);
 
       // Invalidate queries to refresh data
       await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
@@ -103,7 +100,7 @@ export const useStageProcessing = (briefId: string) => {
         duration: 8000
       });
 
-      // Return success to enable automatic progression
+      setIsProcessing(false);
       return true;
     } catch (error) {
       console.error("Error processing stage:", error);
@@ -114,9 +111,8 @@ export const useStageProcessing = (briefId: string) => {
           : "Failed to process stage. Please try again or contact support.",
         { duration: 8000 }
       );
-      return false;
-    } finally {
       setIsProcessing(false);
+      return false;
     }
   };
 

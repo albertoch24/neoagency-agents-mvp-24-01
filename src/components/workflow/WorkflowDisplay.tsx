@@ -44,16 +44,25 @@ export const WorkflowDisplay = ({
     }
   };
 
-  // Effect to handle automatic progression after initial stage processing
+  // Effect to handle automatic progression ONLY for the first stage
   useEffect(() => {
-    const checkAndProgressStage = async () => {
+    const checkAndProgressFirstStage = async () => {
       if (!briefId || !currentStage || isProcessing) {
         console.log("Skipping progression check:", { briefId, currentStage, isProcessing });
         return;
       }
 
       try {
-        console.log("Checking conversations for current stage:", currentStage);
+        // Get current stage index
+        const currentIndex = stages.findIndex(stage => stage.id === currentStage);
+        
+        // Only proceed if this is the first stage
+        if (currentIndex !== 0) {
+          console.log("Not first stage, skipping automatic progression");
+          return;
+        }
+
+        console.log("Checking conversations for first stage:", currentStage);
         const { data: conversations, error } = await supabase
           .from("workflow_conversations")
           .select("*")
@@ -67,10 +76,9 @@ export const WorkflowDisplay = ({
 
         console.log("Found conversations:", conversations?.length);
         
-        // If we have conversations for the current stage, try to progress to the next
+        // If we have conversations for the first stage, try to progress
         if (conversations?.length > 0) {
-          const currentIndex = stages.findIndex(stage => stage.id === currentStage);
-          const nextStage = stages[currentIndex + 1];
+          const nextStage = stages[1]; // Get second stage
           
           if (nextStage) {
             console.log("Checking next stage conversations:", nextStage.id);
@@ -88,8 +96,7 @@ export const WorkflowDisplay = ({
 
             // Only process next stage if it hasn't been processed yet
             if (!nextStageConversations?.length) {
-              console.log("Processing next stage automatically:", nextStage.id);
-              await handleNextStage();
+              console.log("First stage completed, ready for manual progression to next stage");
             }
           }
         }
@@ -98,7 +105,7 @@ export const WorkflowDisplay = ({
       }
     };
 
-    checkAndProgressStage();
+    checkAndProgressFirstStage();
   }, [currentStage, briefId, stages, isProcessing]);
 
   if (!stages.length) {
