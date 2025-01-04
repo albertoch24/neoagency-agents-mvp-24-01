@@ -2,6 +2,8 @@ import { useState } from "react";
 import BriefForm from "./BriefForm";
 import BriefDisplay from "./BriefDisplay";
 import { WorkflowDisplay } from "@/components/workflow/WorkflowDisplay";
+import { WorkflowOutput } from "@/components/workflow/WorkflowOutput";
+import { useSearchParams } from "react-router-dom";
 
 interface BriefSectionProps {
   currentBrief: any;
@@ -16,7 +18,8 @@ export const BriefSection = ({
   isEditing,
   onEditComplete 
 }: BriefSectionProps) => {
-  const [currentStage, setCurrentStage] = useState("kickoff");
+  const [searchParams] = useSearchParams();
+  const currentStage = searchParams.get("stage") || "kickoff";
 
   if (showNewBrief || !currentBrief || isEditing) {
     return (
@@ -28,15 +31,20 @@ export const BriefSection = ({
   }
 
   return (
-    <>
+    <div className="space-y-8">
       <BriefDisplay brief={currentBrief} />
       <div className="-mx-4">
         <WorkflowDisplay
           currentStage={currentStage}
-          onStageSelect={setCurrentStage}
           briefId={currentBrief?.id}
         />
       </div>
-    </>
+      {currentBrief?.id && currentStage && (
+        <WorkflowOutput 
+          briefId={currentBrief.id}
+          stageId={currentStage}
+        />
+      )}
+    </div>
   );
 };
