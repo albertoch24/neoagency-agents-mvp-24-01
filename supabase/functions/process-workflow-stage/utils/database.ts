@@ -49,7 +49,8 @@ export async function saveConversation(
   briefId: string,
   stageId: string,
   agentId: string,
-  content: string
+  content: string,
+  flowStepId?: string
 ) {
   const { error: conversationError } = await supabase
     .from("workflow_conversations")
@@ -58,6 +59,7 @@ export async function saveConversation(
       stage_id: stageId,
       agent_id: agentId,
       content: content,
+      flow_step_id: flowStepId
     });
 
   if (conversationError) throw conversationError;
@@ -78,7 +80,13 @@ export async function saveBriefOutput(
       stage_id: stageId,
       content: {
         stage_name: stageName,
-        outputs: outputs,
+        outputs: outputs.map(output => ({
+          agent: output.agent.name,
+          requirements: output.requirements,
+          outputs: output.outputs,
+          stepId: output.stepId,
+          orderIndex: output.orderIndex
+        }))
       },
     });
 

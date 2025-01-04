@@ -7,7 +7,8 @@ export async function processAgent(
   agent: any,
   brief: any,
   stageId: string,
-  requirements?: string
+  requirements?: string,
+  previousOutputs: any[] = []
 ) {
   console.log("Starting agent processing with full context:", {
     brief: {
@@ -27,7 +28,8 @@ export async function processAgent(
       description: agent.description,
       skillCount: agent.skills?.length || 0
     },
-    requirements
+    requirements,
+    previousOutputsCount: previousOutputs.length
   });
 
   try {
@@ -56,13 +58,6 @@ export async function processAgent(
     const currentStageIndex = stages.findIndex((s: any) => s.id === stageId);
     const isFirstStage = currentStageIndex === 0;
 
-    // Fetch previous stage outputs if not first stage
-    const previousOutputs = isFirstStage ? [] : await supabase
-      .from('brief_outputs')
-      .select('*')
-      .eq('brief_id', brief.id)
-      .order('created_at', { ascending: true });
-
     // Log agent skills
     if (agent.skills && agent.skills.length > 0) {
       console.log("Processing agent skills:", agent.skills.map((skill: any) => ({
@@ -82,7 +77,7 @@ export async function processAgent(
     const { conversationalPrompt, schematicPrompt } = buildPrompt(
       agent,
       brief,
-      previousOutputs?.data || [],
+      previousOutputs,
       requirements,
       isFirstStage
     );
@@ -127,18 +122,6 @@ export async function processAgent(
       throw new Error(`Error saving schematic output: ${schematicError.message}`);
     }
 
-    // Generate and save stage summary
-    const { error: summaryError } = await supabase.functions.invoke('generate-stage-summary', {
-      body: { 
-        briefId: brief.id,
-        stageId: stageId
-      }
-    });
-
-    if (summaryError) {
-      console.error("Error generating stage summary:", summaryError);
-    }
-
     console.log("Agent processing completed successfully:", {
       briefId: brief.id,
       stageId: stageId,
@@ -151,6 +134,9 @@ export async function processAgent(
       outputs: [
         {
           content: conversationalContent.trim()
+        },
+        {
+          content: schematicContent.trim()
         }
       ],
       requirements: requirements
