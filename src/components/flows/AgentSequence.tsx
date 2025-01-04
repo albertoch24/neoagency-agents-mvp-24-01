@@ -16,15 +16,13 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
 
   // Sort conversations by flow step order first, then creation date
   const sortedConversations = [...conversations].sort((a, b) => {
-    // First sort by flow step order if available
     if (a.flow_step_id && b.flow_step_id) {
       return a.order_index - b.order_index;
     }
-    // Fall back to creation date
     return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
   });
 
-  // Group conversations by flow step ID instead of agent ID to maintain step order
+  // Group conversations by flow step ID to maintain step order
   const groupedConversations = sortedConversations.reduce((acc: any, conv: any) => {
     if (!conv) return acc;
     
@@ -89,9 +87,8 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
                   <AgentSkills skills={group.agent?.skills || []} />
                 </div>
                 
-                {/* Display conversations first */}
                 {group.conversations.map((conv: any) => (
-                  <div key={conv.id}>
+                  <div key={conv.id} className="space-y-4">
                     <ConversationContent
                       conversation={conv}
                       isPlaying={isPlaying[conv.id]}
@@ -103,7 +100,6 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
                   </div>
                 ))}
 
-                {/* Display stage summary if available */}
                 {group.summary && (
                   <div className="mt-6">
                     <div className="flex justify-between items-center mb-3">

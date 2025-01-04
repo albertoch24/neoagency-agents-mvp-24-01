@@ -20,15 +20,7 @@ export const ConversationContent: React.FC<ConversationContentProps> = ({
   visibleText,
   onToggleText,
 }) => {
-  console.log("Rendering conversation:", {
-    id: conversation.id,
-    agentId: conversation.agent_id,
-    requirements: conversation.requirements,
-    flowStepId: conversation.flow_step_id,
-    outputType: conversation.output_type,
-    orderIndex: conversation.order_index,
-    summary: conversation.summary
-  });
+  console.log("Rendering conversation with summary:", conversation.summary);
 
   return (
     <div>
