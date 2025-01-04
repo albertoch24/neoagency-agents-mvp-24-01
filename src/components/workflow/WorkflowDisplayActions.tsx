@@ -20,7 +20,7 @@ export const WorkflowDisplayActions = ({
 }: WorkflowDisplayActionsProps) => {
   const currentIndex = stages.findIndex(stage => stage.id === currentStage);
   const isLastStage = currentIndex === stages.length - 1;
-  const isCurrentStageCompleted = completedStages.includes(currentStage);
+  const isCurrentStageCompleted = completedStages?.includes(currentStage);
 
   if (isLastStage) return null;
 

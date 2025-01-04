@@ -116,6 +116,23 @@ export const WorkflowDisplay = ({
     );
   }
 
+  // Query to check completed stages
+  const { data: completedStages } = useQuery({
+    queryKey: ["completed-stages", briefId],
+    queryFn: async () => {
+      if (!briefId) return [];
+      
+      const { data } = await supabase
+        .from("workflow_conversations")
+        .select("stage_id")
+        .eq("brief_id", briefId)
+        .order("created_at", { ascending: true });
+      
+      return data?.map(item => item.stage_id) || [];
+    },
+    enabled: !!briefId
+  });
+
   return (
     <div className="space-y-8">
       <WorkflowStages
@@ -135,6 +152,7 @@ export const WorkflowDisplay = ({
             stages={stages}
             onNextStage={handleNextStage}
             isProcessing={isProcessing}
+            completedStages={completedStages}
           />
         </>
       )}
