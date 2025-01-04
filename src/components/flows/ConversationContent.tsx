@@ -56,13 +56,15 @@ export const ConversationContent: React.FC<ConversationContentProps> = ({
         </div>
       </div>
       <div className="bg-agent/5 rounded-lg p-6 shadow-sm">
-        <Accordion type="single" collapsible className="w-full" defaultValue="content">
+        <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="content" className="border-none">
             <AccordionTrigger data-accordion-id={conversation.id} className="hidden">
               Toggle Content
             </AccordionTrigger>
-            <AccordionContent>
-              <MarkdownContent content={conversation.content} />
+            <AccordionContent forceMount>
+              <div className={visibleText ? "block" : "hidden"}>
+                <MarkdownContent content={conversation.content} />
+              </div>
             </AccordionContent>
           </AccordionItem>
         </Accordion>
