@@ -72,6 +72,7 @@ export interface Tables {
       created_at: string;
       output_type: string;
       summary: string | null;
+      flow_step_id: string | null;
     };
     Insert: {
       id?: string;
@@ -82,6 +83,7 @@ export interface Tables {
       created_at?: string;
       output_type?: string;
       summary?: string | null;
+      flow_step_id?: string | null;
     };
     Update: {
       id?: string;
@@ -92,64 +94,129 @@ export interface Tables {
       created_at?: string;
       output_type?: string;
       summary?: string | null;
+      flow_step_id?: string | null;
     };
   };
   flows: {
     Row: {
+      created_at: string;
+      description: string | null;
       id: string;
       name: string;
-      description: string | null;
-      created_at: string;
       updated_at: string;
       user_id: string;
     };
     Insert: {
+      created_at?: string;
+      description?: string | null;
       id?: string;
       name: string;
-      description?: string | null;
-      created_at?: string;
       updated_at?: string;
       user_id: string;
     };
     Update: {
+      created_at?: string;
+      description?: string | null;
       id?: string;
       name?: string;
-      description?: string | null;
-      created_at?: string;
       updated_at?: string;
       user_id?: string;
     };
   };
   stages: {
     Row: {
-      id: string;
-      name: string;
+      created_at: string;
       description: string | null;
       flow_id: string | null;
-      created_at: string;
-      updated_at: string;
+      id: string;
+      name: string;
       order_index: number;
+      updated_at: string;
       user_id: string;
     };
     Insert: {
-      id?: string;
-      name: string;
+      created_at?: string;
       description?: string | null;
       flow_id?: string | null;
-      created_at?: string;
-      updated_at?: string;
+      id?: string;
+      name: string;
       order_index: number;
+      updated_at?: string;
       user_id: string;
     };
     Update: {
-      id?: string;
-      name?: string;
+      created_at?: string;
       description?: string | null;
       flow_id?: string | null;
-      created_at?: string;
-      updated_at?: string;
+      id?: string;
+      name?: string;
       order_index?: number;
+      updated_at?: string;
       user_id?: string;
+    };
+  };
+  skills: {
+    Row: {
+      agent_id: string;
+      content: string;
+      created_at: string;
+      description: string | null;
+      id: string;
+      name: string;
+      type: string;
+      updated_at: string;
+    };
+    Insert: {
+      agent_id: string;
+      content: string;
+      created_at?: string;
+      description?: string | null;
+      id?: string;
+      name: string;
+      type: string;
+      updated_at?: string;
+    };
+    Update: {
+      agent_id?: string;
+      content?: string;
+      created_at?: string;
+      description?: string | null;
+      id?: string;
+      name?: string;
+      type?: string;
+      updated_at?: string;
+    };
+  };
+  agents: {
+    Row: {
+      created_at: string;
+      description: string | null;
+      id: string;
+      name: string;
+      updated_at: string;
+      user_id: string;
+      is_paused: boolean | null;
+      voice_id: string | null;
+    };
+    Insert: {
+      created_at?: string;
+      description?: string | null;
+      id?: string;
+      name: string;
+      updated_at?: string;
+      user_id: string;
+      is_paused?: boolean | null;
+      voice_id?: string | null;
+    };
+    Update: {
+      created_at?: string;
+      description?: string | null;
+      id?: string;
+      name?: string;
+      updated_at?: string;
+      user_id?: string;
+      is_paused?: boolean | null;
+      voice_id?: string | null;
     };
   };
 }
