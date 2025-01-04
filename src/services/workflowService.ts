@@ -64,25 +64,6 @@ export const processWorkflowStage = async (
     }
 
     console.log("Workflow stage processed successfully:", workflowData);
-
-    // Trigger stage summary generation
-    try {
-      console.log("Generating stage summary for:", {
-        briefId,
-        stageId: stage.id
-      });
-
-      await supabase.functions.invoke('generate-stage-summary', {
-        body: { 
-          briefId,
-          stageId: stage.id
-        },
-      });
-    } catch (error) {
-      console.error("Error generating stage summary:", error);
-      // Don't throw here to avoid blocking the workflow
-    }
-
     return workflowData;
   } catch (error) {
     console.error("Error invoking workflow function:", error);
