@@ -5,12 +5,18 @@ import { validateRequest, validateStage, validateBrief } from "./utils/validatio
 import { processAgents } from "./utils/agentProcessing.ts";
 
 serve(async (req) => {
+  // Always add CORS headers
+  const headers = {
+    ...corsHeaders,
+    'Content-Type': 'application/json',
+  };
+
   try {
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       return new Response(null, { 
         headers: {
-          ...corsHeaders,
+          ...headers,
           'Access-Control-Allow-Methods': 'POST, OPTIONS',
           'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
         }
@@ -45,12 +51,7 @@ serve(async (req) => {
         message: "Stage processed successfully", 
         outputs 
       }),
-      { 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      }
+      { headers }
     );
   } catch (error) {
     console.error("Error processing workflow stage:", error);
@@ -62,10 +63,7 @@ serve(async (req) => {
       }),
       { 
         status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers
       }
     );
   }

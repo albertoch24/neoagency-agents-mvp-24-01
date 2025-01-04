@@ -40,6 +40,12 @@ export const processWorkflowStage = async (
   });
 
   try {
+    console.log("Invoking process-workflow-stage function with params:", {
+      briefId,
+      stageId: stage.id,
+      flowId: stage.flow_id
+    });
+
     const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
       "process-workflow-stage",
       {
@@ -57,8 +63,15 @@ export const processWorkflowStage = async (
       throw workflowError;
     }
 
+    console.log("Workflow stage processed successfully:", workflowData);
+
     // Trigger stage summary generation
     try {
+      console.log("Generating stage summary for:", {
+        briefId,
+        stageId: stage.id
+      });
+
       await supabase.functions.invoke('generate-stage-summary', {
         body: { 
           briefId,
