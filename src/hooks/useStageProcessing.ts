@@ -9,6 +9,11 @@ export const useStageProcessing = (briefId: string) => {
   const queryClient = useQueryClient();
 
   const processStage = async (nextStage: any) => {
+    if (isProcessing) {
+      toast.error("Another stage is currently processing");
+      return false;
+    }
+
     setIsProcessing(true);
     const toastId = toast.loading(
       `Processing ${nextStage.name} stage... This may take a few minutes. We're analyzing your brief and generating insights. Please don't close this window.`,
@@ -121,11 +126,10 @@ export const useStageProcessing = (briefId: string) => {
       // Invalidate queries to refresh data
       await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
       await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+      await queryClient.invalidateQueries({ queryKey: ["stage-flow-steps"] });
 
       toast.dismiss(toastId);
-      toast.success(`${nextStage.name} stage processed successfully! You can now view the results.`, {
-        duration: 8000
-      });
+      toast.success(`${nextStage.name} stage processed successfully! You can now view the results.`);
 
       setIsProcessing(false);
       return true;
@@ -135,8 +139,7 @@ export const useStageProcessing = (briefId: string) => {
       toast.error(
         error instanceof Error 
           ? `Failed to process stage: ${error.message}. Please try again or contact support.`
-          : "Failed to process stage. Please try again or contact support.",
-        { duration: 8000 }
+          : "Failed to process stage. Please try again or contact support."
       );
       setIsProcessing(false);
       return false;

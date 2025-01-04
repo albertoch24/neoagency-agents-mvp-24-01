@@ -6,6 +6,7 @@ import { useStageProcessing } from "@/hooks/useStageProcessing";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface WorkflowDisplayProps {
   currentStage: string;
@@ -74,39 +75,29 @@ export const WorkflowDisplay = ({
           return;
         }
 
-        console.log("Found conversations:", conversations?.length);
-        
-        // If we have conversations for the first stage, try to progress
-        if (conversations?.length > 0) {
-          const nextStage = stages[1]; // Get second stage
-          
-          if (nextStage) {
-            console.log("Checking next stage conversations:", nextStage.id);
-            // Check if next stage already has conversations
-            const { data: nextStageConversations, error: nextError } = await supabase
-              .from("workflow_conversations")
-              .select("*")
-              .eq("brief_id", briefId)
-              .eq("stage_id", nextStage.id);
-
-            if (nextError) {
-              console.error("Error checking next stage:", nextError);
-              return;
-            }
-
-            // Only process next stage if it hasn't been processed yet
-            if (!nextStageConversations?.length) {
-              console.log("First stage completed, ready for manual progression to next stage");
+        // If we have no conversations for the first stage, process it
+        if (!conversations || conversations.length === 0) {
+          console.log("No conversations found for first stage, processing...");
+          const firstStage = stages[0];
+          if (firstStage) {
+            const success = await processStage(firstStage);
+            if (success) {
+              toast.success("First stage processed successfully!");
+              // Invalidate queries to refresh data
+              await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+              await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+              await queryClient.invalidateQueries({ queryKey: ["stage-flow-steps"] });
             }
           }
         }
       } catch (error) {
         console.error("Error in progression check:", error);
+        toast.error("Error checking stage progression");
       }
     };
 
     checkAndProgressFirstStage();
-  }, [currentStage, briefId, stages, isProcessing]);
+  }, [currentStage, briefId, stages, isProcessing, processStage, queryClient]);
 
   if (!stages.length) {
     return (
