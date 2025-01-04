@@ -39,35 +39,40 @@ export const processWorkflowStage = async (
     }))
   });
 
-  const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
-    "process-workflow-stage",
-    {
-      body: { 
-        briefId, 
-        stageId: stage.id,
-        flowId: stage.flow_id,
-        flowSteps: validatedFlowSteps
-      },
-    }
-  );
-
-  if (workflowError) {
-    console.error("Error in workflow processing:", workflowError);
-    throw workflowError;
-  }
-
-  // Trigger stage summary generation
   try {
-    await supabase.functions.invoke('generate-stage-summary', {
-      body: { 
-        briefId,
-        stageId: stage.id
-      },
-    });
-  } catch (error) {
-    console.error("Error generating stage summary:", error);
-    // Don't throw here to avoid blocking the workflow
-  }
+    const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
+      "process-workflow-stage",
+      {
+        body: { 
+          briefId, 
+          stageId: stage.id,
+          flowId: stage.flow_id,
+          flowSteps: validatedFlowSteps
+        },
+      }
+    );
 
-  return workflowData;
+    if (workflowError) {
+      console.error("Error in workflow processing:", workflowError);
+      throw workflowError;
+    }
+
+    // Trigger stage summary generation
+    try {
+      await supabase.functions.invoke('generate-stage-summary', {
+        body: { 
+          briefId,
+          stageId: stage.id
+        },
+      });
+    } catch (error) {
+      console.error("Error generating stage summary:", error);
+      // Don't throw here to avoid blocking the workflow
+    }
+
+    return workflowData;
+  } catch (error) {
+    console.error("Error invoking workflow function:", error);
+    throw new Error("Failed to process workflow stage. Please try again.");
+  }
 };
