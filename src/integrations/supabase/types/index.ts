@@ -1,3 +1,3 @@
 export * from './common';
-export * from './tables';
+export { Database } from './tables';
 export * from './functions';

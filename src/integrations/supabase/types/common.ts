@@ -9,7 +9,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export type Database = {
+export type DatabaseSchema = {
   public: {
     Tables: Tables;
     Views: {
