@@ -20,6 +20,14 @@ export const ConversationContent: React.FC<ConversationContentProps> = ({
   visibleText,
   onToggleText,
 }) => {
+  console.log("Rendering conversation:", {
+    id: conversation.id,
+    agentId: conversation.agent_id,
+    requirements: conversation.requirements,
+    flowStepId: conversation.flow_step_id,
+    outputType: conversation.output_type
+  });
+
   return (
     <div>
       <div className="flex items-center gap-4 mb-3">

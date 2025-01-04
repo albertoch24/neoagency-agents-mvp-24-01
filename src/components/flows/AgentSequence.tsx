@@ -14,23 +14,23 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
   const [audioElements, setAudioElements] = useState<{[key: string]: HTMLAudioElement | null}>({});
   const [visibleTexts, setVisibleTexts] = useState<{[key: string]: boolean}>({});
 
-  const groupedConversations = conversations.reduce((acc: any, conv: any) => {
+  // Sort conversations by creation date to maintain order
+  const sortedConversations = [...conversations].sort((a, b) => 
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+
+  const groupedConversations = sortedConversations.reduce((acc: any, conv: any) => {
     if (!conv) return acc;
     
     const agentId = conv.agent_id;
     if (!acc[agentId]) {
       acc[agentId] = {
         agent: conv.agents || { id: agentId, name: 'Unknown Agent' },
-        conversational: null,
-        summary: null
+        conversations: []
       };
     }
     
-    if (conv.output_type === 'conversational') {
-      acc[agentId].conversational = conv;
-    } else if (conv.output_type === 'summary') {
-      acc[agentId].summary = conv;
-    }
+    acc[agentId].conversations.push(conv);
     return acc;
   }, {});
 
@@ -70,27 +70,18 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
                   <AgentSkills skills={group.agent?.skills || []} />
                 </div>
                 
-                {group.conversational && (
-                  <ConversationContent
-                    conversation={group.conversational}
-                    isPlaying={isPlaying[group.conversational.id]}
-                    onPlayStateChange={(playing) => handlePlayStateChange(group.conversational.id, playing)}
-                    onAudioElement={(audio) => handleAudioElement(group.conversational.id, audio)}
-                    visibleText={visibleTexts[group.conversational.id]}
-                    onToggleText={() => toggleText(group.conversational.id)}
-                  />
-                )}
-
-                {group.summary && (
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <h5 className="text-sm font-medium text-muted-foreground">Summary:</h5>
-                    </div>
-                    <div className="bg-muted rounded-lg p-6">
-                      <MarkdownContent content={group.summary.content} />
-                    </div>
+                {group.conversations.map((conv: any) => (
+                  <div key={conv.id}>
+                    <ConversationContent
+                      conversation={conv}
+                      isPlaying={isPlaying[conv.id]}
+                      onPlayStateChange={(playing) => handlePlayStateChange(conv.id, playing)}
+                      onAudioElement={(audio) => handleAudioElement(conv.id, audio)}
+                      visibleText={visibleTexts[conv.id]}
+                      onToggleText={() => toggleText(conv.id)}
+                    />
                   </div>
-                )}
+                ))}
               </div>
             </CardContent>
           </Card>
