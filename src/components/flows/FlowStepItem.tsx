@@ -59,10 +59,7 @@ export const FlowStepItem = ({
         .split('\n')
         .filter(line => line.trim())
         .map(text => ({
-          text: text.trim(),
-          type: 'required_output',
-          format: 'text',
-          context: editedRequirements.trim()
+          text: text.trim()
         }));
 
       console.log('Formatted outputs for saving:', formattedOutputs);
