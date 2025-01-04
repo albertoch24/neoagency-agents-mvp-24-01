@@ -27,7 +27,7 @@ export const ConversationContent: React.FC<ConversationContentProps> = ({
       <div className="flex items-center gap-4 mb-3">
         <h5 className="text-sm font-bold text-muted-foreground flex-shrink-0">
           {conversation.requirements ? (
-            <span className="text-primary">Requirements: {conversation.requirements}</span>
+            <span className="text-primary">Description: {conversation.requirements}</span>
           ) : (
             'TEAM CONVERSATION'
           )}

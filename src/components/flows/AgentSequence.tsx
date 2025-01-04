@@ -1,9 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { AgentSkills } from "./AgentSkills";
 import { useState } from "react";
-import { AgentHeader } from "./AgentHeader";
-import { ConversationContent } from "./ConversationContent";
-import { MarkdownContent } from "./MarkdownContent";
+import { ConversationGroup } from "./ConversationGroup";
 
 interface AgentSequenceProps {
   conversations: any[];
@@ -73,48 +70,22 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
 
   return (
     <div className="space-y-4">
-      {sortedGroups.map(([stepId, group]: [string, any], index: number) => {
-        if (!group?.agent) return null;
-        
-        return (
-          <Card key={`${group.agent?.id}-${stepId}`} className="overflow-hidden border-agent">
-            <CardContent className="p-4">
-              <AgentHeader agentName={group.agent?.name} index={index} />
-              
-              <div className="pl-6 space-y-6">
-                <div>
-                  <h5 className="text-sm font-medium mb-2 text-muted-foreground">Skills Used:</h5>
-                  <AgentSkills skills={group.agent?.skills || []} />
-                </div>
-                
-                {group.conversations.map((conv: any) => (
-                  <div key={conv.id} className="space-y-4">
-                    <ConversationContent
-                      conversation={conv}
-                      isPlaying={isPlaying[conv.id]}
-                      onPlayStateChange={(playing) => handlePlayStateChange(conv.id, playing)}
-                      onAudioElement={(audio) => handleAudioElement(conv.id, audio)}
-                      visibleText={visibleTexts[conv.id]}
-                      onToggleText={() => toggleText(conv.id)}
-                    />
-                  </div>
-                ))}
-
-                {group.summary && (
-                  <div className="mt-6">
-                    <div className="flex justify-between items-center mb-3">
-                      <h5 className="text-sm font-medium text-muted-foreground">Stage Summary:</h5>
-                    </div>
-                    <div className="bg-muted rounded-lg p-6">
-                      <MarkdownContent content={group.summary.content} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+      {sortedGroups.map(([stepId, group]: [string, any], index: number) => (
+        <Card key={`${group.agent?.id}-${stepId}`} className="overflow-hidden border-agent">
+          <CardContent>
+            <ConversationGroup
+              group={group}
+              index={index}
+              isPlaying={isPlaying}
+              audioElements={audioElements}
+              visibleTexts={visibleTexts}
+              onPlayStateChange={handlePlayStateChange}
+              onAudioElement={handleAudioElement}
+              onToggleText={toggleText}
+            />
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 };
