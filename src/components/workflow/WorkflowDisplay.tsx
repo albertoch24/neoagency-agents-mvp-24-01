@@ -3,7 +3,7 @@ import { WorkflowConversation } from "./WorkflowConversation";
 import { WorkflowDisplayActions } from "./WorkflowDisplayActions";
 import { useStagesData } from "@/hooks/useStagesData";
 import { useStageProcessing } from "@/hooks/useStageProcessing";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,7 +22,24 @@ export const WorkflowDisplay = ({
   const { isProcessing, processStage } = useStageProcessing(briefId || "");
   const queryClient = useQueryClient();
 
-  const handleNextStage = async () => {
+  // Query to check completed stages - moved outside of conditional
+  const { data: completedStages = [] } = useQuery({
+    queryKey: ["completed-stages", briefId],
+    queryFn: async () => {
+      if (!briefId) return [];
+      
+      const { data } = await supabase
+        .from("workflow_conversations")
+        .select("stage_id")
+        .eq("brief_id", briefId)
+        .order("created_at", { ascending: true });
+      
+      return data?.map(item => item.stage_id) || [];
+    },
+    enabled: !!briefId
+  });
+
+  const handleNextStage = useCallback(async () => {
     if (!briefId) return;
 
     const currentIndex = stages.findIndex(stage => stage.id === currentStage);
@@ -42,9 +59,9 @@ export const WorkflowDisplay = ({
       await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
       await queryClient.invalidateQueries({ queryKey: ["stage-flow-steps"] });
     }
-  };
+  }, [briefId, currentStage, stages, processStage, onStageSelect, queryClient]);
 
-  // Effect to handle automatic progression ONLY for the first stage
+  // Effect for handling automatic progression of first stage
   useEffect(() => {
     const checkAndProgressFirstStage = async () => {
       if (!briefId || !currentStage || isProcessing) {
@@ -106,7 +123,7 @@ export const WorkflowDisplay = ({
     };
 
     checkAndProgressFirstStage();
-  }, [currentStage, briefId, stages, isProcessing]);
+  }, [briefId, currentStage, stages, isProcessing]);
 
   if (!stages.length) {
     return (
@@ -115,23 +132,6 @@ export const WorkflowDisplay = ({
       </div>
     );
   }
-
-  // Query to check completed stages
-  const { data: completedStages } = useQuery({
-    queryKey: ["completed-stages", briefId],
-    queryFn: async () => {
-      if (!briefId) return [];
-      
-      const { data } = await supabase
-        .from("workflow_conversations")
-        .select("stage_id")
-        .eq("brief_id", briefId)
-        .order("created_at", { ascending: true });
-      
-      return data?.map(item => item.stage_id) || [];
-    },
-    enabled: !!briefId
-  });
 
   return (
     <div className="space-y-8">
