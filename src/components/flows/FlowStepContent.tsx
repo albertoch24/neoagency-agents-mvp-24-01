@@ -37,14 +37,14 @@ export const FlowStepContent = ({
       <div className="space-y-4 p-4">
         <div>
           <label className="text-sm font-medium">
-            Required Outputs (one per line):
+            Description (one per line):
           </label>
           <Textarea
             value={editedOutputs}
             onChange={(e) => onEditOutputs(e.target.value)}
             className="mt-1"
             rows={4}
-            placeholder="Enter each output on a new line"
+            placeholder="Enter each description on a new line"
           />
         </div>
         <div>
@@ -78,7 +78,7 @@ export const FlowStepContent = ({
     <div className="space-y-4 p-4">
       <div>
         <h4 className="text-sm font-medium mb-2">
-          Required Outputs:
+          Description:
         </h4>
         <ul className="list-disc pl-4 space-y-1">
           {step.outputs && step.outputs.length > 0 ? (
@@ -88,7 +88,7 @@ export const FlowStepContent = ({
               </li>
             ))
           ) : (
-            <li className="text-sm text-muted-foreground">No outputs defined</li>
+            <li className="text-sm text-muted-foreground">No description defined</li>
           )}
         </ul>
       </div>
