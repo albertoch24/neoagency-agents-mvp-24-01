@@ -8,6 +8,7 @@ import { WorkflowDisplay } from "@/components/workflow/WorkflowDisplay";
 import { useSearchParams } from "react-router-dom";
 import { BriefActions } from "@/components/brief/BriefActions";
 import { BriefSelector } from "@/components/brief/BriefSelector";
+import { useStageHandling } from "@/hooks/useStageHandling";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -16,6 +17,7 @@ const Index = () => {
   const [showNewBrief, setShowNewBrief] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedBriefId, setSelectedBriefId] = useState<string | null>(null);
+  const { currentStage, handleStageSelect } = useStageHandling(selectedBriefId);
 
   // Initialize state from URL parameters
   useEffect(() => {
@@ -138,6 +140,8 @@ const Index = () => {
           <div className="-mx-4">
             <WorkflowDisplay
               briefId={currentBrief?.id}
+              currentStage={currentStage}
+              onStageSelect={handleStageSelect}
             />
           </div>
         </>
