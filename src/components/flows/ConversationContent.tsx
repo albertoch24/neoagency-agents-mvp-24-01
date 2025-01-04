@@ -20,8 +20,6 @@ export const ConversationContent: React.FC<ConversationContentProps> = ({
   visibleText,
   onToggleText,
 }) => {
-  console.log("Rendering conversation with summary:", conversation.summary);
-
   return (
     <div>
       <div className="flex items-center gap-4 mb-3">
