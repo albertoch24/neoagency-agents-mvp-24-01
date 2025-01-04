@@ -14,10 +14,15 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
   const [audioElements, setAudioElements] = useState<{[key: string]: HTMLAudioElement | null}>({});
   const [visibleTexts, setVisibleTexts] = useState<{[key: string]: boolean}>({});
 
-  // Sort conversations by creation date to maintain order
-  const sortedConversations = [...conversations].sort((a, b) => 
-    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-  );
+  // Sort conversations by creation date and step order
+  const sortedConversations = [...conversations].sort((a, b) => {
+    // First sort by flow step order if available
+    if (a.flow_step_id && b.flow_step_id) {
+      return a.order_index - b.order_index;
+    }
+    // Fall back to creation date
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  });
 
   const groupedConversations = sortedConversations.reduce((acc: any, conv: any) => {
     if (!conv) return acc;
@@ -26,11 +31,17 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
     if (!acc[agentId]) {
       acc[agentId] = {
         agent: conv.agents || { id: agentId, name: 'Unknown Agent' },
-        conversations: []
+        conversations: [],
+        summary: null
       };
     }
     
-    acc[agentId].conversations.push(conv);
+    if (conv.output_type === 'summary') {
+      acc[agentId].summary = conv;
+    } else {
+      acc[agentId].conversations.push(conv);
+    }
+    
     return acc;
   }, {});
 
@@ -70,6 +81,7 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
                   <AgentSkills skills={group.agent?.skills || []} />
                 </div>
                 
+                {/* Display conversations first */}
                 {group.conversations.map((conv: any) => (
                   <div key={conv.id}>
                     <ConversationContent
@@ -82,6 +94,18 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
                     />
                   </div>
                 ))}
+
+                {/* Display summary if available */}
+                {group.summary && (
+                  <div className="mt-6">
+                    <div className="flex justify-between items-center mb-3">
+                      <h5 className="text-sm font-medium text-muted-foreground">Summary:</h5>
+                    </div>
+                    <div className="bg-muted rounded-lg p-6">
+                      <MarkdownContent content={group.summary.content} />
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
