@@ -187,36 +187,4 @@ export interface Tables {
       updated_at?: string;
     };
   };
-  agents: {
-    Row: {
-      created_at: string;
-      description: string | null;
-      id: string;
-      name: string;
-      updated_at: string;
-      user_id: string;
-      is_paused: boolean | null;
-      voice_id: string | null;
-    };
-    Insert: {
-      created_at?: string;
-      description?: string | null;
-      id?: string;
-      name: string;
-      updated_at?: string;
-      user_id: string;
-      is_paused?: boolean | null;
-      voice_id?: string | null;
-    };
-    Update: {
-      created_at?: string;
-      description?: string | null;
-      id?: string;
-      name?: string;
-      updated_at?: string;
-      user_id?: string;
-      is_paused?: boolean | null;
-      voice_id?: string | null;
-    };
-  };
 }
