@@ -24,7 +24,11 @@ export const ConversationContent: React.FC<ConversationContentProps> = ({
     <div>
       <div className="flex items-center gap-4 mb-3">
         <h5 className="text-sm font-bold text-muted-foreground flex-shrink-0">
-          TEAM CONVERSATION
+          {conversation.requirements ? (
+            <span className="text-primary">Requirements: {conversation.requirements}</span>
+          ) : (
+            'TEAM CONVERSATION'
+          )}
         </h5>
         <div className="flex items-center gap-2">
           <TextToSpeechButton
@@ -43,7 +47,7 @@ export const ConversationContent: React.FC<ConversationContentProps> = ({
         </div>
       </div>
       <div className="bg-agent/5 rounded-lg p-6 shadow-sm">
-        <Accordion type="single" collapsible className="w-full" defaultValue="">
+        <Accordion type="single" collapsible className="w-full" defaultValue="content">
           <AccordionItem value="content" className="border-none">
             <AccordionTrigger data-accordion-id={conversation.id} className="hidden">
               Toggle Content

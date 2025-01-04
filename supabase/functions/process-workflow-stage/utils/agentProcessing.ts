@@ -1,4 +1,3 @@
-import { createSupabaseClient } from './database.ts';
 import { processAgent } from './workflow.ts';
 import { saveConversation, saveBriefOutput } from './database.ts';
 

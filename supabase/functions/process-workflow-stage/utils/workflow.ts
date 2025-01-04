@@ -1,155 +1,68 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { generateAgentResponse } from "./openai.ts";
-import { buildPrompt } from "./promptBuilder.ts";
+import { generateAgentResponse } from './openai.ts';
 
 export async function processAgent(
   supabase: any,
   agent: any,
   brief: any,
   stageId: string,
-  requirements?: string,
+  requirements: string,
   previousOutputs: any[] = []
 ) {
-  console.log("Starting agent processing with full context:", {
-    brief: {
-      id: brief.id,
-      title: brief.title,
-      description: brief.description,
-      objectives: brief.objectives,
-      status: brief.status,
-      current_stage: brief.current_stage
-    },
-    stage: {
-      id: stageId
-    },
-    agent: {
-      id: agent.id,
-      name: agent.name,
-      description: agent.description,
-      skillCount: agent.skills?.length || 0
-    },
+  console.log('Processing agent:', {
+    agentId: agent.id,
+    agentName: agent.name,
+    briefId: brief.id,
+    stageId,
     requirements,
     previousOutputsCount: previousOutputs.length
   });
 
+  // Build context from previous outputs
+  const previousContext = previousOutputs
+    .map(output => `Previous stage output: ${output.content}`)
+    .join('\n\n');
+
+  // Construct the prompt with brief details and requirements
+  const prompt = `
+As ${agent.name}, you are working on the following brief:
+
+Title: ${brief.title}
+Description: ${brief.description}
+Objectives: ${brief.objectives}
+Target Audience: ${brief.target_audience}
+Budget: ${brief.budget}
+Timeline: ${brief.timeline}
+
+${previousContext ? `\nContext from previous stages:\n${previousContext}` : ''}
+
+${requirements ? `\nSpecific requirements for this step:\n${requirements}` : ''}
+
+Please provide your professional analysis and recommendations based on the brief details and requirements above.
+`;
+
   try {
-    // Validate all required data exists
-    if (!brief.id || !stageId || !agent.id) {
-      const missingData = [];
-      if (!brief.id) missingData.push('briefId');
-      if (!stageId) missingData.push('stageId');
-      if (!agent.id) missingData.push('agentId');
-      
-      console.error("Missing required data:", missingData);
-      throw new Error(`Missing required data: ${missingData.join(', ')}`);
-    }
-
-    // Check if this is the first stage
-    const { data: stages, error: stagesError } = await supabase
-      .from('stages')
-      .select('id, order_index')
-      .order('order_index', { ascending: true });
-
-    if (stagesError) {
-      console.error("Error fetching stages:", stagesError);
-      throw stagesError;
-    }
-
-    const currentStageIndex = stages.findIndex((s: any) => s.id === stageId);
-    const isFirstStage = currentStageIndex === 0;
-
-    // Log agent skills
-    if (agent.skills && agent.skills.length > 0) {
-      console.log("Processing agent skills:", agent.skills.map((skill: any) => ({
-        skillId: skill.id,
-        name: skill.name,
-        type: skill.type,
-        hasContent: !!skill.content
-      })));
-    } else {
-      console.warn("Agent has no skills:", {
-        agentId: agent.id,
-        agentName: agent.name
-      });
-    }
-
-    // Build prompts using the promptBuilder with requirements
-    const { conversationalPrompt, schematicPrompt } = buildPrompt(
-      agent,
-      brief,
-      previousOutputs,
-      requirements,
-      isFirstStage
-    );
-
-    console.log("Generating conversational response with requirements:", requirements);
-    const conversationalContent = await generateAgentResponse(conversationalPrompt);
+    const response = await generateAgentResponse(prompt);
     
-    console.log("Generating schematic response...");
-    const schematicContent = await generateAgentResponse(schematicPrompt);
-
-    if (!conversationalContent || !schematicContent) {
-      throw new Error(`Failed to generate content for agent: ${agent.name}`);
-    }
-
-    // Save the conversational output
-    const { error: conversationalError } = await supabase
-      .from('workflow_conversations')
-      .insert([{
-        brief_id: brief.id,
-        stage_id: stageId,
-        agent_id: agent.id,
-        content: conversationalContent.trim(),
-        output_type: 'conversational'
-      }]);
-
-    if (conversationalError) {
-      throw new Error(`Error saving conversational output: ${conversationalError.message}`);
-    }
-
-    // Save the schematic output
-    const { error: schematicError } = await supabase
-      .from('workflow_conversations')
-      .insert([{
-        brief_id: brief.id,
-        stage_id: stageId,
-        agent_id: agent.id,
-        content: schematicContent.trim(),
-        output_type: 'summary'
-      }]);
-
-    if (schematicError) {
-      throw new Error(`Error saving schematic output: ${schematicError.message}`);
-    }
-
-    console.log("Agent processing completed successfully:", {
-      briefId: brief.id,
-      stageId: stageId,
+    console.log('Agent response received:', {
       agentId: agent.id,
+      responseLength: response.length,
       timestamp: new Date().toISOString()
     });
 
     return {
-      agent: agent.name,
-      outputs: [
-        {
-          content: conversationalContent.trim()
-        },
-        {
-          content: schematicContent.trim()
-        }
-      ],
-      requirements: requirements
+      agent: {
+        id: agent.id,
+        name: agent.name,
+        description: agent.description,
+        skills: agent.skills
+      },
+      outputs: [{
+        content: response,
+        timestamp: new Date().toISOString()
+      }]
     };
   } catch (error) {
-    console.error("Error in agent processing:", {
-      error: error.message,
-      briefId: brief?.id,
-      stageId: stageId,
-      agentId: agent?.id,
-      stack: error.stack,
-      timestamp: new Date().toISOString()
-    });
+    console.error('Error in processAgent:', error);
     throw error;
   }
 }
