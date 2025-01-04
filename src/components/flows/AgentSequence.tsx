@@ -14,7 +14,7 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
   const [audioElements, setAudioElements] = useState<{[key: string]: HTMLAudioElement | null}>({});
   const [visibleTexts, setVisibleTexts] = useState<{[key: string]: boolean}>({});
 
-  // Sort conversations by creation date and step order
+  // Sort conversations by flow step order first, then creation date
   const sortedConversations = [...conversations].sort((a, b) => {
     // First sort by flow step order if available
     if (a.flow_step_id && b.flow_step_id) {
@@ -24,22 +24,24 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
     return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
   });
 
+  // Group conversations by flow step ID instead of agent ID to maintain step order
   const groupedConversations = sortedConversations.reduce((acc: any, conv: any) => {
     if (!conv) return acc;
     
-    const agentId = conv.agent_id;
-    if (!acc[agentId]) {
-      acc[agentId] = {
-        agent: conv.agents || { id: agentId, name: 'Unknown Agent' },
+    const stepId = conv.flow_step_id || `no-step-${conv.id}`;
+    if (!acc[stepId]) {
+      acc[stepId] = {
+        agent: conv.agents || { id: conv.agent_id, name: 'Unknown Agent' },
         conversations: [],
-        summary: null
+        summary: null,
+        orderIndex: conv.order_index
       };
     }
     
     if (conv.output_type === 'summary') {
-      acc[agentId].summary = conv;
+      acc[stepId].summary = conv;
     } else {
-      acc[agentId].conversations.push(conv);
+      acc[stepId].conversations.push(conv);
     }
     
     return acc;
@@ -65,13 +67,19 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
     }
   };
 
+  // Sort groups by order index to maintain step sequence
+  const sortedGroups = Object.entries(groupedConversations)
+    .sort(([, a]: [string, any], [, b]: [string, any]) => 
+      (a.orderIndex || 0) - (b.orderIndex || 0)
+    );
+
   return (
     <div className="space-y-4">
-      {Object.entries(groupedConversations).map(([agentId, group]: [string, any], index: number) => {
+      {sortedGroups.map(([stepId, group]: [string, any], index: number) => {
         if (!group?.agent) return null;
         
         return (
-          <Card key={group.agent?.id || `unknown-${index}`} className="overflow-hidden border-agent">
+          <Card key={`${group.agent?.id}-${stepId}`} className="overflow-hidden border-agent">
             <CardContent className="p-4">
               <AgentHeader agentName={group.agent?.name} index={index} />
               
