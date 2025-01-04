@@ -56,7 +56,7 @@ export const ConversationContent: React.FC<ConversationContentProps> = ({
         </div>
       </div>
       <div className="bg-agent/5 rounded-lg p-6 shadow-sm">
-        <Accordion type="single" collapsible className="w-full">
+        <Accordion type="single" collapsible className="w-full" defaultValue="">
           <AccordionItem value="content" className="border-none">
             <AccordionTrigger data-accordion-id={conversation.id} className="hidden">
               Toggle Content
@@ -72,7 +72,9 @@ export const ConversationContent: React.FC<ConversationContentProps> = ({
       {conversation.summary && (
         <div className="mt-4 bg-muted rounded-lg p-4">
           <h6 className="text-sm font-medium mb-2">Schematic Output:</h6>
-          <MarkdownContent content={conversation.summary} />
+          <div className="prose prose-sm max-w-none dark:prose-invert">
+            <MarkdownContent content={conversation.summary} />
+          </div>
         </div>
       )}
     </div>
