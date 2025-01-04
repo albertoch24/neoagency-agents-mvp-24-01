@@ -44,6 +44,7 @@ export const FlowStepContent = ({
             onChange={(e) => onEditOutputs(e.target.value)}
             className="mt-1"
             rows={4}
+            placeholder="Enter each output on a new line"
           />
         </div>
         <div>
@@ -55,6 +56,7 @@ export const FlowStepContent = ({
             onChange={(e) => onEditRequirements(e.target.value)}
             className="mt-1"
             rows={4}
+            placeholder="Enter requirements"
           />
         </div>
         <div className="flex justify-end gap-2">
@@ -79,11 +81,15 @@ export const FlowStepContent = ({
           Required Outputs:
         </h4>
         <ul className="list-disc pl-4 space-y-1">
-          {step.outputs?.map((output, i) => (
-            <li key={i} className="text-sm">
-              {output.text}
-            </li>
-          )) || <li>No outputs defined</li>}
+          {step.outputs && step.outputs.length > 0 ? (
+            step.outputs.map((output, i) => (
+              <li key={i} className="text-sm">
+                {output.text}
+              </li>
+            ))
+          ) : (
+            <li className="text-sm text-muted-foreground">No outputs defined</li>
+          )}
         </ul>
       </div>
       <div>

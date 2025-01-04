@@ -64,19 +64,6 @@ export const FlowStepItem = ({
 
       console.log('Formatted outputs for saving:', formattedOutputs);
 
-      // First verify the flow exists
-      const { data: flowData, error: flowError } = await supabase
-        .from("flows")
-        .select("id")
-        .eq("id", flowId)
-        .single();
-
-      if (flowError) {
-        console.error('Error verifying flow:', flowError);
-        toast.error("Failed to verify flow");
-        return;
-      }
-
       // Update the step
       const { error: updateError } = await supabase
         .from("flow_steps")
@@ -135,7 +122,11 @@ export const FlowStepItem = ({
             onEditOutputs={setEditedOutputs}
             onEditRequirements={setEditedRequirements}
             onStartEdit={() => setIsEditing(true)}
-            onCancelEdit={() => setIsEditing(false)}
+            onCancelEdit={() => {
+              setIsEditing(false);
+              setEditedOutputs(step.outputs?.map(o => o.text).join('\n') || '');
+              setEditedRequirements(step.requirements || '');
+            }}
             onSave={handleSave}
             onRemove={onRemove}
             stepId={step.id}
