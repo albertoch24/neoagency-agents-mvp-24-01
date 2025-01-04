@@ -57,7 +57,7 @@ export const ConversationContent: React.FC<ConversationContentProps> = ({
         </div>
       </div>
       <div className="bg-agent/5 rounded-lg p-6 shadow-sm">
-        <Accordion type="single" collapsible className="w-full" defaultValue="">
+        <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="content" className="border-none">
             <AccordionTrigger data-accordion-id={conversation.id} className="hidden">
               Toggle Content
