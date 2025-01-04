@@ -7,10 +7,11 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 
 interface WorkflowDisplayProps {
   currentStage: string;
-  onStageSelect: (stage: any) => void;
+  onStageSelect?: (stage: any) => void;
   briefId?: string;
 }
 
@@ -19,9 +20,21 @@ export const WorkflowDisplay = ({
   onStageSelect,
   briefId
 }: WorkflowDisplayProps) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: stages = [] } = useStagesData(briefId);
   const { isProcessing, processStage } = useStageProcessing(briefId || "");
   const queryClient = useQueryClient();
+
+  const handleStageSelect = (stage: any) => {
+    if (onStageSelect) {
+      onStageSelect(stage);
+    } else {
+      // Update URL params
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("stage", stage.id);
+      setSearchParams(newParams);
+    }
+  };
 
   const handleNextStage = async () => {
     if (!briefId) return;
@@ -36,7 +49,7 @@ export const WorkflowDisplay = ({
     const success = await processStage(nextStage);
     if (success) {
       console.log("Stage processed successfully, selecting next stage:", nextStage.id);
-      onStageSelect(nextStage);
+      handleStageSelect(nextStage);
       
       // Invalidate queries to refresh data
       await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
@@ -112,7 +125,7 @@ export const WorkflowDisplay = ({
       <WorkflowStages
         stages={stages}
         currentStage={currentStage}
-        onStageSelect={onStageSelect}
+        onStageSelect={handleStageSelect}
         briefId={briefId}
       />
       {briefId && (
