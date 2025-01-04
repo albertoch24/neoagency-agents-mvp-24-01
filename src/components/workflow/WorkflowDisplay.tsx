@@ -6,6 +6,7 @@ import { useStageProcessing } from "@/hooks/useStageProcessing";
 import { useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface WorkflowDisplayProps {
   currentStage: string;
@@ -22,25 +23,37 @@ export const WorkflowDisplay = ({
   const { isProcessing, processStage } = useStageProcessing(briefId || "");
   const queryClient = useQueryClient();
 
-  // Query to check completed stages - moved outside of conditional
+  // Query to check completed stages - always initialized
   const { data: completedStages = [] } = useQuery({
     queryKey: ["completed-stages", briefId],
     queryFn: async () => {
       if (!briefId) return [];
       
-      const { data } = await supabase
-        .from("workflow_conversations")
-        .select("stage_id")
-        .eq("brief_id", briefId)
-        .order("created_at", { ascending: true });
-      
-      return data?.map(item => item.stage_id) || [];
+      try {
+        const { data, error } = await supabase
+          .from("workflow_conversations")
+          .select("stage_id")
+          .eq("brief_id", briefId)
+          .order("created_at", { ascending: true });
+
+        if (error) {
+          console.error("Error fetching completed stages:", error);
+          toast.error("Failed to fetch completed stages");
+          return [];
+        }
+        
+        return data?.map(item => item.stage_id) || [];
+      } catch (error) {
+        console.error("Error in completedStages query:", error);
+        return [];
+      }
     },
-    enabled: !!briefId
+    enabled: !!briefId,
+    retry: 3
   });
 
   const handleNextStage = useCallback(async () => {
-    if (!briefId) return;
+    if (!briefId || !stages.length) return;
 
     const currentIndex = stages.findIndex(stage => stage.id === currentStage);
     if (currentIndex === -1 || currentIndex === stages.length - 1) return;
@@ -48,34 +61,38 @@ export const WorkflowDisplay = ({
     const nextStage = stages[currentIndex + 1];
     if (!nextStage) return;
 
-    console.log("Processing next stage:", nextStage.id);
-    const success = await processStage(nextStage);
-    if (success) {
-      console.log("Stage processed successfully, selecting next stage:", nextStage.id);
-      onStageSelect(nextStage);
+    try {
+      console.log("Processing next stage:", nextStage.id);
+      const success = await processStage(nextStage);
       
-      // Invalidate queries to refresh data
-      await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
-      await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
-      await queryClient.invalidateQueries({ queryKey: ["stage-flow-steps"] });
+      if (success) {
+        console.log("Stage processed successfully, selecting next stage:", nextStage.id);
+        onStageSelect(nextStage);
+        
+        // Invalidate queries to refresh data
+        await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+        await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+        await queryClient.invalidateQueries({ queryKey: ["stage-flow-steps"] });
+      }
+    } catch (error) {
+      console.error("Error processing next stage:", error);
+      toast.error("Failed to process next stage");
     }
   }, [briefId, currentStage, stages, processStage, onStageSelect, queryClient]);
 
   // Effect for handling automatic progression of first stage
   useEffect(() => {
-    const checkAndProgressFirstStage = async () => {
-      if (!briefId || !currentStage || isProcessing) {
-        console.log("Skipping progression check:", { briefId, currentStage, isProcessing });
-        return;
-      }
+    if (!briefId || !currentStage || isProcessing || !stages.length) {
+      return;
+    }
 
+    const checkAndProgressFirstStage = async () => {
       try {
         // Get current stage index
         const currentIndex = stages.findIndex(stage => stage.id === currentStage);
         
         // Only proceed if this is the first stage
         if (currentIndex !== 0) {
-          console.log("Not first stage, skipping automatic progression");
           return;
         }
 
