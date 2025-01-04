@@ -1,23 +1,26 @@
+import { Tables } from './tables';
+import { Functions } from './functions';
+
 export type Json =
   | string
   | number
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[]
+  | Json[];
 
 export type Database = {
   public: {
-    Tables: Tables
+    Tables: Tables;
     Views: {
-      [_ in never]: never
-    }
-    Functions: Functions
+      [_ in never]: never;
+    };
+    Functions: Functions;
     Enums: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+      [_ in never]: never;
+    };
+  };
+};
