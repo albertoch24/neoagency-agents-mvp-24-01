@@ -100,15 +100,6 @@ export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, 
     const isPreviousCompleted = index > 0 ? completedStages?.includes(stages[index - 1].id) : true;
     const isNextStage = index === currentIndex + 1;
 
-    console.log("Stage click:", {
-      stage: stage.name,
-      index,
-      currentIndex,
-      isCompleted,
-      isPreviousCompleted,
-      isNextStage
-    });
-
     if (!isCompleted && !isPreviousCompleted) {
       toast.error("Please complete the previous stage first");
       return;

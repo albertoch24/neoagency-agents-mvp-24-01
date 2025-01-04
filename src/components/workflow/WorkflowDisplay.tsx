@@ -6,12 +6,10 @@ import { useStageProcessing } from "@/hooks/useStageProcessing";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { useSearchParams } from "react-router-dom";
 
 interface WorkflowDisplayProps {
   currentStage: string;
-  onStageSelect?: (stage: any) => void;
+  onStageSelect: (stage: any) => void;
   briefId?: string;
 }
 
@@ -20,21 +18,9 @@ export const WorkflowDisplay = ({
   onStageSelect,
   briefId
 }: WorkflowDisplayProps) => {
-  const [searchParams, setSearchParams] = useSearchParams();
   const { data: stages = [] } = useStagesData(briefId);
   const { isProcessing, processStage } = useStageProcessing(briefId || "");
   const queryClient = useQueryClient();
-
-  const handleStageSelect = (stage: any) => {
-    if (onStageSelect) {
-      onStageSelect(stage);
-    } else {
-      // Update URL params
-      const newParams = new URLSearchParams(searchParams);
-      newParams.set("stage", stage.id);
-      setSearchParams(newParams);
-    }
-  };
 
   const handleNextStage = async () => {
     if (!briefId) return;
@@ -49,7 +35,7 @@ export const WorkflowDisplay = ({
     const success = await processStage(nextStage);
     if (success) {
       console.log("Stage processed successfully, selecting next stage:", nextStage.id);
-      handleStageSelect(nextStage);
+      onStageSelect(nextStage);
       
       // Invalidate queries to refresh data
       await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
@@ -88,29 +74,39 @@ export const WorkflowDisplay = ({
           return;
         }
 
-        // If we have no conversations for the first stage, process it
-        if (!conversations || conversations.length === 0) {
-          console.log("No conversations found for first stage, processing...");
-          const firstStage = stages[0];
-          if (firstStage) {
-            const success = await processStage(firstStage);
-            if (success) {
-              toast.success("First stage processed successfully!");
-              // Invalidate queries to refresh data
-              await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
-              await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
-              await queryClient.invalidateQueries({ queryKey: ["stage-flow-steps"] });
+        console.log("Found conversations:", conversations?.length);
+        
+        // If we have conversations for the first stage, try to progress
+        if (conversations?.length > 0) {
+          const nextStage = stages[1]; // Get second stage
+          
+          if (nextStage) {
+            console.log("Checking next stage conversations:", nextStage.id);
+            // Check if next stage already has conversations
+            const { data: nextStageConversations, error: nextError } = await supabase
+              .from("workflow_conversations")
+              .select("*")
+              .eq("brief_id", briefId)
+              .eq("stage_id", nextStage.id);
+
+            if (nextError) {
+              console.error("Error checking next stage:", nextError);
+              return;
+            }
+
+            // Only process next stage if it hasn't been processed yet
+            if (!nextStageConversations?.length) {
+              console.log("First stage completed, ready for manual progression to next stage");
             }
           }
         }
       } catch (error) {
         console.error("Error in progression check:", error);
-        toast.error("Error checking stage progression");
       }
     };
 
     checkAndProgressFirstStage();
-  }, [currentStage, briefId, stages, isProcessing, processStage, queryClient]);
+  }, [currentStage, briefId, stages, isProcessing]);
 
   if (!stages.length) {
     return (
@@ -125,7 +121,7 @@ export const WorkflowDisplay = ({
       <WorkflowStages
         stages={stages}
         currentStage={currentStage}
-        onStageSelect={handleStageSelect}
+        onStageSelect={onStageSelect}
         briefId={briefId}
       />
       {briefId && (
