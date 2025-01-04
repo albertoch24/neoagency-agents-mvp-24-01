@@ -1,5 +1,5 @@
-import { Tables } from './tables';
-import { Functions } from './functions';
+import type { Tables } from './tables';
+import type { Functions } from './functions';
 
 export type Json =
   | string
