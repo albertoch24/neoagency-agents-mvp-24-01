@@ -26,7 +26,8 @@ export const ConversationContent: React.FC<ConversationContentProps> = ({
     requirements: conversation.requirements,
     flowStepId: conversation.flow_step_id,
     outputType: conversation.output_type,
-    orderIndex: conversation.order_index
+    orderIndex: conversation.order_index,
+    summary: conversation.summary
   });
 
   return (
