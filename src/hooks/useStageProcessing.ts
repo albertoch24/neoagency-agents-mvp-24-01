@@ -84,6 +84,33 @@ export const useStageProcessing = (briefId: string) => {
           id: step.id,
           agentId: step.agent_id,
           orderIndex: step.order_index,
+          requirements: step.requirements,
+          agent: step.agents?.name
+        }))
+      });
+
+      // Log the prompts that will be used
+      const { data: brief } = await supabase
+        .from("briefs")
+        .select("*")
+        .eq("id", briefId)
+        .single();
+
+      // Get previous stage outputs if not first stage
+      const { data: previousOutputs } = await supabase
+        .from("brief_outputs")
+        .select("*")
+        .eq("brief_id", briefId)
+        .order("created_at", { ascending: true });
+
+      const isFirstStage = !previousOutputs || previousOutputs.length === 0;
+
+      console.log("Stage processing context:", {
+        isFirstStage,
+        brief,
+        previousOutputs,
+        flowSteps: flowSteps.map(step => ({
+          agentName: step.agents?.name,
           requirements: step.requirements
         }))
       });
