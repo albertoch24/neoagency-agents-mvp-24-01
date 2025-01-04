@@ -69,6 +69,12 @@ export const ConversationContent: React.FC<ConversationContentProps> = ({
           </AccordionItem>
         </Accordion>
       </div>
+      {conversation.summary && (
+        <div className="mt-4 bg-muted rounded-lg p-4">
+          <h6 className="text-sm font-medium mb-2">Schematic Output:</h6>
+          <MarkdownContent content={conversation.summary} />
+        </div>
+      )}
     </div>
   );
 };

@@ -103,11 +103,11 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
                   </div>
                 ))}
 
-                {/* Display summary if available */}
+                {/* Display stage summary if available */}
                 {group.summary && (
                   <div className="mt-6">
                     <div className="flex justify-between items-center mb-3">
-                      <h5 className="text-sm font-medium text-muted-foreground">Summary:</h5>
+                      <h5 className="text-sm font-medium text-muted-foreground">Stage Summary:</h5>
                     </div>
                     <div className="bg-muted rounded-lg p-6">
                       <MarkdownContent content={group.summary.content} />
