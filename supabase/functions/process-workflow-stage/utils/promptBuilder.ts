@@ -15,6 +15,11 @@ export const buildPrompt = (
         .join('\n\n')
     : '';
 
+  // Format requirements
+  const formattedRequirements = requirements 
+    ? `\nSpecific Requirements for this Step:\n${requirements}`
+    : '';
+
   // Construct conversational prompt
   const conversationalPrompt = `
     As ${agent.name}, analyze this creative brief ${!isFirstStage ? 'and previous stage outputs ' : ''}in a natural, conversational way:
@@ -23,7 +28,7 @@ export const buildPrompt = (
     Title: ${brief.title}
     Description: ${brief.description}
     Objectives: ${brief.objectives}
-    Requirements: ${requirements || 'None specified'}
+    Requirements: ${formattedRequirements}
     
     ${!isFirstStage ? `Previous Stage Outputs:
     ${previousStageOutputs}` : ''}
@@ -47,6 +52,7 @@ export const buildPrompt = (
     7. Share personal insights and experiences
     8. Ask rhetorical questions to engage others
     9. Use informal but professional language
+    ${formattedRequirements}
   `;
 
   // Construct schematic prompt
@@ -57,7 +63,7 @@ export const buildPrompt = (
     Title: ${brief.title}
     Description: ${brief.description}
     Objectives: ${brief.objectives}
-    Requirements: ${requirements || 'None specified'}
+    Requirements: ${formattedRequirements}
     
     ${!isFirstStage ? `Previous Stage Outputs:
     ${previousStageOutputs}` : ''}
@@ -86,6 +92,7 @@ export const buildPrompt = (
     Format your response with clear headings and bullet points.
     Focus on concrete, actionable items and measurable outcomes.
     Keep the tone professional and direct.
+    ${formattedRequirements}
   `;
 
   return { conversationalPrompt, schematicPrompt };

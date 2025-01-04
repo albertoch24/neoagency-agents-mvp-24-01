@@ -26,7 +26,8 @@ export async function processAgent(
       name: agent.name,
       description: agent.description,
       skillCount: agent.skills?.length || 0
-    }
+    },
+    requirements
   });
 
   try {
@@ -77,7 +78,7 @@ export async function processAgent(
       });
     }
 
-    // Build prompts using the promptBuilder
+    // Build prompts using the promptBuilder with requirements
     const { conversationalPrompt, schematicPrompt } = buildPrompt(
       agent,
       brief,
@@ -86,7 +87,7 @@ export async function processAgent(
       isFirstStage
     );
 
-    console.log("Generating conversational response...");
+    console.log("Generating conversational response with requirements:", requirements);
     const conversationalContent = await generateAgentResponse(conversationalPrompt);
     
     console.log("Generating schematic response...");
@@ -151,7 +152,8 @@ export async function processAgent(
         {
           content: conversationalContent.trim()
         }
-      ]
+      ],
+      requirements: requirements
     };
   } catch (error) {
     console.error("Error in agent processing:", {
