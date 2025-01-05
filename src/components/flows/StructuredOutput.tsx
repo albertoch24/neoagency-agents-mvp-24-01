@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MarkdownContent } from "./MarkdownContent";
 import { Button } from "@/components/ui/button";
 import { Type } from "lucide-react";
@@ -17,7 +17,11 @@ export const StructuredOutput = ({
   isVisible = true,
   onToggleVisibility 
 }: StructuredOutputProps) => {
-  const [localIsVisible, setLocalIsVisible] = useState(isVisible);
+  const [localIsVisible, setLocalIsVisible] = useState(true); // Always start visible
+
+  useEffect(() => {
+    setLocalIsVisible(isVisible);
+  }, [isVisible]);
 
   const { data: structuredOutput } = useQuery({
     queryKey: ["structured-output", stepId],
@@ -43,7 +47,8 @@ export const StructuredOutput = ({
   });
 
   const handleToggle = () => {
-    setLocalIsVisible(!localIsVisible);
+    const newVisibility = !localIsVisible;
+    setLocalIsVisible(newVisibility);
     onToggleVisibility();
   };
 
