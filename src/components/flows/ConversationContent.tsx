@@ -30,7 +30,9 @@ export const ConversationContent = ({
     contentLength: conversation?.content?.length,
     isPlaying,
     visibleText,
-    outputType: conversation?.output_type
+    outputType: conversation?.output_type,
+    flowStepId: conversation?.flow_step_id,
+    hasAudioUrl: !!audioUrl
   });
 
   useEffect(() => {
@@ -42,13 +44,15 @@ export const ConversationContent = ({
         console.log("Audio fetch response:", {
           conversationId: conversation.id,
           success: response.ok,
-          audioUrl: data.url
+          audioUrl: data.url,
+          visibleText
         });
         setAudioUrl(data.url);
       } catch (error) {
         console.error("Error fetching audio:", {
           conversationId: conversation.id,
-          error
+          error,
+          visibleText
         });
       }
     };
@@ -60,7 +64,8 @@ export const ConversationContent = ({
     console.log("Play button clicked:", {
       conversationId: conversation.id,
       currentlyPlaying: isPlaying,
-      hasAudioRef: !!audioRef.current
+      hasAudioRef: !!audioRef.current,
+      visibleText
     });
 
     if (audioRef.current) {
@@ -119,14 +124,16 @@ export const ConversationContent = ({
           onLoadedMetadata={(e) => {
             console.log("Audio loaded:", {
               conversationId: conversation.id,
-              duration: e.currentTarget.duration
+              duration: e.currentTarget.duration,
+              visibleText
             });
             onAudioElement(e.currentTarget);
           }}
           onError={(e) => {
             console.error("Audio error:", {
               conversationId: conversation.id,
-              error: e
+              error: e,
+              visibleText
             });
             onAudioElement(null);
           }}

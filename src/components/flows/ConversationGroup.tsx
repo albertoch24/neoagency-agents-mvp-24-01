@@ -50,7 +50,8 @@ export const ConversationGroup = ({
       id: conv.id,
       type: conv.output_type,
       contentLength: conv.content?.length,
-      hasFlowStepId: !!conv.flow_step_id
+      hasFlowStepId: !!conv.flow_step_id,
+      isVisible: visibleTexts[conv.id]
     }))
   });
 
@@ -85,7 +86,9 @@ export const ConversationGroup = ({
           id: output.id,
           type: output.output_type,
           hasContent: !!output.content,
-          contentType: typeof output.content
+          contentType: typeof output.content,
+          stage: output.stage,
+          stageId: output.stage_id
         }))
       });
       
@@ -101,9 +104,11 @@ export const ConversationGroup = ({
       id: conv.id,
       type: conv.output_type,
       isConversational,
-      content: conv.content?.substring(0, 100), // Log first 100 chars of content
+      content: conv.content?.substring(0, 100),
       flowStepId: conv.flow_step_id,
-      hasAudioUrl: !!conv.audio_url
+      hasAudioUrl: !!conv.audio_url,
+      isVisible: visibleTexts[conv.id],
+      contentLength: conv.content?.length
     });
     return isConversational;
   });
@@ -115,7 +120,9 @@ export const ConversationGroup = ({
       type: conv.output_type,
       isStructured,
       hasContent: !!conv.content,
-      flowStepId: conv.flow_step_id
+      flowStepId: conv.flow_step_id,
+      contentLength: conv.content?.length,
+      isVisible: visibleTexts[conv.id]
     });
     return isStructured;
   });
@@ -128,7 +135,11 @@ export const ConversationGroup = ({
     contentSample: typeof latestBriefOutput?.content === 'object' 
       ? JSON.stringify(latestBriefOutput?.content).substring(0, 100) 
       : 'No content',
-    hasStageId: !!latestBriefOutput?.stage_id
+    hasStageId: !!latestBriefOutput?.stage_id,
+    stage: latestBriefOutput?.stage,
+    contentLength: typeof latestBriefOutput?.content === 'object' 
+      ? JSON.stringify(latestBriefOutput?.content).length 
+      : 0
   });
 
   return (
@@ -158,7 +169,9 @@ export const ConversationGroup = ({
             contentLength: conversation.content?.length,
             isPlaying: isPlaying[conversation.id],
             isVisible: visibleTexts[conversation.id],
-            flowStepId: conversation.flow_step_id
+            flowStepId: conversation.flow_step_id,
+            outputType: conversation.output_type,
+            hasAudioUrl: !!conversation.audio_url
           });
           
           return (
