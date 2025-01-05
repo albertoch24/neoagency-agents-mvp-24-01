@@ -6,6 +6,19 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MarkdownContent } from "./MarkdownContent";
 
+interface BriefOutput {
+  content: {
+    outputs?: Array<{
+      stepId: string;
+      outputs?: Array<{
+        content: string | {
+          perimetroContent?: string;
+        };
+      }>;
+    }>;
+  } | string;
+}
+
 interface ConversationGroupProps {
   group: any;
   index: number;
@@ -27,7 +40,7 @@ export const ConversationGroup = ({
   onAudioElement,
   onToggleText,
 }: ConversationGroupProps) => {
-  const { data: briefOutput } = useQuery({
+  const { data: briefOutput } = useQuery<BriefOutput | null>({
     queryKey: ["brief-outputs", group.briefId, group.stageId],
     queryFn: async () => {
       console.log("Fetching brief outputs for:", { 
@@ -75,19 +88,20 @@ export const ConversationGroup = ({
 
   // Extract perimetroContent if it exists in the outputs
   const getPerimetroContent = () => {
+    if (typeof briefOutput?.content === 'string') return null;
     if (!briefOutput?.content?.outputs) return null;
     
-    const stepOutput = briefOutput.content.outputs.find((out: any) => 
+    const stepOutput = briefOutput.content.outputs.find((out) => 
       out.stepId === group.conversations[0]?.flow_step_id
     );
 
     if (!stepOutput?.outputs) return null;
 
     return stepOutput.outputs
-      .map((out: any) => {
+      .map((out) => {
         try {
-          const parsed = typeof out.content === 'string' ? JSON.parse(out.content) : out.content;
-          return parsed.perimetroContent || null;
+          const content = typeof out.content === 'string' ? JSON.parse(out.content) : out.content;
+          return content.perimetroContent || null;
         } catch {
           return null;
         }
