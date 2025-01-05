@@ -29,7 +29,9 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
         agent: conv.agents || { id: conv.agent_id, name: 'Unknown Agent' },
         conversations: [],
         summary: null,
-        orderIndex: conv.order_index
+        orderIndex: conv.order_index,
+        briefId: conv.brief_id,
+        stageId: conv.stage_id
       };
     }
     
