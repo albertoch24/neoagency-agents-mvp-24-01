@@ -15,7 +15,7 @@ interface WorkflowStageListProps {
 }
 
 export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageListProps) => {
-  console.log("WorkflowStageList received briefOutputs:", briefOutputs); // Debug log
+  console.log("WorkflowStageList received briefOutputs:", briefOutputs);
 
   return (
     <div className="space-y-8">
@@ -23,15 +23,15 @@ export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageLi
         // Add briefId to each conversation if it's not already present
         const conversationsWithIds = conversations.map((conv: any) => ({
           ...conv,
-          stage_id: stageId, // Ensure stage_id is set
-          brief_id: conv.brief_id || (conversations[0]?.brief_id) // Use the first conversation's brief_id as fallback
+          stage_id: stageId,
+          brief_id: conv.brief_id || (conversations[0]?.brief_id)
         }));
 
         const output = Array.isArray(briefOutputs) 
           ? briefOutputs.find((output) => output.stage === stageId)
           : null;
 
-        console.log("Stage output for", stageId, ":", output); // Debug log
+        console.log("Stage output for", stageId, ":", output);
 
         // Group conversations by flow step
         const conversationsByStep = conversationsWithIds.reduce((acc: any, conv: any) => {
