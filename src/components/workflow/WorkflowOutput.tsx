@@ -1,7 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BriefOutput } from "@/types/workflow";
 import { 
   Accordion,
   AccordionContent,
@@ -15,6 +14,19 @@ import { marked } from "marked";
 interface WorkflowOutputProps {
   briefId: string;
   stageId: string;
+}
+
+interface StageOutput {
+  stage_name: string;
+  outputs: Array<{
+    agent: string;
+    requirements?: string;
+    outputs: Array<{
+      content: string;
+    }>;
+    stepId: string;
+    orderIndex: number;
+  }>;
 }
 
 export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
@@ -36,7 +48,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
       }
 
       console.log("Found outputs:", data);
-      return data as BriefOutput[];
+      return data;
     },
     enabled: !!briefId && !!stageId,
     staleTime: 0,
@@ -45,24 +57,19 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
   });
 
   const formatText = (text: string) => {
-    // Prepara il testo per la conversione in HTML
     const preparedText = text
-      // Rimuove i marcatori tecnici non necessari
       .replace(/###|####/g, '')
-      .replace(/\*\*/g, '*')  // Converte ** in * per il markdown standard
-      .replace(/^-\s/gm, '• ') // Converte i trattini in bullet points
+      .replace(/\*\*/g, '*')
+      .replace(/^-\s/gm, '• ')
       .trim();
 
-    // Configura marked per output sicuro e personalizzato
     marked.setOptions({
-      gfm: true, // GitHub Flavored Markdown
-      breaks: true, // Converte i ritorni a capo in <br>
+      gfm: true,
+      breaks: true,
     });
 
-    // Converte il markdown in HTML
     const htmlContent = marked(preparedText);
 
-    // Wrappa il contenuto HTML in un div con stili appropriati
     return (
       <div 
         className="prose prose-gray max-w-none dark:prose-invert"
@@ -80,48 +87,54 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
       <CardContent className="p-8">
         <ScrollArea className="h-[600px] pr-6">
           <div className="space-y-12">
-            {outputs.map((output) => (
-              <div key={output.id} className="space-y-8">
-                <div className="flex items-center justify-between border-b pb-4">
-                  <h3 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                    {output.content.stage_name || 'Analisi'}
-                  </h3>
-                  <span className="text-sm text-muted-foreground">
-                    {format(new Date(output.created_at), "PPpp")}
-                  </span>
-                </div>
-                
-                <div className="text-foreground">
-                  {output.content.outputs?.map((agentOutput: any, index: number) => (
-                    <div key={index} className="mt-8">
-                      <Accordion type="single" collapsible className="w-full">
-                        <AccordionItem 
-                          value={`agent-${index}`} 
-                          className="border rounded-lg shadow-sm bg-card/50 backdrop-blur-sm"
-                        >
-                          <AccordionTrigger className="px-6 py-4 text-xl font-semibold hover:no-underline data-[state=open]:text-primary">
-                            {agentOutput.agent}
-                          </AccordionTrigger>
-                          <AccordionContent className="px-6 pb-6">
-                            <div className="prose prose-sm max-w-none">
-                              <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
-                                {typeof agentOutput.outputs === 'string' 
-                                  ? formatText(agentOutput.outputs)
-                                  : agentOutput.outputs?.map((output: any, outputIndex: number) => (
-                                      <div key={outputIndex} className="mb-8 last:mb-0">
-                                        {formatText(output.content)}
-                                      </div>
-                                    ))}
+            {outputs.map((output) => {
+              const stageOutput = output.content as StageOutput;
+              return (
+                <div key={output.id} className="space-y-8">
+                  <div className="flex items-center justify-between border-b pb-4">
+                    <h3 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                      {stageOutput.stage_name || 'Stage Output'}
+                    </h3>
+                    <span className="text-sm text-muted-foreground">
+                      {format(new Date(output.created_at), "PPpp")}
+                    </span>
+                  </div>
+                  
+                  <div className="text-foreground">
+                    {stageOutput.outputs?.map((agentOutput, index) => (
+                      <div key={index} className="mt-8">
+                        <Accordion type="single" collapsible className="w-full">
+                          <AccordionItem 
+                            value={`agent-${index}`} 
+                            className="border rounded-lg shadow-sm bg-card/50 backdrop-blur-sm"
+                          >
+                            <AccordionTrigger className="px-6 py-4 text-xl font-semibold hover:no-underline data-[state=open]:text-primary">
+                              {agentOutput.agent}
+                              {agentOutput.requirements && (
+                                <span className="text-sm font-normal text-muted-foreground ml-2">
+                                  ({agentOutput.requirements})
+                                </span>
+                              )}
+                            </AccordionTrigger>
+                            <AccordionContent className="px-6 pb-6">
+                              <div className="prose prose-sm max-w-none">
+                                <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
+                                  {agentOutput.outputs?.map((output, outputIndex) => (
+                                    <div key={outputIndex} className="mb-8 last:mb-0">
+                                      {formatText(output.content)}
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
-                    </div>
-                  ))}
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </ScrollArea>
       </CardContent>
