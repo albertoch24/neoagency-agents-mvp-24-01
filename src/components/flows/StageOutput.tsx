@@ -10,6 +10,7 @@ interface StageOutputProps {
       response?: string;
       outputs?: Array<{
         agent: string;
+        stepId?: string;  // Added stepId to the type definition
         outputs: Array<{
           content: string;
         }>;
