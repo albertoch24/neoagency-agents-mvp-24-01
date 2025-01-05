@@ -15,6 +15,8 @@ interface WorkflowStageListProps {
 }
 
 export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageListProps) => {
+  console.log("WorkflowStageList received briefOutputs:", briefOutputs); // Debug log
+
   return (
     <div className="space-y-8">
       {stages.map(([stageId, conversations]) => {
@@ -29,11 +31,13 @@ export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageLi
           ? briefOutputs.find((output) => output.stage === stageId)
           : null;
 
+        console.log("Stage output for", stageId, ":", output); // Debug log
+
         return (
           <div key={stageId} className="space-y-6">
             <div className="pl-4 space-y-4">
-              <AgentSequence conversations={conversationsWithIds} />
               {output && <StageOutput output={output} />}
+              <AgentSequence conversations={conversationsWithIds} />
             </div>
           </div>
         );
