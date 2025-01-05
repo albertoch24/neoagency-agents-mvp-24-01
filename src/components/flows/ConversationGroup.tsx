@@ -30,8 +30,17 @@ export const ConversationGroup = ({
   const { data: briefOutput } = useQuery({
     queryKey: ["brief-outputs", group.briefId, group.stageId],
     queryFn: async () => {
-      console.log("Fetching brief outputs for:", { briefId: group.briefId, stageId: group.stageId });
+      console.log("Fetching brief outputs for:", { 
+        briefId: group.briefId, 
+        stageId: group.stageId,
+        group: group // Log the entire group for debugging
+      });
       
+      if (!group.briefId || !group.stageId) {
+        console.log("Missing briefId or stageId:", { briefId: group.briefId, stageId: group.stageId });
+        return null;
+      }
+
       const { data, error } = await supabase
         .from("brief_outputs")
         .select("*")

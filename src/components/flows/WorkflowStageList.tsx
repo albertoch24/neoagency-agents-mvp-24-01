@@ -18,6 +18,13 @@ export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageLi
   return (
     <div className="space-y-8">
       {stages.map(([stageId, conversations]) => {
+        // Add briefId to each conversation if it's not already present
+        const conversationsWithIds = conversations.map((conv: any) => ({
+          ...conv,
+          stage_id: stageId, // Ensure stage_id is set
+          brief_id: conv.brief_id || (conversations[0]?.brief_id) // Use the first conversation's brief_id as fallback
+        }));
+
         const output = Array.isArray(briefOutputs) 
           ? briefOutputs.find((output) => output.stage === stageId)
           : null;
@@ -25,7 +32,7 @@ export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageLi
         return (
           <div key={stageId} className="space-y-6">
             <div className="pl-4 space-y-4">
-              <AgentSequence conversations={conversations} />
+              <AgentSequence conversations={conversationsWithIds} />
               {output && <StageOutput output={output} />}
             </div>
           </div>
