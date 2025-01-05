@@ -151,7 +151,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                                     <h4 className="text-lg font-semibold mb-4 text-primary">
                                       Conversazione Dettagliata
                                     </h4>
-                                    <MarkdownContent content={output.content} />
+                                    <MarkdownContent content={String(output.content)} />
                                   </div>
                                 </div>
                               </div>
