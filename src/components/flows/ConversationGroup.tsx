@@ -6,6 +6,19 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MarkdownContent } from "./MarkdownContent";
 
+interface BriefOutput {
+  content: {
+    output: string | {
+      systemInfo?: {
+        timestamp: string;
+        agent: string;
+        type: string;
+      };
+      perimetroContent?: string;
+    };
+  };
+}
+
 interface ConversationGroupProps {
   group: any;
   index: number;
@@ -47,12 +60,19 @@ export const ConversationGroup = ({
         return null;
       }
 
-      return data;
+      return data as BriefOutput;
     },
     enabled: !!group.briefId && !!group.stageId
   });
 
   if (!group?.agent) return null;
+
+  const getStructuredContent = (content: BriefOutput['content']) => {
+    if (typeof content.output === 'string') {
+      return content.output;
+    }
+    return content.output?.perimetroContent || JSON.stringify(content.output, null, 2);
+  };
 
   return (
     <div className="p-4">
@@ -71,11 +91,7 @@ export const ConversationGroup = ({
                 Structured Output
               </h4>
               <div className="prose prose-sm max-w-none dark:prose-invert">
-                <MarkdownContent content={
-                  typeof briefOutput.content.output === 'string' 
-                    ? briefOutput.content.output 
-                    : JSON.stringify(briefOutput.content.output, null, 2)
-                } />
+                <MarkdownContent content={getStructuredContent(briefOutput.content)} />
               </div>
             </div>
           </div>
