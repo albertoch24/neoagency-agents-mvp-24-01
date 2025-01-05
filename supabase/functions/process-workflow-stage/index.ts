@@ -19,8 +19,13 @@ serve(async (req) => {
   try {
     console.log("Starting workflow stage processing");
     
-    // Validate request and parameters
-    const { briefId, stageId, flowId, flowSteps } = await validateRequest(req);
+    // Parse request body
+    const { briefId, stageId, flowId, flowSteps } = await req.json();
+    console.log("Received request params:", { briefId, stageId, flowId });
+
+    if (!briefId || !stageId || !flowId) {
+      throw new Error("Missing required parameters");
+    }
     
     // Initialize Supabase client
     const supabaseClient = createSupabaseClient();

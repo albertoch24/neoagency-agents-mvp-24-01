@@ -16,57 +16,11 @@ export async function processAgent(
     requirements
   });
 
-  // Generate conversational output
-  const conversationalPrompt = `
-    As ${agent.name}, analyze this creative brief in a natural, conversational way:
-    
-    Brief Details:
-    Title: ${brief.title}
-    Description: ${brief.description}
-    Objectives: ${brief.objectives}
-    Requirements: ${requirements || ''}
-    
-    Your Role:
-    ${agent.description}
-    
-    Skills:
-    ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
-    
-    Share your thoughts as if you're speaking in a creative agency meeting.
-    Use natural, conversational language and express your professional opinion.
-  `;
-
-  // Generate structured output
-  const structuredPrompt = `
-    As ${agent.name}, provide a structured analysis of this creative brief:
-    
-    Brief Details:
-    Title: ${brief.title}
-    Description: ${brief.description}
-    Objectives: ${brief.objectives}
-    Requirements: ${requirements || ''}
-    
-    Your Role:
-    ${agent.description}
-    
-    Skills:
-    ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
-    
-    Provide a clear, structured analysis with the following sections:
-    1. Key Insights
-    2. Strategic Recommendations
-    3. Action Items
-    4. Success Metrics
-    
-    Format your response with clear headings and bullet points.
-    Focus on concrete, actionable items and measurable outcomes.
-  `;
-
   try {
     // Generate both outputs using OpenAI
     const [conversationalResponse, structuredResponse] = await Promise.all([
-      generateResponse(conversationalPrompt, 'conversational'),
-      generateResponse(structuredPrompt, 'structured')
+      generateResponse(agent, brief, requirements, 'conversational'),
+      generateResponse(agent, brief, requirements, 'structured')
     ]);
 
     return {
@@ -97,15 +51,24 @@ export async function processAgent(
     };
   } catch (error) {
     console.error('Error in processAgent:', error);
-    throw error;
+    throw new Error(`Agent processing failed: ${error.message}`);
   }
 }
 
-async function generateResponse(prompt: string, type: 'conversational' | 'structured') {
+async function generateResponse(
+  agent: any,
+  brief: any,
+  requirements: string,
+  type: 'conversational' | 'structured'
+) {
   const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openAIApiKey) {
     throw new Error('OpenAI API key not found');
   }
+
+  const prompt = type === 'conversational' 
+    ? generateConversationalPrompt(agent, brief, requirements)
+    : generateStructuredPrompt(agent, brief, requirements);
   
   try {
     console.log(`Generating ${type} response with OpenAI`);
@@ -137,13 +100,57 @@ async function generateResponse(prompt: string, type: 'conversational' | 'struct
     }
 
     const data = await response.json();
-    if (!data.choices?.[0]?.message?.content) {
-      throw new Error('Invalid response from OpenAI');
-    }
-    
-    return data.choices[0].message.content;
+    return data.choices?.[0]?.message?.content || '';
   } catch (error) {
     console.error(`Error generating ${type} response:`, error);
     throw error;
   }
+}
+
+function generateConversationalPrompt(agent: any, brief: any, requirements: string) {
+  return `
+    As ${agent.name}, analyze this creative brief in a natural, conversational way:
+    
+    Brief Details:
+    Title: ${brief.title}
+    Description: ${brief.description}
+    Objectives: ${brief.objectives}
+    Requirements: ${requirements || ''}
+    
+    Your Role:
+    ${agent.description}
+    
+    Skills:
+    ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
+    
+    Share your thoughts as if you're speaking in a creative agency meeting.
+    Use natural, conversational language and express your professional opinion.
+  `;
+}
+
+function generateStructuredPrompt(agent: any, brief: any, requirements: string) {
+  return `
+    As ${agent.name}, provide a structured analysis of this creative brief:
+    
+    Brief Details:
+    Title: ${brief.title}
+    Description: ${brief.description}
+    Objectives: ${brief.objectives}
+    Requirements: ${requirements || ''}
+    
+    Your Role:
+    ${agent.description}
+    
+    Skills:
+    ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
+    
+    Provide a clear, structured analysis with the following sections:
+    1. Key Insights
+    2. Strategic Recommendations
+    3. Action Items
+    4. Success Metrics
+    
+    Format your response with clear headings and bullet points.
+    Focus on concrete, actionable items and measurable outcomes.
+  `;
 }
