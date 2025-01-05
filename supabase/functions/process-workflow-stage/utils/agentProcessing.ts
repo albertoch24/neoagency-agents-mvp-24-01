@@ -1,5 +1,6 @@
 import { processAgent } from './workflow.ts';
 import { saveConversation, saveBriefOutput } from './database.ts';
+import { buildPrompt } from './promptBuilder.ts';
 
 export async function processAgents(
   supabase: any,
@@ -107,7 +108,7 @@ export async function processAgents(
         stageId, 
         agent.id, 
         output.outputs[0].content,
-        step.id // Add step ID to link conversation to specific step
+        step.id
       );
     } else {
       console.error("Invalid output format from agent:", {
