@@ -19,36 +19,59 @@ interface StageOutputProps {
     stage_id?: string;
     [key: string]: any;
   };
+  stepId?: string;
 }
 
-export const StageOutput = ({ output }: StageOutputProps) => {
-  console.log("StageOutput received:", output); // Debug log
+export const StageOutput = ({ output, stepId }: StageOutputProps) => {
+  console.log("StageOutput received:", output, "for step:", stepId); // Debug log
 
   if (!output?.content) {
     console.log("No content in output"); // Debug log
     return null;
   }
 
-  // Handle both string and structured content
-  const content = typeof output.content === 'string' 
-    ? output.content 
-    : JSON.stringify(output.content, null, 2);
+  // Handle structured content for specific step
+  if (output.content.outputs && Array.isArray(output.content.outputs)) {
+    const stepOutput = output.content.outputs.find(out => 
+      out.stepId === stepId
+    );
 
-  return (
-    <Card className="mt-4">
-      <CardContent className="p-4">
-        <div className="bg-muted rounded-lg p-4">
-          {output.content.response ? (
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-              {output.content.response}
-            </p>
-          ) : (
+    if (!stepOutput) {
+      console.log("No output found for step:", stepId);
+      return null;
+    }
+
+    // Format the content for better readability
+    const formattedContent = stepOutput.outputs?.map(out => {
+      try {
+        // Try to parse if it's a JSON string
+        const parsed = typeof out.content === 'string' ? JSON.parse(out.content) : out.content;
+        return parsed.perimetroContent || parsed;
+      } catch {
+        // If parsing fails, return the original content
+        return out.content;
+      }
+    }).filter(Boolean).join('\n\n');
+
+    if (!formattedContent) {
+      return null;
+    }
+
+    return (
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <div className="bg-muted/30 rounded-lg p-6 backdrop-blur-sm">
+            <h4 className="text-lg font-semibold mb-4 text-primary">
+              Output Strutturato - {stepOutput.agent}
+            </h4>
             <div className="prose prose-sm max-w-none">
-              <MarkdownContent content={content} />
+              <MarkdownContent content={formattedContent} />
             </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return null;
 };

@@ -33,11 +33,24 @@ export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageLi
 
         console.log("Stage output for", stageId, ":", output); // Debug log
 
+        // Group conversations by flow step
+        const conversationsByStep = conversationsWithIds.reduce((acc: any, conv: any) => {
+          if (!acc[conv.flow_step_id]) {
+            acc[conv.flow_step_id] = [];
+          }
+          acc[conv.flow_step_id].push(conv);
+          return acc;
+        }, {});
+
         return (
           <div key={stageId} className="space-y-6">
             <div className="pl-4 space-y-4">
-              {output && <StageOutput output={output} />}
-              <AgentSequence conversations={conversationsWithIds} />
+              {Object.entries(conversationsByStep).map(([stepId, stepConvs]: [string, any[]]) => (
+                <div key={stepId} className="space-y-4">
+                  {output && <StageOutput output={output} stepId={stepId} />}
+                  <AgentSequence conversations={stepConvs} />
+                </div>
+              ))}
             </div>
           </div>
         );
