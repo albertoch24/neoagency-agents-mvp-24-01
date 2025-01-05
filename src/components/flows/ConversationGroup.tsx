@@ -45,7 +45,13 @@ export const ConversationGroup = ({
     briefId: group?.briefId,
     stageId: group?.stageId,
     conversationsCount: group?.conversations?.length,
-    orderIndex: group?.orderIndex
+    orderIndex: group?.orderIndex,
+    conversations: group?.conversations?.map((conv: any) => ({
+      id: conv.id,
+      type: conv.output_type,
+      contentLength: conv.content?.length,
+      hasFlowStepId: !!conv.flow_step_id
+    }))
   });
 
   const { data: briefOutputs } = useQuery<DatabaseBriefOutput[]>({
@@ -73,7 +79,16 @@ export const ConversationGroup = ({
         return [];
       }
 
-      console.log("Found brief outputs:", data);
+      console.log("Found brief outputs:", {
+        count: data?.length,
+        outputs: data?.map(output => ({
+          id: output.id,
+          type: output.output_type,
+          hasContent: !!output.content,
+          contentType: typeof output.content
+        }))
+      });
+      
       return data;
     },
     enabled: !!group.briefId && !!group.stageId
@@ -86,7 +101,9 @@ export const ConversationGroup = ({
       id: conv.id,
       type: conv.output_type,
       isConversational,
-      content: conv.content?.substring(0, 100) // Log first 100 chars of content
+      content: conv.content?.substring(0, 100), // Log first 100 chars of content
+      flowStepId: conv.flow_step_id,
+      hasAudioUrl: !!conv.audio_url
     });
     return isConversational;
   });
@@ -96,7 +113,9 @@ export const ConversationGroup = ({
     console.log("Filtering structured output:", {
       id: conv.id,
       type: conv.output_type,
-      isStructured
+      isStructured,
+      hasContent: !!conv.content,
+      flowStepId: conv.flow_step_id
     });
     return isStructured;
   });
@@ -108,7 +127,8 @@ export const ConversationGroup = ({
     type: latestBriefOutput?.output_type,
     contentSample: typeof latestBriefOutput?.content === 'object' 
       ? JSON.stringify(latestBriefOutput?.content).substring(0, 100) 
-      : 'No content'
+      : 'No content',
+    hasStageId: !!latestBriefOutput?.stage_id
   });
 
   return (
@@ -137,7 +157,8 @@ export const ConversationGroup = ({
             hasContent: !!conversation.content,
             contentLength: conversation.content?.length,
             isPlaying: isPlaying[conversation.id],
-            isVisible: visibleTexts[conversation.id]
+            isVisible: visibleTexts[conversation.id],
+            flowStepId: conversation.flow_step_id
           });
           
           return (

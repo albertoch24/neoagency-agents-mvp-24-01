@@ -24,14 +24,32 @@ export const ConversationContent = ({
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  console.log("ConversationContent rendering:", {
+    conversationId: conversation?.id,
+    hasContent: !!conversation?.content,
+    contentLength: conversation?.content?.length,
+    isPlaying,
+    visibleText,
+    outputType: conversation?.output_type
+  });
+
   useEffect(() => {
     const fetchAudio = async () => {
+      console.log("Fetching audio for conversation:", conversation?.id);
       try {
         const response = await fetch(`/api/audio/${conversation.id}`);
         const data = await response.json();
+        console.log("Audio fetch response:", {
+          conversationId: conversation.id,
+          success: response.ok,
+          audioUrl: data.url
+        });
         setAudioUrl(data.url);
       } catch (error) {
-        console.error("Error fetching audio:", error);
+        console.error("Error fetching audio:", {
+          conversationId: conversation.id,
+          error
+        });
       }
     };
 
@@ -39,6 +57,12 @@ export const ConversationContent = ({
   }, [conversation.id]);
 
   const handlePlay = () => {
+    console.log("Play button clicked:", {
+      conversationId: conversation.id,
+      currentlyPlaying: isPlaying,
+      hasAudioRef: !!audioRef.current
+    });
+
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
@@ -92,9 +116,18 @@ export const ConversationContent = ({
           onPlay={() => onPlayStateChange(true)}
           onPause={() => onPlayStateChange(false)}
           onEnded={() => onPlayStateChange(false)}
-          onLoadedMetadata={(e) => onAudioElement(e.currentTarget)}
+          onLoadedMetadata={(e) => {
+            console.log("Audio loaded:", {
+              conversationId: conversation.id,
+              duration: e.currentTarget.duration
+            });
+            onAudioElement(e.currentTarget);
+          }}
           onError={(e) => {
-            console.error("Audio error:", e);
+            console.error("Audio error:", {
+              conversationId: conversation.id,
+              error: e
+            });
             onAudioElement(null);
           }}
         />
