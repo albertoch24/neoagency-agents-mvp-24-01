@@ -22,6 +22,7 @@ export const ConversationContent = ({
   onToggleText,
 }: ConversationContentProps) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [localVisibleText, setLocalVisibleText] = useState(true); // Set default to true
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   console.log("ConversationContent rendering:", {
@@ -29,7 +30,7 @@ export const ConversationContent = ({
     hasContent: !!conversation?.content,
     contentLength: conversation?.content?.length,
     isPlaying,
-    visibleText,
+    visibleText: localVisibleText,
     outputType: conversation?.output_type,
     flowStepId: conversation?.flow_step_id,
     hasAudioUrl: !!audioUrl
@@ -45,14 +46,14 @@ export const ConversationContent = ({
           conversationId: conversation.id,
           success: response.ok,
           audioUrl: data.url,
-          visibleText
+          visibleText: localVisibleText
         });
         setAudioUrl(data.url);
       } catch (error) {
         console.error("Error fetching audio:", {
           conversationId: conversation.id,
           error,
-          visibleText
+          visibleText: localVisibleText
         });
       }
     };
@@ -65,7 +66,7 @@ export const ConversationContent = ({
       conversationId: conversation.id,
       currentlyPlaying: isPlaying,
       hasAudioRef: !!audioRef.current,
-      visibleText
+      visibleText: localVisibleText
     });
 
     if (audioRef.current) {
@@ -77,6 +78,12 @@ export const ConversationContent = ({
         onPlayStateChange(true);
       }
     }
+  };
+
+  const handleToggleText = () => {
+    const newVisibility = !localVisibleText;
+    setLocalVisibleText(newVisibility);
+    onToggleText();
   };
 
   return (
@@ -98,15 +105,18 @@ export const ConversationContent = ({
         <Button
           variant="outline"
           size="sm"
-          className="gap-2"
-          onClick={onToggleText}
+          className={cn(
+            "gap-2",
+            localVisibleText && "bg-primary text-primary-foreground hover:bg-primary/90"
+          )}
+          onClick={handleToggleText}
         >
           <Type className="h-4 w-4" />
-          {visibleText ? "Hide Text" : "Show Text"}
+          {localVisibleText ? "Hide Text" : "Show Text"}
         </Button>
       </div>
 
-      {visibleText && (
+      {localVisibleText && (
         <div className="rounded-lg border bg-card p-4">
           <div className="prose prose-sm max-w-none dark:prose-invert">
             <MarkdownContent content={conversation.content} />
@@ -125,7 +135,7 @@ export const ConversationContent = ({
             console.log("Audio loaded:", {
               conversationId: conversation.id,
               duration: e.currentTarget.duration,
-              visibleText
+              visibleText: localVisibleText
             });
             onAudioElement(e.currentTarget);
           }}
@@ -133,7 +143,7 @@ export const ConversationContent = ({
             console.error("Audio error:", {
               conversationId: conversation.id,
               error: e,
-              visibleText
+              visibleText: localVisibleText
             });
             onAudioElement(null);
           }}
