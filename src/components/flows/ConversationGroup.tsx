@@ -83,7 +83,10 @@ export const ConversationGroup = ({
                 Output Strutturato
               </h4>
               <div className="prose prose-sm max-w-none">
-                <MarkdownContent content={String(JSON.stringify(briefOutput.content, null, 2))} />
+                <MarkdownContent content={typeof briefOutput.content === 'string' 
+                  ? briefOutput.content 
+                  : JSON.stringify(briefOutput.content, null, 2)} 
+                />
               </div>
             </div>
           </div>
