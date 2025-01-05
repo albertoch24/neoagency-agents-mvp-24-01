@@ -1,5 +1,9 @@
+import { useState } from "react";
 import { MarkdownContent } from "./MarkdownContent";
 import { Json } from "@/integrations/supabase/types";
+import { Button } from "@/components/ui/button";
+import { Type } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface StructuredOutputProps {
   content: Json;
@@ -18,6 +22,8 @@ interface StructuredContent {
 }
 
 export const StructuredOutput = ({ content, stepId }: StructuredOutputProps) => {
+  const [localVisibleText, setLocalVisibleText] = useState(true);
+
   const extractPerimetroContent = (structuredContent: StructuredContent) => {
     const stepOutput = structuredContent.outputs?.find((out) => out.stepId === stepId);
 
@@ -60,15 +66,36 @@ export const StructuredOutput = ({ content, stepId }: StructuredOutputProps) => 
 
   if (!perimetroContent) return null;
 
+  const handleToggleText = () => {
+    setLocalVisibleText(!localVisibleText);
+  };
+
   return (
     <div className="mb-6">
-      <div className="bg-muted/30 rounded-lg p-6 backdrop-blur-sm">
-        <h4 className="text-lg font-semibold mb-4 text-primary">
-          Output Strutturato
-        </h4>
-        <div className="prose prose-sm max-w-none">
-          <MarkdownContent content={perimetroContent} />
-        </div>
+      <div className="space-y-4">
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            "gap-2",
+            localVisibleText && "bg-primary text-primary-foreground hover:bg-primary/90"
+          )}
+          onClick={handleToggleText}
+        >
+          <Type className="h-4 w-4" />
+          {localVisibleText ? "Hide Structured Output" : "Show Structured Output"}
+        </Button>
+
+        {localVisibleText && (
+          <div className="bg-muted/30 rounded-lg p-6 backdrop-blur-sm">
+            <h4 className="text-lg font-semibold mb-4 text-primary">
+              Output Strutturato
+            </h4>
+            <div className="prose prose-sm max-w-none">
+              <MarkdownContent content={perimetroContent} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
