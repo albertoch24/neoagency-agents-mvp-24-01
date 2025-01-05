@@ -1,6 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { useState } from "react";
 import { ConversationGroup } from "./ConversationGroup";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AgentSequenceProps {
   conversations: any[];
@@ -29,7 +31,9 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
         agent: conv.agents || { id: conv.agent_id, name: 'Unknown Agent' },
         conversations: [],
         summary: null,
-        orderIndex: conv.order_index
+        orderIndex: conv.order_index,
+        briefId: conv.brief_id,
+        stageId: conv.stage_id
       };
     }
     
