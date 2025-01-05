@@ -1,6 +1,4 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { MarkdownContent } from "./MarkdownContent";
 
 interface StageOutputProps {
@@ -13,11 +11,13 @@ interface StageOutputProps {
         stepId?: string;
         outputs: Array<{
           content: string;
+          type?: 'conversational' | 'structured';
         }>;
       }>;
       [key: string]: any;
     };
     stage_id?: string;
+    output_type?: string;
     [key: string]: any;
   };
   stepId?: string;
@@ -42,20 +42,21 @@ export const StageOutput = ({ output, stepId }: StageOutputProps) => {
       return null;
     }
 
-    // Format the content for better readability
-    const formattedContent = stepOutput.outputs?.map(out => {
-      try {
-        // Try to parse if it's a JSON string
-        const parsed = typeof out.content === 'string' ? JSON.parse(out.content) : out.content;
-        // Only return the perimetroContent, excluding system information
-        return parsed.perimetroContent || null;
-      } catch {
-        // If parsing fails, return null
-        return null;
-      }
-    }).filter(Boolean).join('\n\n');
+    // Get only structured outputs
+    const structuredContent = stepOutput.outputs
+      ?.filter(out => out.type === 'structured')
+      .map(out => {
+        try {
+          const parsed = typeof out.content === 'string' ? JSON.parse(out.content) : out.content;
+          return parsed.perimetroContent || null;
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean)
+      .join('\n\n');
 
-    if (!formattedContent) {
+    if (!structuredContent) {
       return null;
     }
 
@@ -64,10 +65,10 @@ export const StageOutput = ({ output, stepId }: StageOutputProps) => {
         <CardContent className="p-6">
           <div className="bg-muted/30 rounded-lg p-6 backdrop-blur-sm">
             <h4 className="text-lg font-semibold mb-4 text-primary">
-              Output Strutturato - {stepOutput.agent}
+              Structured Analysis - {stepOutput.agent}
             </h4>
             <div className="prose prose-sm max-w-none">
-              <MarkdownContent content={formattedContent} />
+              <MarkdownContent content={structuredContent} />
             </div>
           </div>
         </CardContent>
