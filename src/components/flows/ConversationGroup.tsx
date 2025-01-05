@@ -33,7 +33,7 @@ export const ConversationGroup = ({
       console.log("Fetching brief outputs for:", { 
         briefId: group.briefId, 
         stageId: group.stageId,
-        group: group // Log the entire group for debugging
+        group: group
       });
       
       if (!group.briefId || !group.stageId) {
