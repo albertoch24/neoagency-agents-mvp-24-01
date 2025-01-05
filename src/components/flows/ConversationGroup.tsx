@@ -52,28 +52,12 @@ export const ConversationGroup = ({
   const conversationalOutputs = filterConversationalOutputs(visibleTexts);
   const structuredOutputs = filterStructuredOutputs(visibleTexts);
 
-  // Get the most recent brief output
-  const latestBriefOutput = briefOutputs?.[0];
-  console.log("Latest brief output:", {
-    id: latestBriefOutput?.id,
-    type: latestBriefOutput?.output_type,
-    contentSample: typeof latestBriefOutput?.content === 'object' 
-      ? JSON.stringify(latestBriefOutput?.content).substring(0, 100) 
-      : 'No content',
-    hasStageId: !!latestBriefOutput?.stage_id,
-    stage: latestBriefOutput?.stage,
-    contentLength: typeof latestBriefOutput?.content === 'object' 
-      ? JSON.stringify(latestBriefOutput?.content).length 
-      : 0
-  });
-
   return (
     <Card className="overflow-hidden border-agent">
       <CardContent>
         <ConversationGroupContent
           group={group}
           index={index}
-          latestBriefOutput={latestBriefOutput}
           conversationalOutputs={conversationalOutputs}
           isPlaying={isPlaying}
           visibleTexts={visibleTexts}
