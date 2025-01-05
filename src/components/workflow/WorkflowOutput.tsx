@@ -10,6 +10,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { marked } from "marked";
+import { MarkdownContent } from "@/components/flows/MarkdownContent";
 
 interface WorkflowOutputProps {
   briefId: string;
@@ -129,13 +130,29 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                               )}
                             </AccordionTrigger>
                             <AccordionContent className="px-6 pb-6">
-                              <div className="prose prose-sm max-w-none">
-                                <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
-                                  {agentOutput.outputs?.map((output, outputIndex) => (
-                                    <div key={outputIndex} className="mb-8 last:mb-0">
-                                      {formatText(output.content)}
-                                    </div>
-                                  ))}
+                              <div className="space-y-8">
+                                {/* Prima sezione: Contenuto strutturato da brief_outputs */}
+                                <div className="prose prose-sm max-w-none">
+                                  <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
+                                    <h4 className="text-lg font-semibold mb-4 text-primary">
+                                      Output Strutturato
+                                    </h4>
+                                    {agentOutput.outputs?.map((output, outputIndex) => (
+                                      <div key={outputIndex} className="mb-8 last:mb-0">
+                                        {formatText(output.content)}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Seconda sezione: Contenuto conversazionale da workflow_conversations */}
+                                <div className="prose prose-sm max-w-none">
+                                  <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
+                                    <h4 className="text-lg font-semibold mb-4 text-primary">
+                                      Conversazione Dettagliata
+                                    </h4>
+                                    <MarkdownContent content={output.content} />
+                                  </div>
                                 </div>
                               </div>
                             </AccordionContent>
