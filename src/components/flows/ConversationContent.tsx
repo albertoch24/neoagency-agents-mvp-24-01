@@ -1,6 +1,7 @@
-import React from 'react';
-import { TextToSpeechButton } from "./TextToSpeechButton";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Headphones, Type } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { MarkdownContent } from "./MarkdownContent";
 
 interface ConversationContentProps {
@@ -12,61 +13,71 @@ interface ConversationContentProps {
   onToggleText: () => void;
 }
 
-export const ConversationContent: React.FC<ConversationContentProps> = ({
+export const ConversationContent = ({
   conversation,
   isPlaying,
   onPlayStateChange,
   onAudioElement,
   visibleText,
   onToggleText,
-}) => {
+}: ConversationContentProps) => {
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const fetchAudio = async () => {
+      // Fetch audio URL based on conversation ID
+      const response = await fetch(`/api/audio/${conversation.id}`);
+      const data = await response.json();
+      setAudioUrl(data.url);
+    };
+
+    fetchAudio();
+  }, [conversation.id]);
+
+  const handlePlay = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+        onPlayStateChange(false);
+      } else {
+        audioRef.current.play();
+        onPlayStateChange(true);
+      }
+    }
+  };
+
   return (
-    <div>
-      <div className="flex items-center gap-4 mb-3">
-        <h5 className="text-sm font-bold text-muted-foreground flex-shrink-0">
-          {conversation.requirements ? (
-            <span className="text-primary">Description: {conversation.requirements}</span>
-          ) : (
-            'TEAM CONVERSATION'
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            "gap-2",
+            isPlaying && "bg-primary text-primary-foreground hover:bg-primary/90"
           )}
-        </h5>
-        <div className="flex items-center gap-2">
-          <TextToSpeechButton
-            text={conversation.content}
-            convId={conversation.id}
-            isPlaying={isPlaying}
-            onPlayStateChange={onPlayStateChange}
-            onAudioElement={onAudioElement}
-          />
-          <button
-            onClick={onToggleText}
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {visibleText ? "Hide text" : "Show text"}
-          </button>
-        </div>
+          onClick={handlePlay}
+          disabled={!audioUrl}
+        >
+          <Headphones className="h-4 w-4" />
+          {isPlaying ? "Playing..." : "Play"}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={onToggleText}
+        >
+          <Type className="h-4 w-4" />
+          {visibleText ? "Hide Text" : "Show Text"}
+        </Button>
       </div>
 
-      <div className="bg-agent/5 rounded-lg p-6 shadow-sm">
-        <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="content" className="border-none">
-            <AccordionTrigger data-accordion-id={conversation.id} className="hidden">
-              Toggle Content
-            </AccordionTrigger>
-            <AccordionContent forceMount>
-              <div className={visibleText ? "block" : "hidden"}>
-                <MarkdownContent content={conversation.content} />
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      </div>
-      
-      {conversation.summary && (
-        <div className="mt-4 bg-muted rounded-lg p-4">
-          <h6 className="text-sm font-medium mb-2">Schematic Output:</h6>
+      {visibleText && (
+        <div className="rounded-lg border bg-card p-4">
           <div className="prose prose-sm max-w-none dark:prose-invert">
-            <MarkdownContent content={conversation.summary} />
+            <MarkdownContent content={conversation.content} />
           </div>
         </div>
       )}

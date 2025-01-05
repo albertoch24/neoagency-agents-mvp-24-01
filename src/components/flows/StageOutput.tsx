@@ -10,7 +10,7 @@ interface StageOutputProps {
       response?: string;
       outputs?: Array<{
         agent: string;
-        stepId?: string;  // Added stepId to the type definition
+        stepId?: string;
         outputs: Array<{
           content: string;
         }>;
@@ -24,10 +24,10 @@ interface StageOutputProps {
 }
 
 export const StageOutput = ({ output, stepId }: StageOutputProps) => {
-  console.log("StageOutput received:", output, "for step:", stepId); // Debug log
+  console.log("StageOutput received:", output, "for step:", stepId);
 
   if (!output?.content) {
-    console.log("No content in output"); // Debug log
+    console.log("No content in output");
     return null;
   }
 
@@ -47,10 +47,11 @@ export const StageOutput = ({ output, stepId }: StageOutputProps) => {
       try {
         // Try to parse if it's a JSON string
         const parsed = typeof out.content === 'string' ? JSON.parse(out.content) : out.content;
-        return parsed.perimetroContent || parsed;
+        // Only return the perimetroContent, excluding system information
+        return parsed.perimetroContent || null;
       } catch {
-        // If parsing fails, return the original content
-        return out.content;
+        // If parsing fails, return null
+        return null;
       }
     }).filter(Boolean).join('\n\n');
 
