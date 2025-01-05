@@ -5,18 +5,28 @@ import { StageSummary } from "./StageSummary";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MarkdownContent } from "./MarkdownContent";
+import { Json } from "@/integrations/supabase/types";
 
-interface BriefOutput {
-  content: {
+interface DatabaseBriefOutput {
+  id: string;
+  brief_id: string;
+  stage: string;
+  content: Json;
+  created_at: string;
+  updated_at: string;
+  stage_id: string | null;
+  output_type: string;
+}
+
+interface StructuredContent {
+  outputs?: Array<{
+    stepId: string;
     outputs?: Array<{
-      stepId: string;
-      outputs?: Array<{
-        content: string | {
-          perimetroContent?: string;
-        };
-      }>;
+      content: string | {
+        perimetroContent?: string;
+      };
     }>;
-  } | string;
+  }>;
 }
 
 interface ConversationGroupProps {
@@ -40,7 +50,7 @@ export const ConversationGroup = ({
   onAudioElement,
   onToggleText,
 }: ConversationGroupProps) => {
-  const { data: briefOutput } = useQuery<BriefOutput | null>({
+  const { data: briefOutput } = useQuery<DatabaseBriefOutput | null>({
     queryKey: ["brief-outputs", group.briefId, group.stageId],
     queryFn: async () => {
       console.log("Fetching brief outputs for:", { 
@@ -88,10 +98,30 @@ export const ConversationGroup = ({
 
   // Extract perimetroContent if it exists in the outputs
   const getPerimetroContent = () => {
-    if (typeof briefOutput?.content === 'string') return null;
-    if (!briefOutput?.content?.outputs) return null;
+    if (!briefOutput?.content) return null;
     
-    const stepOutput = briefOutput.content.outputs.find((out) => 
+    const content = briefOutput.content;
+    if (typeof content === 'string') {
+      try {
+        const parsed = JSON.parse(content) as StructuredContent;
+        if (!parsed.outputs) return null;
+        return extractPerimetroContent(parsed);
+      } catch {
+        return null;
+      }
+    }
+    
+    try {
+      const structuredContent = content as StructuredContent;
+      if (!structuredContent.outputs) return null;
+      return extractPerimetroContent(structuredContent);
+    } catch {
+      return null;
+    }
+  };
+
+  const extractPerimetroContent = (content: StructuredContent) => {
+    const stepOutput = content.outputs?.find((out) => 
       out.stepId === group.conversations[0]?.flow_step_id
     );
 
