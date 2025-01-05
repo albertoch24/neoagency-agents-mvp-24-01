@@ -29,6 +29,13 @@ export const StructuredOutput = ({
   isVisible,
   onToggleVisibility 
 }: StructuredOutputProps) => {
+  console.log("StructuredOutput rendering:", {
+    hasContent: !!content,
+    stepId,
+    isVisible,
+    contentType: typeof content
+  });
+
   const extractPerimetroContent = (structuredContent: StructuredContent) => {
     const stepOutput = structuredContent.outputs?.find((out) => out.stepId === stepId);
 
@@ -69,8 +76,7 @@ export const StructuredOutput = ({
 
   const perimetroContent = getPerimetroContent();
 
-  if (!perimetroContent) return null;
-
+  // Always render the button, but only show content if we have it
   return (
     <div className="mb-6">
       <div className="space-y-4">
@@ -87,7 +93,7 @@ export const StructuredOutput = ({
           {isVisible ? "Hide Structured Output" : "Show Structured Output"}
         </Button>
 
-        {isVisible && (
+        {isVisible && perimetroContent && (
           <div className="bg-muted/30 rounded-lg p-6 backdrop-blur-sm">
             <h4 className="text-lg font-semibold mb-4 text-primary">
               Output Strutturato

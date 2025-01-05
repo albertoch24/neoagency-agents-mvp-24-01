@@ -31,6 +31,15 @@ export const ConversationGroupContent = ({
   onToggleText,
   onToggleStructuredOutput,
 }: ConversationGroupContentProps) => {
+  console.log("ConversationGroupContent rendering:", {
+    groupId: group?.id,
+    hasLatestBriefOutput: !!latestBriefOutput,
+    briefOutputContent: latestBriefOutput?.content,
+    conversationalOutputsCount: conversationalOutputs?.length,
+    stepId: group.conversations?.[0]?.flow_step_id,
+    isStructuredOutputVisible: visibleStructuredOutputs[group.conversations?.[0]?.flow_step_id]
+  });
+
   return (
     <div className="p-4">
       <AgentHeader 
@@ -44,14 +53,12 @@ export const ConversationGroupContent = ({
           <AgentSkills skills={group.agent?.skills || []} />
         </div>
 
-        {latestBriefOutput && (
-          <StructuredOutput 
-            content={latestBriefOutput.content} 
-            stepId={group.conversations[0]?.flow_step_id}
-            isVisible={visibleStructuredOutputs[group.conversations[0]?.flow_step_id]}
-            onToggleVisibility={() => onToggleStructuredOutput(group.conversations[0]?.flow_step_id)}
-          />
-        )}
+        <StructuredOutput 
+          content={latestBriefOutput?.content || {}} 
+          stepId={group.conversations[0]?.flow_step_id}
+          isVisible={visibleStructuredOutputs[group.conversations[0]?.flow_step_id]}
+          onToggleVisibility={() => onToggleStructuredOutput(group.conversations[0]?.flow_step_id)}
+        />
 
         {conversationalOutputs.map((conversation: any) => {
           console.log("Rendering conversation:", {
