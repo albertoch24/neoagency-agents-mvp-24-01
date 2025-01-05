@@ -65,6 +65,25 @@ export async function saveConversation(
   if (conversationError) throw conversationError;
 }
 
+export async function saveStructuredOutput(
+  supabase: any,
+  briefId: string,
+  stageId: string,
+  flowStepId: string,
+  content: string
+) {
+  const { error: outputError } = await supabase
+    .from("structured_outputs")
+    .insert({
+      brief_id: briefId,
+      stage_id: stageId,
+      flow_step_id: flowStepId,
+      content: content
+    });
+
+  if (outputError) throw outputError;
+}
+
 export async function saveBriefOutput(
   supabase: any,
   briefId: string,

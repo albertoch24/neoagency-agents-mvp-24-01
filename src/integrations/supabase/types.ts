@@ -426,6 +426,58 @@ export type Database = {
           },
         ]
       }
+      structured_outputs: {
+        Row: {
+          brief_id: string
+          content: string
+          created_at: string
+          flow_step_id: string | null
+          id: string
+          stage_id: string
+          updated_at: string
+        }
+        Insert: {
+          brief_id: string
+          content: string
+          created_at?: string
+          flow_step_id?: string | null
+          id?: string
+          stage_id: string
+          updated_at?: string
+        }
+        Update: {
+          brief_id?: string
+          content?: string
+          created_at?: string
+          flow_step_id?: string | null
+          id?: string
+          stage_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "structured_outputs_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "structured_outputs_flow_step_id_fkey"
+            columns: ["flow_step_id"]
+            isOneToOne: false
+            referencedRelation: "flow_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "structured_outputs_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_conversations: {
         Row: {
           agent_id: string

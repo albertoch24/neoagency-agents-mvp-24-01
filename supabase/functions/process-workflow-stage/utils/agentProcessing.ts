@@ -1,5 +1,5 @@
 import { processAgent } from './workflow.ts';
-import { saveConversation, saveBriefOutput } from './database.ts';
+import { saveConversation, saveBriefOutput, saveStructuredOutput } from './database.ts';
 import { buildPrompt } from './promptBuilder.ts';
 
 export async function processAgents(
@@ -110,6 +110,25 @@ export async function processAgents(
         output.outputs[0].content,
         step.id
       );
+
+      // Extract and save structured content if available
+      const structuredOutput = output.outputs.find(out => out.type === 'structured');
+      if (structuredOutput?.content) {
+        console.log("Saving structured output:", {
+          briefId: brief.id,
+          stageId: stageId,
+          stepId: step.id,
+          timestamp: new Date().toISOString()
+        });
+
+        await saveStructuredOutput(
+          supabase,
+          brief.id,
+          stageId,
+          step.id,
+          structuredOutput.content
+        );
+      }
     } else {
       console.error("Invalid output format from agent:", {
         agentId: agent.id,

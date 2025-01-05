@@ -1,92 +1,47 @@
 import { useState } from "react";
 import { MarkdownContent } from "./MarkdownContent";
-import { Json } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Type } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface StructuredOutputProps {
-  content: Json;
   stepId: string;
   isVisible: boolean;
   onToggleVisibility: () => void;
 }
 
-interface StructuredContent {
-  type?: string;
-  content?: string;
-  outputs?: Array<{
-    stepId: string;
-    outputs?: Array<{
-      content: string | {
-        perimetroContent?: string;
-      };
-    }>;
-  }>;
-}
-
 export const StructuredOutput = ({ 
-  content, 
   stepId,
   isVisible,
   onToggleVisibility 
 }: StructuredOutputProps) => {
-  console.log("StructuredOutput rendering:", {
-    hasContent: !!content,
-    stepId,
-    isVisible,
-    contentType: typeof content,
-    contentValue: content
-  });
+  const { data: structuredOutput } = useQuery({
+    queryKey: ["structured-output", stepId],
+    queryFn: async () => {
+      console.log("Fetching structured output for step:", stepId);
+      
+      const { data, error } = await supabase
+        .from("structured_outputs")
+        .select("*")
+        .eq("flow_step_id", stepId)
+        .order("created_at", { ascending: false })
+        .maybeSingle();
 
-  const extractPerimetroContent = (structuredContent: StructuredContent) => {
-    // First check if it's a direct structured content
-    if (structuredContent.type === 'structured' && structuredContent.content) {
-      return structuredContent.content;
-    }
-
-    // If not direct, look in the outputs array
-    const stepOutput = structuredContent.outputs?.find((out) => out.stepId === stepId);
-
-    if (!stepOutput?.outputs) return null;
-
-    return stepOutput.outputs
-      .map((out) => {
-        try {
-          const content = typeof out.content === 'string' ? JSON.parse(out.content) : out.content;
-          return content.perimetroContent || null;
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean)
-      .join('\n\n');
-  };
-
-  const getPerimetroContent = () => {
-    if (!content) return null;
-    
-    if (typeof content === 'string') {
-      try {
-        const parsed = JSON.parse(content) as StructuredContent;
-        return extractPerimetroContent(parsed);
-      } catch {
+      if (error) {
+        console.error("Error fetching structured output:", error);
         return null;
       }
-    }
-    
-    try {
-      return extractPerimetroContent(content as StructuredContent);
-    } catch (error) {
-      console.error('Error parsing structured content:', content, error);
-      return null;
-    }
-  };
 
-  const perimetroContent = getPerimetroContent();
+      console.log("Found structured output:", data);
+      return data;
+    },
+    enabled: !!stepId
+  });
 
-  // Only render if we have content or stepId
-  if (!content || !stepId) return null;
+  // Only render if we have stepId
+  if (!stepId) return null;
 
   return (
     <div className="mb-6">
@@ -104,13 +59,13 @@ export const StructuredOutput = ({
           {isVisible ? "Hide Structured Output" : "Show Structured Output"}
         </Button>
 
-        {isVisible && perimetroContent && (
+        {isVisible && structuredOutput?.content && (
           <div className="bg-muted/30 rounded-lg p-6 backdrop-blur-sm">
             <h4 className="text-lg font-semibold mb-4 text-primary">
               Output Strutturato
             </h4>
             <div className="prose prose-sm max-w-none">
-              <MarkdownContent content={perimetroContent} />
+              <MarkdownContent content={structuredOutput.content} />
             </div>
           </div>
         )}

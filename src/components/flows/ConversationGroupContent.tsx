@@ -2,12 +2,10 @@ import { AgentHeader } from "./AgentHeader";
 import { AgentSkills } from "./AgentSkills";
 import { ConversationContent } from "./ConversationContent";
 import { StructuredOutput } from "./StructuredOutput";
-import { Json } from "@/integrations/supabase/types";
 
 interface ConversationGroupContentProps {
   group: any;
   index: number;
-  latestBriefOutput: { content: Json } | undefined;
   conversationalOutputs: any[];
   isPlaying: { [key: string]: boolean };
   visibleTexts: { [key: string]: boolean };
@@ -21,7 +19,6 @@ interface ConversationGroupContentProps {
 export const ConversationGroupContent = ({
   group,
   index,
-  latestBriefOutput,
   conversationalOutputs,
   isPlaying,
   visibleTexts,
@@ -33,8 +30,6 @@ export const ConversationGroupContent = ({
 }: ConversationGroupContentProps) => {
   console.log("ConversationGroupContent rendering:", {
     groupId: group?.id,
-    hasLatestBriefOutput: !!latestBriefOutput,
-    briefOutputContent: latestBriefOutput?.content,
     conversationalOutputsCount: conversationalOutputs?.length,
     stepId: group.conversations?.[0]?.flow_step_id,
     isStructuredOutputVisible: visibleStructuredOutputs[group.conversations?.[0]?.flow_step_id]
@@ -53,12 +48,11 @@ export const ConversationGroupContent = ({
           <AgentSkills skills={group.agent?.skills || []} />
         </div>
 
-        {latestBriefOutput && (
+        {group.conversations?.[0]?.flow_step_id && (
           <StructuredOutput 
-            content={latestBriefOutput.content} 
-            stepId={group.conversations[0]?.flow_step_id}
-            isVisible={visibleStructuredOutputs[group.conversations[0]?.flow_step_id]}
-            onToggleVisibility={() => onToggleStructuredOutput(group.conversations[0]?.flow_step_id)}
+            stepId={group.conversations[0].flow_step_id}
+            isVisible={visibleStructuredOutputs[group.conversations[0].flow_step_id]}
+            onToggleVisibility={() => onToggleStructuredOutput(group.conversations[0].flow_step_id)}
           />
         )}
 
