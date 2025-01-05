@@ -11,9 +11,11 @@ interface ConversationGroupContentProps {
   conversationalOutputs: any[];
   isPlaying: { [key: string]: boolean };
   visibleTexts: { [key: string]: boolean };
+  visibleStructuredOutputs: { [key: string]: boolean };
   onPlayStateChange: (convId: string, playing: boolean) => void;
   onAudioElement: (convId: string, audio: HTMLAudioElement | null) => void;
   onToggleText: (convId: string) => void;
+  onToggleStructuredOutput: (stepId: string) => void;
 }
 
 export const ConversationGroupContent = ({
@@ -23,9 +25,11 @@ export const ConversationGroupContent = ({
   conversationalOutputs,
   isPlaying,
   visibleTexts,
+  visibleStructuredOutputs,
   onPlayStateChange,
   onAudioElement,
   onToggleText,
+  onToggleStructuredOutput,
 }: ConversationGroupContentProps) => {
   return (
     <div className="p-4">
@@ -44,6 +48,8 @@ export const ConversationGroupContent = ({
           <StructuredOutput 
             content={latestBriefOutput.content} 
             stepId={group.conversations[0]?.flow_step_id}
+            isVisible={visibleStructuredOutputs[group.conversations[0]?.flow_step_id]}
+            onToggleVisibility={() => onToggleStructuredOutput(group.conversations[0]?.flow_step_id)}
           />
         )}
 

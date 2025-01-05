@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 interface StructuredOutputProps {
   content: Json;
   stepId: string;
+  isVisible: boolean;
+  onToggleVisibility: () => void;
 }
 
 interface StructuredContent {
@@ -21,9 +23,12 @@ interface StructuredContent {
   }>;
 }
 
-export const StructuredOutput = ({ content, stepId }: StructuredOutputProps) => {
-  const [localVisibleText, setLocalVisibleText] = useState(true);
-
+export const StructuredOutput = ({ 
+  content, 
+  stepId,
+  isVisible,
+  onToggleVisibility 
+}: StructuredOutputProps) => {
   const extractPerimetroContent = (structuredContent: StructuredContent) => {
     const stepOutput = structuredContent.outputs?.find((out) => out.stepId === stepId);
 
@@ -66,10 +71,6 @@ export const StructuredOutput = ({ content, stepId }: StructuredOutputProps) => 
 
   if (!perimetroContent) return null;
 
-  const handleToggleText = () => {
-    setLocalVisibleText(!localVisibleText);
-  };
-
   return (
     <div className="mb-6">
       <div className="space-y-4">
@@ -78,15 +79,15 @@ export const StructuredOutput = ({ content, stepId }: StructuredOutputProps) => 
           size="sm"
           className={cn(
             "gap-2",
-            localVisibleText && "bg-primary text-primary-foreground hover:bg-primary/90"
+            isVisible && "bg-primary text-primary-foreground hover:bg-primary/90"
           )}
-          onClick={handleToggleText}
+          onClick={onToggleVisibility}
         >
           <Type className="h-4 w-4" />
-          {localVisibleText ? "Hide Structured Output" : "Show Structured Output"}
+          {isVisible ? "Hide Structured Output" : "Show Structured Output"}
         </Button>
 
-        {localVisibleText && (
+        {isVisible && (
           <div className="bg-muted/30 rounded-lg p-6 backdrop-blur-sm">
             <h4 className="text-lg font-semibold mb-4 text-primary">
               Output Strutturato

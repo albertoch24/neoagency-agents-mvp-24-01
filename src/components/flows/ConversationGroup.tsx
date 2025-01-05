@@ -10,9 +10,11 @@ interface ConversationGroupProps {
   isPlaying: { [key: string]: boolean };
   audioElements: { [key: string]: HTMLAudioElement | null };
   visibleTexts: { [key: string]: boolean };
+  visibleStructuredOutputs: { [key: string]: boolean };
   onPlayStateChange: (convId: string, playing: boolean) => void;
   onAudioElement: (convId: string, audio: HTMLAudioElement | null) => void;
   onToggleText: (convId: string) => void;
+  onToggleStructuredOutput: (stepId: string) => void;
 }
 
 export const ConversationGroup = ({
@@ -21,9 +23,11 @@ export const ConversationGroup = ({
   isPlaying,
   audioElements,
   visibleTexts,
+  visibleStructuredOutputs,
   onPlayStateChange,
   onAudioElement,
   onToggleText,
+  onToggleStructuredOutput,
 }: ConversationGroupProps) => {
   console.log("ConversationGroup rendering with group:", {
     groupId: group?.id,
@@ -73,9 +77,11 @@ export const ConversationGroup = ({
           conversationalOutputs={conversationalOutputs}
           isPlaying={isPlaying}
           visibleTexts={visibleTexts}
+          visibleStructuredOutputs={visibleStructuredOutputs}
           onPlayStateChange={onPlayStateChange}
           onAudioElement={onAudioElement}
           onToggleText={onToggleText}
+          onToggleStructuredOutput={onToggleStructuredOutput}
         />
       </CardContent>
     </Card>

@@ -10,6 +10,7 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
   const [isPlaying, setIsPlaying] = useState<{[key: string]: boolean}>({});
   const [audioElements, setAudioElements] = useState<{[key: string]: HTMLAudioElement | null}>({});
   const [visibleTexts, setVisibleTexts] = useState<{[key: string]: boolean}>({});
+  const [visibleStructuredOutputs, setVisibleStructuredOutputs] = useState<{[key: string]: boolean}>({});
 
   // Sort conversations by flow step order first, then creation date
   const sortedConversations = [...conversations].sort((a, b) => {
@@ -64,6 +65,10 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
     }
   };
 
+  const toggleStructuredOutput = (stepId: string) => {
+    setVisibleStructuredOutputs(prev => ({ ...prev, [stepId]: !prev[stepId] }));
+  };
+
   // Sort groups by order index to maintain step sequence
   const sortedGroups = Object.entries(groupedConversations)
     .sort(([, a]: [string, any], [, b]: [string, any]) => 
@@ -81,9 +86,11 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
               isPlaying={isPlaying}
               audioElements={audioElements}
               visibleTexts={visibleTexts}
+              visibleStructuredOutputs={visibleStructuredOutputs}
               onPlayStateChange={handlePlayStateChange}
               onAudioElement={handleAudioElement}
               onToggleText={toggleText}
+              onToggleStructuredOutput={toggleStructuredOutput}
             />
           </CardContent>
         </Card>
