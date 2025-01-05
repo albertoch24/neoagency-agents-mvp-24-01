@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export async function processAgent(
   supabase: any,
@@ -112,7 +112,7 @@ async function generateResponse(prompt: string, type: 'conversational' | 'struct
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
@@ -125,6 +125,10 @@ async function generateResponse(prompt: string, type: 'conversational' | 'struct
         temperature: type === 'conversational' ? 0.7 : 0.3
       })
     });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.statusText}`);
+    }
 
     const data = await response.json();
     return data.choices[0].message.content;
