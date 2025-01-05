@@ -14,9 +14,11 @@ interface StructuredOutputProps {
 
 export const StructuredOutput = ({ 
   stepId,
-  isVisible = true, // Changed to true by default
+  isVisible = true,
   onToggleVisibility 
 }: StructuredOutputProps) => {
+  const [localIsVisible, setLocalIsVisible] = useState(isVisible);
+
   const { data: structuredOutput } = useQuery({
     queryKey: ["structured-output", stepId],
     queryFn: async () => {
@@ -40,6 +42,11 @@ export const StructuredOutput = ({
     enabled: !!stepId
   });
 
+  const handleToggle = () => {
+    setLocalIsVisible(!localIsVisible);
+    onToggleVisibility();
+  };
+
   // Only render if we have stepId
   if (!stepId) return null;
 
@@ -51,15 +58,15 @@ export const StructuredOutput = ({
           size="sm"
           className={cn(
             "gap-2",
-            isVisible && "bg-primary text-primary-foreground hover:bg-primary/90"
+            localIsVisible && "bg-primary text-primary-foreground hover:bg-primary/90"
           )}
-          onClick={onToggleVisibility}
+          onClick={handleToggle}
         >
           <Type className="h-4 w-4" />
-          {isVisible ? "Hide Structured Output" : "Show Structured Output"}
+          {localIsVisible ? "Hide Structured Output" : "Show Structured Output"}
         </Button>
 
-        {isVisible && structuredOutput?.content && (
+        {localIsVisible && structuredOutput?.content && (
           <div className="bg-muted/30 rounded-lg p-6 backdrop-blur-sm">
             <h4 className="text-lg font-semibold mb-4 text-primary">
               Output Strutturato
