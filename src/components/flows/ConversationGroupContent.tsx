@@ -79,7 +79,7 @@ export const ConversationGroupContent = ({
                   onClick={() => onToggleText(conversation.id)}
                 >
                   <Type className="h-4 w-4" />
-                  {visibleTexts[conversation.id] ? "Hide Text" : "Show Text"}
+                  {visibleTexts[conversation.id] ? "Hide Team conversation" : "Show Team conversation"}
                 </Button>
               </div>
               
