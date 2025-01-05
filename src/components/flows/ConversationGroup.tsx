@@ -6,8 +6,17 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MarkdownContent } from "./MarkdownContent";
 
+type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
+
 interface BriefOutput {
+  id: string;
+  brief_id: string;
+  stage: string;
+  stage_id: string;
   content: {
+    stage_name?: string;
+    flow_name?: string;
+    agent?: string;
     output: string | {
       systemInfo?: {
         timestamp: string;
@@ -17,6 +26,9 @@ interface BriefOutput {
       perimetroContent?: string;
     };
   };
+  created_at: string;
+  updated_at: string;
+  output_type: string;
 }
 
 interface ConversationGroupProps {
@@ -68,10 +80,13 @@ export const ConversationGroup = ({
   if (!group?.agent) return null;
 
   const getStructuredContent = (content: BriefOutput['content']) => {
+    if (!content || !content.output) return '';
+    
     if (typeof content.output === 'string') {
       return content.output;
     }
-    return content.output?.perimetroContent || JSON.stringify(content.output, null, 2);
+    
+    return content.output.perimetroContent || JSON.stringify(content.output, null, 2);
   };
 
   return (
