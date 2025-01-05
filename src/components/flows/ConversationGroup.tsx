@@ -1,11 +1,10 @@
-import { ConversationContent } from "./ConversationContent";
-import { AgentHeader } from "./AgentHeader";
-import { AgentSkills } from "./AgentSkills";
-import { StageSummary } from "./StageSummary";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { AgentHeader } from "./AgentHeader";
+import { AgentSkills } from "./AgentSkills";
+import { ConversationContent } from "./ConversationContent";
 import { StructuredOutput } from "./StructuredOutput";
-import { ConversationSection } from "./ConversationSection";
 import { Json } from "@/integrations/supabase/types";
 
 interface DatabaseBriefOutput {
@@ -45,8 +44,7 @@ export const ConversationGroup = ({
     queryFn: async () => {
       console.log("Fetching brief outputs for:", { 
         briefId: group.briefId, 
-        stageId: group.stageId,
-        group: group
+        stageId: group.stageId 
       });
       
       if (!group.briefId || !group.stageId) {
@@ -72,9 +70,7 @@ export const ConversationGroup = ({
     enabled: !!group.briefId && !!group.stageId
   });
 
-  if (!group?.agent) return null;
-
-  // Separate conversations by type
+  // Filter conversations by output type
   const conversationalOutputs = group.conversations.filter((conv: any) => conv.output_type === 'conversational');
   const structuredOutputs = group.conversations.filter((conv: any) => conv.output_type === 'structured');
 
@@ -83,11 +79,14 @@ export const ConversationGroup = ({
 
   return (
     <div className="p-4">
-      <AgentHeader agentName={group.agent?.name} index={index} />
-      
-      <div className="pl-6 space-y-6">
-        <div>
-          <h5 className="text-sm font-medium mb-2 text-muted-foreground">Skills Used:</h5>
+      <AgentHeader 
+        agentName={group.agent?.name} 
+        index={index}
+        orderIndex={group.orderIndex} // Pass the orderIndex from the group
+      />
+
+      <div className="space-y-6">
+        <div className="space-y-4">
           <AgentSkills skills={group.agent?.skills || []} />
         </div>
 
@@ -97,30 +96,20 @@ export const ConversationGroup = ({
             stepId={group.conversations[0]?.flow_step_id}
           />
         )}
-        
-        {/* Structured Output Section */}
-        <ConversationSection
-          title="Analisi Strutturata"
-          conversations={structuredOutputs}
-          isPlaying={isPlaying}
-          visibleTexts={visibleTexts}
-          onPlayStateChange={onPlayStateChange}
-          onAudioElement={onAudioElement}
-          onToggleText={onToggleText}
-        />
 
-        {/* Conversational Output Section */}
-        <ConversationSection
-          title="Conversazione Dettagliata"
-          conversations={conversationalOutputs}
-          isPlaying={isPlaying}
-          visibleTexts={visibleTexts}
-          onPlayStateChange={onPlayStateChange}
-          onAudioElement={onAudioElement}
-          onToggleText={onToggleText}
-        />
-
-        <StageSummary summary={group.summary} />
+        {conversationalOutputs.map((conversation: any) => (
+          <ConversationContent
+            key={conversation.id}
+            conversation={conversation}
+            isPlaying={isPlaying[conversation.id] || false}
+            onPlayStateChange={(playing) =>
+              onPlayStateChange(conversation.id, playing)
+            }
+            onAudioElement={(audio) => onAudioElement(conversation.id, audio)}
+            visibleText={visibleTexts[conversation.id] || false}
+            onToggleText={() => onToggleText(conversation.id)}
+          />
+        ))}
       </div>
     </div>
   );
