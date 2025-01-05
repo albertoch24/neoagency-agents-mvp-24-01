@@ -40,7 +40,7 @@ export const ConversationGroup = ({
   onAudioElement,
   onToggleText,
 }: ConversationGroupProps) => {
-  const { data: briefOutput } = useQuery<DatabaseBriefOutput | null>({
+  const { data: briefOutputs } = useQuery<DatabaseBriefOutput[]>({
     queryKey: ["brief-outputs", group.briefId, group.stageId],
     queryFn: async () => {
       console.log("Fetching brief outputs for:", { 
@@ -51,7 +51,7 @@ export const ConversationGroup = ({
       
       if (!group.briefId || !group.stageId) {
         console.log("Missing briefId or stageId:", { briefId: group.briefId, stageId: group.stageId });
-        return null;
+        return [];
       }
 
       const { data, error } = await supabase
@@ -59,15 +59,14 @@ export const ConversationGroup = ({
         .select("*")
         .eq("brief_id", group.briefId)
         .eq("stage", group.stageId)
-        .order("created_at", { ascending: false })
-        .maybeSingle();
+        .order("created_at", { ascending: false });
 
       if (error) {
         console.error("Error fetching brief outputs:", error);
-        return null;
+        return [];
       }
 
-      console.log("Found brief output:", data);
+      console.log("Found brief outputs:", data);
       return data;
     },
     enabled: !!group.briefId && !!group.stageId
@@ -79,6 +78,9 @@ export const ConversationGroup = ({
   const conversationalOutputs = group.conversations.filter((conv: any) => conv.output_type === 'conversational');
   const structuredOutputs = group.conversations.filter((conv: any) => conv.output_type === 'structured');
 
+  // Get the most recent brief output
+  const latestBriefOutput = briefOutputs?.[0];
+
   return (
     <div className="p-4">
       <AgentHeader agentName={group.agent?.name} index={index} />
@@ -89,9 +91,9 @@ export const ConversationGroup = ({
           <AgentSkills skills={group.agent?.skills || []} />
         </div>
 
-        {briefOutput && (
+        {latestBriefOutput && (
           <StructuredOutput 
-            content={briefOutput.content} 
+            content={latestBriefOutput.content} 
             stepId={group.conversations[0]?.flow_step_id}
           />
         )}
