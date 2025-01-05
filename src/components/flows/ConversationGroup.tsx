@@ -28,16 +28,9 @@ export const ConversationGroup = ({
   onToggleText,
 }: ConversationGroupProps) => {
   const { data: briefOutput } = useQuery({
-    queryKey: ["brief-outputs", group.briefId, group.stageId],
+    queryKey: ["brief-outputs", group.briefId, group.stageId, group.flow_step_id],
     queryFn: async () => {
-      console.log("Fetching brief outputs for:", { 
-        briefId: group.briefId, 
-        stageId: group.stageId,
-        group: group // Log the entire group for debugging
-      });
-      
       if (!group.briefId || !group.stageId) {
-        console.log("Missing briefId or stageId:", { briefId: group.briefId, stageId: group.stageId });
         return null;
       }
 
@@ -45,8 +38,8 @@ export const ConversationGroup = ({
         .from("brief_outputs")
         .select("*")
         .eq("brief_id", group.briefId)
-        .eq("stage", group.stageId)
-        .order("created_at", { ascending: false })
+        .eq("stage_id", group.stageId)
+        .eq("output_type", "structured")
         .maybeSingle();
 
       if (error) {
@@ -54,7 +47,6 @@ export const ConversationGroup = ({
         return null;
       }
 
-      console.log("Found brief output:", data);
       return data;
     },
     enabled: !!group.briefId && !!group.stageId
@@ -76,10 +68,14 @@ export const ConversationGroup = ({
           <div className="mb-6">
             <div className="bg-muted/30 rounded-lg p-6 backdrop-blur-sm">
               <h4 className="text-lg font-semibold mb-4 text-primary">
-                Output Strutturato
+                Structured Output
               </h4>
-              <div className="prose prose-sm max-w-none">
-                <MarkdownContent content={String(JSON.stringify(briefOutput.content, null, 2))} />
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                <MarkdownContent content={
+                  typeof briefOutput.content.output === 'string' 
+                    ? briefOutput.content.output 
+                    : JSON.stringify(briefOutput.content.output, null, 2)
+                } />
               </div>
             </div>
           </div>

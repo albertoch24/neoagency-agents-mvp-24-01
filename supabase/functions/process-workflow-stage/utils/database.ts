@@ -44,55 +44,6 @@ export async function fetchStageDetails(supabase: any, stageId: string) {
   return stage;
 }
 
-export async function saveConversation(
-  supabase: any,
-  briefId: string,
-  stageId: string,
-  agentId: string,
-  content: string,
-  flowStepId?: string
-) {
-  const { error: conversationError } = await supabase
-    .from("workflow_conversations")
-    .insert({
-      brief_id: briefId,
-      stage_id: stageId,
-      agent_id: agentId,
-      content: content,
-      flow_step_id: flowStepId
-    });
-
-  if (conversationError) throw conversationError;
-}
-
-export async function saveBriefOutput(
-  supabase: any,
-  briefId: string,
-  stageId: string,
-  stageName: string,
-  outputs: any[]
-) {
-  const { error: outputError } = await supabase
-    .from("brief_outputs")
-    .insert({
-      brief_id: briefId,
-      stage: stageId,
-      stage_id: stageId,
-      content: {
-        stage_name: stageName,
-        outputs: outputs.map(output => ({
-          agent: output.agent.name,
-          requirements: output.requirements,
-          outputs: output.outputs,
-          stepId: output.stepId,
-          orderIndex: output.orderIndex
-        }))
-      },
-    });
-
-  if (outputError) throw outputError;
-}
-
 export async function saveOutputs(
   supabase: any,
   briefId: string,
