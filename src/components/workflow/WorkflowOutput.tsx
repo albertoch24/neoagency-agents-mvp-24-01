@@ -89,7 +89,6 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         <ScrollArea className="h-[600px] pr-6">
           <div className="space-y-12">
             {outputs.map((output) => {
-              // Safely cast the content to StageOutput type
               const content = output.content as any;
               const stageOutput: StageOutput = {
                 stage_name: content.stage_name || 'Stage Output',
@@ -116,43 +115,38 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                   <div className="text-foreground">
                     {stageOutput.outputs?.map((agentOutput, index) => (
                       <div key={index} className="mt-8">
+                        {/* Prima sezione: Contenuto strutturato da brief_outputs */}
+                        <div className="prose prose-sm max-w-none mb-8">
+                          <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
+                            <h4 className="text-lg font-semibold mb-4 text-primary">
+                              Output Strutturato - {agentOutput.agent}
+                              {agentOutput.requirements && (
+                                <span className="text-sm font-normal text-muted-foreground ml-2">
+                                  ({agentOutput.requirements})
+                                </span>
+                              )}
+                            </h4>
+                            {agentOutput.outputs?.map((output, outputIndex) => (
+                              <div key={outputIndex} className="mb-8 last:mb-0">
+                                {formatText(output.content)}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Seconda sezione: Contenuto conversazionale da workflow_conversations */}
                         <Accordion type="single" collapsible className="w-full">
                           <AccordionItem 
                             value={`agent-${index}`} 
                             className="border rounded-lg shadow-sm bg-card/50 backdrop-blur-sm"
                           >
                             <AccordionTrigger className="px-6 py-4 text-xl font-semibold hover:no-underline data-[state=open]:text-primary">
-                              {agentOutput.agent}
-                              {agentOutput.requirements && (
-                                <span className="text-sm font-normal text-muted-foreground ml-2">
-                                  ({agentOutput.requirements})
-                                </span>
-                              )}
+                              Conversazione Dettagliata - {agentOutput.agent}
                             </AccordionTrigger>
                             <AccordionContent className="px-6 pb-6">
-                              <div className="space-y-8">
-                                {/* Prima sezione: Contenuto strutturato da brief_outputs */}
-                                <div className="prose prose-sm max-w-none">
-                                  <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
-                                    <h4 className="text-lg font-semibold mb-4 text-primary">
-                                      Output Strutturato
-                                    </h4>
-                                    {agentOutput.outputs?.map((output, outputIndex) => (
-                                      <div key={outputIndex} className="mb-8 last:mb-0">
-                                        {formatText(output.content)}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                {/* Seconda sezione: Contenuto conversazionale da workflow_conversations */}
-                                <div className="prose prose-sm max-w-none">
-                                  <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
-                                    <h4 className="text-lg font-semibold mb-4 text-primary">
-                                      Conversazione Dettagliata
-                                    </h4>
-                                    <MarkdownContent content={String(output.content)} />
-                                  </div>
+                              <div className="prose prose-sm max-w-none">
+                                <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
+                                  <MarkdownContent content={String(output.content)} />
                                 </div>
                               </div>
                             </AccordionContent>
