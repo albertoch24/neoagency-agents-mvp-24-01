@@ -13,6 +13,8 @@ interface StructuredOutputProps {
 }
 
 interface StructuredContent {
+  type?: string;
+  content?: string;
   outputs?: Array<{
     stepId: string;
     outputs?: Array<{
@@ -38,6 +40,12 @@ export const StructuredOutput = ({
   });
 
   const extractPerimetroContent = (structuredContent: StructuredContent) => {
+    // First check if it's a direct structured content
+    if (structuredContent.type === 'structured' && structuredContent.content) {
+      return structuredContent.content;
+    }
+
+    // If not direct, look in the outputs array
     const stepOutput = structuredContent.outputs?.find((out) => out.stepId === stepId);
 
     if (!stepOutput?.outputs) return null;
