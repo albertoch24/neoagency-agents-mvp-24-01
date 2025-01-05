@@ -88,12 +88,24 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         <ScrollArea className="h-[600px] pr-6">
           <div className="space-y-12">
             {outputs.map((output) => {
-              const stageOutput = output.content as StageOutput;
+              // Safely cast the content to StageOutput type
+              const content = output.content as any;
+              const stageOutput: StageOutput = {
+                stage_name: content.stage_name || 'Stage Output',
+                outputs: Array.isArray(content.outputs) ? content.outputs.map((out: any) => ({
+                  agent: out.agent || 'Unknown Agent',
+                  requirements: out.requirements,
+                  outputs: Array.isArray(out.outputs) ? out.outputs : [],
+                  stepId: out.stepId || '',
+                  orderIndex: out.orderIndex || 0
+                })) : []
+              };
+
               return (
                 <div key={output.id} className="space-y-8">
                   <div className="flex items-center justify-between border-b pb-4">
                     <h3 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                      {stageOutput.stage_name || 'Stage Output'}
+                      {stageOutput.stage_name}
                     </h3>
                     <span className="text-sm text-muted-foreground">
                       {format(new Date(output.created_at), "PPpp")}
