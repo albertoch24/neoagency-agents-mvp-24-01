@@ -26,10 +26,13 @@ export const ConversationContent = ({
 
   useEffect(() => {
     const fetchAudio = async () => {
-      // Fetch audio URL based on conversation ID
-      const response = await fetch(`/api/audio/${conversation.id}`);
-      const data = await response.json();
-      setAudioUrl(data.url);
+      try {
+        const response = await fetch(`/api/audio/${conversation.id}`);
+        const data = await response.json();
+        setAudioUrl(data.url);
+      } catch (error) {
+        console.error("Error fetching audio:", error);
+      }
     };
 
     fetchAudio();
@@ -80,6 +83,21 @@ export const ConversationContent = ({
             <MarkdownContent content={conversation.content} />
           </div>
         </div>
+      )}
+
+      {audioUrl && (
+        <audio
+          ref={audioRef}
+          src={audioUrl}
+          onPlay={() => onPlayStateChange(true)}
+          onPause={() => onPlayStateChange(false)}
+          onEnded={() => onPlayStateChange(false)}
+          onLoadedMetadata={(e) => onAudioElement(e.currentTarget)}
+          onError={(e) => {
+            console.error("Audio error:", e);
+            onAudioElement(null);
+          }}
+        />
       )}
     </div>
   );

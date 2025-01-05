@@ -76,7 +76,7 @@ export const ConversationGroup = ({
           <AgentSkills skills={group.agent?.skills || []} />
         </div>
 
-        {briefOutput && briefOutput.content && (
+        {briefOutput && (
           <div className="mb-6">
             <div className="bg-muted/30 rounded-lg p-6 backdrop-blur-sm">
               <h4 className="text-lg font-semibold mb-4 text-primary">
