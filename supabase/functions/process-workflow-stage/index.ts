@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSupabaseClient } from "./utils/database.ts";
 import { corsHeaders } from "./utils/cors.ts";
+import { processAgent } from "./utils/workflow.ts";
 import { validateRequest, validateStage, validateBrief } from "./utils/validation.ts";
-import { processAgents } from "./utils/agentProcessing.ts";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -35,12 +35,12 @@ serve(async (req) => {
     const brief = await validateBrief(supabaseClient, briefId);
     
     // Process agents and collect outputs
-    const outputs = await processAgents(
+    const outputs = await processAgent(
       supabaseClient,
-      flowSteps,
+      stage.flows?.flow_steps[0]?.agents,
       brief,
       stageId,
-      stage.name
+      stage.flows?.flow_steps[0]?.requirements || ""
     );
 
     console.log("Stage processing completed successfully");
