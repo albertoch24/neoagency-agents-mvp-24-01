@@ -1,4 +1,6 @@
+# project configuration
 project_id = "szufbafdhfwqclyixdpd"
+
 [functions]
 [functions.process-workflow-stage]
 verify_jwt = false
