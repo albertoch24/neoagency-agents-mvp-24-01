@@ -22,33 +22,33 @@ export async function processAgent(
     .map(output => `Previous stage output: ${output.content}`)
     .join('\n\n');
 
-  // Construct the prompt with brief details and requirements
-  const prompt = `
-As ${agent.name}, you are working on the following brief:
-
-Title: ${brief.title}
-Description: ${brief.description}
-Objectives: ${brief.objectives}
-Target Audience: ${brief.target_audience}
-Budget: ${brief.budget}
-Timeline: ${brief.timeline}
-
-${previousContext ? `\nContext from previous stages:\n${previousContext}` : ''}
-
-${requirements ? `\nSpecific requirements for this step:\n${requirements}` : ''}
-
-Please provide your professional analysis and recommendations based on the brief details and requirements above.
-`;
+  // Construct both prompts
+  const { conversationalPrompt, schematicPrompt } = buildPrompt(
+    agent,
+    brief,
+    previousOutputs,
+    requirements,
+    previousOutputs.length === 0
+  );
 
   try {
-    const response = await generateAgentResponse(prompt);
+    // Generate both conversational and schematic responses
+    const [conversationalResponse, schematicResponse] = await Promise.all([
+      generateAgentResponse(conversationalPrompt),
+      generateAgentResponse(schematicPrompt)
+    ]);
     
-    console.log('Agent response received:', {
+    console.log('Agent responses received:', {
       agentId: agent.id,
-      responseLength: response.length,
+      conversationalLength: conversationalResponse.length,
+      schematicLength: schematicResponse.length,
       timestamp: new Date().toISOString()
     });
 
+    // Insert both types of responses
+    const timestamp = new Date().toISOString();
+    
+    // Return both responses
     return {
       agent: {
         id: agent.id,
@@ -56,10 +56,18 @@ Please provide your professional analysis and recommendations based on the brief
         description: agent.description,
         skills: agent.skills
       },
-      outputs: [{
-        content: response,
-        timestamp: new Date().toISOString()
-      }]
+      outputs: [
+        {
+          content: conversationalResponse,
+          type: 'conversational',
+          timestamp
+        },
+        {
+          content: schematicResponse,
+          type: 'structured',
+          timestamp
+        }
+      ]
     };
   } catch (error) {
     console.error('Error in processAgent:', error);

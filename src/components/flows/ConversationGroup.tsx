@@ -62,6 +62,10 @@ export const ConversationGroup = ({
 
   if (!group?.agent) return null;
 
+  // Separate conversations by type
+  const conversationalOutputs = group.conversations.filter((conv: any) => conv.output_type === 'conversational');
+  const structuredOutputs = group.conversations.filter((conv: any) => conv.output_type === 'structured');
+
   return (
     <div className="p-4">
       <AgentHeader agentName={group.agent?.name} index={index} />
@@ -85,18 +89,43 @@ export const ConversationGroup = ({
           </div>
         )}
         
-        {group.conversations.map((conv: any) => (
-          <div key={conv.id} className="space-y-4">
-            <ConversationContent
-              conversation={conv}
-              isPlaying={isPlaying[conv.id]}
-              onPlayStateChange={(playing) => onPlayStateChange(conv.id, playing)}
-              onAudioElement={(audio) => onAudioElement(conv.id, audio)}
-              visibleText={visibleTexts[conv.id]}
-              onToggleText={() => onToggleText(conv.id)}
-            />
+        {/* Structured Output Section */}
+        {structuredOutputs.length > 0 && (
+          <div className="space-y-4">
+            <h4 className="text-lg font-semibold text-primary">Analisi Strutturata</h4>
+            {structuredOutputs.map((conv: any) => (
+              <div key={conv.id} className="space-y-4">
+                <ConversationContent
+                  conversation={conv}
+                  isPlaying={isPlaying[conv.id]}
+                  onPlayStateChange={(playing) => onPlayStateChange(conv.id, playing)}
+                  onAudioElement={(audio) => onAudioElement(conv.id, audio)}
+                  visibleText={visibleTexts[conv.id]}
+                  onToggleText={() => onToggleText(conv.id)}
+                />
+              </div>
+            ))}
           </div>
-        ))}
+        )}
+
+        {/* Conversational Output Section */}
+        {conversationalOutputs.length > 0 && (
+          <div className="space-y-4 mt-8">
+            <h4 className="text-lg font-semibold text-primary">Conversazione Dettagliata</h4>
+            {conversationalOutputs.map((conv: any) => (
+              <div key={conv.id} className="space-y-4">
+                <ConversationContent
+                  conversation={conv}
+                  isPlaying={isPlaying[conv.id]}
+                  onPlayStateChange={(playing) => onPlayStateChange(conv.id, playing)}
+                  onAudioElement={(audio) => onAudioElement(conv.id, audio)}
+                  visibleText={visibleTexts[conv.id]}
+                  onToggleText={() => onToggleText(conv.id)}
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
         <StageSummary summary={group.summary} />
       </div>
