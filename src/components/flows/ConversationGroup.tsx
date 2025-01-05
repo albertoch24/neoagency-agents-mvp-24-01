@@ -39,6 +39,15 @@ export const ConversationGroup = ({
   onAudioElement,
   onToggleText,
 }: ConversationGroupProps) => {
+  console.log("ConversationGroup rendering with group:", {
+    groupId: group?.id,
+    agentName: group?.agent?.name,
+    briefId: group?.briefId,
+    stageId: group?.stageId,
+    conversationsCount: group?.conversations?.length,
+    orderIndex: group?.orderIndex
+  });
+
   const { data: briefOutputs } = useQuery<DatabaseBriefOutput[]>({
     queryKey: ["brief-outputs", group.briefId, group.stageId],
     queryFn: async () => {
@@ -71,18 +80,43 @@ export const ConversationGroup = ({
   });
 
   // Filter conversations by output type
-  const conversationalOutputs = group.conversations.filter((conv: any) => conv.output_type === 'conversational');
-  const structuredOutputs = group.conversations.filter((conv: any) => conv.output_type === 'structured');
+  const conversationalOutputs = group.conversations.filter((conv: any) => {
+    const isConversational = conv.output_type === 'conversational';
+    console.log("Filtering conversation:", {
+      id: conv.id,
+      type: conv.output_type,
+      isConversational,
+      content: conv.content?.substring(0, 100) // Log first 100 chars of content
+    });
+    return isConversational;
+  });
+
+  const structuredOutputs = group.conversations.filter((conv: any) => {
+    const isStructured = conv.output_type === 'structured';
+    console.log("Filtering structured output:", {
+      id: conv.id,
+      type: conv.output_type,
+      isStructured
+    });
+    return isStructured;
+  });
 
   // Get the most recent brief output
   const latestBriefOutput = briefOutputs?.[0];
+  console.log("Latest brief output:", {
+    id: latestBriefOutput?.id,
+    type: latestBriefOutput?.output_type,
+    contentSample: typeof latestBriefOutput?.content === 'object' 
+      ? JSON.stringify(latestBriefOutput?.content).substring(0, 100) 
+      : 'No content'
+  });
 
   return (
     <div className="p-4">
       <AgentHeader 
         agentName={group.agent?.name} 
         index={index}
-        orderIndex={group.orderIndex} // Pass the orderIndex from the group
+        orderIndex={group.orderIndex}
       />
 
       <div className="space-y-6">
@@ -97,19 +131,29 @@ export const ConversationGroup = ({
           />
         )}
 
-        {conversationalOutputs.map((conversation: any) => (
-          <ConversationContent
-            key={conversation.id}
-            conversation={conversation}
-            isPlaying={isPlaying[conversation.id] || false}
-            onPlayStateChange={(playing) =>
-              onPlayStateChange(conversation.id, playing)
-            }
-            onAudioElement={(audio) => onAudioElement(conversation.id, audio)}
-            visibleText={visibleTexts[conversation.id] || false}
-            onToggleText={() => onToggleText(conversation.id)}
-          />
-        ))}
+        {conversationalOutputs.map((conversation: any) => {
+          console.log("Rendering conversation:", {
+            id: conversation.id,
+            hasContent: !!conversation.content,
+            contentLength: conversation.content?.length,
+            isPlaying: isPlaying[conversation.id],
+            isVisible: visibleTexts[conversation.id]
+          });
+          
+          return (
+            <ConversationContent
+              key={conversation.id}
+              conversation={conversation}
+              isPlaying={isPlaying[conversation.id] || false}
+              onPlayStateChange={(playing) =>
+                onPlayStateChange(conversation.id, playing)
+              }
+              onAudioElement={(audio) => onAudioElement(conversation.id, audio)}
+              visibleText={visibleTexts[conversation.id] || false}
+              onToggleText={() => onToggleText(conversation.id)}
+            />
+          );
+        })}
       </div>
     </div>
   );
