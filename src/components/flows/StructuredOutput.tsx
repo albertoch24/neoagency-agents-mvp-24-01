@@ -33,7 +33,8 @@ export const StructuredOutput = ({
     hasContent: !!content,
     stepId,
     isVisible,
-    contentType: typeof content
+    contentType: typeof content,
+    contentValue: content
   });
 
   const extractPerimetroContent = (structuredContent: StructuredContent) => {
@@ -68,15 +69,17 @@ export const StructuredOutput = ({
     
     try {
       return extractPerimetroContent(content as StructuredContent);
-    } catch {
-      console.error('Error parsing structured content:', content);
+    } catch (error) {
+      console.error('Error parsing structured content:', content, error);
       return null;
     }
   };
 
   const perimetroContent = getPerimetroContent();
 
-  // Always render the button, but only show content if we have it
+  // Only render if we have content or stepId
+  if (!content || !stepId) return null;
+
   return (
     <div className="mb-6">
       <div className="space-y-4">

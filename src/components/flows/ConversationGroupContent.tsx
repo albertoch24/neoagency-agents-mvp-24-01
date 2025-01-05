@@ -53,12 +53,14 @@ export const ConversationGroupContent = ({
           <AgentSkills skills={group.agent?.skills || []} />
         </div>
 
-        <StructuredOutput 
-          content={latestBriefOutput?.content || {}} 
-          stepId={group.conversations[0]?.flow_step_id}
-          isVisible={visibleStructuredOutputs[group.conversations[0]?.flow_step_id]}
-          onToggleVisibility={() => onToggleStructuredOutput(group.conversations[0]?.flow_step_id)}
-        />
+        {latestBriefOutput && (
+          <StructuredOutput 
+            content={latestBriefOutput.content} 
+            stepId={group.conversations[0]?.flow_step_id}
+            isVisible={visibleStructuredOutputs[group.conversations[0]?.flow_step_id]}
+            onToggleVisibility={() => onToggleStructuredOutput(group.conversations[0]?.flow_step_id)}
+          />
+        )}
 
         {conversationalOutputs.map((conversation: any) => {
           console.log("Rendering conversation:", {
