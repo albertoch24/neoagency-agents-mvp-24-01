@@ -7,7 +7,6 @@ interface WorkflowStageListProps {
     stage: string;
     content: {
       response?: string;
-      output?: any;
       [key: string]: any;
     };
     created_at?: string;
@@ -28,14 +27,11 @@ export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageLi
           brief_id: conv.brief_id || (conversations[0]?.brief_id)
         }));
 
-        const structuredOutputs = Array.isArray(briefOutputs) 
-          ? briefOutputs.filter(output => 
-              output.stage === stageId && 
-              output.output_type === 'structured'
-            )
-          : [];
+        const output = Array.isArray(briefOutputs) 
+          ? briefOutputs.find((output) => output.stage === stageId)
+          : null;
 
-        console.log("Stage structured outputs for", stageId, ":", structuredOutputs);
+        console.log("Stage output for", stageId, ":", output);
 
         // Group conversations by flow step
         const conversationsByStep = conversationsWithIds.reduce((acc: any, conv: any) => {
@@ -51,13 +47,7 @@ export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageLi
             <div className="pl-4 space-y-4">
               {Object.entries(conversationsByStep).map(([stepId, stepConvs]: [string, any[]]) => (
                 <div key={stepId} className="space-y-4">
-                  {structuredOutputs.map(output => (
-                    <StageOutput 
-                      key={output.id} 
-                      output={output} 
-                      stepId={stepId} 
-                    />
-                  ))}
+                  {output && <StageOutput output={output} stepId={stepId} />}
                   <AgentSequence conversations={stepConvs} />
                 </div>
               ))}

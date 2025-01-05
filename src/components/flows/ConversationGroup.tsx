@@ -6,31 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MarkdownContent } from "./MarkdownContent";
 
-type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
-
-interface BriefOutput {
-  id: string;
-  brief_id: string;
-  stage: string;
-  stage_id: string;
-  content: {
-    stage_name?: string;
-    flow_name?: string;
-    agent?: string;
-    output: string | {
-      systemInfo?: {
-        timestamp: string;
-        agent: string;
-        type: string;
-      };
-      perimetroContent?: string;
-    };
-  };
-  created_at: string;
-  updated_at: string;
-  output_type: string;
-}
-
 interface ConversationGroupProps {
   group: any;
   index: number;
@@ -53,9 +28,16 @@ export const ConversationGroup = ({
   onToggleText,
 }: ConversationGroupProps) => {
   const { data: briefOutput } = useQuery({
-    queryKey: ["brief-outputs", group.briefId, group.stageId, group.flow_step_id],
+    queryKey: ["brief-outputs", group.briefId, group.stageId],
     queryFn: async () => {
+      console.log("Fetching brief outputs for:", { 
+        briefId: group.briefId, 
+        stageId: group.stageId,
+        group: group // Log the entire group for debugging
+      });
+      
       if (!group.briefId || !group.stageId) {
+        console.log("Missing briefId or stageId:", { briefId: group.briefId, stageId: group.stageId });
         return null;
       }
 
@@ -63,8 +45,8 @@ export const ConversationGroup = ({
         .from("brief_outputs")
         .select("*")
         .eq("brief_id", group.briefId)
-        .eq("stage_id", group.stageId)
-        .eq("output_type", "structured")
+        .eq("stage", group.stageId)
+        .order("created_at", { ascending: false })
         .maybeSingle();
 
       if (error) {
@@ -72,22 +54,13 @@ export const ConversationGroup = ({
         return null;
       }
 
-      return data as BriefOutput;
+      console.log("Found brief output:", data);
+      return data;
     },
     enabled: !!group.briefId && !!group.stageId
   });
 
   if (!group?.agent) return null;
-
-  const getStructuredContent = (content: BriefOutput['content']) => {
-    if (!content || !content.output) return '';
-    
-    if (typeof content.output === 'string') {
-      return content.output;
-    }
-    
-    return content.output.perimetroContent || JSON.stringify(content.output, null, 2);
-  };
 
   return (
     <div className="p-4">
@@ -103,10 +76,10 @@ export const ConversationGroup = ({
           <div className="mb-6">
             <div className="bg-muted/30 rounded-lg p-6 backdrop-blur-sm">
               <h4 className="text-lg font-semibold mb-4 text-primary">
-                Structured Output
+                Output Strutturato
               </h4>
-              <div className="prose prose-sm max-w-none dark:prose-invert">
-                <MarkdownContent content={getStructuredContent(briefOutput.content)} />
+              <div className="prose prose-sm max-w-none">
+                <MarkdownContent content={String(JSON.stringify(briefOutput.content, null, 2))} />
               </div>
             </div>
           </div>

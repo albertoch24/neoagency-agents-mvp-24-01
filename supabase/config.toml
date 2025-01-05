@@ -1,5 +1,45 @@
 project_id = "szufbafdhfwqclyixdpd"
 
-[functions]
-[functions.process-workflow-stage]
-verify_jwt = false
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+port = 54325
+
+[analytics]
+enabled = true
+port = 54327
+
+[realtime]
+enabled = true
+
+[edge_functions]
+[edge_functions.process-workflow-stage]
+verify_jwt = true
+
+[edge_functions.agent-response]
+verify_jwt = true
+
+[edge_functions.text-to-speech]
+verify_jwt = true
+
+[edge_functions.delete-secret]
+verify_jwt = true

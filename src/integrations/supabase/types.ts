@@ -56,7 +56,6 @@ export type Database = {
           content: Json
           created_at: string
           id: string
-          output_type: string
           stage: string
           stage_id: string | null
           updated_at: string
@@ -66,7 +65,6 @@ export type Database = {
           content: Json
           created_at?: string
           id?: string
-          output_type?: string
           stage: string
           stage_id?: string | null
           updated_at?: string
@@ -76,7 +74,6 @@ export type Database = {
           content?: Json
           created_at?: string
           id?: string
-          output_type?: string
           stage?: string
           stage_id?: string | null
           updated_at?: string
