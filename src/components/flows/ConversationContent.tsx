@@ -22,7 +22,7 @@ export const ConversationContent = ({
   onToggleText,
 }: ConversationContentProps) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [localVisibleText, setLocalVisibleText] = useState(visibleText);
+  const [localVisibleText, setLocalVisibleText] = useState(false); // Changed to false by default
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   console.log("ConversationContent rendering:", {
@@ -35,10 +35,6 @@ export const ConversationContent = ({
     flowStepId: conversation?.flow_step_id,
     hasAudioUrl: !!audioUrl
   });
-
-  useEffect(() => {
-    setLocalVisibleText(visibleText);
-  }, [visibleText]);
 
   useEffect(() => {
     const fetchAudio = async () => {
