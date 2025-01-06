@@ -15,7 +15,8 @@ export async function processAgent(
       agentName: agent.name,
       briefId: brief.id,
       stageId,
-      requirements
+      requirements,
+      previousOutputsCount: previousOutputs.length
     });
 
     const isFirstStage = previousOutputs.length === 0;
@@ -36,7 +37,9 @@ export async function processAgent(
     console.log('Agent responses generated successfully:', {
       agentId: agent.id,
       conversationalLength: conversationalResponse?.length,
-      schematicLength: schematicResponse?.length
+      schematicLength: schematicResponse?.length,
+      isFirstStage,
+      hasContext: previousOutputs.length > 0
     });
 
     return {

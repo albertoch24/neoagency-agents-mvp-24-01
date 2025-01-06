@@ -10,7 +10,12 @@ export const buildPrompt = (
     ? previousOutputs
         ?.map((output: any) => `
           Stage: ${output.stage}
-          Content: ${typeof output.content === 'object' ? JSON.stringify(output.content, null, 2) : output.content}
+          Content: ${typeof output.content === 'object' 
+            ? JSON.stringify(output.content.outputs?.map((out: any) => ({
+                agent: out.agent,
+                output: out.outputs?.map((o: any) => o.content || o.text).join('\n')
+              })), null, 2)
+            : output.content}
         `)
         .join('\n\n')
     : '';

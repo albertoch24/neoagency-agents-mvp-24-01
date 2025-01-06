@@ -68,16 +68,24 @@ export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversa
       }
 
       // Transform the outputs to match the expected format
-      const transformedOutputs: BriefOutput[] = outputsData?.map((output) => ({
-        ...output,
-        content: typeof output.content === 'string' 
-          ? { response: output.content }
-          : typeof output.content === 'object' && output.content !== null
-            ? output.content
-            : { response: String(output.content) }
-      })) || [];
+      const transformedOutputs = outputsData?.map((output) => ({
+        stage: output.stage,
+        content: {
+          stage_name: output.content?.stage_name || 'Stage Output',
+          outputs: output.content?.outputs?.map((out: any) => ({
+            agent: out.agent || 'Unknown Agent',
+            stepId: out.stepId,
+            outputs: Array.isArray(out.outputs) 
+              ? out.outputs.map((o: any) => ({
+                  content: o.text || o.content || ''
+                }))
+              : []
+          })) || []
+        },
+        created_at: output.created_at
+      }));
 
-      console.log("Found outputs:", transformedOutputs);
+      console.log("Transformed outputs:", transformedOutputs);
       return transformedOutputs;
     },
     enabled: !!briefId && !!currentStage,
