@@ -9,10 +9,7 @@ import { useSearchParams } from "react-router-dom";
 import { BriefActions } from "@/components/brief/BriefActions";
 import { BriefSelector } from "@/components/brief/BriefSelector";
 import { useStageHandling } from "@/hooks/useStageHandling";
-import { toast } from "sonner";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Edit, Trash2 } from "lucide-react";
+import { ProjectList } from "@/components/brief/ProjectList";
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -50,17 +47,10 @@ const Index = () => {
         .eq("user_id", user?.id)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching briefs:", error);
-        toast.error("Failed to fetch briefs");
-        return [];
-      }
-
+      if (error) throw error;
       return data;
     },
-    enabled: !!user,
-    staleTime: 0,
-    gcTime: 0
+    enabled: !!user
   });
 
   const { data: currentBrief, error: currentBriefError } = useQuery({
@@ -79,17 +69,10 @@ const Index = () => {
 
       const { data, error } = await query.limit(1).maybeSingle();
 
-      if (error) {
-        console.error("Error fetching current brief:", error);
-        toast.error("Failed to fetch brief details");
-        return null;
-      }
-
+      if (error) throw error;
       return data;
     },
-    enabled: !!user,
-    staleTime: 0,
-    gcTime: 0
+    enabled: !!user
   });
 
   const handleSelectBrief = (briefId: string) => {
@@ -113,50 +96,15 @@ const Index = () => {
   // Project list view when no brief is selected
   if (!selectedBriefId && !showNewBrief) {
     return (
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">My Projects</h1>
-          <Button
-            onClick={() => setShowNewBrief(true)}
-            className="flex items-center gap-2"
-          >
-            Create New Project
-          </Button>
-        </div>
-        <div className="grid gap-4">
-          {briefs?.map((brief) => (
-            <Card key={brief.id} className="p-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-xl font-semibold">{brief.title}</h2>
-                  <p className="text-muted-foreground">
-                    Stage: {brief.current_stage}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      handleSelectBrief(brief.id);
-                      setIsEditing(true);
-                    }}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSelectBrief(brief.id)}
-                  >
-                    View
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </div>
+      <ProjectList 
+        briefs={briefs || []}
+        onSelect={handleSelectBrief}
+        onEdit={(briefId) => {
+          handleSelectBrief(briefId);
+          setIsEditing(true);
+        }}
+        onNew={() => setShowNewBrief(true)}
+      />
     );
   }
 
