@@ -6,6 +6,21 @@ interface AgentSequenceProps {
   conversations: any[];
 }
 
+interface GroupedConversation {
+  agent: {
+    id: string;
+    name: string;
+  };
+  conversations: any[];
+  summary: any;
+  orderIndex: number;
+  briefId: string;
+  stageId: string;
+  flowStep?: {
+    order_index?: number;
+  };
+}
+
 export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
   const [isPlaying, setIsPlaying] = useState<{[key: string]: boolean}>({});
   const [audioElements, setAudioElements] = useState<{[key: string]: HTMLAudioElement | null}>({});
@@ -31,7 +46,7 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
   });
 
   // Group conversations by flow step ID to maintain step order
-  const groupedConversations = sortedConversations.reduce((acc: any, conv: any) => {
+  const groupedConversations = sortedConversations.reduce((acc: Record<string, GroupedConversation>, conv: any) => {
     if (!conv) return acc;
     
     const stepId = conv.flow_step_id || `no-step-${conv.id}`;
@@ -83,20 +98,20 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
 
   // Sort groups by order index to maintain step sequence
   const sortedGroups = Object.entries(groupedConversations)
-    .sort(([, a]: [string, any], [, b]: [string, any]) => {
+    .sort(([, a]: [string, GroupedConversation], [, b]: [string, GroupedConversation]) => {
       const aIndex = a.flowStep?.order_index ?? 0;
       const bIndex = b.flowStep?.order_index ?? 0;
       return aIndex - bIndex;
     });
 
-  console.log("Sorted groups:", sortedGroups.map(([, group]) => ({
+  console.log("Sorted groups:", sortedGroups.map(([, group]: [string, GroupedConversation]) => ({
     orderIndex: group.flowStep?.order_index,
     flowStep: group.flowStep
   })));
 
   return (
     <div className="space-y-4">
-      {sortedGroups.map(([stepId, group]: [string, any], index: number) => (
+      {sortedGroups.map(([stepId, group]: [string, GroupedConversation], index: number) => (
         <Card key={`${group.agent?.id}-${stepId}`} className="overflow-hidden border-agent">
           <CardContent>
             <ConversationGroup
