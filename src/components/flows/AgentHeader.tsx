@@ -23,8 +23,9 @@ export const AgentHeader: React.FC<AgentHeaderProps> = ({
   outputs,
   children
 }) => {
-  // Use orderIndex + 1 for display, this comes from the flow step's order_index
-  const stepNumber = (orderIndex ?? 0) + 1;
+  console.log("AgentHeader received orderIndex:", orderIndex);
+  // Use orderIndex directly if available, otherwise fallback to index + 1
+  const stepNumber = orderIndex !== undefined ? orderIndex + 1 : index + 1;
 
   return (
     <div className="flex flex-col gap-3 mb-4 pb-2 border-b bg-[#9b87f5]/10 p-2 rounded-md">
