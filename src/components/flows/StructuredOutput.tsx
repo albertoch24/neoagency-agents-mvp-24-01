@@ -51,8 +51,8 @@ export const StructuredOutput = ({
   if (!stepId) return null;
 
   return (
-    <div className="mb-4">
-      <div className="space-y-2">
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
         <Button
           variant="outline"
           size="sm"
@@ -65,29 +65,26 @@ export const StructuredOutput = ({
           <Type className="h-4 w-4" />
           {isVisible ? "Hide Structured Output" : "Show Structured Output"}
         </Button>
-
-        {isVisible && (
-          <div className="bg-muted/30 rounded-lg p-4 backdrop-blur-sm">
-            <h4 className="text-lg font-semibold mb-2 text-primary">
-              Structured Output
-            </h4>
-            {isLoading ? (
-              <div>Loading...</div>
-            ) : structuredOutput?.content ? (
-              <div className="prose prose-sm max-w-none">
-                <MarkdownContent content={structuredOutput.content} />
-              </div>
-            ) : (
-              <div className="text-muted-foreground">
-                {error ? 
-                  "Error loading structured output" : 
-                  "No structured output available for this step"
-                }
-              </div>
-            )}
-          </div>
-        )}
       </div>
+
+      {isVisible && (
+        <div className="bg-muted/30 rounded-lg p-4 backdrop-blur-sm mt-2">
+          {isLoading ? (
+            <div className="text-sm text-muted-foreground">Loading...</div>
+          ) : structuredOutput?.content ? (
+            <div className="prose prose-sm max-w-none">
+              <MarkdownContent content={structuredOutput.content} />
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              {error ? 
+                "Error loading structured output" : 
+                "No structured output available for this step"
+              }
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
