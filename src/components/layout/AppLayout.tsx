@@ -50,7 +50,9 @@ const AppLayout = ({ children }: AppLayoutProps) => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold">NEO AGENCY</h1>
+              <h1 className="text-xl font-bold">
+                <span className="text-[#9b87f5]">NEO</span> AGENCY
+              </h1>
             </div>
             <Button
               variant="ghost"
