@@ -113,14 +113,6 @@ export const ConversationContent = ({
         />
       </div>
 
-      {conversation.flow_step_id && (
-        <StructuredOutput 
-          stepId={conversation.flow_step_id}
-          isVisible={visibleStructuredOutput}
-          onToggleVisibility={onToggleStructuredOutput}
-        />
-      )}
-
       {localVisibleText && (
         <div className="prose prose-sm max-w-none dark:prose-invert">
           <MarkdownContent content={conversation.content} />
