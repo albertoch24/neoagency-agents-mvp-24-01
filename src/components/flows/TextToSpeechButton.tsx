@@ -37,6 +37,8 @@ export const TextToSpeechButton = ({
 
   const handleTextToSpeech = useCallback(async () => {
     try {
+      console.log('TextToSpeech button clicked', { isPlaying, text: text.substring(0, 50) + '...' });
+      
       if (isPlaying) {
         console.log('Stopping current playback...');
         onPlayStateChange(false);
@@ -50,17 +52,25 @@ export const TextToSpeechButton = ({
       // Using Rachel's voice ID as default
       const voiceId = "21m00Tcm4TlvDq8ikWAM";
       
-      const { data: secretData } = await supabase
+      console.log('Fetching ElevenLabs API key...');
+      const { data: secretData, error: secretError } = await supabase
         .from('secrets')
         .select('secret')
         .eq('name', 'ELEVEN_LABS_API_KEY')
         .maybeSingle();
 
+      if (secretError) {
+        console.error('Error fetching API key:', secretError);
+        throw new Error('Failed to fetch ElevenLabs API key');
+      }
+
       if (!secretData?.secret) {
+        console.log('No API key found, showing dialog');
         setShowApiKeyDialog(true);
         throw new Error('ElevenLabs API key not found');
       }
 
+      console.log('Making request to ElevenLabs API...');
       const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
         method: 'POST',
         headers: {
@@ -78,7 +88,9 @@ export const TextToSpeechButton = ({
       });
 
       if (!response.ok) {
+        console.error('ElevenLabs API error:', response.status, response.statusText);
         if (response.status === 401) {
+          console.log('Invalid API key, showing dialog');
           setShowApiKeyDialog(true);
           throw new Error('Invalid ElevenLabs API key');
         }
@@ -123,7 +135,7 @@ export const TextToSpeechButton = ({
   const handleApiKeySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Test the API key before saving
+      console.log('Testing API key...');
       const testResponse = await fetch('https://api.elevenlabs.io/v1/voices', {
         headers: {
           'xi-api-key': apiKey.trim()
@@ -131,9 +143,11 @@ export const TextToSpeechButton = ({
       });
 
       if (!testResponse.ok) {
+        console.error('API key test failed:', testResponse.status, testResponse.statusText);
         throw new Error('Invalid API key');
       }
 
+      console.log('Saving API key to Supabase...');
       const { error } = await supabase
         .from('secrets')
         .upsert({ 
@@ -141,7 +155,10 @@ export const TextToSpeechButton = ({
           secret: apiKey.trim()
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving API key:', error);
+        throw error;
+      }
 
       toast.success('API key saved successfully');
       setShowApiKeyDialog(false);
