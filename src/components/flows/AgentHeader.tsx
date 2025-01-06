@@ -13,13 +13,15 @@ interface AgentHeaderProps {
   index: number;
   orderIndex?: number;
   description?: string;
+  children?: React.ReactNode;
 }
 
 export const AgentHeader: React.FC<AgentHeaderProps> = ({ 
   agentName, 
   index,
   orderIndex,
-  description
+  description,
+  children
 }) => {
   const stepNumber = orderIndex !== undefined ? orderIndex + 1 : index + 1;
 
@@ -38,17 +40,21 @@ export const AgentHeader: React.FC<AgentHeaderProps> = ({
           </div>
         </div>
       </div>
-      <Accordion type="single" collapsible defaultValue="description">
-        <AccordionItem value="description" className="border-none">
+      <Accordion type="single" collapsible defaultValue="step-content">
+        <AccordionItem value="step-content" className="border-none">
           <AccordionTrigger className="py-1">
-            Details
+            Step Details
           </AccordionTrigger>
           <AccordionContent>
             {description && (
-              <span className="text-sm text-muted-foreground">
-                {description}
-              </span>
+              <div className="mb-4">
+                <h4 className="text-sm font-medium mb-2">Description:</h4>
+                <span className="text-sm text-muted-foreground">
+                  {description}
+                </span>
+              </div>
             )}
+            {children}
           </AccordionContent>
         </AccordionItem>
       </Accordion>

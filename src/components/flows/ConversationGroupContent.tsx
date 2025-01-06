@@ -43,35 +43,35 @@ export const ConversationGroupContent = ({
         agentName={group.agent?.name} 
         index={index}
         orderIndex={group.orderIndex}
-      />
+      >
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <AgentSkills skills={group.agent?.skills || []} />
+          </div>
 
-      <div className="space-y-6">
-        <div className="space-y-4">
-          <AgentSkills skills={group.agent?.skills || []} />
+          {conversationalOutputs.map((conversation: any) => (
+            <ConversationContent
+              key={conversation.id}
+              conversation={conversation}
+              isPlaying={isPlaying[conversation.id] || false}
+              visibleText={visibleTexts[conversation.id] || false}
+              visibleStructuredOutput={visibleStructuredOutputs[conversation.flow_step_id] || false}
+              onPlayStateChange={(playing) => onPlayStateChange(conversation.id, playing)}
+              onAudioElement={(audio) => onAudioElement(conversation.id, audio)}
+              onToggleText={() => onToggleText(conversation.id)}
+              onToggleStructuredOutput={() => onToggleStructuredOutput(conversation.flow_step_id)}
+            />
+          ))}
+
+          {group.conversations?.[0]?.flow_step_id && (
+            <StructuredOutput 
+              stepId={group.conversations[0].flow_step_id}
+              isVisible={visibleStructuredOutputs[group.conversations[0].flow_step_id] ?? true}
+              onToggleVisibility={() => onToggleStructuredOutput(group.conversations[0].flow_step_id)}
+            />
+          )}
         </div>
-
-        {conversationalOutputs.map((conversation: any) => (
-          <ConversationContent
-            key={conversation.id}
-            conversation={conversation}
-            isPlaying={isPlaying[conversation.id] || false}
-            visibleText={visibleTexts[conversation.id] || false}
-            visibleStructuredOutput={visibleStructuredOutputs[conversation.flow_step_id] || false}
-            onPlayStateChange={(playing) => onPlayStateChange(conversation.id, playing)}
-            onAudioElement={(audio) => onAudioElement(conversation.id, audio)}
-            onToggleText={() => onToggleText(conversation.id)}
-            onToggleStructuredOutput={() => onToggleStructuredOutput(conversation.flow_step_id)}
-          />
-        ))}
-
-        {group.conversations?.[0]?.flow_step_id && (
-          <StructuredOutput 
-            stepId={group.conversations[0].flow_step_id}
-            isVisible={visibleStructuredOutputs[group.conversations[0].flow_step_id] ?? true}
-            onToggleVisibility={() => onToggleStructuredOutput(group.conversations[0].flow_step_id)}
-          />
-        )}
-      </div>
+      </AgentHeader>
     </div>
   );
 };
