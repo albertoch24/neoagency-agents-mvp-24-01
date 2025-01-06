@@ -7,6 +7,7 @@ export interface FlowStep {
   order_index: number;
   outputs?: { text: string }[];
   requirements?: string;
+  description?: string;
   created_at?: string;
   updated_at?: string;
   agents?: {

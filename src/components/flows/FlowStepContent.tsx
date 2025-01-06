@@ -6,12 +6,15 @@ interface FlowStepContentProps {
   isEditing: boolean;
   editedOutputs: string;
   editedRequirements: string;
+  editedDescription?: string;
   step: {
     outputs?: { text: string }[];
     requirements?: string;
+    description?: string;
   };
   onEditOutputs: (value: string) => void;
   onEditRequirements: (value: string) => void;
+  onEditDescription?: (value: string) => void;
   onStartEdit: () => void;
   onCancelEdit: () => void;
   onSave: () => void;
@@ -23,9 +26,11 @@ export const FlowStepContent = ({
   isEditing,
   editedOutputs,
   editedRequirements,
+  editedDescription = '',
   step,
   onEditOutputs,
   onEditRequirements,
+  onEditDescription,
   onStartEdit,
   onCancelEdit,
   onSave,
@@ -37,14 +42,26 @@ export const FlowStepContent = ({
       <div className="space-y-4 p-4">
         <div>
           <label className="text-sm font-medium">
-            Description (one per line):
+            Description:
+          </label>
+          <Textarea
+            value={editedDescription}
+            onChange={(e) => onEditDescription?.(e.target.value)}
+            className="mt-1"
+            rows={2}
+            placeholder="Enter step description"
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium">
+            Outputs (one per line):
           </label>
           <Textarea
             value={editedOutputs}
             onChange={(e) => onEditOutputs(e.target.value)}
             className="mt-1"
             rows={4}
-            placeholder="Enter each description on a new line"
+            placeholder="Enter each output on a new line"
           />
         </div>
         <div>
@@ -80,6 +97,14 @@ export const FlowStepContent = ({
         <h4 className="text-sm font-medium mb-2">
           Description:
         </h4>
+        <p className="text-sm">
+          {step.description || "No description defined"}
+        </p>
+      </div>
+      <div>
+        <h4 className="text-sm font-medium mb-2">
+          Outputs:
+        </h4>
         <ul className="list-disc pl-4 space-y-1">
           {step.outputs && step.outputs.length > 0 ? (
             step.outputs.map((output, i) => (
@@ -88,7 +113,7 @@ export const FlowStepContent = ({
               </li>
             ))
           ) : (
-            <li className="text-sm text-muted-foreground">No description defined</li>
+            <li className="text-sm text-muted-foreground">No outputs defined</li>
           )}
         </ul>
       </div>

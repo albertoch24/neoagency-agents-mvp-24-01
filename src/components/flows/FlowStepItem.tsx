@@ -49,6 +49,7 @@ export const FlowStepItem = ({
     step.outputs?.map(o => o.text).join('\n') || ''
   );
   const [editedRequirements, setEditedRequirements] = useState(step.requirements || '');
+  const [editedDescription, setEditedDescription] = useState(step.description || '');
   const queryClient = useQueryClient();
 
   const handleSave = async () => {
@@ -70,6 +71,7 @@ export const FlowStepItem = ({
         .update({
           outputs: formattedOutputs,
           requirements: editedRequirements.trim(),
+          description: editedDescription.trim(),
           updated_at: new Date().toISOString()
         })
         .eq("id", step.id)
@@ -113,14 +115,17 @@ export const FlowStepItem = ({
             isEditing={isEditing}
             editedOutputs={editedOutputs}
             editedRequirements={editedRequirements}
+            editedDescription={editedDescription}
             step={step}
             onEditOutputs={setEditedOutputs}
             onEditRequirements={setEditedRequirements}
+            onEditDescription={setEditedDescription}
             onStartEdit={() => setIsEditing(true)}
             onCancelEdit={() => {
               setIsEditing(false);
               setEditedOutputs(step.outputs?.map(o => o.text).join('\n') || '');
               setEditedRequirements(step.requirements || '');
+              setEditedDescription(step.description || '');
             }}
             onSave={handleSave}
             onRemove={onRemove}
