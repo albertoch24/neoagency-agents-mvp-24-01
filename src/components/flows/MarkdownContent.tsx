@@ -21,12 +21,12 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content }) => 
       prose-p:text-foreground/90 prose-headings:text-foreground
       prose-strong:text-foreground prose-strong:font-semibold
       prose-li:text-foreground/90 prose-a:text-primary
-      [&>p]:leading-6 [&>ul]:mt-2 [&>ul]:list-none [&>ul]:pl-0
-      [&>ul>li]:relative [&>ul>li]:pl-4
-      [&>p]:mb-2 [&>h1]:text-xl [&>h2]:text-lg [&>h3]:text-base
-      [&>h1,h2,h3,h4]:font-semibold [&>h1,h2,h3,h4]:mb-2 [&>h1,h2,h3,h4]:mt-4
+      [&>p]:leading-6 [&>ul]:mt-1 [&>ul]:list-none [&>ul]:pl-0
+      [&>ul>li]:relative [&>ul>li]:pl-4 [&>ul>li]:mb-0.5
+      [&>p]:mb-1.5 [&>h1]:text-xl [&>h2]:text-lg [&>h3]:text-base
+      [&>h1,h2,h3,h4]:font-semibold [&>h1,h2,h3,h4]:mb-1.5 [&>h1,h2,h3,h4]:mt-3
       [&>blockquote]:border-l-4 [&>blockquote]:border-primary/20 
-      [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:my-2
+      [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:my-1.5
       [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
       whitespace-pre-wrap font-mono text-sm">
       <ReactMarkdown>{formattedContent}</ReactMarkdown>
