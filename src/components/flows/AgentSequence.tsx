@@ -11,7 +11,6 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
   const [audioElements, setAudioElements] = useState<{[key: string]: HTMLAudioElement | null}>({});
   const [visibleTexts, setVisibleTexts] = useState<{[key: string]: boolean}>({});
   const [visibleStructuredOutputs, setVisibleStructuredOutputs] = useState<{[key: string]: boolean}>(() => {
-    // Initialize all structured outputs as visible by default
     const initialState: {[key: string]: boolean} = {};
     conversations.forEach(conv => {
       if (conv.flow_step_id) {
@@ -23,8 +22,8 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
 
   // Sort conversations by flow step order first, then creation date
   const sortedConversations = [...conversations].sort((a, b) => {
-    if (a.flow_step_id && b.flow_step_id) {
-      return a.order_index - b.order_index;
+    if (a.flow_step?.order_index !== undefined && b.flow_step?.order_index !== undefined) {
+      return a.flow_step.order_index - b.flow_step.order_index;
     }
     return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
   });
@@ -39,7 +38,7 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
         agent: conv.agents || { id: conv.agent_id, name: 'Unknown Agent' },
         conversations: [],
         summary: null,
-        orderIndex: conv.order_index,
+        orderIndex: conv.flow_step?.order_index,
         briefId: conv.brief_id,
         stageId: conv.stage_id
       };
@@ -81,9 +80,11 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
 
   // Sort groups by order index to maintain step sequence
   const sortedGroups = Object.entries(groupedConversations)
-    .sort(([, a]: [string, any], [, b]: [string, any]) => 
-      (a.orderIndex || 0) - (b.orderIndex || 0)
-    );
+    .sort(([, a]: [string, any], [, b]: [string, any]) => {
+      const aIndex = a.orderIndex ?? 0;
+      const bIndex = b.orderIndex ?? 0;
+      return aIndex - bIndex;
+    });
 
   return (
     <div className="space-y-4">
