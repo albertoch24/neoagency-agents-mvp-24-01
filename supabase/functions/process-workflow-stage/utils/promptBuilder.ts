@@ -39,6 +39,10 @@ export const buildPrompt = (
         .join('\n\n')
     : '';
 
+  // Get outputs from flow step if available
+  const stepOutputs = agent.flow_steps?.[0]?.outputs || [];
+  const outputRequirements = stepOutputs.map((output: any) => output.text).filter(Boolean);
+
   // Construct conversational prompt
   const conversationalPrompt = `
     As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief, previous stage outputs, and any specific flow step outputs'} in a natural, conversational way:
@@ -60,13 +64,12 @@ export const buildPrompt = (
     Your Skills:
     ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
     
-    Share your thoughts as if you're speaking in a creative agency meeting. Be natural, use conversational language, 
-    express your professional opinion, and make it feel like a real conversation.
+    Share your thoughts as if you're speaking in a creative agency meeting, addressing specifically these required outputs:
+    ${outputRequirements.map((req: string, index: number) => `
+    ${index + 1}. ${req}`).join('\n')}
     
     Remember to:
-    1. ${isFirstStage 
-      ? 'Start fresh with this new brief, focusing solely on the provided brief information' 
-      : 'Reference and build upon insights from previous stages and flow step outputs'}
+    1. Address each required output in a conversational way
     2. Use first-person pronouns ("I think...", "In my experience...")
     3. Include verbal fillers and transitions natural to spoken language
     4. Express enthusiasm and emotion where appropriate
@@ -78,10 +81,6 @@ export const buildPrompt = (
     10. Consider and reference any specific flow step outputs in your analysis
     ${formattedRequirements}
   `;
-
-  // Get outputs from flow step if available
-  const stepOutputs = agent.flow_steps?.[0]?.outputs || [];
-  const outputRequirements = stepOutputs.map((output: any) => output.text).filter(Boolean);
 
   // Construct schematic prompt with dynamic output requirements
   const schematicPrompt = `
