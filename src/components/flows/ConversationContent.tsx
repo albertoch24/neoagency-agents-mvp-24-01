@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MarkdownContent } from "./MarkdownContent";
-import { StructuredOutput } from "./StructuredOutput";
 import { AudioControls } from "./AudioControls";
 import { ConversationControls } from "./ConversationControls";
 
@@ -92,17 +91,6 @@ export const ConversationContent = ({
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "gap-2",
-            visibleStructuredOutput && "bg-primary text-primary-foreground hover:bg-primary/90"
-          )}
-          onClick={onToggleStructuredOutput}
-        >
-          {visibleStructuredOutput ? "Hide Structured Output" : "Show Structured Output"}
-        </Button>
         <ConversationControls 
           isVisible={localVisibleText} 
           onToggle={handleToggleText} 
