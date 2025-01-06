@@ -6,14 +6,14 @@ interface AgentHeaderProps {
   index: number;
   orderIndex: number;
   outputs?: { text: string }[];
-  children?: React.ReactNode;  // Add children prop
+  children?: React.ReactNode;
 }
 
 export const AgentHeader = ({ agentName, index, orderIndex, outputs, children }: AgentHeaderProps) => {
   console.log("AgentHeader props:", { agentName, index, orderIndex, outputs });
   
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 w-full">
       <div className="flex items-start gap-4">
         <User className="h-5 w-5 mt-1 text-muted-foreground" />
         <div className="flex-1">
@@ -26,13 +26,15 @@ export const AgentHeader = ({ agentName, index, orderIndex, outputs, children }:
           {outputs && outputs.length > 0 && (
             <div className="mt-2">
               <p className="text-sm text-muted-foreground">
-                Outputs: {outputs.map(o => o.text).join(", ")}
+                {outputs.map((o, i) => (
+                  <span key={i} className="block">• {o.text}</span>
+                ))}
               </p>
             </div>
           )}
         </div>
       </div>
-      {children}  {/* Render children */}
+      {children}
     </div>
   );
 };

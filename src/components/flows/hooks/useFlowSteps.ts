@@ -16,7 +16,7 @@ export const useFlowSteps = (flow: Flow) => {
   const { user } = useAuth();
 
   // Fetch flow steps with no caching
-  const { data: flowSteps } = useQuery({
+  const { data: flowSteps, refetch } = useQuery({
     queryKey: ["flow-steps", flow.id],
     queryFn: async () => {
       console.log('Fetching steps for flow:', flow.id);
@@ -31,7 +31,13 @@ export const useFlowSteps = (flow: Flow) => {
 
       const { data, error } = await supabase
         .from("flow_steps")
-        .select("*, agents(name, description)")
+        .select(`
+          *,
+          agents (
+            name,
+            description
+          )
+        `)
         .eq("flow_id", flow.id)
         .order("order_index", { ascending: true });
 
@@ -60,14 +66,13 @@ export const useFlowSteps = (flow: Flow) => {
             })
           : [],
         requirements: step.requirements || "",
+        description: step.description || "",
         agents: step.agents
       }));
       
       return transformedSteps;
     },
     enabled: !!user && !!flow.id,
-    staleTime: 0,
-    gcTime: 0
   });
 
   // Update steps when flowSteps changes
@@ -90,7 +95,10 @@ export const useFlowSteps = (flow: Flow) => {
       
       await saveFlowSteps(flow.id, steps);
       
-      // Invalidate and refetch queries to ensure UI is in sync
+      // Refetch immediately after saving
+      await refetch();
+      
+      // Invalidate and refetch related queries
       await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
       await queryClient.invalidateQueries({ queryKey: ["stages"] });
       await queryClient.invalidateQueries({ queryKey: ["flows"] });
@@ -100,7 +108,7 @@ export const useFlowSteps = (flow: Flow) => {
       console.error("Error in handleSaveSteps:", error);
       toast.error("Failed to save steps");
       // Refetch to ensure UI shows current server state
-      await queryClient.invalidateQueries({ queryKey: ["flow-steps", flow.id] });
+      await refetch();
     } finally {
       setIsSaving(false);
     }
