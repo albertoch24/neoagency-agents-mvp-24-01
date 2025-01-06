@@ -210,6 +210,7 @@ export type Database = {
         Row: {
           agent_id: string
           created_at: string
+          description: string | null
           flow_id: string
           id: string
           order_index: number
@@ -220,6 +221,7 @@ export type Database = {
         Insert: {
           agent_id: string
           created_at?: string
+          description?: string | null
           flow_id: string
           id?: string
           order_index: number
@@ -230,6 +232,7 @@ export type Database = {
         Update: {
           agent_id?: string
           created_at?: string
+          description?: string | null
           flow_id?: string
           id?: string
           order_index?: number
