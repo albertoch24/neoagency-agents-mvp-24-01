@@ -19,7 +19,8 @@ export const useStagesData = (briefId: string | undefined) => {
               agent_id,
               requirements,
               order_index,
-              outputs
+              outputs,
+              description
             )
           )
         `)
