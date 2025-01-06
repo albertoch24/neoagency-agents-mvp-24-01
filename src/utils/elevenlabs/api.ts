@@ -1,7 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// Keep these functions for potential future use or local development
 export const fetchElevenLabsApiKey = async () => {
   console.log('Fetching ElevenLabs API key from Supabase...');
   const { data: secretData, error: secretError } = await supabase
@@ -49,6 +48,11 @@ export const removeInvalidApiKey = async () => {
     console.error('Error removing API key:', error);
     throw new Error('Failed to remove invalid API key');
   }
+};
+
+export const getVoiceId = async (): Promise<string> => {
+  // Default voice ID (Bella)
+  return '21m00Tcm4TlvDq8ikWAM';
 };
 
 // This function is now handled by the edge function

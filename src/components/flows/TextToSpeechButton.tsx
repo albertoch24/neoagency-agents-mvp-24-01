@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { AudioManager } from "@/utils/elevenlabs/audio";
 import { getVoiceId } from "@/utils/elevenlabs/api";
-import { ApiKeyDialog } from "./ApiKeyDialog";
 
 interface TextToSpeechButtonProps {
   text: string;
@@ -21,7 +20,6 @@ export const TextToSpeechButton = ({
   onPlayStateChange,
   onAudioElement,
 }: TextToSpeechButtonProps) => {
-  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
   const audioManager = new AudioManager();
 
   const handlePlay = async () => {
@@ -38,26 +36,19 @@ export const TextToSpeechButton = ({
   };
 
   return (
-    <>
-      <Button
-        variant="outline"
-        size="sm"
-        className="gap-2"
-        onClick={handlePlay}
-        disabled={!text}
-      >
-        {isPlaying ? (
-          <Square className="h-4 w-4" />
-        ) : (
-          <Play className="h-4 w-4" />
-        )}
-        Listen
-      </Button>
-
-      <ApiKeyDialog
-        open={showApiKeyDialog}
-        onOpenChange={setShowApiKeyDialog}
-      />
-    </>
+    <Button
+      variant="outline"
+      size="sm"
+      className="gap-2"
+      onClick={handlePlay}
+      disabled={!text}
+    >
+      {isPlaying ? (
+        <Square className="h-4 w-4" />
+      ) : (
+        <Play className="h-4 w-4" />
+      )}
+      Listen
+    </Button>
   );
 };
