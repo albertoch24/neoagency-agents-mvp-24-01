@@ -50,14 +50,6 @@ export const ConversationGroupContent = ({
           <AgentSkills skills={group.agent?.skills || []} />
         </div>
 
-        {group.conversations?.[0]?.flow_step_id && (
-          <StructuredOutput 
-            stepId={group.conversations[0].flow_step_id}
-            isVisible={visibleStructuredOutputs[group.conversations[0].flow_step_id] ?? true}
-            onToggleVisibility={() => onToggleStructuredOutput(group.conversations[0].flow_step_id)}
-          />
-        )}
-
         {conversationalOutputs.map((conversation: any) => (
           <ConversationContent
             key={conversation.id}
@@ -71,6 +63,14 @@ export const ConversationGroupContent = ({
             onToggleStructuredOutput={() => onToggleStructuredOutput(conversation.flow_step_id)}
           />
         ))}
+
+        {group.conversations?.[0]?.flow_step_id && (
+          <StructuredOutput 
+            stepId={group.conversations[0].flow_step_id}
+            isVisible={visibleStructuredOutputs[group.conversations[0].flow_step_id] ?? true}
+            onToggleVisibility={() => onToggleStructuredOutput(group.conversations[0].flow_step_id)}
+          />
+        )}
       </div>
     </div>
   );
