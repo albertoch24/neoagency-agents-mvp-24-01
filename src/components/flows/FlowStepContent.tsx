@@ -93,22 +93,32 @@ export const FlowStepContent = ({
 
   return (
     <div className="space-y-4 p-4">
-      <div>
-        <h4 className="text-sm font-medium mb-2">
-          Description:
-        </h4>
-        <p className="text-sm">
-          {step.description || "No description defined"}
-        </p>
+      <div className="grid grid-cols-2 gap-8">
+        <div>
+          <h4 className="text-sm font-medium mb-2">
+            Description:
+          </h4>
+          <p className="text-sm">
+            {step.description || "No description defined"}
+          </p>
+        </div>
+        <div>
+          <h4 className="text-sm font-medium mb-2">
+            Requirements:
+          </h4>
+          <p className="text-sm">
+            {step.requirements || "No requirements defined"}
+          </p>
+        </div>
       </div>
       <div>
         <h4 className="text-sm font-medium mb-2">
           Outputs:
         </h4>
-        <ul className="list-disc pl-4 space-y-1">
+        <ul className="grid grid-cols-2 gap-4">
           {step.outputs && step.outputs.length > 0 ? (
             step.outputs.map((output, i) => (
-              <li key={i} className="text-sm">
+              <li key={i} className="text-sm p-2 bg-muted rounded-md">
                 {output.text}
               </li>
             ))
@@ -117,15 +127,7 @@ export const FlowStepContent = ({
           )}
         </ul>
       </div>
-      <div>
-        <h4 className="text-sm font-medium mb-2">
-          Requirements:
-        </h4>
-        <p className="text-sm">
-          {step.requirements || "No requirements defined"}
-        </p>
-      </div>
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 mt-4">
         <Button
           variant="outline"
           onClick={onStartEdit}

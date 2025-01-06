@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import {
   AccordionContent,
@@ -100,42 +99,37 @@ export const FlowStepItem = ({
   };
 
   return (
-    <div className="flex items-start gap-2">
-      <AccordionItem value={step.id} className="w-full">
-        <AccordionTrigger>
-          <AgentHeader 
-            agentName={agent?.name || 'Unknown Agent'} 
-            index={index}
-            orderIndex={step.order_index}
-            outputs={step.outputs}
-          />
-        </AccordionTrigger>
-        <AccordionContent>
-          <FlowStepContent
-            isEditing={isEditing}
-            editedOutputs={editedOutputs}
-            editedRequirements={editedRequirements}
-            editedDescription={editedDescription}
-            step={step}
-            onEditOutputs={setEditedOutputs}
-            onEditRequirements={setEditedRequirements}
-            onEditDescription={setEditedDescription}
-            onStartEdit={() => setIsEditing(true)}
-            onCancelEdit={() => {
-              setIsEditing(false);
-              setEditedOutputs(step.outputs?.map(o => o.text).join('\n') || '');
-              setEditedRequirements(step.requirements || '');
-              setEditedDescription(step.description || '');
-            }}
-            onSave={handleSave}
-            onRemove={onRemove}
-            stepId={step.id}
-          />
-        </AccordionContent>
-      </AccordionItem>
-      {!isLast && (
-        <ArrowRight className="h-6 w-6 text-muted-foreground mt-4" />
-      )}
-    </div>
+    <AccordionItem value={step.id} className="w-full">
+      <AccordionTrigger>
+        <AgentHeader 
+          agentName={agent?.name || 'Unknown Agent'} 
+          index={index}
+          orderIndex={step.order_index}
+          outputs={step.outputs}
+        />
+      </AccordionTrigger>
+      <AccordionContent>
+        <FlowStepContent
+          isEditing={isEditing}
+          editedOutputs={editedOutputs}
+          editedRequirements={editedRequirements}
+          editedDescription={editedDescription}
+          step={step}
+          onEditOutputs={setEditedOutputs}
+          onEditRequirements={setEditedRequirements}
+          onEditDescription={setEditedDescription}
+          onStartEdit={() => setIsEditing(true)}
+          onCancelEdit={() => {
+            setIsEditing(false);
+            setEditedOutputs(step.outputs?.map(o => o.text).join('\n') || '');
+            setEditedRequirements(step.requirements || '');
+            setEditedDescription(step.description || '');
+          }}
+          onSave={handleSave}
+          onRemove={onRemove}
+          stepId={step.id}
+        />
+      </AccordionContent>
+    </AccordionItem>
   );
 };
