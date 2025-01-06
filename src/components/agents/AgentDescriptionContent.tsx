@@ -2,8 +2,9 @@ import { Agent, Skill } from "@/types/agent";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit2, Save, X } from "lucide-react";
+import { Edit2, Save, X, ChevronDown, ChevronUp } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState } from "react";
 
 interface AgentDescriptionContentProps {
   agent: Agent;
@@ -22,6 +23,8 @@ export const AgentDescriptionContent = ({
   onDeleteSkill,
   onUpdateSkill,
 }: AgentDescriptionContentProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const renderContent = () => {
     switch (activeSection) {
       case "overview":
@@ -29,7 +32,35 @@ export const AgentDescriptionContent = ({
           <div className="flex-1 overflow-hidden">
             <ScrollArea className="h-[400px]">
               <div className="p-4">
-                <p className="whitespace-pre-wrap">{agent.description || "No overview available."}</p>
+                {isExpanded ? (
+                  <div className="whitespace-pre-wrap">
+                    {agent.description || "No overview available."}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsExpanded(false)}
+                      className="mt-2 w-full flex items-center gap-2"
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                      Show less
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="line-clamp-3 whitespace-pre-wrap">
+                      {agent.description || "No overview available."}
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsExpanded(true)}
+                      className="mt-2 w-full flex items-center gap-2"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                      Show more
+                    </Button>
+                  </div>
+                )}
               </div>
             </ScrollArea>
           </div>
