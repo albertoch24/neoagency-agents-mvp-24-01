@@ -45,6 +45,12 @@ export const useWorkflowLogs = () => {
                       type,
                       description
                     )
+                  ),
+                  flow_steps!workflow_conversations_flow_step_id_fkey (
+                    id,
+                    order_index,
+                    requirements,
+                    description
                   )
                 `)
                 .eq("brief_id", brief.id)
@@ -67,18 +73,27 @@ export const useWorkflowLogs = () => {
               }
 
               const stageMap = conversations.reduce((acc: any, conv: any) => {
-                if (!acc[conv.stage_id]) {
-                  acc[conv.stage_id] = {
-                    stage: conv.stage_id,
+                if (!conv) return acc;
+                
+                const stepId = conv.flow_step_id || `no-step-${conv.id}`;
+                if (!acc[stepId]) {
+                  acc[stepId] = {
+                    agent: conv.agents || { id: conv.agent_id, name: 'Unknown Agent' },
                     conversations: [],
-                    agents: new Set(),
-                    outputs: outputs.filter((o: any) => o.stage === conv.stage_id)
+                    summary: null,
+                    orderIndex: conv.flow_steps?.order_index || 0,
+                    briefId: conv.brief_id,
+                    stageId: conv.stage_id,
+                    flowStep: conv.flow_steps
                   };
                 }
-                acc[conv.stage_id].conversations.push(conv);
-                if (conv.agents) {
-                  acc[conv.stage_id].agents.add(conv.agents.name);
+                
+                if (conv.output_type === 'summary') {
+                  acc[stepId].summary = conv;
+                } else {
+                  acc[stepId].conversations.push(conv);
                 }
+                
                 return acc;
               }, {});
 
