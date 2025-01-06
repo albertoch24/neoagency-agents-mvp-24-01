@@ -1,5 +1,5 @@
 import { AgentSequence } from "../flows/AgentSequence";
-import { StageOutput } from "./StageOutput";
+import { StageOutput } from "../flows/StageOutput";
 
 interface WorkflowStageListProps {
   stages: [string, any[]][];
