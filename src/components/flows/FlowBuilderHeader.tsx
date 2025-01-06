@@ -5,13 +5,16 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { Save, Loader2 } from "lucide-react";
 
 interface FlowBuilderHeaderProps {
   flow: Flow;
   onClose: () => void;
+  handleSaveSteps: () => void;
+  isSaving: boolean;
 }
 
-export const FlowBuilderHeader = ({ flow, onClose }: FlowBuilderHeaderProps) => {
+export const FlowBuilderHeader = ({ flow, onClose, handleSaveSteps, isSaving }: FlowBuilderHeaderProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -85,11 +88,25 @@ export const FlowBuilderHeader = ({ flow, onClose }: FlowBuilderHeaderProps) => 
         )}
       </div>
       <div className="flex items-center gap-2">
-        <Button variant="outline" onClick={onClose}>
+        <Button 
+          onClick={handleSaveSteps}
+          size="sm"
+          className="gap-2"
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          {isSaving ? "Saving..." : "Save Steps"}
+        </Button>
+        <Button variant="outline" size="sm" onClick={onClose}>
           Close
         </Button>
         <Button
           variant="destructive"
+          size="sm"
           onClick={handleDeleteFlow}
           disabled={isDeleting}
         >

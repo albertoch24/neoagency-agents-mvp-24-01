@@ -64,19 +64,7 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
     <ScrollArea className="h-[80vh]">
       <div className="space-y-4 p-4">
         <div className="flex justify-between items-center">
-          <FlowBuilderHeader flow={flow} onClose={onClose} />
-          <Button 
-            onClick={handleSaveSteps}
-            className="gap-2"
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            {isSaving ? "Saving..." : "Save Steps"}
-          </Button>
+          <FlowBuilderHeader flow={flow} onClose={onClose} handleSaveSteps={handleSaveSteps} isSaving={isSaving} />
         </div>
         <div className="grid grid-cols-3 gap-4">
           <FlowBuilderSidebar 
