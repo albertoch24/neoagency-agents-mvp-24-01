@@ -69,7 +69,7 @@ export const StructuredOutput = ({
         {isVisible && (
           <div className="bg-muted/30 rounded-lg p-4 backdrop-blur-sm">
             <h4 className="text-lg font-semibold mb-2 text-primary">
-              Output Strutturato
+              Structured Output
             </h4>
             {isLoading ? (
               <div>Loading...</div>
