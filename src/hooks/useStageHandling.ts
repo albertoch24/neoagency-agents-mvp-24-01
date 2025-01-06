@@ -4,11 +4,12 @@ import { WorkflowStage } from "@/types/workflow";
 import { supabase } from "@/integrations/supabase/client";
 import { useStageProcessing } from "@/hooks/useStageProcessing";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export const useStageHandling = (selectedBriefId: string | null) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentStage, setCurrentStage] = useState("kickoff");
-  const { processStage } = useStageProcessing(selectedBriefId || "");
+  const { processStage, isProcessing } = useStageProcessing(selectedBriefId || "");
   const queryClient = useQueryClient();
 
   // Query to check if stage has outputs
@@ -43,7 +44,8 @@ export const useStageHandling = (selectedBriefId: string | null) => {
     },
     enabled: !!selectedBriefId && !!currentStage,
     staleTime: 0,
-    gcTime: 0
+    gcTime: 0,
+    refetchInterval: 5000
   });
 
   // Initialize state from URL parameters and handle stage completion
@@ -91,27 +93,45 @@ export const useStageHandling = (selectedBriefId: string | null) => {
 
     // Only process if moving to the next stage AND no outputs exist
     if (selectedIndex === currentIndex + 1 && (!existingOutputs || existingOutputs.length === 0)) {
-      await processStage(stage);
-      // Invalidate queries to refresh the data
-      queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+      const success = await processStage(stage);
+      if (success) {
+        // Invalidate queries to refresh the data
+        await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+        await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+        
+        // Show success message and automatically transition to the processed stage
+        toast.success(`${stage.name} stage processed successfully!`);
+        setCurrentStage(stage.id);
+        
+        // Update URL parameters to show outputs
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set("stage", stage.id);
+        newParams.set("showOutputs", "true");
+        if (selectedBriefId) {
+          newParams.set("briefId", selectedBriefId);
+        }
+        setSearchParams(newParams);
+      }
+    } else {
+      // If stage already has outputs or is a previous stage, just switch to it
+      setCurrentStage(stage.id);
+      
+      // Update URL parameters
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("stage", stage.id);
+      newParams.set("showOutputs", "true");
+      if (selectedBriefId) {
+        newParams.set("briefId", selectedBriefId);
+      }
+      setSearchParams(newParams);
     }
-
-    setCurrentStage(stage.id);
-    
-    // Update URL parameters
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set("stage", stage.id);
-    newParams.set("showOutputs", "true");
-    if (selectedBriefId) {
-      newParams.set("briefId", selectedBriefId);
-    }
-    setSearchParams(newParams);
   };
 
   return {
     currentStage,
     setCurrentStage,
     handleStageSelect,
-    stageOutputs
+    stageOutputs,
+    isProcessing
   };
 };
