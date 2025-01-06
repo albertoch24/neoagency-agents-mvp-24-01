@@ -17,7 +17,7 @@ export default function Agents() {
   const { user } = useAuth();
 
   const { data: agents, isLoading } = useQuery({
-    queryKey: ["agents", user?.id],
+    queryKey: ["agents"],
     queryFn: async () => {
       if (!user) throw new Error("No user found");
 
@@ -27,7 +27,6 @@ export default function Agents() {
           *,
           skills (*)
         `)
-        .eq('user_id', user.id)
         .order("created_at", { ascending: false });
 
       if (error) {
