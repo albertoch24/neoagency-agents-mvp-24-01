@@ -67,6 +67,7 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
           <FlowBuilderHeader flow={flow} onClose={onClose} />
           <Button 
             onClick={handleSaveSteps}
+            size="sm"
             className="gap-2"
             disabled={isSaving}
           >
