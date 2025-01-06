@@ -85,7 +85,7 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         setIsProcessing(false);
         onSubmitSuccess?.();
         
-        // Navigate to the index page with the stage and brief ID parameters
+        // Navigate directly to the outputs view with the stage and brief ID parameters
         navigate(`/?briefId=${brief.id}&stage=${stage.id}&showOutputs=true`, {
           replace: true
         });
