@@ -81,24 +81,49 @@ export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, 
     queryFn: async () => {
       if (!briefId) return [];
       
-      const { data } = await supabase
+      console.log("Fetching completed stages for brief:", briefId);
+      
+      const { data: conversations, error } = await supabase
         .from("workflow_conversations")
         .select("stage_id")
         .eq("brief_id", briefId)
         .order("created_at", { ascending: true });
       
-      return data?.map(item => item.stage_id) || [];
+      if (error) {
+        console.error("Error fetching completed stages:", error);
+        return [];
+      }
+      
+      const completedStageIds = conversations?.map(item => item.stage_id) || [];
+      console.log("Completed stage IDs:", completedStageIds);
+      return completedStageIds;
     },
     enabled: !!briefId
   });
 
   const handleStageClick = (stage: WorkflowStage, index: number) => {
-    if (disabled) return;
+    if (disabled) {
+      console.log("Stage selection disabled");
+      return;
+    }
+
+    console.log("Handling stage click:", {
+      stage,
+      index,
+      currentStage,
+      completedStages
+    });
 
     const currentIndex = stages.findIndex(s => s.id === currentStage);
     const isCompleted = completedStages?.includes(stage.id);
     const isPreviousCompleted = index > 0 ? completedStages?.includes(stages[index - 1].id) : true;
     const isNextStage = index === currentIndex + 1;
+
+    console.log("Stage click validation:", {
+      isCompleted,
+      isPreviousCompleted,
+      isNextStage
+    });
 
     if (!isCompleted && !isPreviousCompleted) {
       toast.error("Please complete the previous stage first");
@@ -110,19 +135,23 @@ export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, 
       return;
     }
 
+    console.log("Stage selected:", stage);
     onStageSelect(stage);
   };
 
   if (!stages || stages.length === 0) {
+    console.log("No stages available");
     return null;
   }
 
   const currentStageIndex = stages.findIndex(stage => stage.id === currentStage);
+  console.log("Current stage index:", currentStageIndex);
 
   return (
     <div className="grid gap-4 md:grid-cols-5">
       {stages.map((stage, index) => {
         if (!stage.name || !stage.description) {
+          console.log("Invalid stage data:", stage);
           return null;
         }
 
@@ -138,6 +167,15 @@ export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, 
         const isNext = index === currentStageIndex + 1;
         const isPreviousCompleted = index > 0 ? completedStages?.includes(stages[index - 1].id) : true;
         const isClickable = !disabled && (isCompleted || (isPreviousCompleted && isNext));
+
+        console.log("Stage render data:", {
+          stageName: stage.name,
+          isActive,
+          isCompleted,
+          isNext,
+          isPreviousCompleted,
+          isClickable
+        });
 
         // Get flow steps count for the current stage
         const flowStepsCount = stageFlowSteps?.flows?.flow_steps?.length || 0;

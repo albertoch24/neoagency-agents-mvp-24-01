@@ -42,6 +42,8 @@ export const StageOutput = ({ output, stepId }: StageOutputProps) => {
       return null;
     }
 
+    console.log("Found step output:", stepOutput);
+
     // Format the content for better readability
     const formattedContent = stepOutput.outputs?.map(out => {
       try {
@@ -50,12 +52,13 @@ export const StageOutput = ({ output, stepId }: StageOutputProps) => {
         // Only return the perimetroContent, excluding system information
         return parsed.perimetroContent || null;
       } catch {
-        // If parsing fails, return null
-        return null;
+        // If parsing fails, return the content as is
+        return out.content;
       }
     }).filter(Boolean).join('\n\n');
 
     if (!formattedContent) {
+      console.log("No formatted content available");
       return null;
     }
 
