@@ -38,10 +38,12 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
   // Sort conversations by flow step order first, then creation date
   const sortedConversations = [...conversations].sort((a, b) => {
     // First try to sort by flow step order_index
-    if (a.flow_step?.order_index !== undefined && b.flow_step?.order_index !== undefined) {
-      return a.flow_step.order_index - b.flow_step.order_index;
+    const aIndex = a.flow_step?.order_index ?? 0;
+    const bIndex = b.flow_step?.order_index ?? 0;
+    if (aIndex !== bIndex) {
+      return aIndex - bIndex;
     }
-    // Fallback to creation date if no flow step is available
+    // Fallback to creation date if order_index is the same
     return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
   });
 
