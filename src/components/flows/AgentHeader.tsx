@@ -23,9 +23,12 @@ export const AgentHeader: React.FC<AgentHeaderProps> = ({
   outputs,
   children
 }) => {
-  console.log("AgentHeader received orderIndex:", orderIndex);
-  // Use orderIndex directly if available, otherwise fallback to index + 1
-  const stepNumber = orderIndex !== undefined ? orderIndex + 1 : index + 1;
+  console.log("AgentHeader props:", { agentName, index, orderIndex, outputs });
+  
+  // Calculate step number, ensuring it's always at least 1
+  const stepNumber = Math.max((orderIndex ?? index) + 1, 1);
+  
+  console.log("Calculated step number:", stepNumber);
 
   return (
     <div className="flex flex-col gap-3 mb-4 pb-2 border-b bg-[#9b87f5]/10 p-2 rounded-md">

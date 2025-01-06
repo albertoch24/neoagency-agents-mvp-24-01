@@ -22,11 +22,19 @@ export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageLi
     <div className="space-y-8">
       {stages.map(([stageId, conversations]) => {
         // Add briefId to each conversation if it's not already present
-        const conversationsWithIds = conversations.map((conv: any) => ({
-          ...conv,
-          stage_id: stageId,
-          brief_id: conv.brief_id || (conversations[0]?.brief_id)
-        }));
+        const conversationsWithIds = conversations.map((conv: any) => {
+          console.log("Processing conversation:", conv);
+          console.log("Flow step data:", conv.flow_steps);
+          return {
+            ...conv,
+            stage_id: stageId,
+            brief_id: conv.brief_id || (conversations[0]?.brief_id),
+            flow_step: {
+              ...conv.flow_steps,
+              order_index: conv.flow_steps?.order_index ?? 0
+            }
+          };
+        });
 
         const output = Array.isArray(briefOutputs) 
           ? briefOutputs.find((output) => output.stage === stageId)
@@ -43,7 +51,10 @@ export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageLi
           }
           acc[stepId].push({
             ...conv,
-            flow_step: conv.flow_steps // Make sure flow_step data is passed through
+            flow_step: {
+              ...conv.flow_step,
+              order_index: conv.flow_step?.order_index ?? 0
+            }
           });
           return acc;
         }, {});
@@ -51,12 +62,15 @@ export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageLi
         return (
           <div key={stageId} className="space-y-6">
             <div className="pl-4 space-y-4">
-              {Object.entries(conversationsByStep).map(([stepId, stepConvs]: [string, any[]]) => (
-                <div key={stepId} className="space-y-4">
-                  {output && <StageOutput output={output} stepId={stepId} />}
-                  <AgentSequence conversations={stepConvs} />
-                </div>
-              ))}
+              {Object.entries(conversationsByStep).map(([stepId, stepConvs]: [string, any[]]) => {
+                console.log("Rendering step:", stepId, "with conversations:", stepConvs);
+                return (
+                  <div key={stepId} className="space-y-4">
+                    {output && <StageOutput output={output} stepId={stepId} />}
+                    <AgentSequence conversations={stepConvs} />
+                  </div>
+                );
+              })}
             </div>
           </div>
         );

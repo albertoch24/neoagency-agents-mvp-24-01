@@ -37,12 +37,19 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
 
   // Sort conversations by flow step order first, then creation date
   const sortedConversations = [...conversations].sort((a, b) => {
+    console.log("Sorting conversation A:", a);
+    console.log("Sorting conversation B:", b);
+    
     // First try to sort by flow step order_index
     const aIndex = a.flow_step?.order_index ?? 0;
     const bIndex = b.flow_step?.order_index ?? 0;
+    
+    console.log("Comparing order indices:", aIndex, bIndex);
+    
     if (aIndex !== bIndex) {
       return aIndex - bIndex;
     }
+    
     // Fallback to creation date if order_index is the same
     return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
   });
@@ -57,7 +64,7 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
         agent: conv.agents || { id: conv.agent_id, name: 'Unknown Agent' },
         conversations: [],
         summary: null,
-        orderIndex: conv.flow_step?.order_index || 0,
+        orderIndex: conv.flow_step?.order_index ?? 0,
         briefId: conv.brief_id,
         stageId: conv.stage_id,
         flowStep: conv.flow_step
