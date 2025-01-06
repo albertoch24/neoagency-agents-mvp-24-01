@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { MarkdownContent } from "./MarkdownContent";
 import { AudioControls } from "./AudioControls";
 import { ConversationControls } from "./ConversationControls";
+import { TextToSpeechButton } from "./TextToSpeechButton";
 
 interface ConversationContentProps {
   conversation: any;
@@ -25,62 +26,14 @@ export const ConversationContent = ({
   onToggleText,
   onToggleStructuredOutput,
 }: ConversationContentProps) => {
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [localVisibleText, setLocalVisibleText] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   console.log("ConversationContent rendering:", {
     conversationId: conversation?.id,
     isPlaying,
     visibleText,
-    audioUrl,
     localVisibleText
   });
-
-  useEffect(() => {
-    return () => {
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
-    };
-  }, [audioUrl]);
-
-  const handlePlay = async () => {
-    if (isPlaying) {
-      audioRef.current?.pause();
-      onPlayStateChange(false);
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/text-to-speech`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: conversation.content }),
-      });
-
-      if (!response.ok) throw new Error('Failed to generate speech');
-
-      const audioBlob = await response.blob();
-      const url = URL.createObjectURL(audioBlob);
-      
-      setAudioUrl(url);
-      
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      onAudioElement(audio);
-      
-      audio.onended = () => {
-        onPlayStateChange(false);
-      };
-      
-      audio.play();
-      onPlayStateChange(true);
-    } catch (error) {
-      console.error('Error playing audio:', error);
-      onPlayStateChange(false);
-    }
-  };
 
   const handleToggleText = () => {
     setLocalVisibleText(!localVisibleText);
@@ -90,9 +43,12 @@ export const ConversationContent = ({
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        <AudioControls 
-          isPlaying={isPlaying} 
-          onPlay={handlePlay} 
+        <TextToSpeechButton
+          text={conversation.content}
+          convId={conversation.id}
+          isPlaying={isPlaying}
+          onPlayStateChange={onPlayStateChange}
+          onAudioElement={onAudioElement}
         />
         <ConversationControls 
           isVisible={localVisibleText} 
