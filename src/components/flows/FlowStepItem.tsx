@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowRight, User } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import {
   AccordionContent,
@@ -24,6 +24,7 @@ interface FlowStep {
   order_index: number;
   outputs?: { text: string }[];
   requirements?: string;
+  description?: string;
 }
 
 interface FlowStepItemProps {
@@ -55,7 +56,6 @@ export const FlowStepItem = ({
       console.log('Starting save operation for step:', step.id);
       console.log('Flow ID:', flowId);
       
-      // Format outputs array from the textarea content
       const formattedOutputs = editedOutputs
         .split('\n')
         .filter(line => line.trim())
@@ -65,7 +65,6 @@ export const FlowStepItem = ({
 
       console.log('Formatted outputs for saving:', formattedOutputs);
 
-      // Update the step
       const { error: updateError } = await supabase
         .from("flow_steps")
         .update({
@@ -84,10 +83,8 @@ export const FlowStepItem = ({
 
       console.log('Step updated successfully');
       
-      // Update local state
       setIsEditing(false);
       
-      // Invalidate and refetch queries
       await queryClient.invalidateQueries({ queryKey: ["flow-steps", flowId] });
       await queryClient.invalidateQueries({ queryKey: ["stages"] });
       await queryClient.invalidateQueries({ queryKey: ["flows"] });
@@ -96,8 +93,6 @@ export const FlowStepItem = ({
     } catch (error) {
       console.error("Error in handleSave:", error);
       toast.error("Failed to update step");
-      
-      // Refetch to ensure UI shows current server state
       await queryClient.invalidateQueries({ queryKey: ["flow-steps", flowId] });
     }
   };
@@ -110,7 +105,7 @@ export const FlowStepItem = ({
             agentName={agent?.name || 'Unknown Agent'} 
             index={index}
             orderIndex={step.order_index}
-            description={agent?.description || ''}
+            description={step.description || agent?.description || ''}
           />
         </AccordionTrigger>
         <AccordionContent>
