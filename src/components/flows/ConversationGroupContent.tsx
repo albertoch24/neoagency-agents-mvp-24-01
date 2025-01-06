@@ -32,7 +32,9 @@ export const ConversationGroupContent = ({
     groupId: group?.id,
     conversationalOutputsCount: conversationalOutputs?.length,
     stepId: group.conversations?.[0]?.flow_step_id,
-    isStructuredOutputVisible: visibleStructuredOutputs[group.conversations?.[0]?.flow_step_id]
+    isStructuredOutputVisible: visibleStructuredOutputs[group.conversations?.[0]?.flow_step_id],
+    hasFlowStepId: !!group.conversations?.[0]?.flow_step_id,
+    structuredOutputsState: visibleStructuredOutputs
   });
 
   return (
@@ -51,7 +53,7 @@ export const ConversationGroupContent = ({
         {group.conversations?.[0]?.flow_step_id && (
           <StructuredOutput 
             stepId={group.conversations[0].flow_step_id}
-            isVisible={visibleStructuredOutputs[group.conversations[0].flow_step_id]}
+            isVisible={visibleStructuredOutputs[group.conversations[0].flow_step_id] ?? true}
             onToggleVisibility={() => onToggleStructuredOutput(group.conversations[0].flow_step_id)}
           />
         )}

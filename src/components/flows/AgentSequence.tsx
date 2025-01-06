@@ -10,7 +10,16 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
   const [isPlaying, setIsPlaying] = useState<{[key: string]: boolean}>({});
   const [audioElements, setAudioElements] = useState<{[key: string]: HTMLAudioElement | null}>({});
   const [visibleTexts, setVisibleTexts] = useState<{[key: string]: boolean}>({});
-  const [visibleStructuredOutputs, setVisibleStructuredOutputs] = useState<{[key: string]: boolean}>({});
+  const [visibleStructuredOutputs, setVisibleStructuredOutputs] = useState<{[key: string]: boolean}>(() => {
+    // Initialize all structured outputs as visible by default
+    const initialState: {[key: string]: boolean} = {};
+    conversations.forEach(conv => {
+      if (conv.flow_step_id) {
+        initialState[conv.flow_step_id] = true;
+      }
+    });
+    return initialState;
+  });
 
   // Sort conversations by flow step order first, then creation date
   const sortedConversations = [...conversations].sort((a, b) => {
@@ -66,6 +75,7 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
   };
 
   const toggleStructuredOutput = (stepId: string) => {
+    console.log("Toggling structured output for step:", stepId, "Current state:", visibleStructuredOutputs[stepId]);
     setVisibleStructuredOutputs(prev => ({ ...prev, [stepId]: !prev[stepId] }));
   };
 
