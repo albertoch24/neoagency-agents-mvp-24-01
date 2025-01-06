@@ -159,27 +159,29 @@ export function WorkflowStages({
             )}
             onClick={() => handleStageClick(stage, index)}
           >
-            <CardHeader className="space-y-1">
-              <div className="flex items-center gap-2 mb-2">
+            {/* Badge Container at the top */}
+            <div className="absolute top-0 left-0 right-0 flex justify-center -mt-2">
+              {isCompleted && (
+                <Badge variant="secondary" className="text-green-500 border-green-500">
+                  Completed
+                </Badge>
+              )}
+              {isNext && !isCompleted && (
+                <Badge variant="outline">
+                  Next
+                </Badge>
+              )}
+            </div>
+
+            <CardHeader className="space-y-1 pt-6">
+              <div className="flex items-center gap-2">
                 <Icon className={cn(
                   "h-5 w-5",
                   isCompleted && "text-green-500"
                 )} />
-                <CardTitle className="text-lg line-clamp-1">
+                <CardTitle className="text-lg">
                   {stage.name}
                 </CardTitle>
-              </div>
-              <div className="flex justify-end">
-                {isCompleted && (
-                  <Badge variant="secondary" className="text-green-500 border-green-500">
-                    Completed
-                  </Badge>
-                )}
-                {isNext && !isCompleted && (
-                  <Badge variant="outline">
-                    Next
-                  </Badge>
-                )}
               </div>
             </CardHeader>
             <CardContent>
