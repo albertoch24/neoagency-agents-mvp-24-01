@@ -23,7 +23,13 @@ interface WorkflowStagesProps {
   briefId?: string;
 }
 
-export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, briefId }: WorkflowStagesProps) {
+export function WorkflowStages({ 
+  stages, 
+  currentStage, 
+  onStageSelect, 
+  disabled, 
+  briefId 
+}: WorkflowStagesProps) {
   // Query to fetch flow steps for each stage
   const { data: stageFlowSteps } = useQuery({
     queryKey: ["stage-flow-steps", currentStage],
@@ -92,25 +98,24 @@ export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, 
     enabled: !!briefId
   });
 
-  const handleStageClick = (stage: WorkflowStage, index: number) => {
+  const handleStageClick = async (stage: WorkflowStage, index: number) => {
     if (disabled) return;
+
+    console.log("Stage clicked:", stage.id, "Current stage:", currentStage);
 
     const currentIndex = stages.findIndex(s => s.id === currentStage);
     const isCompleted = completedStages?.includes(stage.id);
     const isPreviousCompleted = index > 0 ? completedStages?.includes(stages[index - 1].id) : true;
     const isNextStage = index === currentIndex + 1;
 
-    if (!isCompleted && !isPreviousCompleted) {
+    // Allow clicking on completed stages or the next stage if previous is completed
+    if (isCompleted || (isPreviousCompleted && isNextStage)) {
+      console.log("Selecting stage:", stage.id);
+      onStageSelect(stage);
+    } else {
+      console.log("Stage selection blocked - Completed:", isCompleted, "Previous completed:", isPreviousCompleted);
       toast.error("Please complete the previous stage first");
-      return;
     }
-
-    if (!isCompleted && !isNextStage) {
-      toast.error("Please complete stages in order");
-      return;
-    }
-
-    onStageSelect(stage);
   };
 
   if (!stages || stages.length === 0) {
@@ -146,11 +151,11 @@ export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, 
           <Card
             key={stage.id}
             className={cn(
-              "transition-all",
+              "transition-all cursor-pointer",
               isActive && "border-primary",
               isCompleted && "bg-muted",
-              isClickable && "hover:shadow-md cursor-pointer",
-              (!isClickable || disabled) && "opacity-50 cursor-not-allowed"
+              isClickable && "hover:shadow-md",
+              (!isClickable || disabled) && "opacity-50"
             )}
             onClick={() => handleStageClick(stage, index)}
           >

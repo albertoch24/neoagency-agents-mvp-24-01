@@ -46,10 +46,11 @@ export const useStageHandling = (selectedBriefId: string | null) => {
     gcTime: 0
   });
 
-  // Initialize state from URL parameters
+  // Initialize state from URL parameters and handle stage completion
   useEffect(() => {
     const stageFromUrl = searchParams.get("stage");
     if (stageFromUrl) {
+      console.log("Setting stage from URL:", stageFromUrl);
       setCurrentStage(stageFromUrl);
       
       // Ensure showOutputs is maintained in URL
@@ -65,6 +66,8 @@ export const useStageHandling = (selectedBriefId: string | null) => {
 
   const handleStageSelect = async (stage: WorkflowStage) => {
     if (!selectedBriefId) return;
+
+    console.log("Handling stage selection:", stage.id);
 
     // Get the current stage index and selected stage index
     const { data: stages } = await supabase
