@@ -26,18 +26,25 @@ export const FlowBuilderHeader = ({ flow, onClose, handleSaveSteps, isSaving }: 
 
   const handleSaveEdit = async () => {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("flows")
         .update({
           name: editedName,
           description: editedDescription
         })
-        .eq("id", flow.id);
+        .eq("id", flow.id)
+        .select()
+        .single();
 
       if (error) throw error;
 
+      // Update the local flow data immediately
+      queryClient.setQueryData(["flows"], (oldData: Flow[] | undefined) => {
+        if (!oldData) return oldData;
+        return oldData.map(f => f.id === flow.id ? { ...f, name: editedName, description: editedDescription } : f);
+      });
+
       toast.success("Flow details updated successfully");
-      queryClient.invalidateQueries({ queryKey: ["flows"] });
       setIsEditing(false);
     } catch (error) {
       console.error("Error updating flow:", error);
