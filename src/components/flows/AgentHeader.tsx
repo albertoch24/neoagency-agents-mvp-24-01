@@ -21,9 +21,10 @@ export const AgentHeader = ({ agentName, index, orderIndex, outputs, description
           <div className="flex items-center gap-2">
             <Badge 
               variant="secondary"
-              className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors px-3 py-1 rounded-full font-medium"
+              className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors px-3 py-1 rounded-full font-bold flex flex-col items-center"
             >
-              Step {index + 1}
+              <span>Step</span>
+              <span>{index + 1}</span>
             </Badge>
             {description && (
               <span className="text-sm text-muted-foreground">
