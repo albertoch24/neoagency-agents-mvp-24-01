@@ -40,6 +40,9 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     }
   };
 
+  // Debug log to check user metadata
+  console.log('User metadata:', user?.user_metadata);
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
