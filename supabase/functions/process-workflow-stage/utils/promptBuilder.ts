@@ -3,8 +3,21 @@ export const buildPrompt = (
   brief: any,
   previousOutputs: any[],
   requirements?: string,
-  isFirstStage: boolean
+  isFirstStage: boolean,
+  flowStepOutputs?: { title: string; content: string }[]
 ) => {
+  // Format requirements
+  const formattedRequirements = requirements 
+    ? `\nSpecific Requirements for this Step:\n${requirements}`
+    : '';
+
+  // Format flow step outputs if available
+  const formattedFlowStepOutputs = flowStepOutputs && flowStepOutputs.length > 0
+    ? `\nFlow Step Outputs:\n${flowStepOutputs.map(output => 
+        `Title: ${output.title}\nContent: ${output.content}`
+      ).join('\n\n')}`
+    : '';
+
   // For first stage, we don't include any previous outputs
   const previousStageOutputs = !isFirstStage
     ? previousOutputs
@@ -27,14 +40,9 @@ export const buildPrompt = (
         .join('\n\n')
     : '';
 
-  // Format requirements
-  const formattedRequirements = requirements 
-    ? `\nSpecific Requirements for this Step:\n${requirements}`
-    : '';
-
   // Construct conversational prompt with conditional context
   const conversationalPrompt = `
-    As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief and previous stage outputs'} in a natural, conversational way:
+    As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief, previous stage outputs, and any specific flow step outputs'} in a natural, conversational way:
     
     Brief Details:
     Title: ${brief.title}
@@ -44,6 +52,8 @@ export const buildPrompt = (
     
     ${!isFirstStage ? `Previous Stage Outputs:
     ${previousStageOutputs}` : ''}
+
+    ${flowStepOutputs ? formattedFlowStepOutputs : ''}
     
     Your Role and Background:
     ${agent.description}
@@ -57,7 +67,7 @@ export const buildPrompt = (
     Remember to:
     1. ${isFirstStage 
       ? 'Start fresh with this new brief, focusing solely on the provided brief information' 
-      : 'Reference and build upon insights from previous stages'}
+      : 'Reference and build upon insights from previous stages and flow step outputs'}
     2. Use first-person pronouns ("I think...", "In my experience...")
     3. Include verbal fillers and transitions natural to spoken language
     4. Express enthusiasm and emotion where appropriate
@@ -66,12 +76,13 @@ export const buildPrompt = (
     7. Share personal insights and experiences
     8. Ask rhetorical questions to engage others
     9. Use informal but professional language
+    10. Consider and reference any specific flow step outputs in your analysis
     ${formattedRequirements}
   `;
 
   // Construct schematic prompt with conditional context
   const schematicPrompt = `
-    As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief and previous stage outputs'}:
+    As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief, previous stage outputs, and any specific flow step outputs'}:
     
     Brief Details:
     Title: ${brief.title}
@@ -81,6 +92,8 @@ export const buildPrompt = (
     
     ${!isFirstStage ? `Previous Stage Outputs:
     ${previousStageOutputs}` : ''}
+
+    ${flowStepOutputs ? formattedFlowStepOutputs : ''}
     
     Your Role:
     ${agent.description}
@@ -96,7 +109,7 @@ export const buildPrompt = (
     4. Potential Challenges
     5. Success Metrics
     ` : `
-    1. Key Insights from Previous Stages
+    1. Key Insights from Previous Stages and Flow Step Outputs
     2. Strategic Recommendations
     3. Action Items
     4. Potential Challenges
@@ -106,6 +119,7 @@ export const buildPrompt = (
     Format your response with clear headings and bullet points.
     Focus on concrete, actionable items and measurable outcomes.
     Keep the tone professional and direct.
+    When referencing flow step outputs, clearly indicate how they influence your recommendations.
     ${formattedRequirements}
   `;
 
