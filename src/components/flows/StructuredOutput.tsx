@@ -51,8 +51,8 @@ export const StructuredOutput = ({
   if (!stepId) return null;
 
   return (
-    <div className="mb-6">
-      <div className="space-y-4">
+    <div className="mb-4">
+      <div className="space-y-2">
         <Button
           variant="outline"
           size="sm"
@@ -67,8 +67,8 @@ export const StructuredOutput = ({
         </Button>
 
         {isVisible && (
-          <div className="bg-muted/30 rounded-lg p-6 backdrop-blur-sm">
-            <h4 className="text-lg font-semibold mb-4 text-primary">
+          <div className="bg-muted/30 rounded-lg p-4 backdrop-blur-sm">
+            <h4 className="text-lg font-semibold mb-2 text-primary">
               Output Strutturato
             </h4>
             {isLoading ? (
