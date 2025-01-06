@@ -67,9 +67,7 @@ export const WorkflowConversation = ({
       console.log("Found outputs:", data);
       return data?.map(output => ({
         ...output,
-        content: typeof output.content === 'string' 
-          ? { response: output.content }
-          : output.content
+        content: transformContent(output.content)
       }));
     },
     enabled: !!briefId && !!currentStage,
@@ -77,6 +75,30 @@ export const WorkflowConversation = ({
     gcTime: 0,
     refetchInterval: 5000
   });
+
+  // Helper function to transform content into the expected format
+  const transformContent = (content: any) => {
+    if (typeof content === 'string') {
+      return { response: content };
+    }
+    if (typeof content === 'object' && content !== null) {
+      // If content already has a response property, return as is
+      if ('response' in content) {
+        return content;
+      }
+      // If content has outputs property, maintain the structure
+      if ('outputs' in content) {
+        return {
+          ...content,
+          response: content.outputs?.map((o: any) => o.content).join('\n')
+        };
+      }
+      // For any other object, stringify it and use as response
+      return { response: JSON.stringify(content) };
+    }
+    // For any other type (number, boolean, etc.), convert to string
+    return { response: String(content) };
+  };
 
   // Group conversations by stage
   const conversationsByStage = conversations?.reduce((acc: Record<string, any[]>, conv: any) => {
