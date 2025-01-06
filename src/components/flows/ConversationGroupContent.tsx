@@ -2,9 +2,6 @@ import { AgentHeader } from "./AgentHeader";
 import { AgentSkills } from "./AgentSkills";
 import { ConversationContent } from "./ConversationContent";
 import { StructuredOutput } from "./StructuredOutput";
-import { Button } from "@/components/ui/button";
-import { Headphones, Type } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface ConversationGroupContentProps {
   group: any;
@@ -51,52 +48,6 @@ export const ConversationGroupContent = ({
           <AgentSkills skills={group.agent?.skills || []} />
         </div>
 
-        {conversationalOutputs.map((conversation: any) => {
-          const isCurrentPlaying = isPlaying[conversation.id] || false;
-          
-          return (
-            <div key={conversation.id} className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "gap-2",
-                    isCurrentPlaying && "bg-primary text-primary-foreground hover:bg-primary/90"
-                  )}
-                  onClick={() => onPlayStateChange(conversation.id, !isCurrentPlaying)}
-                >
-                  <Headphones className="h-4 w-4" />
-                  {isCurrentPlaying ? "Playing..." : "Play"}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "gap-2",
-                    visibleTexts[conversation.id] && "bg-primary text-primary-foreground hover:bg-primary/90"
-                  )}
-                  onClick={() => onToggleText(conversation.id)}
-                >
-                  <Type className="h-4 w-4" />
-                  {visibleTexts[conversation.id] ? "Hide Text" : "Show Text"}
-                </Button>
-              </div>
-              
-              <ConversationContent
-                conversation={conversation}
-                isPlaying={isCurrentPlaying}
-                onPlayStateChange={(playing) =>
-                  onPlayStateChange(conversation.id, playing)
-                }
-                onAudioElement={(audio) => onAudioElement(conversation.id, audio)}
-                visibleText={visibleTexts[conversation.id] || false}
-                onToggleText={() => onToggleText(conversation.id)}
-              />
-            </div>
-          );
-        })}
-
         {group.conversations?.[0]?.flow_step_id && (
           <StructuredOutput 
             stepId={group.conversations[0].flow_step_id}
@@ -104,6 +55,33 @@ export const ConversationGroupContent = ({
             onToggleVisibility={() => onToggleStructuredOutput(group.conversations[0].flow_step_id)}
           />
         )}
+
+        {conversationalOutputs.map((conversation: any) => {
+          console.log("Rendering conversation:", {
+            id: conversation.id,
+            hasContent: !!conversation.content,
+            contentLength: conversation.content?.length,
+            isPlaying: isPlaying[conversation.id],
+            isVisible: visibleTexts[conversation.id],
+            flowStepId: conversation.flow_step_id,
+            outputType: conversation.output_type,
+            hasAudioUrl: !!conversation.audio_url
+          });
+          
+          return (
+            <ConversationContent
+              key={conversation.id}
+              conversation={conversation}
+              isPlaying={isPlaying[conversation.id] || false}
+              onPlayStateChange={(playing) =>
+                onPlayStateChange(conversation.id, playing)
+              }
+              onAudioElement={(audio) => onAudioElement(conversation.id, audio)}
+              visibleText={visibleTexts[conversation.id] || false}
+              onToggleText={() => onToggleText(conversation.id)}
+            />
+          );
+        })}
       </div>
     </div>
   );

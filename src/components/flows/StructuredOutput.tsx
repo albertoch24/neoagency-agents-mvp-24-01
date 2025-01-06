@@ -14,7 +14,7 @@ interface StructuredOutputProps {
 
 export const StructuredOutput = ({ 
   stepId,
-  isVisible = true, // Changed to true by default
+  isVisible,
   onToggleVisibility 
 }: StructuredOutputProps) => {
   const { data: structuredOutput } = useQuery({
