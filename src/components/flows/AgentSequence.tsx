@@ -23,10 +23,10 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
   // Sort conversations by flow step order first, then creation date
   const sortedConversations = [...conversations].sort((a, b) => {
     // First try to sort by flow step order_index
-    if (a.flow_step && b.flow_step && typeof a.flow_step.order_index === 'number' && typeof b.flow_step.order_index === 'number') {
-      return a.flow_step.order_index - b.flow_step.order_index;
+    if (a.flow_step && b.flow_step) {
+      return (a.flow_step.order_index || 0) - (b.flow_step.order_index || 0);
     }
-    // Fallback to creation date if no order_index is available
+    // Fallback to creation date if no flow step is available
     return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
   });
 
@@ -40,10 +40,10 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
         agent: conv.agents || { id: conv.agent_id, name: 'Unknown Agent' },
         conversations: [],
         summary: null,
-        orderIndex: conv.flow_step?.order_index,
+        orderIndex: conv.flow_step?.order_index || 0,
         briefId: conv.brief_id,
         stageId: conv.stage_id,
-        flowStep: conv.flow_step // Include the entire flow step object
+        flowStep: conv.flow_step
       };
     }
     
@@ -88,6 +88,11 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
       const bIndex = b.flowStep?.order_index ?? 0;
       return aIndex - bIndex;
     });
+
+  console.log("Sorted groups:", sortedGroups.map(([, group]) => ({
+    orderIndex: group.flowStep?.order_index,
+    flowStep: group.flowStep
+  })));
 
   return (
     <div className="space-y-4">
