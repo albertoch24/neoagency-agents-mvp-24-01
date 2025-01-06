@@ -32,22 +32,26 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      toast.success("Logout effettuato con successo");
+      toast.success("Successfully logged out");
       navigate('/auth');
     } catch (error) {
       console.error('Error logging out:', error);
-      toast.error("Errore durante il logout");
+      toast.error("Error during logout");
     }
   };
 
   // Debug log to check user metadata
   console.log('User metadata:', user?.user_metadata);
+  console.log('Is admin?', user?.user_metadata?.is_admin);
 
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold">NEO AGENCY</h1>
+            </div>
             <Button
               variant="ghost"
               onClick={handleHomeClick}
