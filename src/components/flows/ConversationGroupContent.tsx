@@ -34,15 +34,20 @@ export const ConversationGroupContent = ({
     stepId: group.conversations?.[0]?.flow_step_id,
     isStructuredOutputVisible: visibleStructuredOutputs[group.conversations?.[0]?.flow_step_id],
     hasFlowStepId: !!group.conversations?.[0]?.flow_step_id,
-    structuredOutputsState: visibleStructuredOutputs
+    structuredOutputsState: visibleStructuredOutputs,
+    orderIndex: group.orderIndex,
+    flowStep: group.conversations?.[0]?.flow_step
   });
+
+  // Get the order_index from the flow step if available
+  const stepOrderIndex = group.conversations?.[0]?.flow_step?.order_index ?? group.orderIndex;
 
   return (
     <div className="p-4">
       <AgentHeader 
         agentName={group.agent?.name} 
         index={index}
-        orderIndex={group.orderIndex}
+        orderIndex={stepOrderIndex}
         outputs={group.outputs}
       >
         <div className="space-y-6">
