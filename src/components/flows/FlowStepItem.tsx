@@ -56,6 +56,7 @@ export const FlowStepItem = ({
       console.log('Starting save operation for step:', step.id);
       console.log('Flow ID:', flowId);
       
+      // Format outputs as an array of objects with text property
       const formattedOutputs = editedOutputs
         .split('\n')
         .filter(line => line.trim())
@@ -86,6 +87,7 @@ export const FlowStepItem = ({
       
       setIsEditing(false);
       
+      // Invalidate and refetch queries to update UI
       await queryClient.invalidateQueries({ queryKey: ["flow-steps", flowId] });
       await queryClient.invalidateQueries({ queryKey: ["stages"] });
       await queryClient.invalidateQueries({ queryKey: ["flows"] });
