@@ -104,16 +104,16 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
       return aIndex - bIndex;
     });
 
-  console.log("Sorted groups:", sortedGroups.map(([, group]: [string, GroupedConversation]) => ({
-    orderIndex: group.flowStep?.order_index,
-    flowStep: group.flowStep
-  })));
-
   return (
     <div className="space-y-4">
       {sortedGroups.map(([stepId, group]: [string, GroupedConversation], index: number) => (
         <Card key={`${group.agent?.id}-${stepId}`} className="overflow-hidden border-agent">
           <CardContent>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-sm font-medium text-muted-foreground">
+                Step {(group.flowStep?.order_index ?? index) + 1}
+              </span>
+            </div>
             <ConversationGroup
               group={group}
               index={index}
