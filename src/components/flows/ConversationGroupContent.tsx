@@ -41,6 +41,7 @@ export const ConversationGroupContent = ({
   });
 
   const stepOrderIndex = group.conversations?.[0]?.flow_step?.order_index ?? group.orderIndex;
+  const stepDescription = group.conversations?.[0]?.flow_step?.description;
 
   return (
     <div className="p-4">
@@ -49,6 +50,7 @@ export const ConversationGroupContent = ({
         index={index}
         orderIndex={stepOrderIndex}
         outputs={group.outputs}
+        description={stepDescription}
       >
         <Accordion type="single" collapsible defaultValue="content" className="w-full">
           <AccordionItem value="content">

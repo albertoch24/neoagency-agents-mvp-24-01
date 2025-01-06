@@ -6,11 +6,12 @@ interface AgentHeaderProps {
   index: number;
   orderIndex: number;
   outputs?: { text: string }[];
+  description?: string;
   children?: React.ReactNode;
 }
 
-export const AgentHeader = ({ agentName, index, orderIndex, outputs, children }: AgentHeaderProps) => {
-  console.log("AgentHeader props:", { agentName, index, orderIndex, outputs });
+export const AgentHeader = ({ agentName, index, orderIndex, outputs, description, children }: AgentHeaderProps) => {
+  console.log("AgentHeader props:", { agentName, index, orderIndex, outputs, description });
   
   return (
     <div className="flex flex-col gap-4 w-full">
@@ -21,6 +22,11 @@ export const AgentHeader = ({ agentName, index, orderIndex, outputs, children }:
             <Badge variant="secondary">
               Step {index + 1}
             </Badge>
+            {description && (
+              <span className="text-sm text-muted-foreground">
+                {description}
+              </span>
+            )}
             <h4 className="font-medium">{agentName}</h4>
           </div>
           {outputs && outputs.length > 0 && (
