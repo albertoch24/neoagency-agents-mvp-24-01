@@ -39,7 +39,7 @@ export const TextToSpeechButton = ({
     <Button
       variant="outline"
       size="sm"
-      className="gap-2"
+      className="h-9 px-3 gap-2"
       onClick={handlePlay}
       disabled={!text}
     >
