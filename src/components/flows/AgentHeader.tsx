@@ -12,7 +12,7 @@ interface AgentHeaderProps {
   agentName: string;
   index: number;
   orderIndex?: number;
-  description?: string;
+  outputs?: { text: string }[];
   children?: React.ReactNode;
 }
 
@@ -20,7 +20,7 @@ export const AgentHeader: React.FC<AgentHeaderProps> = ({
   agentName, 
   index,
   orderIndex,
-  description,
+  outputs,
   children
 }) => {
   const stepNumber = orderIndex !== undefined ? orderIndex + 1 : index + 1;
@@ -46,12 +46,16 @@ export const AgentHeader: React.FC<AgentHeaderProps> = ({
             Step Details
           </AccordionTrigger>
           <AccordionContent>
-            {description && (
+            {outputs && outputs.length > 0 && (
               <div className="mb-4">
-                <h4 className="text-sm font-medium mb-2">Description:</h4>
-                <span className="text-sm text-muted-foreground">
-                  {description}
-                </span>
+                <h4 className="text-sm font-medium mb-2">Outputs:</h4>
+                <div className="space-y-2">
+                  {outputs.map((output, idx) => (
+                    <div key={idx} className="text-sm text-muted-foreground">
+                      {output.text}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             {children}

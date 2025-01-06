@@ -107,7 +107,7 @@ export const FlowStepItem = ({
             agentName={agent?.name || 'Unknown Agent'} 
             index={index}
             orderIndex={step.order_index}
-            description={step.description || agent?.description || ''}
+            outputs={step.outputs}
           />
         </AccordionTrigger>
         <AccordionContent>

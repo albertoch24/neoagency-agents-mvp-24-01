@@ -43,6 +43,7 @@ export const ConversationGroupContent = ({
         agentName={group.agent?.name} 
         index={index}
         orderIndex={group.orderIndex}
+        outputs={group.outputs}
       >
         <div className="space-y-6">
           <div className="space-y-4">
