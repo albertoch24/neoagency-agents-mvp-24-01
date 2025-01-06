@@ -5,6 +5,7 @@ import { Type } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface StructuredOutputProps {
   stepId: string;
@@ -17,7 +18,7 @@ export const StructuredOutput = ({
   isVisible,
   onToggleVisibility 
 }: StructuredOutputProps) => {
-  const { data: structuredOutput, isLoading } = useQuery({
+  const { data: structuredOutput, isLoading, error } = useQuery({
     queryKey: ["structured-output", stepId],
     queryFn: async () => {
       console.log("Fetching structured output for step:", stepId);
@@ -31,7 +32,8 @@ export const StructuredOutput = ({
 
       if (error) {
         console.error("Error fetching structured output:", error);
-        return null;
+        toast.error("Failed to fetch structured output");
+        throw error;
       }
 
       console.log("Found structured output:", data);
@@ -39,6 +41,10 @@ export const StructuredOutput = ({
     },
     enabled: !!stepId
   });
+
+  if (error) {
+    console.error("Query error:", error);
+  }
 
   // Only render if we have stepId
   if (!stepId) return null;
@@ -71,7 +77,12 @@ export const StructuredOutput = ({
                 <MarkdownContent content={structuredOutput.content} />
               </div>
             ) : (
-              <div className="text-muted-foreground">No structured output available</div>
+              <div className="text-muted-foreground">
+                {error ? 
+                  "Error loading structured output" : 
+                  "No structured output available for this step"
+                }
+              </div>
             )}
           </div>
         )}
