@@ -19,7 +19,10 @@ export const AgentHeader = ({ agentName, index, orderIndex, outputs, description
         <User className="h-5 w-5 mt-1 text-muted-foreground" />
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <Badge variant="secondary">
+            <Badge 
+              variant="secondary"
+              className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors px-3 py-1 rounded-full font-medium"
+            >
               Step {index + 1}
             </Badge>
             {description && (
