@@ -24,7 +24,32 @@ export const saveFlowSteps = async (flowId: string, steps: FlowStep[]) => {
       throw new Error("Flow not found");
     }
 
-    // Delete all existing steps for this flow
+    // Get existing flow steps
+    const { data: existingSteps, error: getError } = await supabase
+      .from("flow_steps")
+      .select("id")
+      .eq("flow_id", flowId);
+
+    if (getError) {
+      console.error("Error getting existing steps:", getError);
+      throw getError;
+    }
+
+    // Delete associated workflow conversations first
+    if (existingSteps && existingSteps.length > 0) {
+      const stepIds = existingSteps.map(step => step.id);
+      const { error: deleteConvsError } = await supabase
+        .from("workflow_conversations")
+        .delete()
+        .in("flow_step_id", stepIds);
+
+      if (deleteConvsError) {
+        console.error("Error deleting workflow conversations:", deleteConvsError);
+        throw deleteConvsError;
+      }
+    }
+
+    // Then delete existing steps
     const { error: deleteError } = await supabase
       .from("flow_steps")
       .delete()
@@ -45,7 +70,8 @@ export const saveFlowSteps = async (flowId: string, steps: FlowStep[]) => {
             agent_id: step.agent_id,
             order_index: index,
             outputs: step.outputs || [],
-            requirements: step.requirements || ""
+            requirements: step.requirements || "",
+            description: step.description || ""
           }))
         );
 
