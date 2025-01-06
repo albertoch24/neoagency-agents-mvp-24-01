@@ -5,11 +5,16 @@ export const buildPrompt = (
   requirements?: string,
   isFirstStage: boolean
 ) => {
-  // Format previous outputs if not first stage
+  // Format previous outputs if not first stage, including only structured outputs
   const previousStageOutputs = !isFirstStage
     ? previousOutputs
+        ?.filter((output: any) => 
+          // Filter only structured outputs
+          output.content && 
+          typeof output.content === 'object' && 
+          output.output_type === 'structured'
+        )
         ?.map((output: any) => {
-          // Handle both string and object content
           const content = typeof output.content === 'string' 
             ? output.content 
             : JSON.stringify(output.content, null, 2);
