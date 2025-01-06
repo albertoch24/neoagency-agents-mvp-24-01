@@ -151,7 +151,7 @@ export function WorkflowStages({
           <Card
             key={stage.id}
             className={cn(
-              "transition-all cursor-pointer",
+              "transition-all cursor-pointer relative",
               isActive && "border-primary",
               isCompleted && "bg-muted",
               isClickable && "hover:shadow-md",
@@ -160,26 +160,30 @@ export function WorkflowStages({
             onClick={() => handleStageClick(stage, index)}
           >
             <CardHeader className="space-y-1">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Icon className={cn(
-                  "h-5 w-5",
-                  isCompleted && "text-green-500"
-                )} />
-                {stage.name}
-                {isCompleted && (
-                  <Badge variant="secondary" className="ml-auto text-green-500 border-green-500">
-                    Completed
-                  </Badge>
-                )}
-                {isNext && !isCompleted && (
-                  <Badge variant="outline" className="ml-auto">
-                    Next
-                  </Badge>
-                )}
+              <CardTitle className="flex items-start justify-between gap-2 text-lg">
+                <div className="flex items-center gap-2">
+                  <Icon className={cn(
+                    "h-5 w-5",
+                    isCompleted && "text-green-500"
+                  )} />
+                  <span className="line-clamp-1">{stage.name}</span>
+                </div>
+                <div className="flex-shrink-0">
+                  {isCompleted && (
+                    <Badge variant="secondary" className="text-green-500 border-green-500">
+                      Completed
+                    </Badge>
+                  )}
+                  {isNext && !isCompleted && (
+                    <Badge variant="outline">
+                      Next
+                    </Badge>
+                  )}
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">{stage.description}</p>
+              <p className="text-sm text-muted-foreground line-clamp-2">{stage.description}</p>
               {isActive && flowStepsCount > 0 && (
                 <p className="text-sm text-muted-foreground mt-2">
                   Steps: {flowStepsCount}
