@@ -22,9 +22,11 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
 
   // Sort conversations by flow step order first, then creation date
   const sortedConversations = [...conversations].sort((a, b) => {
-    if (a.flow_step?.order_index !== undefined && b.flow_step?.order_index !== undefined) {
+    // First try to sort by flow step order_index
+    if (a.flow_step && b.flow_step && typeof a.flow_step.order_index === 'number' && typeof b.flow_step.order_index === 'number') {
       return a.flow_step.order_index - b.flow_step.order_index;
     }
+    // Fallback to creation date if no order_index is available
     return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
   });
 
@@ -40,7 +42,8 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
         summary: null,
         orderIndex: conv.flow_step?.order_index,
         briefId: conv.brief_id,
-        stageId: conv.stage_id
+        stageId: conv.stage_id,
+        flowStep: conv.flow_step // Include the entire flow step object
       };
     }
     
@@ -81,8 +84,8 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
   // Sort groups by order index to maintain step sequence
   const sortedGroups = Object.entries(groupedConversations)
     .sort(([, a]: [string, any], [, b]: [string, any]) => {
-      const aIndex = a.orderIndex ?? 0;
-      const bIndex = b.orderIndex ?? 0;
+      const aIndex = a.flowStep?.order_index ?? 0;
+      const bIndex = b.flowStep?.order_index ?? 0;
       return aIndex - bIndex;
     });
 
