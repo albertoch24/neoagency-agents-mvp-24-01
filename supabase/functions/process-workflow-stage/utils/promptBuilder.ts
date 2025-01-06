@@ -22,7 +22,6 @@ export const buildPrompt = (
   const previousStageOutputs = !isFirstStage
     ? previousOutputs
         ?.filter((output: any) => 
-          // Filter only structured outputs
           output.content && 
           typeof output.content === 'object' && 
           output.output_type === 'structured'
@@ -40,7 +39,7 @@ export const buildPrompt = (
         .join('\n\n')
     : '';
 
-  // Construct conversational prompt with conditional context
+  // Construct conversational prompt
   const conversationalPrompt = `
     As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief, previous stage outputs, and any specific flow step outputs'} in a natural, conversational way:
     
@@ -80,7 +79,11 @@ export const buildPrompt = (
     ${formattedRequirements}
   `;
 
-  // Construct schematic prompt with conditional context
+  // Get outputs from flow step if available
+  const stepOutputs = agent.flow_steps?.[0]?.outputs || [];
+  const outputRequirements = stepOutputs.map((output: any) => output.text).filter(Boolean);
+
+  // Construct schematic prompt with dynamic output requirements
   const schematicPrompt = `
     As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief, previous stage outputs, and any specific flow step outputs'}:
     
@@ -101,25 +104,14 @@ export const buildPrompt = (
     Skills Applied:
     ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
     
-    Provide a clear, structured analysis following these guidelines:
-    ${isFirstStage ? `
-    1. Initial Project Assessment (based on brief only)
-    2. Strategic Direction
-    3. Action Items
-    4. Potential Challenges
-    5. Success Metrics
-    ` : `
-    1. Key Insights from Previous Stages and Flow Step Outputs
-    2. Strategic Recommendations
-    3. Action Items
-    4. Potential Challenges
-    5. Success Metrics
-    `}
+    Please provide a structured analysis that specifically addresses each of these required outputs:
+    ${outputRequirements.map((req: string, index: number) => `
+    ${index + 1}. ${req}`).join('\n')}
     
-    Format your response with clear headings and bullet points.
-    Focus on concrete, actionable items and measurable outcomes.
+    Format your response with clear headings and bullet points for each required output.
     Keep the tone professional and direct.
-    When referencing flow step outputs, clearly indicate how they influence your recommendations.
+    Ensure each response directly addresses the specific output requirement.
+    When referencing previous outputs or flow step outputs, clearly indicate how they influence your recommendations.
     ${formattedRequirements}
   `;
 
