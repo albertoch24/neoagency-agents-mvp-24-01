@@ -90,13 +90,13 @@ export const ConversationContent = ({
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        <ConversationControls 
-          isVisible={localVisibleText} 
-          onToggle={handleToggleText} 
-        />
         <AudioControls 
           isPlaying={isPlaying} 
           onPlay={handlePlay} 
+        />
+        <ConversationControls 
+          isVisible={localVisibleText} 
+          onToggle={handleToggleText} 
         />
       </div>
 
