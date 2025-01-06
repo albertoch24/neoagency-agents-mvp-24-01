@@ -50,7 +50,7 @@ export const ConversationGroupContent = ({
         orderIndex={stepOrderIndex}
         outputs={group.outputs}
       >
-        <Accordion type="single" collapsible className="w-full">
+        <Accordion type="single" collapsible defaultValue="content" className="w-full">
           <AccordionItem value="content">
             <AccordionTrigger className="text-sm font-medium">
               View Details
