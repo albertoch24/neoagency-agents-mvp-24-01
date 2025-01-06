@@ -1,19 +1,8 @@
-import { Flag, Search, Lightbulb, Film, Target } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { WorkflowStage } from "@/types/workflow";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-const iconMap = {
-  flag: Flag,
-  search: Search,
-  lightbulb: Lightbulb,
-  film: Film,
-  target: Target,
-};
+import { StageCard } from "./StageCard";
+import { WorkflowStage } from "@/types/workflow";
 
 interface WorkflowStagesProps {
   stages: WorkflowStage[];
@@ -30,6 +19,23 @@ export function WorkflowStages({
   disabled, 
   briefId 
 }: WorkflowStagesProps) {
+  // Query to check completed stages
+  const { data: completedStages } = useQuery({
+    queryKey: ["completed-stages", briefId],
+    queryFn: async () => {
+      if (!briefId) return [];
+      
+      const { data } = await supabase
+        .from("workflow_conversations")
+        .select("stage_id")
+        .eq("brief_id", briefId)
+        .order("created_at", { ascending: true });
+      
+      return data?.map(item => item.stage_id) || [];
+    },
+    enabled: !!briefId
+  });
+
   // Query to fetch flow steps for each stage
   const { data: stageFlowSteps } = useQuery({
     queryKey: ["stage-flow-steps", currentStage],
@@ -81,23 +87,6 @@ export function WorkflowStages({
     enabled: !!currentStage
   });
 
-  // Query to check completed stages
-  const { data: completedStages } = useQuery({
-    queryKey: ["completed-stages", briefId],
-    queryFn: async () => {
-      if (!briefId) return [];
-      
-      const { data } = await supabase
-        .from("workflow_conversations")
-        .select("stage_id")
-        .eq("brief_id", briefId)
-        .order("created_at", { ascending: true });
-      
-      return data?.map(item => item.stage_id) || [];
-    },
-    enabled: !!briefId
-  });
-
   const handleStageClick = async (stage: WorkflowStage, index: number) => {
     if (disabled) return;
 
@@ -108,7 +97,6 @@ export function WorkflowStages({
     const isPreviousCompleted = index > 0 ? completedStages?.includes(stages[index - 1].id) : true;
     const isNextStage = index === currentIndex + 1;
 
-    // Allow clicking on completed stages or the next stage if previous is completed
     if (isCompleted || (isPreviousCompleted && isNextStage)) {
       console.log("Selecting stage:", stage.id);
       onStageSelect(stage);
@@ -131,68 +119,26 @@ export function WorkflowStages({
           return null;
         }
 
-        const iconKey = stage.name.toLowerCase().includes("kick") ? "flag" :
-                       stage.name.toLowerCase().includes("insight") ? "search" :
-                       stage.name.toLowerCase().includes("concept") ? "lightbulb" :
-                       stage.name.toLowerCase().includes("storyboard") ? "film" :
-                       "target";
-                       
-        const Icon = iconMap[iconKey as keyof typeof iconMap];
         const isActive = currentStage === stage.id;
         const isCompleted = completedStages?.includes(stage.id);
         const isNext = index === currentStageIndex + 1;
         const isPreviousCompleted = index > 0 ? completedStages?.includes(stages[index - 1].id) : true;
         const isClickable = !disabled && (isCompleted || (isPreviousCompleted && isNext));
-
-        // Get flow steps count for the current stage
         const flowStepsCount = stageFlowSteps?.flows?.flow_steps?.length || 0;
 
         return (
-          <Card
+          <StageCard
             key={stage.id}
-            className={cn(
-              "transition-all cursor-pointer relative",
-              isActive && "border-primary",
-              isCompleted && "bg-muted",
-              isClickable && "hover:shadow-md",
-              (!isClickable || disabled) && "opacity-50"
-            )}
+            stage={stage}
+            index={index}
+            isActive={isActive}
+            isCompleted={isCompleted}
+            isNext={isNext}
+            isClickable={isClickable}
+            disabled={!!disabled}
+            flowStepsCount={flowStepsCount}
             onClick={() => handleStageClick(stage, index)}
-          >
-            {/* Badge Container at the top */}
-            <div className="absolute top-0 left-0 right-0 flex justify-center -mt-2">
-              {isCompleted && (
-                <Badge variant="secondary" className="text-green-500 border-green-500">
-                  Completed
-                </Badge>
-              )}
-              {isNext && !isCompleted && (
-                <Badge variant="outline">
-                  Next
-                </Badge>
-              )}
-            </div>
-
-            <CardHeader className="space-y-1 pt-6">
-              <div className="flex items-center gap-2">
-                <Icon className={cn(
-                  "h-5 w-5",
-                  isCompleted && "text-green-500"
-                )} />
-                <CardTitle className="text-lg">
-                  {stage.name}
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground line-clamp-2">{stage.description}</p>
-              {isActive && flowStepsCount > 0 && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Steps: {flowStepsCount}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          />
         );
       })}
     </div>
