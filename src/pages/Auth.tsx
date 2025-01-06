@@ -18,7 +18,7 @@ const AuthPage = () => {
         const from = (location.state as any)?.from?.pathname || "/";
         console.log("Redirecting to:", from);
         navigate(from);
-        toast.success("Accesso effettuato con successo!");
+        toast.success("Successfully logged in!");
       }
     });
 
@@ -28,10 +28,10 @@ const AuthPage = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
       <Card className="w-full max-w-md p-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-center mb-2">Benvenuto</h1>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-center mb-2">NEO AGENCY</h1>
           <p className="text-center text-muted-foreground">
-            Accedi o registrati per continuare
+            Sign in or create an account to continue
           </p>
         </div>
         <Auth
@@ -52,18 +52,18 @@ const AuthPage = () => {
               sign_in: {
                 email_label: 'Email',
                 password_label: 'Password',
-                button_label: 'Accedi',
-                loading_button_label: 'Accesso in corso...',
-                social_provider_text: 'Accedi con {{provider}}',
-                link_text: 'Hai già un account? Accedi'
+                button_label: 'Sign in',
+                loading_button_label: 'Signing in...',
+                social_provider_text: 'Sign in with {{provider}}',
+                link_text: 'Already have an account? Sign in'
               },
               sign_up: {
                 email_label: 'Email',
                 password_label: 'Password',
-                button_label: 'Registrati',
-                loading_button_label: 'Registrazione in corso...',
-                social_provider_text: 'Registrati con {{provider}}',
-                link_text: 'Non hai un account? Registrati'
+                button_label: 'Sign up',
+                loading_button_label: 'Signing up...',
+                social_provider_text: 'Sign up with {{provider}}',
+                link_text: "Don't have an account? Sign up"
               }
             }
           }}
