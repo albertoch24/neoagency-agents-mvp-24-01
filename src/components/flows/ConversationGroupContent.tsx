@@ -58,32 +58,19 @@ export const ConversationGroupContent = ({
           />
         )}
 
-        {conversationalOutputs.map((conversation: any) => {
-          console.log("Rendering conversation:", {
-            id: conversation.id,
-            hasContent: !!conversation.content,
-            contentLength: conversation.content?.length,
-            isPlaying: isPlaying[conversation.id],
-            isVisible: visibleTexts[conversation.id],
-            flowStepId: conversation.flow_step_id,
-            outputType: conversation.output_type,
-            hasAudioUrl: !!conversation.audio_url
-          });
-          
-          return (
-            <ConversationContent
-              key={conversation.id}
-              conversation={conversation}
-              isPlaying={isPlaying[conversation.id] || false}
-              onPlayStateChange={(playing) =>
-                onPlayStateChange(conversation.id, playing)
-              }
-              onAudioElement={(audio) => onAudioElement(conversation.id, audio)}
-              visibleText={visibleTexts[conversation.id] || false}
-              onToggleText={() => onToggleText(conversation.id)}
-            />
-          );
-        })}
+        {conversationalOutputs.map((conversation: any) => (
+          <ConversationContent
+            key={conversation.id}
+            conversation={conversation}
+            isPlaying={isPlaying[conversation.id] || false}
+            visibleText={visibleTexts[conversation.id] || false}
+            visibleStructuredOutput={visibleStructuredOutputs[conversation.flow_step_id] || false}
+            onPlayStateChange={(playing) => onPlayStateChange(conversation.id, playing)}
+            onAudioElement={(audio) => onAudioElement(conversation.id, audio)}
+            onToggleText={() => onToggleText(conversation.id)}
+            onToggleStructuredOutput={() => onToggleStructuredOutput(conversation.flow_step_id)}
+          />
+        ))}
       </div>
     </div>
   );

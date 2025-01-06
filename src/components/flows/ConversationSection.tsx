@@ -5,9 +5,11 @@ interface ConversationSectionProps {
   conversations: any[];
   isPlaying: { [key: string]: boolean };
   visibleTexts: { [key: string]: boolean };
+  visibleStructuredOutputs: { [key: string]: boolean };
   onPlayStateChange: (convId: string, playing: boolean) => void;
   onAudioElement: (convId: string, audio: HTMLAudioElement | null) => void;
   onToggleText: (convId: string) => void;
+  onToggleStructuredOutput: (stepId: string) => void;
 }
 
 export const ConversationSection = ({
@@ -15,9 +17,11 @@ export const ConversationSection = ({
   conversations,
   isPlaying,
   visibleTexts,
+  visibleStructuredOutputs,
   onPlayStateChange,
   onAudioElement,
   onToggleText,
+  onToggleStructuredOutput,
 }: ConversationSectionProps) => {
   if (!conversations.length) return null;
 
@@ -29,10 +33,12 @@ export const ConversationSection = ({
           <ConversationContent
             conversation={conv}
             isPlaying={isPlaying[conv.id]}
+            visibleText={visibleTexts[conv.id]}
+            visibleStructuredOutput={visibleStructuredOutputs[conv.flow_step_id] || false}
             onPlayStateChange={(playing) => onPlayStateChange(conv.id, playing)}
             onAudioElement={(audio) => onAudioElement(conv.id, audio)}
-            visibleText={visibleTexts[conv.id]}
             onToggleText={() => onToggleText(conv.id)}
+            onToggleStructuredOutput={() => onToggleStructuredOutput(conv.flow_step_id)}
           />
         </div>
       ))}

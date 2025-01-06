@@ -5,7 +5,6 @@ import { MarkdownContent } from "./MarkdownContent";
 import { StructuredOutput } from "./StructuredOutput";
 import { AudioControls } from "./AudioControls";
 import { ConversationControls } from "./ConversationControls";
-import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 
 interface ConversationContentProps {
   conversation: any;
@@ -114,8 +113,12 @@ export const ConversationContent = ({
         />
       </div>
 
-      {visibleStructuredOutput && conversation.flow_step_id && (
-        <StructuredOutput stepId={conversation.flow_step_id} />
+      {conversation.flow_step_id && (
+        <StructuredOutput 
+          stepId={conversation.flow_step_id}
+          isVisible={visibleStructuredOutput}
+          onToggleVisibility={onToggleStructuredOutput}
+        />
       )}
 
       {localVisibleText && (
