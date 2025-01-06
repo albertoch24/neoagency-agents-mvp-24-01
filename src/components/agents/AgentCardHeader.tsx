@@ -32,13 +32,32 @@ export const AgentCardHeader = ({
   const [selectedVoice, setSelectedVoice] = useState(agent.voice_id || '21m00Tcm4TlvDq8ikWAM');
   const queryClient = useQueryClient();
 
-  const handleSave = () => {
-    onSave({
-      name: editedName,
-      description: editedDescription,
-      voice_id: selectedVoice,
-    });
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      const { error } = await supabase
+        .from('agents')
+        .update({
+          name: editedName,
+          description: editedDescription,
+          voice_id: selectedVoice,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', agent.id);
+
+      if (error) throw error;
+
+      onSave({
+        name: editedName,
+        description: editedDescription,
+        voice_id: selectedVoice,
+      });
+      setIsEditing(false);
+      toast.success('Agent updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+    } catch (error) {
+      console.error('Error updating agent:', error);
+      toast.error('Failed to update agent');
+    }
   };
 
   const handleEdit = () => {
