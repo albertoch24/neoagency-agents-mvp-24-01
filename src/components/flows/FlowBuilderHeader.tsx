@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Pencil, Check, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface FlowBuilderHeaderProps {
   flow: Flow;
@@ -16,8 +18,32 @@ interface FlowBuilderHeaderProps {
 
 export const FlowBuilderHeader = ({ flow, onClose, handleSaveSteps, isSaving }: FlowBuilderHeaderProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState(flow.name);
+  const [editedDescription, setEditedDescription] = useState(flow.description || "");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const handleSaveEdit = async () => {
+    try {
+      const { error } = await supabase
+        .from("flows")
+        .update({
+          name: editedName,
+          description: editedDescription
+        })
+        .eq("id", flow.id);
+
+      if (error) throw error;
+
+      toast.success("Flow details updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["flows"] });
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating flow:", error);
+      toast.error("Failed to update flow details");
+    }
+  };
 
   const handleDeleteFlow = async () => {
     try {
@@ -81,10 +107,48 @@ export const FlowBuilderHeader = ({ flow, onClose, handleSaveSteps, isSaving }: 
 
   return (
     <div className="flex items-center justify-between mb-6">
-      <div>
-        <h2 className="text-2xl font-semibold">{flow.name}</h2>
-        {flow.description && (
-          <p className="text-muted-foreground">{flow.description}</p>
+      <div className="flex-1 mr-4">
+        {isEditing ? (
+          <div className="space-y-2">
+            <Input
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              className="text-2xl font-semibold"
+              placeholder="Flow name"
+            />
+            <Textarea
+              value={editedDescription}
+              onChange={(e) => setEditedDescription(e.target.value)}
+              className="text-muted-foreground resize-none"
+              placeholder="Flow description"
+              rows={2}
+            />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSaveEdit}>
+                <Check className="h-4 w-4 mr-1" />
+                Save
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>
+                <X className="h-4 w-4 mr-1" />
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="group relative">
+            <h2 className="text-2xl font-semibold">{flow.name}</h2>
+            {flow.description && (
+              <p className="text-muted-foreground">{flow.description}</p>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute -right-8 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => setIsEditing(true)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </div>
       <div className="flex items-center gap-2">
