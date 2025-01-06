@@ -22,7 +22,7 @@ export const ConversationContent = ({
   onToggleText,
 }: ConversationContentProps) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [localVisibleText, setLocalVisibleText] = useState(true); // Set default to true
+  const [localVisibleText, setLocalVisibleText] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   console.log("ConversationContent rendering:", {
@@ -94,6 +94,18 @@ export const ConversationContent = ({
           size="sm"
           className={cn(
             "gap-2",
+            localVisibleText && "bg-primary text-primary-foreground hover:bg-primary/90"
+          )}
+          onClick={handleToggleText}
+        >
+          <Type className="h-4 w-4" />
+          {localVisibleText ? "Hide Team conversation" : "Show Team conversation"}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            "gap-2",
             isPlaying && "bg-primary text-primary-foreground hover:bg-primary/90"
           )}
           onClick={handlePlay}
@@ -101,18 +113,6 @@ export const ConversationContent = ({
         >
           <Headphones className="h-4 w-4" />
           {isPlaying ? "Playing..." : "Play"}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "gap-2",
-            localVisibleText && "bg-primary text-primary-foreground hover:bg-primary/90"
-          )}
-          onClick={handleToggleText}
-        >
-          <Type className="h-4 w-4" />
-          {localVisibleText ? "Hide Team conversation" : "Show Team conversation"}
         </Button>
       </div>
 
