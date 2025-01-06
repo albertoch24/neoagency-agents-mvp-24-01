@@ -38,8 +38,8 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
   // Sort conversations by flow step order first, then creation date
   const sortedConversations = [...conversations].sort((a, b) => {
     // First try to sort by flow step order_index
-    if (a.flow_step && b.flow_step) {
-      return (a.flow_step.order_index || 0) - (b.flow_step.order_index || 0);
+    if (a.flow_step?.order_index !== undefined && b.flow_step?.order_index !== undefined) {
+      return a.flow_step.order_index - b.flow_step.order_index;
     }
     // Fallback to creation date if no flow step is available
     return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
@@ -111,12 +111,12 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
 
   return (
     <div className="space-y-4">
-      {sortedGroups.map(([stepId, group]: [string, GroupedConversation], index: number) => (
+      {sortedGroups.map(([stepId, group]: [string, GroupedConversation]) => (
         <Card key={`${group.agent?.id}-${stepId}`} className="overflow-hidden border-agent">
           <CardContent>
             <ConversationGroup
               group={group}
-              index={index}
+              index={group.flowStep?.order_index ?? 0}
               isPlaying={isPlaying}
               audioElements={audioElements}
               visibleTexts={visibleTexts}

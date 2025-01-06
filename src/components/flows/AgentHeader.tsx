@@ -23,7 +23,8 @@ export const AgentHeader: React.FC<AgentHeaderProps> = ({
   outputs,
   children
 }) => {
-  const stepNumber = orderIndex !== undefined ? orderIndex + 1 : index + 1;
+  // Use orderIndex + 1 for display, fallback to index + 1 if orderIndex is undefined
+  const stepNumber = (orderIndex !== undefined ? orderIndex : index) + 1;
 
   return (
     <div className="flex flex-col gap-3 mb-4 pb-2 border-b bg-[#9b87f5]/10 p-2 rounded-md">
