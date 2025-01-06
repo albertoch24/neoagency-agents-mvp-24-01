@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Edit2, Trash2, Save, Pause, Play } from "lucide-react";
 import { Agent } from "@/types/agent";
 import { Input } from "@/components/ui/input";
@@ -145,7 +145,7 @@ export const AgentCardHeader = ({
           </Button>
         </div>
       </div>
-      {isEditing ? (
+      {isEditing && (
         <>
           <Textarea
             value={editedDescription}
@@ -158,8 +158,6 @@ export const AgentCardHeader = ({
             <VoiceSelector value={selectedVoice} onValueChange={handleVoiceChange} />
           </div>
         </>
-      ) : (
-        <CardDescription>{agent.description}</CardDescription>
       )}
     </CardHeader>
   );
