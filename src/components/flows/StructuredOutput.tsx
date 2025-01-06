@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MarkdownContent } from "./MarkdownContent";
 import { Button } from "@/components/ui/button";
 import { Type } from "lucide-react";
@@ -17,7 +17,7 @@ export const StructuredOutput = ({
   isVisible,
   onToggleVisibility 
 }: StructuredOutputProps) => {
-  const { data: structuredOutput } = useQuery({
+  const { data: structuredOutput, isLoading } = useQuery({
     queryKey: ["structured-output", stepId],
     queryFn: async () => {
       console.log("Fetching structured output for step:", stepId);
@@ -59,14 +59,20 @@ export const StructuredOutput = ({
           {isVisible ? "Hide Structured Output" : "Show Structured Output"}
         </Button>
 
-        {isVisible && structuredOutput?.content && (
+        {isVisible && (
           <div className="bg-muted/30 rounded-lg p-6 backdrop-blur-sm">
             <h4 className="text-lg font-semibold mb-4 text-primary">
               Output Strutturato
             </h4>
-            <div className="prose prose-sm max-w-none">
-              <MarkdownContent content={structuredOutput.content} />
-            </div>
+            {isLoading ? (
+              <div>Loading...</div>
+            ) : structuredOutput?.content ? (
+              <div className="prose prose-sm max-w-none">
+                <MarkdownContent content={structuredOutput.content} />
+              </div>
+            ) : (
+              <div className="text-muted-foreground">No structured output available</div>
+            )}
           </div>
         )}
       </div>
