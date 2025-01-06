@@ -1,138 +1,110 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { WorkflowStageList } from "@/components/flows/WorkflowStageList";
-import { BriefOutput } from "@/types/workflow";
+import { WorkflowStageList } from "./WorkflowStageList";
 
 interface WorkflowConversationProps {
   briefId: string;
   currentStage: string;
 }
 
-export const WorkflowConversation = ({ briefId, currentStage }: WorkflowConversationProps) => {
-  // Query to fetch conversations with no caching to ensure fresh data
-  const { data: conversations, isError: isConversationsError } = useQuery({
+export const WorkflowConversation = ({
+  briefId,
+  currentStage,
+}: WorkflowConversationProps) => {
+  const { data: conversations } = useQuery({
     queryKey: ["workflow-conversations", briefId, currentStage],
     queryFn: async () => {
       console.log("Fetching conversations for stage:", currentStage);
-      
-      const { data: conversationsData, error: conversationsError } = await supabase
+      const { data, error } = await supabase
         .from("workflow_conversations")
         .select(`
           *,
-          agents:agent_id (
+          agents (
             id,
             name,
             description,
-            skills (
-              id,
-              name,
-              type,
-              description
-            )
+            skills (*)
+          ),
+          flow_steps (
+            id,
+            order_index
           )
         `)
         .eq("brief_id", briefId)
         .eq("stage_id", currentStage)
         .order("created_at", { ascending: true });
 
-      if (conversationsError) {
-        console.error("Error fetching conversations:", conversationsError);
-        throw conversationsError;
+      if (error) {
+        console.error("Error fetching conversations:", error);
+        return [];
       }
 
-      console.log("Found conversations:", conversationsData);
-      return conversationsData;
+      console.log("Found conversations:", data);
+      return data;
     },
     enabled: !!briefId && !!currentStage,
     staleTime: 0,
     gcTime: 0,
-    refetchInterval: 5000,
+    refetchInterval: 5000
   });
 
-  // Query to fetch outputs with proper error handling
-  const { data: outputs, isError: isOutputsError } = useQuery({
+  const { data: briefOutputs } = useQuery({
     queryKey: ["brief-outputs", briefId, currentStage],
     queryFn: async () => {
       console.log("Fetching outputs for stage:", currentStage);
-      
-      const { data: outputsData, error: outputsError } = await supabase
+      const { data, error } = await supabase
         .from("brief_outputs")
         .select("*")
         .eq("brief_id", briefId)
         .eq("stage", currentStage)
         .order("created_at", { ascending: false });
 
-      if (outputsError) {
-        console.error("Error fetching outputs:", outputsError);
-        throw outputsError;
+      if (error) {
+        console.error("Error fetching outputs:", error);
+        return [];
       }
 
-      // Transform the outputs to match the expected format
-      const transformedOutputs = outputsData?.map((output) => ({
-        stage: output.stage,
-        content: {
-          stage_name: output.content?.stage_name || 'Stage Output',
-          outputs: output.content?.outputs?.map((out: any) => ({
-            agent: out.agent || 'Unknown Agent',
-            stepId: out.stepId,
-            outputs: Array.isArray(out.outputs) 
-              ? out.outputs.map((o: any) => ({
-                  content: o.text || o.content || ''
-                }))
-              : []
-          })) || []
-        },
-        created_at: output.created_at
+      console.log("Found outputs:", data);
+      return data?.map(output => ({
+        ...output,
+        content: typeof output.content === 'string' 
+          ? { response: output.content }
+          : output.content
       }));
-
-      console.log("Transformed outputs:", transformedOutputs);
-      return transformedOutputs;
     },
     enabled: !!briefId && !!currentStage,
     staleTime: 0,
     gcTime: 0,
-    retry: 3,
+    refetchInterval: 5000
   });
 
   // Group conversations by stage
-  const groupedConversations = conversations?.reduce((acc: Record<string, any[]>, conv: any) => {
-    if (!acc[conv.stage_id]) {
-      acc[conv.stage_id] = [];
+  const conversationsByStage = conversations?.reduce((acc: Record<string, any[]>, conv: any) => {
+    if (!conv) return acc;
+    
+    const stageId = conv.stage_id;
+    if (!acc[stageId]) {
+      acc[stageId] = [];
     }
-    acc[conv.stage_id].push(conv);
+    acc[stageId].push(conv);
     return acc;
   }, {});
 
-  // Convert to array of tuples [stageId, conversations[]]
-  const stages = groupedConversations ? Object.entries(groupedConversations) : [];
+  const stages = Object.entries(conversationsByStage || {});
 
-  // Log any errors for debugging
-  if (isConversationsError || isOutputsError) {
-    console.error("Errors in workflow conversation:", {
-      conversationsError: isConversationsError,
-      outputsError: isOutputsError
-    });
-  }
-
-  // Log workflow progress for debugging
-  console.log("Workflow progress:", {
+  console.log("Rendering WorkflowConversation with:", {
     briefId,
     currentStage,
     conversationsCount: conversations?.length,
-    outputsCount: outputs?.length,
-    stages: stages.length
+    outputsCount: briefOutputs?.length,
+    stages
   });
 
-  if (!conversations?.length && !outputs?.length) {
-    return null;
-  }
-
   return (
-    <div className="mt-8">
-      <h3 className="text-lg font-semibold mb-4">Stage Progress</h3>
+    <div className="space-y-8">
       <WorkflowStageList 
         stages={stages} 
-        briefOutputs={outputs || []} 
+        briefOutputs={briefOutputs || []}
       />
     </div>
   );
