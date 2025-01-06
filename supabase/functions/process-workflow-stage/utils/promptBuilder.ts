@@ -8,15 +8,17 @@ export const buildPrompt = (
   // Format previous outputs if not first stage
   const previousStageOutputs = !isFirstStage
     ? previousOutputs
-        ?.map((output: any) => `
+        ?.map((output: any) => {
+          // Handle both string and object content
+          const content = typeof output.content === 'string' 
+            ? output.content 
+            : JSON.stringify(output.content, null, 2);
+            
+          return `
           Stage: ${output.stage}
-          Content: ${typeof output.content === 'object' 
-            ? JSON.stringify(output.content.outputs?.map((out: any) => ({
-                agent: out.agent,
-                output: out.outputs?.map((o: any) => o.content || o.text).join('\n')
-              })), null, 2)
-            : output.content}
-        `)
+          Content: ${content}
+          `;
+        })
         .join('\n\n')
     : '';
 
