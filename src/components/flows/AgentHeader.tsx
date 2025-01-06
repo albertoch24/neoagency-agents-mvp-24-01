@@ -14,32 +14,37 @@ export const AgentHeader = ({ agentName, index, orderIndex, outputs, description
   console.log("AgentHeader props:", { agentName, index, orderIndex, outputs, description });
   
   return (
-    <div className="flex flex-col gap-4 w-full">
+    <div className="flex flex-col gap-4 w-full bg-agent p-6 rounded-lg border border-agent-border shadow-sm">
       <div className="flex items-start gap-4">
-        <User className="h-5 w-5 mt-1 text-muted-foreground" />
+        <div className="bg-primary/10 p-2 rounded-full">
+          <User className="h-6 w-6 text-primary" />
+        </div>
         <div className="flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <Badge 
               variant="secondary"
-              className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors px-3 py-1 rounded-full font-bold flex flex-col items-center"
+              className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors px-4 py-2 rounded-full font-bold flex flex-col items-center min-w-[60px]"
             >
               <span>Step</span>
               <span>{index + 1}</span>
             </Badge>
-            {description && (
-              <span className="text-sm text-muted-foreground">
-                {description}
-              </span>
-            )}
-            <h4 className="font-medium">{agentName}</h4>
+            <div className="flex flex-col gap-1">
+              <h4 className="text-lg font-bold text-agent-foreground">{agentName}</h4>
+              {description && (
+                <span className="text-sm text-muted-foreground">
+                  {description}
+                </span>
+              )}
+            </div>
           </div>
           {outputs && outputs.length > 0 && (
-            <div className="mt-2">
-              <p className="text-sm text-muted-foreground">
-                {outputs.map((o, i) => (
-                  <span key={i} className="block">• {o.text}</span>
-                ))}
-              </p>
+            <div className="mt-4 space-y-2">
+              {outputs.map((o, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm text-agent-foreground/80">
+                  <span className="mt-1">•</span>
+                  <span>{o.text}</span>
+                </div>
+              ))}
             </div>
           )}
         </div>
