@@ -6,11 +6,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Logo from "./Logo";
 import AdminNavigation from "./AdminNavigation";
+import { useQuery } from "@tanstack/react-query";
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+
+  // Fetch profile data to check admin status
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user?.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const handleHomeClick = () => {
     if (location.pathname !== '/') {
@@ -29,9 +46,10 @@ const Header = () => {
     }
   };
 
-  // Debug log to check user metadata
-  console.log('User metadata:', user?.user_metadata);
-  console.log('Is admin?', user?.user_metadata?.is_admin);
+  // Debug logs
+  console.log('User:', user?.id);
+  console.log('Profile:', profile);
+  console.log('Is admin?', profile?.is_admin);
 
   return (
     <header className="border-b">
@@ -49,8 +67,8 @@ const Header = () => {
             Home
           </Button>
           
-          {/* Admin Navigation Menu */}
-          {user?.user_metadata?.is_admin && <AdminNavigation />}
+          {/* Admin Navigation Menu - now checking profile.is_admin */}
+          {profile?.is_admin && <AdminNavigation />}
         </div>
 
         {/* Logout Button */}
