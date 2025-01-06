@@ -89,6 +89,8 @@ export const TextToSpeechButton = ({
 
       if (!response.ok) {
         console.error('ElevenLabs API error:', response.status, response.statusText);
+        const errorData = await response.json();
+        console.error('Error details:', errorData);
         if (response.status === 401) {
           console.log('Invalid API key, showing dialog');
           setShowApiKeyDialog(true);
@@ -98,11 +100,36 @@ export const TextToSpeechButton = ({
       }
 
       const audioBlob = await response.blob();
-      console.log('Successfully received audio response');
+      console.log('Successfully received audio response', { 
+        blobSize: audioBlob.size,
+        blobType: audioBlob.type 
+      });
       
       console.log('Creating audio element...');
       const audio = await audioManager.playAudio(audioBlob);
       
+      // Set volume to max and verify it's not muted
+      audio.volume = 1.0;
+      audio.muted = false;
+      
+      console.log('Audio element created', { 
+        volume: audio.volume,
+        muted: audio.muted,
+        readyState: audio.readyState,
+        paused: audio.paused
+      });
+
+      audio.onloadedmetadata = () => {
+        console.log('Audio metadata loaded', {
+          duration: audio.duration,
+          currentTime: audio.currentTime
+        });
+      };
+
+      audio.onplay = () => {
+        console.log('Audio playback started');
+      };
+
       audio.onended = () => {
         console.log('Audio playback completed');
         onPlayStateChange(false);
@@ -110,11 +137,31 @@ export const TextToSpeechButton = ({
         audioManager.cleanup();
         console.log('Audio resources cleaned up');
       };
+
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e);
+        toast.error('Error playing audio');
+        onPlayStateChange(false);
+        onAudioElement(null);
+        audioManager.cleanup();
+      };
       
       onAudioElement(audio);
-      audio.play();
-      onPlayStateChange(true);
-      console.log('Audio playback started');
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log('Audio playback started successfully');
+            onPlayStateChange(true);
+          })
+          .catch(error => {
+            console.error('Error during audio playback:', error);
+            toast.error('Failed to play audio');
+            onPlayStateChange(false);
+            onAudioElement(null);
+            audioManager.cleanup();
+          });
+      }
 
     } catch (error) {
       console.error('Error in text-to-speech process:', error);
