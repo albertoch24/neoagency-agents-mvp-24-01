@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { MarkdownContent } from "./MarkdownContent";
 import { Button } from "@/components/ui/button";
 import { Type } from "lucide-react";
@@ -28,6 +28,7 @@ export const StructuredOutput = ({
         .select("*")
         .eq("flow_step_id", stepId)
         .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) {
