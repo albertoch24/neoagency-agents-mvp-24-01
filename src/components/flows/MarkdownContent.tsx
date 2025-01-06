@@ -25,7 +25,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content }) => 
       [&>ol]:mt-0 [&>ol]:pl-4 [&>ol>li]:pl-0 [&>ol>li]:mb-0
       [&>ul>li]:relative [&>ul>li]:pl-4 [&>ul>li]:mb-0
       [&>p]:mt-0 [&>p]:mb-0 [&>h1]:text-xl [&>h2]:text-lg [&>h3]:text-base
-      [&>h1,h2,h3,h4]:font-semibold [&>h1,h2,h3,h4]:mb-0 [&>h1,h2,h3,h4]:mt-0.5
+      [&>h1,h2,h3,h4]:font-semibold [&>h1,h2,h3,h4]:mb-0 [&>h1,h2,h3,h4]:mt-0
       [&>blockquote]:border-l-4 [&>blockquote]:border-primary/20 
       [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:my-0
       [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
@@ -34,6 +34,9 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content }) => 
       [&>ol>li>p]:mt-0 [&>ol>li>p]:mb-0
       [&>ol>li>*]:mt-0 [&>ol>li>*]:mb-0
       [&_p]:!mt-0 [&_p]:!mb-0
+      [&>*]:!mt-0 [&>*]:!mb-0
+      [&_h1,h2,h3,h4]:!mt-0 [&_h1,h2,h3,h4]:!mb-0
+      [&>*+*]:!mt-0.5
       whitespace-pre-wrap font-mono text-sm">
       <ReactMarkdown>{formattedContent}</ReactMarkdown>
     </div>
