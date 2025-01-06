@@ -26,7 +26,7 @@ export const ConversationContent = ({
   onToggleStructuredOutput,
 }: ConversationContentProps) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [localVisibleText, setLocalVisibleText] = useState(true);
+  const [localVisibleText, setLocalVisibleText] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   console.log("ConversationContent rendering:", {
