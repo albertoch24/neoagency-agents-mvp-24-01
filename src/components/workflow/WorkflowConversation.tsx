@@ -66,8 +66,9 @@ export const WorkflowConversation = ({
 
       console.log("Found outputs:", data);
       return data?.map(output => ({
-        ...output,
-        content: transformContent(output.content)
+        stage: output.stage,
+        content: transformContent(output.content),
+        created_at: output.created_at
       }));
     },
     enabled: !!briefId && !!currentStage,
