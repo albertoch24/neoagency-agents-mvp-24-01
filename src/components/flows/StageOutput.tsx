@@ -24,7 +24,13 @@ interface StageOutputProps {
 }
 
 export const StageOutput = ({ output, stepId }: StageOutputProps) => {
-  console.log("StageOutput received:", output, "for step:", stepId);
+  console.log("StageOutput received:", {
+    output,
+    stepId,
+    hasContent: !!output?.content,
+    outputType: output?.content?.outputs ? 'structured' : 'simple',
+    stageId: output?.stage_id
+  });
 
   if (!output?.content) {
     console.log("No content in output");
@@ -49,8 +55,7 @@ export const StageOutput = ({ output, stepId }: StageOutputProps) => {
       try {
         // Try to parse if it's a JSON string
         const parsed = typeof out.content === 'string' ? JSON.parse(out.content) : out.content;
-        // Only return the perimetroContent, excluding system information
-        return parsed.perimetroContent || null;
+        return parsed.perimetroContent || out.content;
       } catch {
         // If parsing fails, return the content as is
         return out.content;
