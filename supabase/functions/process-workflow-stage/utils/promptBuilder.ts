@@ -5,7 +5,7 @@ export const buildPrompt = (
   requirements?: string,
   isFirstStage: boolean
 ) => {
-  // Format previous outputs if not first stage, including only structured outputs
+  // For first stage, we don't include any previous outputs
   const previousStageOutputs = !isFirstStage
     ? previousOutputs
         ?.filter((output: any) => 
@@ -32,9 +32,9 @@ export const buildPrompt = (
     ? `\nSpecific Requirements for this Step:\n${requirements}`
     : '';
 
-  // Construct conversational prompt
+  // Construct conversational prompt with conditional context
   const conversationalPrompt = `
-    As ${agent.name}, analyze this creative brief ${!isFirstStage ? 'and previous stage outputs ' : ''}in a natural, conversational way:
+    As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief and previous stage outputs'} in a natural, conversational way:
     
     Brief Details:
     Title: ${brief.title}
@@ -55,7 +55,9 @@ export const buildPrompt = (
     express your professional opinion, and make it feel like a real conversation.
     
     Remember to:
-    1. ${isFirstStage ? 'Start fresh with this new brief' : 'Reference and build upon insights from previous stages'}
+    1. ${isFirstStage 
+      ? 'Start fresh with this new brief, focusing solely on the provided brief information' 
+      : 'Reference and build upon insights from previous stages'}
     2. Use first-person pronouns ("I think...", "In my experience...")
     3. Include verbal fillers and transitions natural to spoken language
     4. Express enthusiasm and emotion where appropriate
@@ -67,9 +69,9 @@ export const buildPrompt = (
     ${formattedRequirements}
   `;
 
-  // Construct schematic prompt
+  // Construct schematic prompt with conditional context
   const schematicPrompt = `
-    As ${agent.name}, analyze this creative brief${!isFirstStage ? ' and previous stage outputs' : ''}:
+    As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief and previous stage outputs'}:
     
     Brief Details:
     Title: ${brief.title}
@@ -88,7 +90,7 @@ export const buildPrompt = (
     
     Provide a clear, structured analysis following these guidelines:
     ${isFirstStage ? `
-    1. Initial Project Assessment
+    1. Initial Project Assessment (based on brief only)
     2. Strategic Direction
     3. Action Items
     4. Potential Challenges
