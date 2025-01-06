@@ -9,6 +9,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { FlowStepContent } from "./FlowStepContent";
+import { AgentHeader } from "./AgentHeader";
 
 interface Agent {
   id: string;
@@ -105,13 +106,12 @@ export const FlowStepItem = ({
     <div className="flex items-start gap-2">
       <AccordionItem value={step.id} className="w-full">
         <AccordionTrigger>
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">{agent?.name}</span>
-            <span className="text-sm text-muted-foreground">
-              (Step {index + 1})
-            </span>
-          </div>
+          <AgentHeader 
+            agentName={agent?.name || 'Unknown Agent'} 
+            index={index}
+            orderIndex={step.order_index}
+            description={agent?.description || ''}
+          />
         </AccordionTrigger>
         <AccordionContent>
           <FlowStepContent
