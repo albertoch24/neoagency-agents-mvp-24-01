@@ -1,25 +1,32 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Headphones, Type } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MarkdownContent } from "./MarkdownContent";
+import { StructuredOutput } from "./StructuredOutput";
+import { AudioControls } from "./AudioControls";
+import { ConversationControls } from "./ConversationControls";
+import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 
 interface ConversationContentProps {
   conversation: any;
   isPlaying: boolean;
+  visibleText: boolean;
+  visibleStructuredOutput: boolean;
   onPlayStateChange: (playing: boolean) => void;
   onAudioElement: (audio: HTMLAudioElement | null) => void;
-  visibleText: boolean;
   onToggleText: () => void;
+  onToggleStructuredOutput: () => void;
 }
 
 export const ConversationContent = ({
   conversation,
   isPlaying,
+  visibleText,
+  visibleStructuredOutput,
   onPlayStateChange,
   onAudioElement,
-  visibleText,
   onToggleText,
+  onToggleStructuredOutput,
 }: ConversationContentProps) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [localVisibleText, setLocalVisibleText] = useState(true);
@@ -27,127 +34,94 @@ export const ConversationContent = ({
 
   console.log("ConversationContent rendering:", {
     conversationId: conversation?.id,
-    hasContent: !!conversation?.content,
-    contentLength: conversation?.content?.length,
     isPlaying,
-    visibleText: localVisibleText,
-    outputType: conversation?.output_type,
-    flowStepId: conversation?.flow_step_id,
-    hasAudioUrl: !!audioUrl
+    visibleText,
+    audioUrl,
+    localVisibleText
   });
 
   useEffect(() => {
-    const fetchAudio = async () => {
-      console.log("Fetching audio for conversation:", conversation?.id);
-      try {
-        const response = await fetch(`/api/audio/${conversation.id}`);
-        const data = await response.json();
-        console.log("Audio fetch response:", {
-          conversationId: conversation.id,
-          success: response.ok,
-          audioUrl: data.url,
-          visibleText: localVisibleText
-        });
-        setAudioUrl(data.url);
-      } catch (error) {
-        console.error("Error fetching audio:", {
-          conversationId: conversation.id,
-          error,
-          visibleText: localVisibleText
-        });
+    return () => {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
       }
     };
+  }, [audioUrl]);
 
-    fetchAudio();
-  }, [conversation.id]);
+  const handlePlay = async () => {
+    if (isPlaying) {
+      audioRef.current?.pause();
+      onPlayStateChange(false);
+      return;
+    }
 
-  const handlePlay = () => {
-    console.log("Play button clicked:", {
-      conversationId: conversation.id,
-      currentlyPlaying: isPlaying,
-      hasAudioRef: !!audioRef.current,
-      visibleText: localVisibleText
-    });
+    try {
+      const response = await fetch(`/api/text-to-speech`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: conversation.content }),
+      });
 
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
+      if (!response.ok) throw new Error('Failed to generate speech');
+
+      const audioBlob = await response.blob();
+      const url = URL.createObjectURL(audioBlob);
+      
+      setAudioUrl(url);
+      
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      onAudioElement(audio);
+      
+      audio.onended = () => {
         onPlayStateChange(false);
-      } else {
-        audioRef.current.play();
-        onPlayStateChange(true);
-      }
+      };
+      
+      audio.play();
+      onPlayStateChange(true);
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      onPlayStateChange(false);
     }
   };
 
   const handleToggleText = () => {
-    const newVisibility = !localVisibleText;
-    setLocalVisibleText(newVisibility);
+    setLocalVisibleText(!localVisibleText);
     onToggleText();
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
         <Button
           variant="outline"
           size="sm"
           className={cn(
             "gap-2",
-            localVisibleText && "bg-primary text-primary-foreground hover:bg-primary/90"
+            visibleStructuredOutput && "bg-primary text-primary-foreground hover:bg-primary/90"
           )}
-          onClick={handleToggleText}
+          onClick={onToggleStructuredOutput}
         >
-          <Type className="h-4 w-4" />
-          {localVisibleText ? "Hide Team conversation" : "Show Team conversation"}
+          {visibleStructuredOutput ? "Hide Structured Output" : "Show Structured Output"}
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "gap-2",
-            isPlaying && "bg-primary text-primary-foreground hover:bg-primary/90"
-          )}
-          onClick={handlePlay}
-          disabled={!audioUrl}
-        >
-          <Headphones className="h-4 w-4" />
-          {isPlaying ? "Playing..." : "Play"}
-        </Button>
+        <ConversationControls 
+          isVisible={localVisibleText} 
+          onToggle={handleToggleText} 
+        />
+        <AudioControls 
+          isPlaying={isPlaying} 
+          onPlay={handlePlay} 
+        />
       </div>
 
-      {localVisibleText && (
-        <div className="rounded-lg border bg-card p-4">
-          <div className="prose prose-sm max-w-none dark:prose-invert">
-            <MarkdownContent content={conversation.content} />
-          </div>
-        </div>
+      {visibleStructuredOutput && conversation.flow_step_id && (
+        <StructuredOutput stepId={conversation.flow_step_id} />
       )}
 
-      {audioUrl && (
-        <audio
-          ref={audioRef}
-          src={audioUrl}
-          onPlay={() => onPlayStateChange(true)}
-          onPause={() => onPlayStateChange(false)}
-          onEnded={() => onPlayStateChange(false)}
-          onLoadedMetadata={(e) => {
-            console.log("Audio loaded:", {
-              conversationId: conversation.id,
-              duration: e.currentTarget.duration,
-              visibleText: localVisibleText
-            });
-            onAudioElement(e.currentTarget);
-          }}
-          onError={(e) => {
-            console.error("Audio error:", {
-              conversationId: conversation.id,
-              error: e,
-              visibleText: localVisibleText
-            });
-            onAudioElement(null);
-          }}
-        />
+      {localVisibleText && (
+        <div className="prose prose-sm max-w-none dark:prose-invert">
+          <MarkdownContent content={conversation.content} />
+        </div>
       )}
     </div>
   );
