@@ -66,16 +66,18 @@ export const FlowBuilder = ({ flow, onClose }: FlowBuilderProps) => {
         <div className="flex justify-between items-center">
           <FlowBuilderHeader flow={flow} onClose={onClose} handleSaveSteps={handleSaveSteps} isSaving={isSaving} />
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-12 gap-4">
           <FlowBuilderSidebar 
             agents={agents || []} 
-            onAddAgent={handleAddStep} 
+            onAddAgent={handleAddStep}
+            className="col-span-3"
           />
           <FlowBuilderContent 
             steps={steps} 
             agents={agents || []} 
             flowId={flow.id}
             onRemoveStep={handleRemoveStep}
+            className="col-span-9"
           />
         </div>
       </div>
