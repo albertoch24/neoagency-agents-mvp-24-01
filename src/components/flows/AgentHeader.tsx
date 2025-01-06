@@ -1,72 +1,34 @@
-import React from 'react';
 import { User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 
 interface AgentHeaderProps {
   agentName: string;
   index: number;
-  orderIndex?: number;
+  orderIndex: number;
   outputs?: { text: string }[];
-  children?: React.ReactNode;
 }
 
-export const AgentHeader: React.FC<AgentHeaderProps> = ({ 
-  agentName, 
-  index,
-  orderIndex,
-  outputs,
-  children
-}) => {
+export const AgentHeader = ({ agentName, index, orderIndex, outputs }: AgentHeaderProps) => {
   console.log("AgentHeader props:", { agentName, index, orderIndex, outputs });
   
-  // Calculate step number, ensuring it's always at least 1
-  const stepNumber = Math.max((orderIndex ?? index) + 1, 1);
-  
-  console.log("Calculated step number:", stepNumber);
-
   return (
-    <div className="flex flex-col gap-3 mb-4 pb-2 border-b bg-[#9b87f5]/10 p-2 rounded-md">
-      <div className="flex items-center gap-3">
-        <Badge variant="outline" className="shrink-0">
-          Step {stepNumber}
-        </Badge>
-        <div className="flex items-center gap-2 min-w-0">
-          <User className="h-5 w-5 text-agent shrink-0" />
-          <div className="flex flex-col min-w-0">
-            <span className="font-semibold text-lg truncate">
-              {agentName || 'Unknown Agent'}
-            </span>
-          </div>
+    <div className="flex items-start gap-4">
+      <User className="h-5 w-5 mt-1 text-muted-foreground" />
+      <div className="flex-1">
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary">
+            Step {index + 1}
+          </Badge>
+          <h4 className="font-medium">{agentName}</h4>
         </div>
+        {outputs && outputs.length > 0 && (
+          <div className="mt-2">
+            <p className="text-sm text-muted-foreground">
+              Outputs: {outputs.map(o => o.text).join(", ")}
+            </p>
+          </div>
+        )}
       </div>
-      <Accordion type="single" collapsible defaultValue="step-content">
-        <AccordionItem value="step-content" className="border-none">
-          <AccordionTrigger className="py-1">
-            Step Details
-          </AccordionTrigger>
-          <AccordionContent>
-            {outputs && outputs.length > 0 && (
-              <div className="mb-4">
-                <h4 className="text-sm font-medium mb-2">Outputs:</h4>
-                <div className="space-y-2">
-                  {outputs.map((output, idx) => (
-                    <div key={idx} className="text-sm text-muted-foreground">
-                      {output.text}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {children}
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
     </div>
   );
 };
