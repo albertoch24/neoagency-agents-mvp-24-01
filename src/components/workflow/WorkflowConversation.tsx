@@ -27,7 +27,8 @@ export const WorkflowConversation = ({
           ),
           flow_steps (
             id,
-            order_index
+            order_index,
+            description
           )
         `)
         .eq("brief_id", briefId)
