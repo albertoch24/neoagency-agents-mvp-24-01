@@ -112,7 +112,7 @@ export const ConversationContent = ({
           onClick={handleToggleText}
         >
           <Type className="h-4 w-4" />
-          {localVisibleText ? "Hide Text" : "Show Text"}
+          {localVisibleText ? "Hide Team conversation" : "Show Team conversation"}
         </Button>
       </div>
 
