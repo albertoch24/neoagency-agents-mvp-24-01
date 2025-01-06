@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { CardContent } from "@/components/ui/card";
 
 interface StructuredOutputProps {
   stepId: string;
@@ -51,8 +52,8 @@ export const StructuredOutput = ({
   if (!stepId) return null;
 
   return (
-    <div className="mb-4">
-      <div className="space-y-2">
+    <div className="mb-2">
+      <div className="space-x-1 flex">
         <Button
           variant="outline"
           size="sm"
@@ -67,24 +68,30 @@ export const StructuredOutput = ({
         </Button>
 
         {isVisible && (
-          <div className="bg-muted/30 rounded-lg p-4 backdrop-blur-sm">
-            <h4 className="text-lg font-semibold mb-2 text-primary">
+          <div className="bg-muted/30 rounded-lg p-2 backdrop-blur-sm">
+            <h4 className="text-lg font-semibold mb-1 text-primary">
               Structured Output
             </h4>
-            {isLoading ? (
-              <div>Loading...</div>
-            ) : structuredOutput?.content ? (
-              <div className="prose prose-sm max-w-none">
-                <MarkdownContent content={structuredOutput.content} />
+            <CardContent className="p-4">
+              <div className="space-y-4">
+                {isLoading ? (
+                  <div>Loading...</div>
+                ) : structuredOutput?.content ? (
+                  <div className="rounded-md bg-muted/30 p-4 backdrop-blur-sm">
+                    <div className="mb-4 last:mb-0">
+                      <MarkdownContent content={structuredOutput.content} />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-muted-foreground">
+                    {error ? 
+                      "Error loading structured output" : 
+                      "No structured output available for this step"
+                    }
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="text-muted-foreground">
-                {error ? 
-                  "Error loading structured output" : 
-                  "No structured output available for this step"
-                }
-              </div>
-            )}
+            </CardContent>
           </div>
         )}
       </div>
