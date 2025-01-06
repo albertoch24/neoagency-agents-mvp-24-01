@@ -24,13 +24,7 @@ interface StageOutputProps {
 }
 
 export const StageOutput = ({ output, stepId }: StageOutputProps) => {
-  console.log("StageOutput received:", {
-    output,
-    stepId,
-    hasContent: !!output?.content,
-    outputType: output?.content?.outputs ? 'structured' : 'simple',
-    stageId: output?.stage_id
-  });
+  console.log("StageOutput received:", output, "for step:", stepId);
 
   if (!output?.content) {
     console.log("No content in output");
@@ -48,22 +42,20 @@ export const StageOutput = ({ output, stepId }: StageOutputProps) => {
       return null;
     }
 
-    console.log("Found step output:", stepOutput);
-
     // Format the content for better readability
     const formattedContent = stepOutput.outputs?.map(out => {
       try {
         // Try to parse if it's a JSON string
         const parsed = typeof out.content === 'string' ? JSON.parse(out.content) : out.content;
-        return parsed.perimetroContent || out.content;
+        // Only return the perimetroContent, excluding system information
+        return parsed.perimetroContent || null;
       } catch {
-        // If parsing fails, return the content as is
-        return out.content;
+        // If parsing fails, return null
+        return null;
       }
     }).filter(Boolean).join('\n\n');
 
     if (!formattedContent) {
-      console.log("No formatted content available");
       return null;
     }
 

@@ -1,7 +1,19 @@
+import { Flag, Search, Lightbulb, Film, Target } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { WorkflowStage } from "@/types/workflow";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { WorkflowStage } from "@/types/workflow";
-import { StageGrid } from "./StageGrid";
+import { toast } from "sonner";
+
+const iconMap = {
+  flag: Flag,
+  search: Search,
+  lightbulb: Lightbulb,
+  film: Film,
+  target: Target,
+};
 
 interface WorkflowStagesProps {
   stages: WorkflowStage[];
@@ -11,14 +23,8 @@ interface WorkflowStagesProps {
   briefId?: string;
 }
 
-export function WorkflowStages({ 
-  stages, 
-  currentStage, 
-  onStageSelect, 
-  disabled, 
-  briefId 
-}: WorkflowStagesProps) {
-  // Query to fetch flow steps for the current stage
+export function WorkflowStages({ stages, currentStage, onStageSelect, disabled, briefId }: WorkflowStagesProps) {
+  // Query to fetch flow steps for each stage
   const { data: stageFlowSteps } = useQuery({
     queryKey: ["stage-flow-steps", currentStage],
     queryFn: async () => {
@@ -75,43 +81,109 @@ export function WorkflowStages({
     queryFn: async () => {
       if (!briefId) return [];
       
-      console.log("Fetching completed stages for brief:", briefId);
-      
-      const { data: conversations, error } = await supabase
+      const { data } = await supabase
         .from("workflow_conversations")
         .select("stage_id")
         .eq("brief_id", briefId)
         .order("created_at", { ascending: true });
       
-      if (error) {
-        console.error("Error fetching completed stages:", error);
-        return [];
-      }
-      
-      const completedStageIds = conversations?.map(item => item.stage_id) || [];
-      console.log("Completed stage IDs:", completedStageIds);
-      return completedStageIds;
+      return data?.map(item => item.stage_id) || [];
     },
     enabled: !!briefId
   });
 
+  const handleStageClick = (stage: WorkflowStage, index: number) => {
+    if (disabled) return;
+
+    const currentIndex = stages.findIndex(s => s.id === currentStage);
+    const isCompleted = completedStages?.includes(stage.id);
+    const isPreviousCompleted = index > 0 ? completedStages?.includes(stages[index - 1].id) : true;
+    const isNextStage = index === currentIndex + 1;
+
+    if (!isCompleted && !isPreviousCompleted) {
+      toast.error("Please complete the previous stage first");
+      return;
+    }
+
+    if (!isCompleted && !isNextStage) {
+      toast.error("Please complete stages in order");
+      return;
+    }
+
+    onStageSelect(stage);
+  };
+
   if (!stages || stages.length === 0) {
-    console.log("No stages available");
     return null;
   }
 
   const currentStageIndex = stages.findIndex(stage => stage.id === currentStage);
-  console.log("Current stage index:", currentStageIndex);
 
   return (
-    <StageGrid
-      stages={stages}
-      currentStage={currentStage}
-      completedStages={completedStages}
-      onStageSelect={onStageSelect}
-      disabled={disabled}
-      stageFlowSteps={stageFlowSteps}
-      currentStageIndex={currentStageIndex}
-    />
+    <div className="grid gap-4 md:grid-cols-5">
+      {stages.map((stage, index) => {
+        if (!stage.name || !stage.description) {
+          return null;
+        }
+
+        const iconKey = stage.name.toLowerCase().includes("kick") ? "flag" :
+                       stage.name.toLowerCase().includes("insight") ? "search" :
+                       stage.name.toLowerCase().includes("concept") ? "lightbulb" :
+                       stage.name.toLowerCase().includes("storyboard") ? "film" :
+                       "target";
+                       
+        const Icon = iconMap[iconKey as keyof typeof iconMap];
+        const isActive = currentStage === stage.id;
+        const isCompleted = completedStages?.includes(stage.id);
+        const isNext = index === currentStageIndex + 1;
+        const isPreviousCompleted = index > 0 ? completedStages?.includes(stages[index - 1].id) : true;
+        const isClickable = !disabled && (isCompleted || (isPreviousCompleted && isNext));
+
+        // Get flow steps count for the current stage
+        const flowStepsCount = stageFlowSteps?.flows?.flow_steps?.length || 0;
+
+        return (
+          <Card
+            key={stage.id}
+            className={cn(
+              "transition-all",
+              isActive && "border-primary",
+              isCompleted && "bg-muted",
+              isClickable && "hover:shadow-md cursor-pointer",
+              (!isClickable || disabled) && "opacity-50 cursor-not-allowed"
+            )}
+            onClick={() => handleStageClick(stage, index)}
+          >
+            <CardHeader className="space-y-1">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Icon className={cn(
+                  "h-5 w-5",
+                  isCompleted && "text-green-500"
+                )} />
+                {stage.name}
+                {isCompleted && (
+                  <Badge variant="secondary" className="ml-auto text-green-500 border-green-500">
+                    Completed
+                  </Badge>
+                )}
+                {isNext && !isCompleted && (
+                  <Badge variant="outline" className="ml-auto">
+                    Next
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">{stage.description}</p>
+              {isActive && flowStepsCount > 0 && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Steps: {flowStepsCount}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
   );
 }
