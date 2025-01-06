@@ -12,18 +12,20 @@ interface FlowBuilderContentProps {
 
 export const FlowBuilderContent = ({ steps, agents, flowId, onRemoveStep }: FlowBuilderContentProps) => {
   return (
-    <Card className="col-span-2">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <ListChecks className="h-4 w-4" />
-          <h3 className="font-semibold">Flow Steps</h3>
+    <Card className="col-span-2 h-full">
+      <CardContent className="p-6 h-full">
+        <div className="flex items-center gap-2 mb-6">
+          <ListChecks className="h-5 w-5 text-primary" />
+          <h3 className="font-semibold text-lg">Flow Steps</h3>
         </div>
-        <FlowStepList 
-          steps={steps} 
-          agents={agents} 
-          flowId={flowId} 
-          onRemoveStep={onRemoveStep}
-        />
+        <div className="h-[calc(100vh-12rem)] overflow-y-auto pr-2">
+          <FlowStepList 
+            steps={steps} 
+            agents={agents} 
+            flowId={flowId} 
+            onRemoveStep={onRemoveStep}
+          />
+        </div>
       </CardContent>
     </Card>
   );
