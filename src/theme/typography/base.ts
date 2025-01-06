@@ -12,5 +12,9 @@ export const baseTypography = {
   strong: {
     color: 'var(--tw-prose-bold)',
     fontWeight: '600',
+  },
+  p: {
+    marginTop: '0.5em',
+    marginBottom: '0.5em',
   }
 };
