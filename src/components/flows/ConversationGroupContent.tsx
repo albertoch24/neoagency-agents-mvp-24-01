@@ -2,6 +2,7 @@ import { AgentHeader } from "./AgentHeader";
 import { AgentSkills } from "./AgentSkills";
 import { ConversationContent } from "./ConversationContent";
 import { StructuredOutput } from "./StructuredOutput";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 interface ConversationGroupContentProps {
   group: any;
@@ -39,7 +40,6 @@ export const ConversationGroupContent = ({
     flowStep: group.conversations?.[0]?.flow_step
   });
 
-  // Get the order_index from the flow step if available
   const stepOrderIndex = group.conversations?.[0]?.flow_step?.order_index ?? group.orderIndex;
 
   return (
@@ -50,33 +50,42 @@ export const ConversationGroupContent = ({
         orderIndex={stepOrderIndex}
         outputs={group.outputs}
       >
-        <div className="space-y-6">
-          <div className="space-y-4">
-            <AgentSkills skills={group.agent?.skills || []} />
-          </div>
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="content">
+            <AccordionTrigger className="text-sm font-medium">
+              View Details
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <AgentSkills skills={group.agent?.skills || []} />
+                </div>
 
-          {conversationalOutputs.map((conversation: any) => (
-            <ConversationContent
-              key={conversation.id}
-              conversation={conversation}
-              isPlaying={isPlaying[conversation.id] || false}
-              visibleText={visibleTexts[conversation.id] || false}
-              visibleStructuredOutput={visibleStructuredOutputs[conversation.flow_step_id] || false}
-              onPlayStateChange={(playing) => onPlayStateChange(conversation.id, playing)}
-              onAudioElement={(audio) => onAudioElement(conversation.id, audio)}
-              onToggleText={() => onToggleText(conversation.id)}
-              onToggleStructuredOutput={() => onToggleStructuredOutput(conversation.flow_step_id)}
-            />
-          ))}
+                {conversationalOutputs.map((conversation: any) => (
+                  <ConversationContent
+                    key={conversation.id}
+                    conversation={conversation}
+                    isPlaying={isPlaying[conversation.id] || false}
+                    visibleText={visibleTexts[conversation.id] || false}
+                    visibleStructuredOutput={visibleStructuredOutputs[conversation.flow_step_id] || false}
+                    onPlayStateChange={(playing) => onPlayStateChange(conversation.id, playing)}
+                    onAudioElement={(audio) => onAudioElement(conversation.id, audio)}
+                    onToggleText={() => onToggleText(conversation.id)}
+                    onToggleStructuredOutput={() => onToggleStructuredOutput(conversation.flow_step_id)}
+                  />
+                ))}
 
-          {group.conversations?.[0]?.flow_step_id && (
-            <StructuredOutput 
-              stepId={group.conversations[0].flow_step_id}
-              isVisible={visibleStructuredOutputs[group.conversations[0].flow_step_id] ?? true}
-              onToggleVisibility={() => onToggleStructuredOutput(group.conversations[0].flow_step_id)}
-            />
-          )}
-        </div>
+                {group.conversations?.[0]?.flow_step_id && (
+                  <StructuredOutput 
+                    stepId={group.conversations[0].flow_step_id}
+                    isVisible={visibleStructuredOutputs[group.conversations[0].flow_step_id] ?? true}
+                    onToggleVisibility={() => onToggleStructuredOutput(group.conversations[0].flow_step_id)}
+                  />
+                )}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </AgentHeader>
     </div>
   );
