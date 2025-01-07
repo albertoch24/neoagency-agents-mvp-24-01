@@ -11,10 +11,16 @@ export const generateAgentResponse = async (agentPrompt: string) => {
   console.log('Generating response for prompt:', agentPrompt);
   
   try {
+    // Validate OpenAI API key
+    const apiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!apiKey) {
+      throw new Error('OpenAI API key is not configured');
+    }
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -49,14 +55,15 @@ Remember: The first part should feel like a transcript of someone speaking in a 
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${response.statusText}`);
+      const errorData = await response.json().catch(() => null);
+      console.error('OpenAI API error response:', errorData);
+      throw new Error(`OpenAI API returned status ${response.status}: ${errorData?.error?.message || response.statusText}`);
     }
 
     const data = await response.json();
     
     if (!data.choices?.[0]?.message?.content) {
+      console.error('Unexpected OpenAI API response format:', data);
       throw new Error('No content in OpenAI response');
     }
 
