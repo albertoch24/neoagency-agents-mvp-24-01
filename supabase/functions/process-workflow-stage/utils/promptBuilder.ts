@@ -6,7 +6,6 @@ export const buildPrompt = (
   isFirstStage: boolean,
   flowStepOutputs?: { title: string; content: string }[]
 ) => {
-  // Format requirements
   const formattedRequirements = requirements 
     ? `\nSpecific Requirements for this Step:\n${requirements}`
     : '';
@@ -104,8 +103,7 @@ export const buildPrompt = (
     ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
     
     Please provide a structured analysis that specifically addresses each of these required outputs:
-    ${outputRequirements.map((req: string, index: number) => `
-    ${index + 1}. ${req}`).join('\n')}
+    ${outputRequirements.map((req: string, index: number) => `${index + 1}. ${req}`).join('\n')}
     
     Format your response with clear headings and bullet points for each required output.
     Keep the tone professional and direct.
