@@ -75,6 +75,7 @@ serve(async (req) => {
           { role: 'user', content: input }
         ],
         temperature: agent.temperature || 0.7,
+        max_tokens: 2000,
       }),
     });
 

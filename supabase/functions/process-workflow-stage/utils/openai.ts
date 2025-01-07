@@ -37,7 +37,7 @@ Key aspects of your communication:
 
 Structure your response in two distinct parts:
 1. First, provide your analysis in a natural, conversational style as if you're speaking in a meeting. Use paragraphs, casual transitions, and a friendly tone.
-2. Then, after '### Summary:', provide a concise, bullet-pointed list of key takeaways for documentation purposes.
+2. Then, after '### Summary:', provide a exaustive, bullet-pointed list of key takeaways for documentation purposes.
 
 Remember: The first part should feel like a transcript of someone speaking in a meeting, while the summary should be clear and structured for quick reference.`
           },
