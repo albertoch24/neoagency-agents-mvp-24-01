@@ -59,6 +59,8 @@ serve(async (req) => {
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     const elevenLabsApiKey = Deno.env.get('ELEVEN_LABS_API_KEY');
     
+    console.log(`Using temperature: ${agent.temperature || 0.7} for agent: ${agent.name}`);
+    
     // Get text response from OpenAI
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -72,7 +74,7 @@ serve(async (req) => {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: input }
         ],
-        temperature: 0.7,
+        temperature: agent.temperature || 0.7,
       }),
     });
 
