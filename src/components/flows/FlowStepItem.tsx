@@ -76,6 +76,21 @@ export const FlowStepItem = ({
 
       console.log('Update data:', updateData);
 
+      // First verify the flow step exists and belongs to the user
+      const { data: verifyData, error: verifyError } = await supabase
+        .from("flow_steps")
+        .select("id")
+        .eq("id", step.id)
+        .eq("flow_id", flowId)
+        .single();
+
+      if (verifyError || !verifyData) {
+        console.error('Error verifying flow step:', verifyError);
+        toast.error("Failed to verify flow step ownership");
+        return;
+      }
+
+      // Then perform the update
       const { data, error: updateError } = await supabase
         .from("flow_steps")
         .update(updateData)
