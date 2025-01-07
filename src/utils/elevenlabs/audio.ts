@@ -1,5 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
-
 export class AudioManager {
   private audio: HTMLAudioElement | null = null;
   private audioUrl: string | null = null;
