@@ -1,77 +1,79 @@
+import { formatRequirements, formatPreviousOutputs, formatFlowStepOutputs } from './formatters.ts';
+
+const getOutputRequirements = (agent: any) => {
+  const defaultRequirements = [
+    "Strategic Analysis",
+    "Key Recommendations",
+    "Implementation Steps",
+    "Success Metrics"
+  ];
+  
+  return agent.output_requirements?.length > 0 
+    ? agent.output_requirements 
+    : defaultRequirements;
+};
+
 export const buildPrompt = (
   agent: any,
   brief: any,
-  previousOutputs: any[],
-  requirements?: string,
-  isFirstStage: boolean,
-  flowStepOutputs?: { title: string; content: string }[]
+  previousOutputs: any[] = [],
+  requirements: string = "",
+  isFirstStage: boolean = false
 ) => {
-  // Format requirements
-  const formattedRequirements = requirements 
-    ? `\nSpecific Requirements for this Step:\n${requirements}`
-    : '';
+  const formattedRequirements = formatRequirements(requirements);
+  const previousStageOutputs = formatPreviousOutputs(previousOutputs);
+  const flowStepOutputs = previousOutputs.length > 0 ? formatFlowStepOutputs(previousOutputs) : '';
+  const outputRequirements = getOutputRequirements(agent);
 
-  // Format flow step outputs if available
-  const formattedFlowStepOutputs = flowStepOutputs && flowStepOutputs.length > 0
-    ? `\nFlow Step Outputs:\n${flowStepOutputs.map(output => 
-        `Title: ${output.title}\nContent: ${output.content}`
-      ).join('\n\n')}`
-    : '';
-
-  // For first stage, we don't include any previous outputs
-  const previousStageOutputs = !isFirstStage
-    ? previousOutputs
-        ?.filter((output: any) => 
-          output.content && 
-          typeof output.content === 'object' && 
-          output.output_type === 'structured'
-        )
-        ?.map((output: any) => {
-          const content = typeof output.content === 'string' 
-            ? output.content 
-            : JSON.stringify(output.content, null, 2);
-            
-          return `
-          Stage: ${output.stage}
-          Content: ${content}
-          `;
-        })
-        .join('\n\n')
-    : '';
-
-  // Get outputs from flow step if available
-  const stepOutputs = agent.flow_steps?.[0]?.outputs || [];
-  const outputRequirements = stepOutputs.map((output: any) => output.text).filter(Boolean);
-
-  // Construct conversational prompt
   const conversationalPrompt = `
-    As ${agent.name}, analyze this creative brief in a natural, conversational way:
+    As ${agent.name}, you're participating in a creative team meeting to discuss this brief:
     
-    // ... same brief details and context as schematic prompt ...
+    Brief Details:
+    Title: ${brief.title}
+    Description: ${brief.description}
+    Objectives: ${brief.objectives}
     
-    Share concrete, actionable responses to address these required outputs, focusing on delivering practical and useful recommendations:
-    ${outputRequirements.map((req: string, index: number) => `
-    ${index + 1}. ${req}`).join('\n')}
+    ${!isFirstStage ? `Context from previous discussions:
+    ${previousStageOutputs}` : ''}
+
+    Your expertise:
+    ${agent.description}
+    
+    Your relevant skills:
+    ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
+    
+    Share your thoughts and insights on:
+    ${outputRequirements.map((req: string) => `- ${req}`).join('\n')}
+    
+    ${formattedRequirements}
     
     Remember to:
-    1. Provide specific, actionable responses directly addressing each required output.
-    2. Base your answers on insights derived from the brief and outputs of previous steps or stages.
-    3. Avoid discussing the process or future steps—focus solely on meeting the requirements outlined.
-    4. Use first-person pronouns ("I think...", "In my experience...").
-    5. Include verbal fillers and transitions natural to spoken language.
-    6. Express enthusiasm and emotion where appropriate.
-    7. Reference team dynamics and collaborative aspects when relevant.
-    8. Use industry jargon naturally but explain complex concepts where necessary.
-    9. Share personal insights and experiences where they enhance the response.
-    10. Ensure that every response is practical and actionable, tying back to the goals of the brief and previous outputs.
-    ${formattedRequirements}
+    1. Speak naturally as if in a meeting
+    2. Reference and build upon previous discussions
+    3. Share specific examples and experiences
+    4. Be collaborative and open to feedback
+    5. Focus on practical, actionable insights
   `;
 
-  // Construct schematic prompt with dynamic output requirements
   const schematicPrompt = `
     As ${agent.name}, analyze this creative brief:
     
-    // ... same brief details and context as conversational prompt ...
+    Brief Details:
+    Title: ${brief.title}
+    Description: ${brief.description}
+    Objectives: ${brief.objectives}
+    Requirements: ${formattedRequirements}
+    
+    ${!isFirstStage ? `Previous Stage Outputs:
+    ${previousStageOutputs}` : ''}
+
+    ${flowStepOutputs ? formattedFlowStepOutputs : ''}
+    
+    Your Role:
+    ${agent.description}
+    
+    Skills Applied:
+    ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
     
     Please provide a structured analysis that specifically addresses each of these required outputs:
     ${outputRequirements.map((req: string, index: number) => `
@@ -93,5 +95,8 @@ export const buildPrompt = (
     ${formattedRequirements}
   `;
 
-  return { conversationalPrompt, schematicPrompt };
+  return {
+    conversationalPrompt,
+    schematicPrompt
+  };
 };
