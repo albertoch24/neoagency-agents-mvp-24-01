@@ -66,20 +66,22 @@ export const FlowStepItem = ({
 
       console.log('Formatted outputs for saving:', formattedOutputs);
 
+      // Ensure all fields are properly formatted before saving
       const updateData = {
-        outputs: formattedOutputs,
-        requirements: editedRequirements.trim(),
-        description: editedDescription.trim(),
+        outputs: formattedOutputs || [], // Default to empty array if undefined
+        requirements: editedRequirements?.trim() || '', // Default to empty string if undefined
+        description: editedDescription?.trim() || '', // Default to empty string if undefined
         updated_at: new Date().toISOString()
       };
 
       console.log('Update data:', updateData);
 
-      const { error: updateError } = await supabase
+      const { data, error: updateError } = await supabase
         .from("flow_steps")
         .update(updateData)
         .eq("id", step.id)
-        .eq("flow_id", flowId);
+        .eq("flow_id", flowId)
+        .select();
 
       if (updateError) {
         console.error('Error updating step:', updateError);
@@ -87,7 +89,13 @@ export const FlowStepItem = ({
         throw updateError;
       }
 
-      console.log('Step updated successfully');
+      if (!data || data.length === 0) {
+        console.error('No data returned after update');
+        toast.error("Failed to save step - no data returned");
+        return;
+      }
+
+      console.log('Step updated successfully:', data);
       
       setIsEditing(false);
       
