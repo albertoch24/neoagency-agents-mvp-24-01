@@ -45,7 +45,7 @@ export const buildPrompt = (
 
   // Construct conversational prompt
   const conversationalPrompt = `
-    As ${agent.name}, analyze this creative brief in a natural, conversational way:
+    As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief, previous stage outputs, and any specific flow step outputs'} in a natural, conversational way:
     
     Brief Details:
     Title: ${brief.title}
@@ -84,7 +84,7 @@ export const buildPrompt = (
 
   // Construct schematic prompt with dynamic output requirements
   const schematicPrompt = `
-    As ${agent.name}, analyze this creative brief:
+    As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief, previous stage outputs, and any specific flow step outputs'}:
     
     Brief Details:
     Title: ${brief.title}
