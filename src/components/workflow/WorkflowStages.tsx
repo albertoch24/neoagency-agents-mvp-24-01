@@ -97,7 +97,8 @@ export function WorkflowStages({
     const isPreviousCompleted = index > 0 ? completedStages?.includes(stages[index - 1].id) : true;
     const isNextStage = index === currentIndex + 1;
 
-    if (isCompleted || (isPreviousCompleted && isNextStage)) {
+    // Allow selecting completed stages or the next available stage
+    if (isCompleted || isPreviousCompleted) {
       console.log("Selecting stage:", stage.id);
       onStageSelect(stage);
     } else {
@@ -123,7 +124,7 @@ export function WorkflowStages({
         const isCompleted = completedStages?.includes(stage.id);
         const isNext = index === currentStageIndex + 1;
         const isPreviousCompleted = index > 0 ? completedStages?.includes(stages[index - 1].id) : true;
-        const isClickable = !disabled && (isCompleted || (isPreviousCompleted && isNext));
+        const isClickable = !disabled && (isCompleted || isPreviousCompleted);
         const flowStepsCount = stageFlowSteps?.flows?.flow_steps?.length || 0;
 
         return (
