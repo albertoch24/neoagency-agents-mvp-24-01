@@ -66,14 +66,18 @@ export const FlowStepItem = ({
 
       console.log('Formatted outputs for saving:', formattedOutputs);
 
+      const updateData = {
+        outputs: formattedOutputs,
+        requirements: editedRequirements.trim(),
+        description: editedDescription.trim(),
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('Update data:', updateData);
+
       const { error: updateError } = await supabase
         .from("flow_steps")
-        .update({
-          outputs: formattedOutputs,
-          requirements: editedRequirements.trim(),
-          description: editedDescription.trim(),
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq("id", step.id)
         .eq("flow_id", flowId);
 
