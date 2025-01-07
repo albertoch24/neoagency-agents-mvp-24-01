@@ -88,23 +88,22 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         // Force a small delay to ensure queries are invalidated
         await new Promise(resolve => setTimeout(resolve, 100));
         
+        // Update URL parameters and navigate with state
+        const searchParams = new URLSearchParams();
+        searchParams.set("briefId", brief.id);
+        searchParams.set("stage", stage.id);
+        searchParams.set("showOutputs", "true");
+        
         // Navigate with state to ensure the outputs are shown
-        navigate(`/`, {
+        navigate(`/?${searchParams.toString()}`, {
           replace: true,
           state: { 
             briefId: brief.id,
             stage: stage.id,
             showOutputs: true,
-            forceShowOutputs: true // Add this flag to force showing outputs
+            forceShowOutputs: true
           }
         });
-
-        // Update URL parameters after navigation
-        const searchParams = new URLSearchParams(window.location.search);
-        searchParams.set("briefId", brief.id);
-        searchParams.set("stage", stage.id);
-        searchParams.set("showOutputs", "true");
-        window.history.replaceState(null, '', `/?${searchParams.toString()}`);
 
       } catch (error) {
         console.error("Error starting workflow:", error);
