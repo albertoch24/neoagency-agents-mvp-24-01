@@ -1,62 +1,90 @@
-import { formatRequirements, formatPreviousOutputs, formatFlowStepOutputs } from './formatters.ts';
-
-const getOutputRequirements = (agent: any) => {
-  const defaultRequirements = [
-    "Strategic Analysis",
-    "Key Recommendations",
-    "Implementation Steps",
-    "Success Metrics"
-  ];
-  
-  return agent.output_requirements?.length > 0 
-    ? agent.output_requirements 
-    : defaultRequirements;
-};
-
 export const buildPrompt = (
   agent: any,
   brief: any,
-  previousOutputs: any[] = [],
-  requirements: string = "",
-  isFirstStage: boolean = false
+  previousOutputs: any[],
+  requirements?: string,
+  isFirstStage: boolean,
+  flowStepOutputs?: { title: string; content: string }[]
 ) => {
-  const formattedRequirements = formatRequirements(requirements);
-  const previousStageOutputs = formatPreviousOutputs(previousOutputs);
-  const flowStepOutputs = previousOutputs.length > 0 ? formatFlowStepOutputs(previousOutputs) : '';
-  const outputRequirements = getOutputRequirements(agent);
+  // Format requirements
+  const formattedRequirements = requirements 
+    ? `\nSpecific Requirements for this Step:\n${requirements}`
+    : '';
 
+  // Format flow step outputs if available
+  const formattedFlowStepOutputs = flowStepOutputs && flowStepOutputs.length > 0
+    ? `\nFlow Step Outputs:\n${flowStepOutputs.map(output => 
+        `Title: ${output.title}\nContent: ${output.content}`
+      ).join('\n\n')}`
+    : '';
+
+  // For first stage, we don't include any previous outputs
+  const previousStageOutputs = !isFirstStage
+    ? previousOutputs
+        ?.filter((output: any) => 
+          output.content && 
+          typeof output.content === 'object' && 
+          output.output_type === 'structured'
+        )
+        ?.map((output: any) => {
+          const content = typeof output.content === 'string' 
+            ? output.content 
+            : JSON.stringify(output.content, null, 2);
+            
+          return `
+          Stage: ${output.stage}
+          Content: ${content}
+          `;
+        })
+        .join('\n\n')
+    : '';
+
+  // Get outputs from flow step if available
+  const stepOutputs = agent.flow_steps?.[0]?.outputs || [];
+  const outputRequirements = stepOutputs.map((output: any) => output.text).filter(Boolean);
+
+  // Construct conversational prompt
   const conversationalPrompt = `
-    As ${agent.name}, you're participating in a creative team meeting to discuss this brief:
+    As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief, previous stage outputs, and any specific flow step outputs'} in a natural, conversational way:
     
     Brief Details:
     Title: ${brief.title}
     Description: ${brief.description}
     Objectives: ${brief.objectives}
+    Requirements: ${formattedRequirements}
     
-    ${!isFirstStage ? `Context from previous discussions:
+    ${!isFirstStage ? `Previous Stage Outputs:
     ${previousStageOutputs}` : ''}
 
-    Your expertise:
+    ${flowStepOutputs ? formattedFlowStepOutputs : ''}
+    
+    Your Role and Background:
     ${agent.description}
     
-    Your relevant skills:
+    Your Skills:
     ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
     
-    Share your thoughts and insights on:
-    ${outputRequirements.map((req: string) => `- ${req}`).join('\n')}
-    
-    ${formattedRequirements}
+    Share your thoughts as if you're speaking in a creative agency meeting, addressing specifically these required outputs:
+    ${outputRequirements.map((req: string, index: number) => `
+    ${index + 1}. ${req}`).join('\n')}
     
     Remember to:
-    1. Speak naturally as if in a meeting
-    2. Reference and build upon previous discussions
-    3. Share specific examples and experiences
-    4. Be collaborative and open to feedback
-    5. Focus on practical, actionable insights
+    1. Address each required output in a conversational way
+    2. Use first-person pronouns ("I think...", "In my experience...")
+    3. Include verbal fillers and transitions natural to spoken language
+    4. Express enthusiasm and emotion where appropriate
+    5. Reference team dynamics and collaborative aspects
+    6. Use industry jargon naturally but explain complex concepts
+    7. Share personal insights and experiences
+    8. Ask rhetorical questions to engage others
+    9. Use informal but professional language
+    10. Consider and reference any specific flow step outputs in your analysis
+    ${formattedRequirements}
   `;
 
+  // Construct schematic prompt with dynamic output requirements
   const schematicPrompt = `
-    As ${agent.name}, analyze this creative brief:
+    As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief, previous stage outputs, and any specific flow step outputs'}:
     
     Brief Details:
     Title: ${brief.title}
@@ -80,23 +108,11 @@ export const buildPrompt = (
     ${index + 1}. ${req}`).join('\n')}
     
     Format your response with clear headings and bullet points for each required output.
-    Ensure each response is:
-    1. Concrete and actionable, directly addressing the specific output requirements.
-    2. Based on insights from the brief and outputs of previous steps or stages, with clear references to how they influence your recommendations.
-    3. Structured, using concise bullet points or subheadings to organize information logically.
-    4. Thorough and exhaustive, covering all relevant aspects to provide a complete response.
-    5. Professional and direct in tone, avoiding unnecessary elaboration or discussion of the process or future steps.
-    6. Focused solely on the outputs, ensuring practical and useful recommendations for each point.
-    
-    When referencing previous outputs or flow step outputs:
-    - Explicitly indicate their relevance and how they inform your recommendations.
-    - Tie your answers back to the brief's goals to ensure alignment.
-
+    Keep the tone professional and direct.
+    Ensure each response directly addresses the specific output requirement.
+    When referencing previous outputs or flow step outputs, clearly indicate how they influence your recommendations.
     ${formattedRequirements}
   `;
 
-  return {
-    conversationalPrompt,
-    schematicPrompt
-  };
+  return { conversationalPrompt, schematicPrompt };
 };

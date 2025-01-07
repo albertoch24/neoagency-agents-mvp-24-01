@@ -1,23 +1,18 @@
-# A string used to distinguish different Supabase projects on the same host. Defaults to the project ID.
 project_id = "szufbafdhfwqclyixdpd"
 
 [api]
 enabled = true
-# Port to use for the API URL.
 port = 54321
 schemas = ["public", "storage", "graphql_public"]
 
 [db]
-# Port to use for the local database URL.
 port = 54322
 
 [studio]
 enabled = true
-# Port to use for Supabase Studio.
 port = 54323
+api_url = "http://localhost"
 
-# Email testing server. Emails sent with the local dev setup are not actually sent - rather, they
-# are monitored, and you can view the emails that would have been sent from the web interface.
 [inbucket]
 enabled = true
 port = 54324
@@ -27,19 +22,24 @@ enabled = true
 
 [auth]
 enabled = true
+port = 54325
+
+[analytics]
+enabled = true
+port = 54327
 
 [realtime]
 enabled = true
 
-[functions]
-[functions.agent-response]
+[edge_functions]
+[edge_functions.process-workflow-stage]
 verify_jwt = true
 
-[functions.delete-secret]
+[edge_functions.agent-response]
 verify_jwt = true
 
-[functions.text-to-speech]
+[edge_functions.text-to-speech]
 verify_jwt = true
 
-[functions.process-workflow-stage]
+[edge_functions.delete-secret]
 verify_jwt = true
