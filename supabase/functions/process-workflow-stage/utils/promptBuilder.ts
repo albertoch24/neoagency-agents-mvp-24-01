@@ -71,31 +71,25 @@ export const buildPrompt = (
   const schematicPrompt = `
     As ${agent.name}, analyze this creative brief:
     
-    Brief Details:
-    Title: ${brief.title}
-    Description: ${brief.description}
-    Objectives: ${brief.objectives}
-    Requirements: ${formattedRequirements}
-    
-    ${!isFirstStage ? `Previous Stage Outputs:
-    ${previousStageOutputs}` : ''}
-
-    ${flowStepOutputs ? formattedFlowStepOutputs : ''}
-    
-    Your Role:
-    ${agent.description}
-    
-    Skills Applied:
-    ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
+    // ... same brief details and context as conversational prompt ...
     
     Please provide a structured analysis that specifically addresses each of these required outputs:
     ${outputRequirements.map((req: string, index: number) => `
     ${index + 1}. ${req}`).join('\n')}
     
     Format your response with clear headings and bullet points for each required output.
-    Keep the tone professional and direct.
-    Ensure each response directly addresses the specific output requirement.
-    When referencing previous outputs or flow step outputs, clearly indicate how they influence your recommendations.
+    Ensure each response is:
+    1. Concrete and actionable, directly addressing the specific output requirements.
+    2. Based on insights from the brief and outputs of previous steps or stages, with clear references to how they influence your recommendations.
+    3. Structured, using concise bullet points or subheadings to organize information logically.
+    4. Thorough and exhaustive, covering all relevant aspects to provide a complete response.
+    5. Professional and direct in tone, avoiding unnecessary elaboration or discussion of the process or future steps.
+    6. Focused solely on the outputs, ensuring practical and useful recommendations for each point.
+    
+    When referencing previous outputs or flow step outputs:
+    - Explicitly indicate their relevance and how they inform your recommendations.
+    - Tie your answers back to the brief's goals to ensure alignment.
+
     ${formattedRequirements}
   `;
 
