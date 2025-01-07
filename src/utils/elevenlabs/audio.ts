@@ -41,6 +41,8 @@ export class AudioManager {
       });
 
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error('ElevenLabs API error:', errorData);
         throw new Error(`Failed to generate speech: ${response.statusText}`);
       }
 
