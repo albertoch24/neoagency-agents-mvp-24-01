@@ -18,24 +18,29 @@ const Index = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedBriefId, setSelectedBriefId] = useState<string | null>(null);
   const { currentStage, handleStageSelect } = useStageHandling(selectedBriefId);
+  const [showOutputs, setShowOutputs] = useState(false);
 
   // Initialize state from URL parameters
   useEffect(() => {
     const briefIdFromUrl = searchParams.get("briefId");
+    const showOutputsParam = searchParams.get("showOutputs");
+    
     if (briefIdFromUrl) {
       setSelectedBriefId(briefIdFromUrl);
       setShowNewBrief(false);
       setIsEditing(false);
       
+      // Set showOutputs based on URL parameter
+      setShowOutputs(showOutputsParam === "true");
+      
       const newParams = new URLSearchParams(searchParams);
       newParams.set("briefId", briefIdFromUrl);
-      newParams.set("showOutputs", "true");
       if (!searchParams.get("stage")) {
         newParams.set("stage", "kickoff");
       }
       setSearchParams(newParams, { replace: true });
     }
-  }, [searchParams.get("briefId")]);
+  }, [searchParams.get("briefId"), searchParams.get("showOutputs")]);
 
   const { data: briefs, error: briefsError } = useQuery({
     queryKey: ["briefs", user?.id],
@@ -87,6 +92,7 @@ const Index = () => {
       newParams.set("stage", "kickoff");
     }
     setSearchParams(newParams);
+    setShowOutputs(true);
   };
 
   if (briefsError || currentBriefError) {
@@ -143,6 +149,7 @@ const Index = () => {
               briefId={currentBrief?.id}
               currentStage={currentStage}
               onStageSelect={handleStageSelect}
+              showOutputs={showOutputs}
             />
           </div>
         </>

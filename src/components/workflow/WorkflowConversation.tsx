@@ -5,11 +5,13 @@ import { WorkflowStageList } from "./WorkflowStageList";
 interface WorkflowConversationProps {
   briefId: string;
   currentStage: string;
+  showOutputs?: boolean;
 }
 
 export const WorkflowConversation = ({
   briefId,
   currentStage,
+  showOutputs = false
 }: WorkflowConversationProps) => {
   const { data: conversations } = useQuery({
     queryKey: ["workflow-conversations", briefId, currentStage],
@@ -121,7 +123,8 @@ export const WorkflowConversation = ({
     currentStage,
     conversationsCount: conversations?.length,
     outputsCount: briefOutputs?.length,
-    stages
+    stages,
+    showOutputs
   });
 
   return (
@@ -129,6 +132,7 @@ export const WorkflowConversation = ({
       <WorkflowStageList 
         stages={stages} 
         briefOutputs={briefOutputs || []}
+        showOutputs={showOutputs}
       />
     </div>
   );

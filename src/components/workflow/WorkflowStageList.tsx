@@ -12,11 +12,17 @@ interface WorkflowStageListProps {
     created_at?: string;
     [key: string]: any;
   }>;
+  showOutputs?: boolean;
 }
 
-export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageListProps) => {
+export const WorkflowStageList = ({ 
+  stages, 
+  briefOutputs = [],
+  showOutputs = false
+}: WorkflowStageListProps) => {
   console.log("WorkflowStageList received stages:", stages);
   console.log("WorkflowStageList received briefOutputs:", briefOutputs);
+  console.log("WorkflowStageList showOutputs:", showOutputs);
 
   return (
     <div className="space-y-8">
@@ -66,7 +72,9 @@ export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageLi
                 console.log("Rendering step:", stepId, "with conversations:", stepConvs);
                 return (
                   <div key={stepId} className="space-y-4">
-                    {output && <StageOutput output={output} stepId={stepId} />}
+                    {output && showOutputs && (
+                      <StageOutput output={output} stepId={stepId} />
+                    )}
                     <AgentSequence conversations={stepConvs} />
                   </div>
                 );

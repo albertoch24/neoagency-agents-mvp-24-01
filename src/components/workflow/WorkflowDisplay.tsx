@@ -12,12 +12,14 @@ interface WorkflowDisplayProps {
   currentStage: string;
   onStageSelect: (stage: any) => void;
   briefId?: string;
+  showOutputs?: boolean;
 }
 
 export const WorkflowDisplay = ({
   currentStage,
   onStageSelect,
-  briefId
+  briefId,
+  showOutputs = false
 }: WorkflowDisplayProps) => {
   const { data: stages = [] } = useStagesData(briefId);
   const { isProcessing, processStage } = useStageProcessing(briefId || "");
@@ -163,6 +165,7 @@ export const WorkflowDisplay = ({
           <WorkflowConversation
             briefId={briefId}
             currentStage={currentStage}
+            showOutputs={showOutputs}
           />
           <WorkflowDisplayActions
             currentStage={currentStage}
