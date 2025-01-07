@@ -20,17 +20,21 @@ export const fetchElevenLabsApiKey = async () => {
     throw new Error('No ElevenLabs API key found');
   }
 
+  console.log('API key successfully retrieved');
   return apiKey;
 };
 
 export const validateApiKey = async (key: string): Promise<boolean> => {
+  console.log('Validating ElevenLabs API key...');
   try {
     const response = await fetch('https://api.elevenlabs.io/v1/voices', {
       headers: {
         'xi-api-key': key
       }
     });
-    return response.ok;
+    const isValid = response.ok;
+    console.log('API key validation result:', isValid);
+    return isValid;
   } catch (error) {
     console.error('Error validating API key:', error);
     return false;
@@ -48,14 +52,10 @@ export const removeInvalidApiKey = async () => {
     console.error('Error removing API key:', error);
     throw new Error('Failed to remove invalid API key');
   }
+  console.log('Invalid API key removed successfully');
 };
 
 export const getVoiceId = async (): Promise<string> => {
   // Default voice ID (Bella)
   return '21m00Tcm4TlvDq8ikWAM';
-};
-
-// This function is now handled by the edge function
-export const generateSpeech = async () => {
-  throw new Error('This function has been moved to an edge function');
 };

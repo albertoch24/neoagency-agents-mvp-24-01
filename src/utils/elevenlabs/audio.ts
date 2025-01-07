@@ -24,6 +24,7 @@ export class AudioManager {
     console.log('Starting audio playback', { text, voiceId });
     
     try {
+      console.log('Making request to ElevenLabs API...');
       const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
         method: 'POST',
         headers: {
@@ -40,13 +41,20 @@ export class AudioManager {
         })
       });
 
+      console.log('ElevenLabs API response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('ElevenLabs API error:', errorData);
+        console.error('ElevenLabs API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorDetails: errorData
+        });
         throw new Error(`Failed to generate speech: ${response.statusText}`);
       }
 
       const audioBlob = await response.blob();
+      console.log('Audio blob received, size:', audioBlob.size);
       return this.playAudio(audioBlob);
     } catch (error) {
       console.error('Error playing audio:', error);
