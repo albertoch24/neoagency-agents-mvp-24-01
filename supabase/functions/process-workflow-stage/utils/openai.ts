@@ -43,7 +43,6 @@ Remember: The first part should feel like a transcript of someone speaking in a 
           },
           { role: "user", content: agentPrompt }
         ],
-        temperature: 0.7,
         max_tokens: 1000
       }),
     });
