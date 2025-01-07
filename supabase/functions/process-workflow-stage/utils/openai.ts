@@ -18,7 +18,7 @@ export const generateAgentResponse = async (agentPrompt: string) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-4o",
         messages: [
           { 
             role: "system", 
@@ -43,7 +43,7 @@ Remember: The first part should feel like a transcript of someone speaking in a 
           },
           { role: "user", content: agentPrompt }
         ],
-        max_tokens: 1000
+        max_tokens: 2000
       }),
     });
 
