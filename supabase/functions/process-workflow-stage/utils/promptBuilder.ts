@@ -64,21 +64,21 @@ export const buildPrompt = (
     Your Skills:
     ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
     
-    Share your thoughts as if you're speaking in a creative agency meeting, addressing specifically these required outputs:
+    Share concrete, actionable responses to address these required outputs, focusing on delivering practical and useful recommendations:
     ${outputRequirements.map((req: string, index: number) => `
     ${index + 1}. ${req}`).join('\n')}
     
     Remember to:
-    1. Address each required output in a conversational way
-    2. Use first-person pronouns ("I think...", "In my experience...")
-    3. Include verbal fillers and transitions natural to spoken language
-    4. Express enthusiasm and emotion where appropriate
-    5. Reference team dynamics and collaborative aspects
-    6. Use industry jargon naturally but explain complex concepts
-    7. Share personal insights and experiences
-    8. Ask rhetorical questions to engage others
-    9. Use informal but professional language
-    10. Consider and reference any specific flow step outputs in your analysis
+    1. Provide specific, actionable responses directly addressing each required output.
+    2. Base your answers on insights derived from the brief and outputs of previous steps or stages.
+    3. Avoid discussing the process or future steps—focus solely on meeting the requirements outlined.
+    4. Use first-person pronouns ("I think...", "In my experience...").
+    5. Include verbal fillers and transitions natural to spoken language.
+    6. Express enthusiasm and emotion where appropriate.
+    7. Reference team dynamics and collaborative aspects when relevant.
+    8. Use industry jargon naturally but explain complex concepts where necessary.
+    9. Share personal insights and experiences where they enhance the response.
+    10. Ensure that every response is practical and actionable, tying back to the goals of the brief and previous outputs.
     ${formattedRequirements}
   `;
 
