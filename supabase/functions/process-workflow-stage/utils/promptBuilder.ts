@@ -1,3 +1,31 @@
+export const buildPrompt = (
+  agent: any,
+  brief: any,
+  previousOutputs: any[],
+  requirements?: string,
+  isFirstStage: boolean = false
+) => {
+  const formattedRequirements = requirements 
+    ? `\nSpecific Requirements for this Step:\n${requirements}`
+    : '';
+
+  const sections = [
+    buildBriefDetails(brief),
+    buildPreviousOutputsSection(previousOutputs, isFirstStage),
+    buildAgentSkillsSection(agent),
+    buildOutputRequirementsSection(agent.flow_steps?.[0]?.outputs?.map((output: any) => output.text).filter(Boolean) || []),
+    formattedRequirements
+  ].filter(Boolean).join('\n\n');
+
+  const conversationalPrompt = `
+    As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief, previous stage outputs, and any specific flow step outputs'} in a natural, conversational way:
+    
+    ${sections}
+  `;
+
+  return { conversationalPrompt };
+};
+
 const buildSystemInstructions = () => `
   1. Provide specific, actionable responses directly addressing each required output.
   2. Base your answers on insights derived from the brief and outputs of previous steps or stages.
@@ -75,39 +103,3 @@ When referencing previous outputs or flow step outputs:
 - Explicitly indicate their relevance and how they inform your recommendations.
 - Tie your answers back to the brief's goals to ensure alignment.
 `;
-
-export const buildPrompt = (
-  agent: any,
-  brief: any,
-  previousOutputs: any[],
-  requirements?: string,
-  isFirstStage: boolean = false,
-  flowStepOutputs?: { title: string; content: string }[]
-) => {
-  const formattedRequirements = requirements 
-    ? `\nSpecific Requirements for this Step:\n${requirements}`
-    : '';
-
-  const sections = [
-    buildBriefDetails(brief),
-    buildPreviousOutputsSection(previousOutputs, isFirstStage),
-    buildFlowStepOutputsSection(flowStepOutputs),
-    buildAgentSkillsSection(agent),
-    buildOutputRequirementsSection(agent.flow_steps?.[0]?.outputs?.map((output: any) => output.text).filter(Boolean) || []),
-    formattedRequirements
-  ].filter(Boolean).join('\n\n');
-
-  const conversationalPrompt = `
-    As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief, previous stage outputs, and any specific flow step outputs'} in a natural, conversational way:
-    
-    ${sections}
-  `;
-
-  const schematicPrompt = `
-    As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief, previous stage outputs, and any specific flow step outputs'}:
-    
-    ${sections}
-  `;
-
-  return { conversationalPrompt, schematicPrompt };
-};

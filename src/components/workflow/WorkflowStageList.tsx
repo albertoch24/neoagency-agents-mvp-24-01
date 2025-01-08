@@ -27,18 +27,15 @@ export const WorkflowStageList = ({
   return (
     <div className="space-y-8">
       {stages.map(([stageId, conversations]) => {
-        // Filter out structured outputs and add briefId to each conversation
-        const conversationalOutputs = conversations
-          .filter((conv: any) => conv.output_type === 'conversational')
-          .map((conv: any) => ({
-            ...conv,
-            stage_id: stageId,
-            brief_id: conv.brief_id || (conversations[0]?.brief_id),
-            flow_step: {
-              ...conv.flow_steps,
-              order_index: conv.flow_steps?.order_index ?? 0
-            }
-          }));
+        const conversationalOutputs = conversations.map((conv: any) => ({
+          ...conv,
+          stage_id: stageId,
+          brief_id: conv.brief_id || (conversations[0]?.brief_id),
+          flow_step: {
+            ...conv.flow_steps,
+            order_index: conv.flow_steps?.order_index ?? 0
+          }
+        }));
 
         const output = Array.isArray(briefOutputs) 
           ? briefOutputs.find((output) => output.stage === stageId)
@@ -47,7 +44,6 @@ export const WorkflowStageList = ({
         console.log("Stage output for", stageId, ":", output);
         console.log("Conversations for stage", stageId, ":", conversationalOutputs);
 
-        // Group conversations by flow step
         const conversationsByStep = conversationalOutputs.reduce((acc: any, conv: any) => {
           const stepId = conv.flow_step_id || `no-step-${conv.id}`;
           if (!acc[stepId]) {
