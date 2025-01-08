@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { processAgent } from "./workflow.ts";
+import { saveBriefOutput } from "./database.ts";
 
 export async function processAgents(briefId: string, stageId: string) {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -74,6 +75,28 @@ export async function processAgents(briefId: string, stageId: string) {
 
       outputs.push(...result.outputs);
     }
+
+    // Save the outputs to brief_outputs table
+    console.log('Saving outputs to brief_outputs:', {
+      briefId,
+      stageId,
+      stageName: stage.name,
+      outputsCount: outputs.length
+    });
+
+    await saveBriefOutput(
+      supabase,
+      briefId,
+      stageId,
+      stage.name,
+      outputs.map(output => ({
+        agent: output.agent,
+        requirements: output.requirements,
+        outputs: output.outputs,
+        stepId: output.stepId,
+        orderIndex: output.orderIndex
+      }))
+    );
 
     return outputs;
 
