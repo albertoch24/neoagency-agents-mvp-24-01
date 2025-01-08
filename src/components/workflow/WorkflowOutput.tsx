@@ -62,12 +62,6 @@ function isStageOutput(obj: any): obj is StageOutput {
 export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
   console.log("🚀 WorkflowOutput rendered with:", { briefId, stageId });
 
-  // Validate UUID format
-  const isValidUUID = (uuid: string) => {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(uuid);
-  };
-
   const { data: outputs, error } = useQuery({
     queryKey: ["brief-outputs", briefId, stageId],
     queryFn: async () => {
@@ -78,17 +72,11 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         return [];
       }
 
-      // Skip the query if stageId is not a valid UUID
-      if (!isValidUUID(stageId)) {
-        console.log("Invalid stage ID format:", stageId);
-        return [];
-      }
-
       const { data, error } = await supabase
         .from("brief_outputs")
         .select("*")
         .eq("brief_id", briefId)
-        .eq("stage_id", stageId)
+        .eq("stage", stageId) // Changed from stage_id to stage
         .order("created_at", { ascending: false })
         .limit(1);
 
@@ -104,6 +92,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
           id: output.id,
           briefId: output.brief_id,
           stageId: output.stage_id,
+          stage: output.stage,
           contentType: typeof output.content,
           contentKeys: output.content ? Object.keys(output.content) : [],
           rawContent: output.content
