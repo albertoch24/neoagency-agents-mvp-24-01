@@ -91,10 +91,7 @@ export const StageBuilder = ({ stages }: StageBuilderProps) => {
         return (
           <StageCard
             key={stage.id}
-            stage={{
-              ...stage,
-              description: stage.description || ""
-            }}
+            stage={stage}
             index={index}
             isActive={isActive}
             isCompleted={isCompleted}
