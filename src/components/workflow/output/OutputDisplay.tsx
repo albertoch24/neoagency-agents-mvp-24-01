@@ -24,15 +24,7 @@ interface OutputDisplayProps {
 export const OutputDisplay = ({ output }: OutputDisplayProps) => {
   console.log("OutputDisplay received output:", output);
 
-  // Check if output.content is a string (JSON) and parse it
-  const parsedContent = typeof output.content === 'string' 
-    ? JSON.parse(output.content) 
-    : output.content;
-
-  // Ensure outputs exists and is an array
-  const outputs = Array.isArray(parsedContent.outputs) 
-    ? parsedContent.outputs 
-    : [];
+  const outputs = output.content.outputs || [];
 
   console.log("Parsed outputs:", outputs);
 
