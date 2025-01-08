@@ -53,12 +53,14 @@ export const useStageProgress = () => {
     if (!briefId) return false;
     
     try {
-      // Check for outputs in brief_outputs table
+      console.log("Checking completion for stage:", stageId);
+      
+      // Check for outputs using both stage_id and stage fields
       const { data: outputs, error } = await supabase
         .from("brief_outputs")
         .select("*")
         .eq("brief_id", briefId)
-        .eq("stage_id", stageId)
+        .or(`stage_id.eq.${stageId},stage.eq.${stageId}`)
         .order('created_at', { ascending: false })
         .limit(1);
 
