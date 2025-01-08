@@ -1,51 +1,50 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { MarkdownContent } from "../flows/MarkdownContent";
+import { MarkdownContent } from "@/components/flows/MarkdownContent";
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { AgentOutputHeader } from "./AgentOutputHeader";
+
+interface Output {
+  content: string;
+  type: string;
+}
 
 interface AgentOutputProps {
   agent: string;
-  outputs: Array<{
-    content: string;
-    type: string;
-  }>;
+  outputs: Output[];
   orderIndex: number;
   requirements?: string;
   index: number;
 }
 
-export const AgentOutput = ({
-  agent,
-  outputs,
-  requirements,
-  index
-}: AgentOutputProps) => {
-  console.log("Rendering agent output:", { agent, outputs, requirements });
+export const AgentOutput = ({ agent, outputs, orderIndex, requirements, index }: AgentOutputProps) => (
+  <div key={index} className="mt-8">
+    <AgentOutputHeader 
+      agent={agent}
+      orderIndex={orderIndex}
+      requirements={requirements}
+    />
 
-  return (
-    <Card className="mb-6 last:mb-0">
-      <CardContent className="p-6">
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-primary">
-            {agent}
-          </h3>
-          
-          {requirements && (
-            <div className="bg-muted/30 rounded-lg p-4 backdrop-blur-sm">
-              <h4 className="text-sm font-medium mb-2">Requirements:</h4>
-              <div className="prose prose-sm max-w-none">
-                <MarkdownContent content={requirements} />
-              </div>
+    <Accordion type="single" defaultValue={`output-${index}`} collapsible className="w-full">
+      <AccordionItem value={`output-${index}`}>
+        <AccordionTrigger className="text-sm font-medium">
+          View Output Details
+        </AccordionTrigger>
+        <AccordionContent>
+          <div className="prose prose-sm max-w-none mb-8">
+            <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
+              {outputs?.map((output, outputIndex) => (
+                <div key={outputIndex} className="mb-8 last:mb-0">
+                  <MarkdownContent content={output.content} />
+                </div>
+              ))}
             </div>
-          )}
-
-          <div className="space-y-4">
-            {outputs?.map((output, outputIndex) => (
-              <div key={outputIndex} className="prose prose-sm max-w-none">
-                <MarkdownContent content={output.content} />
-              </div>
-            ))}
           </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  </div>
+);

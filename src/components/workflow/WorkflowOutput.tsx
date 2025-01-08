@@ -152,12 +152,6 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
     ? JSON.parse(latestOutput.content) 
     : latestOutput.content;
 
-  console.log("Processing latest output:", {
-    outputId: latestOutput.id,
-    content: content,
-    isValid: isStageOutput(content)
-  });
-
   return (
     <Card className="w-full bg-background shadow-lg">
       <CardContent className="p-8">
@@ -174,7 +168,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                   {isStageOutput(content) && 
                     content.outputs?.map((agentOutput, index) => (
                       <AgentOutput
-                        key={`${latestOutput.id}-${index}`}
+                        key={index}
                         agent={agentOutput.agent}
                         outputs={agentOutput.outputs}
                         orderIndex={agentOutput.orderIndex}
