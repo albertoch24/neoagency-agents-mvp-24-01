@@ -11,6 +11,7 @@ interface WorkflowDisplayActionsProps {
   onNextStage: () => void;
   isProcessing: boolean;
   completedStages?: string[];
+  onStageSelect?: (stage: any) => void;
 }
 
 export const WorkflowDisplayActions = ({
@@ -18,7 +19,8 @@ export const WorkflowDisplayActions = ({
   stages,
   onNextStage,
   isProcessing,
-  completedStages = []
+  completedStages = [],
+  onStageSelect
 }: WorkflowDisplayActionsProps) => {
   const currentIndex = stages.findIndex(stage => stage.id === currentStage);
   const isLastStage = currentIndex === stages.length - 1;
@@ -74,8 +76,6 @@ export const WorkflowDisplayActions = ({
     }
   }, [currentStage]);
 
-  if (isLastStage) return null;
-
   const handleNextStage = () => {
     if (!isCurrentStageCompleted) {
       toast.error("Please complete the current stage first");
@@ -91,11 +91,13 @@ export const WorkflowDisplayActions = ({
       return;
     }
     const previousStage = stages[currentIndex - 1];
-    if (previousStage) {
+    if (previousStage && onStageSelect) {
       console.log("Moving to previous stage:", previousStage.id);
-      onNextStage(); // We reuse the same handler as it will handle the stage transition
+      onStageSelect(previousStage); // Use onStageSelect instead of onNextStage
     }
   };
+
+  if (isLastStage) return null;
 
   return (
     <Card className="cursor-pointer hover:border-primary transition-colors">
