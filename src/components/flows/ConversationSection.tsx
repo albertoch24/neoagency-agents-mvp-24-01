@@ -19,12 +19,15 @@ export const ConversationSection = ({
   onAudioElement,
   onToggleText,
 }: ConversationSectionProps) => {
-  if (!conversations.length) return null;
+  // Filter out structured outputs
+  const conversationalOutputs = conversations.filter(conv => conv.output_type === 'conversational');
+  
+  if (!conversationalOutputs.length) return null;
 
   return (
     <div className="space-y-4 mt-8">
       <h4 className="text-lg font-semibold text-primary">{title}</h4>
-      {conversations.map((conv: any) => (
+      {conversationalOutputs.map((conv: any) => (
         <div key={conv.id} className="space-y-4">
           <ConversationContent
             conversation={conv}

@@ -42,10 +42,11 @@ export const ConversationGroup = ({
   });
 
   const { data: briefOutputs } = useBriefOutputs(group.briefId, group.stageId);
-  const { filterConversationalOutputs } = useConversationFilters(group.conversations);
-
-  // Filter conversations by output type
-  const conversationalOutputs = filterConversationalOutputs(visibleTexts);
+  
+  // Filter out structured outputs
+  const conversationalOutputs = group.conversations?.filter((conv: any) => 
+    conv.output_type === 'conversational'
+  ) || [];
 
   return (
     <Card className="overflow-hidden border-agent">
