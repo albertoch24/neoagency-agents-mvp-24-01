@@ -30,7 +30,7 @@ interface StageOutput {
 }
 
 function isStageOutput(obj: any): obj is StageOutput {
-  console.log("Validating output structure:", obj);
+  console.log("🔍 Validating output structure:", obj);
   const isValid = (
     typeof obj === 'object' &&
     obj !== null &&
@@ -40,20 +40,29 @@ function isStageOutput(obj: any): obj is StageOutput {
     'outputs' in obj &&
     Array.isArray(obj.outputs)
   );
-  console.log("Is valid stage output?", isValid);
+  console.log("✓ Is valid stage output?", isValid);
+  if (!isValid) {
+    console.log("❌ Missing required fields:", {
+      hasStageNameField: 'stage_name' in obj,
+      hasFlowNameField: 'flow_name' in obj,
+      hasAgentCountField: 'agent_count' in obj,
+      hasOutputsField: 'outputs' in obj,
+      outputsIsArray: Array.isArray(obj?.outputs)
+    });
+  }
   return isValid;
 }
 
 export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
-  console.log("WorkflowOutput rendered with:", { briefId, stageId });
+  console.log("🚀 WorkflowOutput rendered with:", { briefId, stageId });
 
   const { data: outputs, error } = useQuery({
     queryKey: ["brief-outputs", briefId, stageId],
     queryFn: async () => {
-      console.log("Fetching outputs for:", { briefId, stageId });
+      console.log("📡 Fetching outputs for:", { briefId, stageId });
       
       if (!briefId || !stageId) {
-        console.log("Missing briefId or stageId");
+        console.log("❌ Missing briefId or stageId");
         return [];
       }
 
@@ -65,12 +74,12 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Error fetching outputs:", error);
+        console.error("❌ Error fetching outputs:", error);
         toast.error("Failed to fetch outputs");
         return [];
       }
 
-      console.log("Found outputs:", data);
+      console.log("✨ Found outputs:", data);
       return data;
     },
     enabled: !!briefId && !!stageId,
@@ -79,10 +88,10 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
     refetchInterval: 5000,
   });
 
-  console.log("Current outputs state:", outputs);
+  console.log("📊 Current outputs state:", outputs);
 
   if (error) {
-    console.error("Query error:", error);
+    console.error("❌ Query error:", error);
     return (
       <div className="p-4 text-red-500">
         Error loading outputs. Please try again.
@@ -91,7 +100,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
   }
 
   if (!outputs?.length) {
-    console.log("No outputs found");
+    console.log("ℹ️ No outputs found");
     return (
       <Card className="w-full bg-background shadow-lg">
         <CardContent className="p-8">
@@ -109,11 +118,11 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         <ScrollArea className="h-[600px] pr-6">
           <div className="space-y-12">
             {outputs.map((output) => {
-              console.log("Processing output:", output);
+              console.log("🔄 Processing output:", output);
               const content = output.content;
               
               if (!isStageOutput(content)) {
-                console.error("Invalid stage output format:", content);
+                console.error("❌ Invalid stage output format:", content);
                 return null;
               }
               
