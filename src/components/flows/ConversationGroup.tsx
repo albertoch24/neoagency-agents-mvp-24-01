@@ -42,11 +42,6 @@ export const ConversationGroup = ({
   });
 
   const { data: briefOutputs } = useBriefOutputs(group.briefId, group.stageId);
-  
-  // Filter out structured outputs
-  const conversationalOutputs = group.conversations?.filter((conv: any) => 
-    conv.output_type === 'conversational'
-  ) || [];
 
   return (
     <Card className="overflow-hidden border-agent">
@@ -54,7 +49,7 @@ export const ConversationGroup = ({
         <ConversationGroupContent
           group={group}
           index={index}
-          conversationalOutputs={conversationalOutputs}
+          conversationalOutputs={group.conversations || []}
           isPlaying={isPlaying}
           visibleTexts={visibleTexts}
           onPlayStateChange={onPlayStateChange}
