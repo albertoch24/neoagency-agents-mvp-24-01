@@ -9,51 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      agent_feedback: {
-        Row: {
-          content: string
-          conversation_id: string
-          created_at: string
-          id: string
-          rating: number | null
-          reviewer_agent_id: string
-          updated_at: string
-        }
-        Insert: {
-          content: string
-          conversation_id: string
-          created_at?: string
-          id?: string
-          rating?: number | null
-          reviewer_agent_id: string
-          updated_at?: string
-        }
-        Update: {
-          content?: string
-          conversation_id?: string
-          created_at?: string
-          id?: string
-          rating?: number | null
-          reviewer_agent_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "agent_feedback_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "workflow_conversations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agent_feedback_reviewer_agent_id_fkey"
-            columns: ["reviewer_agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       agents: {
         Row: {
           created_at: string

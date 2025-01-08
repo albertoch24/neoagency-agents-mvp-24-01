@@ -1,75 +1,85 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { WorkflowRequest, Stage, Brief } from './types.ts';
+import { corsHeaders } from './cors.ts';
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+export async function validateRequest(req: Request): Promise<WorkflowRequest> {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
 
-export async function validateWorkflowData(briefId: string, stageId: string) {
-  console.log('Validating workflow data:', { briefId, stageId });
+  const { briefId, stageId, flowId, flowSteps } = await req.json();
   
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  console.log("Validating request parameters:", { briefId, stageId, flowId });
   
-  try {
-    // Validate brief exists
-    const { data: brief, error: briefError } = await supabase
-      .from('briefs')
-      .select('*')
-      .eq('id', briefId)
-      .maybeSingle();
-      
-    if (briefError || !brief) {
-      console.error('Brief validation failed:', briefError);
-      throw new Error(`Brief not found: ${briefError?.message || 'No brief found'}`);
-    }
-    
-    // Validate stage exists with detailed logging
-    console.log('Fetching stage data...');
-    const { data: stage, error: stageError } = await supabase
-      .from('stages')
-      .select(`
-        *,
-        flows (
+  const missingParams = [];
+  if (!briefId) missingParams.push('briefId');
+  if (!stageId) missingParams.push('stageId');
+  if (!flowId) missingParams.push('flowId');
+  if (!flowSteps) missingParams.push('flowSteps');
+
+  if (missingParams.length > 0) {
+    console.error("Missing required parameters:", missingParams);
+    throw new Error(`Missing required parameters: ${missingParams.join(', ')}`);
+  }
+
+  return { briefId, stageId, flowId, flowSteps };
+}
+
+export async function validateStage(supabase: any, stageId: string): Promise<Stage> {
+  console.log("Validating stage:", stageId);
+  
+  const { data: stage, error: stageError } = await supabase
+    .from("stages")
+    .select(`
+      *,
+      flows (
+        id,
+        flow_steps (
           id,
-          flow_steps (
+          agent_id,
+          agents (
             id,
-            agent_id,
-            requirements,
-            agents (
-              id,
-              name,
-              description,
-              temperature
-            )
+            name,
+            skills (*)
           )
         )
-      `)
-      .eq('id', stageId)
-      .maybeSingle();
-      
-    if (stageError || !stage) {
-      console.error('Stage validation failed:', stageError);
-      throw new Error(`Stage not found: ${stageError?.message || 'No stage found'}`);
-    }
-    
-    console.log('Stage data retrieved:', {
-      stageId: stage.id,
-      flowStepsCount: stage.flows?.flow_steps?.length || 0
-    });
-    
-    if (!stage.flows?.flow_steps?.length) {
-      throw new Error('No flow steps found for stage');
-    }
-    
-    // Validate each flow step has required data
-    stage.flows.flow_steps.forEach((step, index) => {
-      if (!step.agent_id || !step.agents) {
-        throw new Error(`Invalid flow step at index ${index}: missing agent data`);
-      }
-    });
-    
-    console.log('Workflow data validation completed successfully');
-    return { brief, stage };
-  } catch (error) {
-    console.error('Validation error:', error);
-    throw error;
+      )
+    `)
+    .eq("id", stageId)
+    .maybeSingle();
+
+  if (stageError || !stage) {
+    console.error("Stage validation failed:", stageError || "Stage not found");
+    throw new Error("Stage not found or invalid");
   }
+
+  console.log("Stage validation successful:", {
+    stageId: stage.id,
+    stageName: stage.name,
+    flowId: stage.flow_id
+  });
+
+  return stage;
+}
+
+export async function validateBrief(supabase: any, briefId: string): Promise<Brief> {
+  console.log("Validating brief:", briefId);
+  
+  const { data: brief, error: briefError } = await supabase
+    .from("briefs")
+    .select("*")
+    .eq("id", briefId)
+    .single();
+
+  if (briefError || !brief) {
+    console.error("Brief validation failed:", briefError || "Brief not found");
+    throw new Error("Brief not found");
+  }
+
+  console.log("Brief validation successful:", {
+    briefId: brief.id,
+    title: brief.title,
+    currentStage: brief.current_stage
+  });
+
+  return brief;
 }
