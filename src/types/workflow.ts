@@ -18,13 +18,22 @@ export type WorkflowStage = {
 export type Stage = {
   id: string;
   name: string;
-  description: string | null;
-  order_index: number;
-  user_id: string;
-  flow_id: string | null;
+  description?: string | null;
+  order_index?: number;
+  user_id?: string;
+  flow_id?: string | null;
   flows?: {
+    id: string;
     name: string;
-  } | null;
+    flow_steps: Array<{
+      id: string;
+      agent_id: string;
+      requirements: string;
+      order_index: number;
+      outputs: any[];
+      description?: string;
+    }>;
+  };
   created_at?: string;
   updated_at?: string;
 };
