@@ -3,12 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { StageForm } from "./StageForm";
 import { useStageProgress } from "./hooks/useStageProgress";
 import { StageControls } from "./StageControls";
 import { StageHeader } from "./StageHeader";
-import { toast } from "sonner";  // Added toast import
+import { toast } from "sonner";
 
 interface Flow {
   id: string;
@@ -34,6 +34,20 @@ export const StageBuilder = ({ stages }: StageBuilderProps) => {
   const queryClient = useQueryClient();
   const [editingStage, setEditingStage] = useState<Stage | null>(null);
   const { currentStage, startStage, isStageCompleted } = useStageProgress();
+  const [completedStages, setCompletedStages] = useState<Record<string, boolean>>({});
+
+  // Check completion status of stages
+  useEffect(() => {
+    const checkStagesCompletion = async () => {
+      const completionStatus: Record<string, boolean> = {};
+      for (const stage of stages) {
+        completionStatus[stage.id] = await isStageCompleted(stage.id);
+      }
+      setCompletedStages(completionStatus);
+    };
+
+    checkStagesCompletion();
+  }, [stages, isStageCompleted]);
 
   const handleMoveStage = async (stageId: string, direction: "up" | "down") => {
     const currentStage = stages.find((s) => s.id === stageId);
@@ -87,8 +101,8 @@ export const StageBuilder = ({ stages }: StageBuilderProps) => {
     <div className="space-y-4">
       {stages.map((stage, index) => {
         const isActive = currentStage === stage.id;
-        const isCompleted = isStageCompleted(stage.id);
-        const canStart = index === 0 || (index > 0 && isStageCompleted(stages[index - 1].id));
+        const isCompleted = completedStages[stage.id];
+        const canStart = index === 0 || (index > 0 && completedStages[stages[index - 1].id]);
 
         return (
           <Card key={stage.id} className={isActive ? "border-primary" : ""}>
