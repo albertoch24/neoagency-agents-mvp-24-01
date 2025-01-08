@@ -21,36 +21,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get the initial session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('Error fetching session:', error);
-        toast.error('Error fetching session. Please try logging in again.');
-        return;
+    let mounted = true;
+
+    async function getInitialSession() {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error fetching session:', error);
+          toast.error('Error fetching session. Please try logging in again.');
+          return;
+        }
+
+        if (mounted) {
+          if (session) {
+            setSession(session);
+            setUser(session.user);
+          }
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error in getInitialSession:', error);
+        if (mounted) {
+          setLoading(false);
+        }
       }
-      
-      if (session) {
-        setSession(session);
-        setUser(session.user);
+    }
+
+    getInitialSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) {
+        if (session) {
+          setSession(session);
+          setUser(session.user);
+        } else {
+          setSession(null);
+          setUser(null);
+        }
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        setSession(session);
-        setUser(session.user);
-      } else {
-        setSession(null);
-        setUser(null);
-      }
-      
-      setLoading(false);
-    });
-
-    // Cleanup subscription
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);

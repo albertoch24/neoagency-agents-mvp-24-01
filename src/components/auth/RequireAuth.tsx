@@ -23,7 +23,7 @@ export const RequireAuth = ({ children, requireAdmin = false }: RequireAuthProps
         .from("profiles")
         .select("*")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error("Error fetching profile:", error);
@@ -33,28 +33,24 @@ export const RequireAuth = ({ children, requireAdmin = false }: RequireAuthProps
       return data;
     },
     enabled: !!user?.id,
-    retry: 1,
+    retry: false,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     refetchOnWindowFocus: false,
   });
 
-  const loading = authLoading || profileLoading;
+  const loading = authLoading || (!!user && profileLoading);
 
   useEffect(() => {
-    if (loading) {
-      return;
-    }
-
-    if (!user) {
+    if (!authLoading && !user) {
       navigate("/auth", { state: { from: location }, replace: true });
       return;
     }
 
-    if (requireAdmin && !profile?.is_admin) {
+    if (!loading && requireAdmin && !profile?.is_admin) {
       navigate("/", { replace: true });
       return;
     }
-  }, [user, loading, profile, navigate, location, requireAdmin]);
+  }, [user, loading, profile, navigate, location, requireAdmin, authLoading]);
 
   if (loading) {
     return (
