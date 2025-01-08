@@ -1,21 +1,21 @@
-import { createClient } from '@supabase/supabase-js';
-import { Database } from '../../../types/database';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-const supabase = createClient<Database>(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const saveBriefOutput = async (
+  supabase: any,
   briefId: string,
-  stage: string,
+  stageId: string,
   content: any,
-  stageId?: string
+  stageName: string
 ) => {
   console.log('Saving brief output:', {
     briefId,
-    stage,
     stageId,
+    stageName,
     contentSample: JSON.stringify(content).substring(0, 100)
   });
 
@@ -24,7 +24,7 @@ export const saveBriefOutput = async (
       .from('brief_outputs')
       .insert({
         brief_id: briefId,
-        stage: stage,
+        stage: stageName,
         content: content,
         stage_id: stageId
       })
@@ -51,6 +51,7 @@ export const saveBriefOutput = async (
 };
 
 export const saveWorkflowConversation = async (
+  supabase: any,
   briefId: string,
   stageId: string,
   agentId: string,
@@ -86,7 +87,11 @@ export const saveWorkflowConversation = async (
   }
 };
 
-export const getWorkflowConversations = async (briefId: string, stageId: string) => {
+export const getWorkflowConversations = async (
+  supabase: any,
+  briefId: string,
+  stageId: string
+) => {
   try {
     const { data, error } = await supabase
       .from('workflow_conversations')
@@ -115,7 +120,11 @@ export const getWorkflowConversations = async (briefId: string, stageId: string)
   }
 };
 
-export const getBriefOutputs = async (briefId: string, stageId: string) => {
+export const getBriefOutputs = async (
+  supabase: any,
+  briefId: string,
+  stageId: string
+) => {
   try {
     const { data, error } = await supabase
       .from('brief_outputs')
