@@ -1,53 +1,28 @@
-import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import BriefForm from "@/components/brief/BriefForm";
 import BriefDisplay from "@/components/brief/BriefDisplay";
 import { WorkflowDisplay } from "@/components/workflow/WorkflowDisplay";
-import { useSearchParams, useLocation } from "react-router-dom";
 import { BriefActions } from "@/components/brief/BriefActions";
 import { BriefSelector } from "@/components/brief/BriefSelector";
 import { useStageHandling } from "@/hooks/useStageHandling";
 import { ProjectList } from "@/components/brief/ProjectList";
+import { useBriefState } from "@/hooks/useBriefState";
 
 const Index = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const location = useLocation();
   const { user } = useAuth();
-  const [showNewBrief, setShowNewBrief] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [selectedBriefId, setSelectedBriefId] = useState<string | null>(null);
   const { currentStage, handleStageSelect } = useStageHandling(selectedBriefId);
-  const [showOutputs, setShowOutputs] = useState(true);
-
-  // Reset states when navigating to home page
-  useEffect(() => {
-    const briefIdFromUrl = searchParams.get("briefId");
-    
-    if (location.pathname === "/" && !briefIdFromUrl) {
-      setSelectedBriefId(null);
-      setShowNewBrief(false);
-      setIsEditing(false);
-      setShowOutputs(true);
-      // Clear URL parameters
-      if (searchParams.toString()) {
-        setSearchParams({});
-      }
-    } else if (briefIdFromUrl) {
-      setSelectedBriefId(briefIdFromUrl);
-      setShowNewBrief(false);
-      setIsEditing(false);
-      setShowOutputs(true);
-      
-      const newParams = new URLSearchParams(searchParams);
-      if (!searchParams.get("stage")) {
-        newParams.set("stage", "kickoff");
-      }
-      newParams.set("showOutputs", "true");
-      setSearchParams(newParams);
-    }
-  }, [location.pathname, searchParams]);
+  const {
+    showNewBrief,
+    isEditing,
+    selectedBriefId,
+    showOutputs,
+    handleNewBrief,
+    handleEdit,
+    handleSubmitSuccess,
+    handleSelectBrief
+  } = useBriefState();
 
   const { data: briefs, error: briefsError } = useQuery({
     queryKey: ["briefs", user?.id],
@@ -87,26 +62,10 @@ const Index = () => {
     enabled: !!user
   });
 
-  const handleSelectBrief = (briefId: string) => {
-    setSelectedBriefId(briefId);
-    setShowNewBrief(false);
-    setIsEditing(false);
-    
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set("briefId", briefId);
-    newParams.set("showOutputs", "true");
-    if (!searchParams.get("stage")) {
-      newParams.set("stage", "kickoff");
-    }
-    setSearchParams(newParams);
-    setShowOutputs(true);
-  };
-
   if (briefsError || currentBriefError) {
     console.error("Error in briefs query:", briefsError || currentBriefError);
   }
 
-  // Project list view when no brief is selected
   if (!selectedBriefId && !showNewBrief) {
     return (
       <ProjectList 
@@ -116,7 +75,7 @@ const Index = () => {
           handleSelectBrief(briefId);
           setIsEditing(true);
         }}
-        onNew={() => setShowNewBrief(true)}
+        onNew={handleNewBrief}
       />
     );
   }
@@ -128,13 +87,8 @@ const Index = () => {
           currentBrief={currentBrief}
           showNewBrief={showNewBrief}
           isEditing={isEditing}
-          onNewBrief={() => {
-            setShowNewBrief(true);
-            setIsEditing(false);
-            setSelectedBriefId(null);
-            setSearchParams({});
-          }}
-          onEdit={() => setIsEditing(true)}
+          onNewBrief={handleNewBrief}
+          onEdit={handleEdit}
         />
         <BriefSelector 
           briefs={briefs || []} 
@@ -145,11 +99,7 @@ const Index = () => {
       {(showNewBrief || !currentBrief || isEditing) ? (
         <BriefForm 
           initialData={isEditing ? currentBrief : undefined}
-          onSubmitSuccess={() => {
-            setIsEditing(false);
-            setSelectedBriefId(null);
-            setSearchParams({});
-          }}
+          onSubmitSuccess={handleSubmitSuccess}
         />
       ) : (
         <>
