@@ -3,59 +3,39 @@ import { supabase } from "@/integrations/supabase/client";
 import { OutputDisplay } from "./OutputDisplay";
 import { OutputError } from "./OutputError";
 import { OutputLoading } from "./OutputLoading";
-import { Json } from "@/integrations/supabase/types";
 
 interface OutputContainerProps {
-  briefId?: string;
-  stageId: string;
-}
-
-interface BriefOutput {
-  id: string;
-  brief_id: string;
+  briefId: string;
   stage: string;
-  stage_id: string;
-  content: Json;
-  created_at: string;
-  updated_at: string;
 }
 
-export const OutputContainer = ({ briefId, stageId }: OutputContainerProps) => {
-  const { data: outputs, isLoading, error } = useQuery({
-    queryKey: ["brief-outputs", briefId, stageId],
+export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
+  const { data: output, isLoading, error } = useQuery({
+    queryKey: ["brief-outputs", briefId, stage],
     queryFn: async () => {
-      console.log("Fetching outputs for:", { briefId, stageId });
-      
-      if (!briefId) return null;
+      console.log("Fetching output for brief:", briefId, "stage:", stage);
       
       const { data, error } = await supabase
         .from("brief_outputs")
         .select("*")
         .eq("brief_id", briefId)
-        .eq("stage", stageId)
-        .order("created_at", { ascending: false })
-        .limit(1);
+        .eq("stage", stage)
+        .maybeSingle();
 
       if (error) {
-        console.error("Error fetching outputs:", error);
+        console.error("Error fetching output:", error);
         throw error;
       }
 
-      console.log("Fetched outputs:", data);
-      return data?.[0] || null;
+      console.log("Fetched output:", data);
+      return data;
     },
-    enabled: !!briefId
+    enabled: !!briefId && !!stage
   });
 
   if (isLoading) return <OutputLoading />;
-  if (error) return <OutputError error={error as Error} />;
-  if (!outputs) return null;
+  if (error) return <OutputError error={error} />;
+  if (!output) return null;
 
-  // Ensure content is properly parsed if it's a string
-  const parsedOutput = {
-    ...outputs,
-    content: typeof outputs.content === 'string' ? JSON.parse(outputs.content) : outputs.content
-  };
-
-  return <OutputDisplay output={parsedOutput} />;
+  return <OutputDisplay output={output} />;
 };

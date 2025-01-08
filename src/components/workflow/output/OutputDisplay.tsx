@@ -1,8 +1,7 @@
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { AgentOutput } from "../AgentOutput";
-import { Json } from "@/integrations/supabase/types";
 
 interface OutputDisplayProps {
   output: {
@@ -23,11 +22,26 @@ interface OutputDisplayProps {
 }
 
 export const OutputDisplay = ({ output }: OutputDisplayProps) => {
-  console.log("Rendering OutputDisplay with output:", output);
-  
-  if (!output?.content?.outputs) {
-    console.log("No outputs found in content");
-    return null;
+  console.log("OutputDisplay received output:", output);
+
+  // Check if output.content is a string (JSON) and parse it
+  const parsedContent = typeof output.content === 'string' 
+    ? JSON.parse(output.content) 
+    : output.content;
+
+  // Ensure outputs exists and is an array
+  const outputs = Array.isArray(parsedContent.outputs) 
+    ? parsedContent.outputs 
+    : [];
+
+  console.log("Parsed outputs:", outputs);
+
+  if (!outputs || outputs.length === 0) {
+    return (
+      <Card className="mt-4 p-4">
+        <p className="text-muted-foreground">No output available</p>
+      </Card>
+    );
   }
 
   return (
@@ -40,17 +54,14 @@ export const OutputDisplay = ({ output }: OutputDisplayProps) => {
           <AccordionContent>
             <ScrollArea className="h-[600px] px-4 pb-4">
               <div className="space-y-8">
-                {output.content.outputs.map((agentOutput, index) => (
+                {outputs.map((agentOutput, index) => (
                   <AgentOutput
-                    key={`${agentOutput.agent}-${index}`}
+                    key={index}
+                    index={index}
                     agent={agentOutput.agent}
-                    outputs={agentOutput.outputs.map(out => ({
-                      content: out.content,
-                      type: out.type || 'text'
-                    }))}
+                    outputs={agentOutput.outputs}
                     orderIndex={agentOutput.orderIndex || index}
                     requirements={agentOutput.requirements}
-                    index={index}
                   />
                 ))}
               </div>
