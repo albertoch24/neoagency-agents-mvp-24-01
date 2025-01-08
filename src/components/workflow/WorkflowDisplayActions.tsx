@@ -4,15 +4,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Stage } from "@/types/workflow";
 
 interface WorkflowDisplayActionsProps {
   currentStage: string;
-  stages: Stage[];
+  stages: any[];
   onNextStage: () => void;
   isProcessing: boolean;
   completedStages?: string[];
-  onStageSelect?: (stage: Stage) => void;
+  onStageSelect?: (stage: any) => void;
 }
 
 export const WorkflowDisplayActions = ({
@@ -60,7 +59,9 @@ export const WorkflowDisplayActions = ({
           currentStage, 
           isCompleted, 
           hasOutputs: !!outputs, 
-          hasConversations: !!conversations
+          hasConversations: !!conversations,
+          outputs,
+          conversations
         });
         
         setIsCurrentStageCompleted(isCompleted);
@@ -76,30 +77,15 @@ export const WorkflowDisplayActions = ({
   }, [currentStage]);
 
   const handleNextStage = () => {
-    const nextStage = stages[currentIndex + 1];
-    if (!nextStage) {
-      console.log("No next stage available");
-      return;
-    }
-
-    // Use the same logic as stage click
-    const isPreviousCompleted = isCurrentStageCompleted;
-    const isNextStage = true; // Since this is explicitly for next stage
-
-    console.log("Next stage check:", {
-      nextStage,
-      isPreviousCompleted,
-      isNextStage
-    });
-
-    if (isPreviousCompleted && isNextStage) {
-      console.log("Moving to next stage:", nextStage);
-      if (onStageSelect) {
+    if (!isCurrentStageCompleted && !isProcessing) {
+      console.log("Starting stage processing...");
+      onNextStage();
+    } else if (isCurrentStageCompleted) {
+      console.log("Moving to next stage, current stage completed:", isCurrentStageCompleted);
+      const nextStage = stages[currentIndex + 1];
+      if (nextStage && onStageSelect) {
         onStageSelect(nextStage);
       }
-    } else if (!isPreviousCompleted) {
-      console.log("Starting current stage processing");
-      onNextStage();
     }
   };
 

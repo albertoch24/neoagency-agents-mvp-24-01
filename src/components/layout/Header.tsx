@@ -13,30 +13,20 @@ const Header = () => {
   const location = useLocation();
   const { user } = useAuth();
 
+  // Fetch profile data to check admin status
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
-      if (!user?.id) {
-        return null;
-      }
-
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", user.id)
+        .eq("id", user?.id)
         .single();
 
-      if (error) {
-        console.error("Error fetching profile:", error);
-        return null;
-      }
-
+      if (error) throw error;
       return data;
     },
-    enabled: !!user?.id,
-    retry: 3,
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    refetchOnWindowFocus: false,
+    enabled: !!user,
   });
 
   const handleHomeClick = () => {
@@ -56,6 +46,11 @@ const Header = () => {
     }
   };
 
+  // Debug logs
+  console.log('User:', user?.id);
+  console.log('Profile:', profile);
+  console.log('Is admin?', profile?.is_admin);
+
   return (
     <header className="border-b">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -72,9 +67,11 @@ const Header = () => {
             Home
           </Button>
           
+          {/* Admin Navigation Menu - now checking profile.is_admin */}
           {profile?.is_admin && <AdminNavigation />}
         </div>
 
+        {/* Logout Button */}
         <Button
           variant="ghost"
           onClick={handleLogout}
