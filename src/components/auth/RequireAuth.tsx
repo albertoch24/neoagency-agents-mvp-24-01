@@ -25,49 +25,51 @@ export const RequireAuth = ({ children, requireAdmin = false }: RequireAuthProps
         .eq("id", user.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching profile:", error);
+        return null;
+      }
+      
       return data;
     },
     enabled: !!user?.id,
     retry: 3,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   useEffect(() => {
-    console.log("RequireAuth effect running", {
-      loading,
-      profileLoading,
-      user: user?.id,
-      isAdmin: profile?.is_admin,
-      requireAdmin
-    });
+    if (loading || profileLoading) {
+      return;
+    }
 
-    if (!loading && !profileLoading) {
-      if (!user) {
-        console.log("No user found, redirecting to /auth");
-        navigate("/auth", { state: { from: location }, replace: true });
-      } else if (requireAdmin && !profile?.is_admin) {
-        console.log("User is not admin, redirecting to /");
-        navigate("/", { replace: true });
-      }
+    if (!user) {
+      console.log("No user found, redirecting to /auth");
+      navigate("/auth", { state: { from: location }, replace: true });
+      return;
+    }
+
+    if (requireAdmin && !profile?.is_admin) {
+      console.log("User is not admin, redirecting to /");
+      navigate("/", { replace: true });
     }
   }, [user, loading, profileLoading, profile, navigate, location, requireAdmin]);
 
   if (loading || profileLoading) {
-    console.log("Auth or profile loading...");
-    return <div>Loading...</div>;
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="text-lg font-medium">Loading...</div>
+      </div>
+    </div>;
   }
 
   if (!user) {
-    console.log("No user, not rendering protected content");
     return null;
   }
 
   if (requireAdmin && !profile?.is_admin) {
-    console.log("User is not admin, not rendering admin content");
     return null;
   }
 
-  console.log("Rendering protected content for user:", user.id);
   return <>{children}</>;
 };

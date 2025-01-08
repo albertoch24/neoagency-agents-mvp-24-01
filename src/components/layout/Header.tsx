@@ -13,11 +13,11 @@ const Header = () => {
   const location = useLocation();
   const { user } = useAuth();
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
       if (!user?.id) {
-        throw new Error("No user ID available");
+        return null;
       }
 
       const { data, error } = await supabase
@@ -28,7 +28,7 @@ const Header = () => {
 
       if (error) {
         console.error("Error fetching profile:", error);
-        throw error;
+        return null;
       }
 
       return data;
@@ -55,12 +55,6 @@ const Header = () => {
       toast.error("Error during logout");
     }
   };
-
-  // Debug logs
-  console.log('User:', user?.id);
-  console.log('Profile:', profile);
-  console.log('Is admin?', profile?.is_admin);
-  console.log('Profile loading:', isLoading);
 
   return (
     <header className="border-b">
