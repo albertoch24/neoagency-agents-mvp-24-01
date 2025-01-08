@@ -61,10 +61,8 @@ export async function generateAgentResponse(
       firstChars: response.substring(0, 100)
     });
     
-    // Return both responses but with empty structured output
     return {
-      conversationalResponse: response,
-      schematicResponse: "" // Empty string instead of generating a structured output
+      conversationalResponse: response
     };
   } catch (error) {
     console.error('OpenAI API error details:', {

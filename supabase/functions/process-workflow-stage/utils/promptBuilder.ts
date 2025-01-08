@@ -24,8 +24,7 @@ const buildPreviousOutputsSection = (previousOutputs: any[], isFirstStage: boole
   const outputs = previousOutputs
     ?.filter((output: any) => 
       output.content && 
-      typeof output.content === 'object' && 
-      output.output_type === 'structured'
+      typeof output.content === 'object'
     )
     ?.map((output: any) => {
       const content = typeof output.content === 'string' 
@@ -59,7 +58,7 @@ ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\
 `;
 
 const buildOutputRequirementsSection = (outputRequirements: string[]) => `
-Please provide a structured analysis that specifically addresses each of these required outputs:
+Please provide an analysis that specifically addresses each of these required outputs:
 ${outputRequirements.map((req: string, index: number) => `${index + 1}. ${req}`).join('\n')}
 
 Format your response with clear headings and bullet points for each required output.
@@ -103,11 +102,5 @@ export const buildPrompt = (
     ${sections}
   `;
 
-  const schematicPrompt = `
-    As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief, previous stage outputs, and any specific flow step outputs'}:
-    
-    ${sections}
-  `;
-
-  return { conversationalPrompt, schematicPrompt };
+  return { conversationalPrompt };
 };
