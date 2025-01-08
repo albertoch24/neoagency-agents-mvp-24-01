@@ -9,7 +9,7 @@ export async function createAgentChain(agents: any[], brief: any) {
   // Create a ChatOpenAI instance for each agent
   const agentModels = agents.map(agent => new ChatOpenAI({
     openAIApiKey,
-    modelName: "gpt-4o",
+    modelName: "gpt-4o-mini",
     temperature: agent.temperature || 0.7,
     maxTokens: 2000,
   }));
@@ -26,7 +26,9 @@ export async function createAgentChain(agents: any[], brief: any) {
         const response = await agentModels[index].invoke([
           {
             role: "system",
-            content: `You are ${agent.name}. ${agent.description || ''}`
+            content: `You are ${agent.name}. ${agent.description || ''} 
+            Please provide both a conversational response and a structured analysis.
+            For the structured analysis, focus on key points, metrics, and actionable items.`
           },
           {
             role: "user",
@@ -58,6 +60,8 @@ export async function processAgentInteractions(
   requirements: string
 ) {
   try {
+    console.log('Processing agent interactions with requirements:', requirements);
+
     const result = await executor.invoke({
       input: `
         Project Brief: ${brief.title}
@@ -65,11 +69,37 @@ export async function processAgentInteractions(
         Objectives: ${brief.objectives || ''}
         Requirements: ${requirements}
         
-        Please analyze this and provide your insights while consulting with other team members as needed.
+        Please analyze this and provide:
+        1. A conversational response with natural language and explanations
+        2. A structured analysis with key points, metrics, and actionable items
+        
+        Format your response as:
+        ---CONVERSATIONAL---
+        [Your conversational response here]
+        ---STRUCTURED---
+        [Your structured analysis here]
       `
     });
 
-    return result.output;
+    console.log('Raw agent response:', result.output);
+
+    // Split the response into conversational and structured parts
+    const parts = result.output.split('---STRUCTURED---');
+    const conversationalPart = parts[0].replace('---CONVERSATIONAL---', '').trim();
+    const structuredPart = (parts[1] || '').trim();
+
+    return {
+      outputs: [
+        {
+          content: conversationalPart,
+          type: 'conversational'
+        },
+        {
+          content: structuredPart,
+          type: 'structured'
+        }
+      ]
+    };
   } catch (error) {
     console.error('Error in agent interactions:', error);
     throw error;
