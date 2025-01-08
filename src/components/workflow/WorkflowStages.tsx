@@ -98,12 +98,16 @@ export function WorkflowStages({
     const isNextStage = index === currentIndex + 1;
 
     // Allow selecting completed stages or the next available stage
-    if (isCompleted || isPreviousCompleted) {
+    if (isCompleted || (isPreviousCompleted && isNextStage)) {
       console.log("Selecting stage:", stage.id);
       onStageSelect(stage);
-    } else {
-      console.log("Stage selection blocked - Completed:", isCompleted, "Previous completed:", isPreviousCompleted);
+      toast.success(`Moving to ${stage.name}`);
+    } else if (!isPreviousCompleted) {
+      console.log("Stage selection blocked - Previous stage not completed");
       toast.error("Please complete the previous stage first");
+    } else if (!isNextStage) {
+      console.log("Stage selection blocked - Not the next stage in sequence");
+      toast.error("Please complete stages in order");
     }
   };
 
@@ -124,7 +128,7 @@ export function WorkflowStages({
         const isCompleted = completedStages?.includes(stage.id);
         const isNext = index === currentStageIndex + 1;
         const isPreviousCompleted = index > 0 ? completedStages?.includes(stages[index - 1].id) : true;
-        const isClickable = !disabled && (isCompleted || isPreviousCompleted);
+        const isClickable = !disabled && (isCompleted || (isPreviousCompleted && isNext));
         const flowStepsCount = stageFlowSteps?.flows?.flow_steps?.length || 0;
 
         return (
