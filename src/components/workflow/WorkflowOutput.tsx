@@ -55,14 +55,6 @@ function isStageOutput(obj: any): obj is StageOutput {
       hasOutputsField: 'outputs' in obj,
       outputsIsArray: Array.isArray(obj?.outputs)
     });
-  } else {
-    console.log("✨ Valid output structure details:", {
-      stageName: obj.stage_name,
-      flowName: obj.flow_name,
-      agentCount: obj.agent_count,
-      outputsCount: obj.outputs?.length,
-      firstOutput: obj.outputs?.[0]
-    });
   }
   return isValid;
 }
@@ -85,7 +77,8 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         .select("*")
         .eq("brief_id", briefId)
         .eq("stage_id", stageId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(1); // Only get the latest output
 
       if (error) {
         console.error("❌ Error fetching outputs:", error);
@@ -141,36 +134,24 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
     );
   }
 
+  // We only show the latest output
+  const latestOutput = outputs[0];
+
   return (
     <Card className="w-full bg-background shadow-lg">
       <CardContent className="p-8">
         <ScrollArea className="h-[600px] pr-6">
           <div className="space-y-12">
-            {outputs.map((output) => {
-              console.log("🔄 Processing output:", {
-                outputId: output.id,
-                hasContent: !!output.content,
-                contentType: typeof output.content,
-                contentKeys: output.content ? Object.keys(output.content) : [],
-                rawContent: output.content
-              });
-              
-              const content = output.content;
-              
-              if (!isStageOutput(content)) {
-                console.error("❌ Invalid stage output format:", content);
-                return null;
-              }
-              
-              return (
-                <div key={output.id} className="space-y-8">
-                  <OutputHeader 
-                    stageName={content.stage_name}
-                    createdAt={output.created_at}
-                  />
-                  
-                  <div className="text-foreground">
-                    {content.outputs?.map((agentOutput, index) => (
+            {latestOutput && (
+              <div key={latestOutput.id} className="space-y-8">
+                <OutputHeader 
+                  stageName={latestOutput.content.stage_name}
+                  createdAt={latestOutput.created_at}
+                />
+                
+                <div className="text-foreground">
+                  {isStageOutput(latestOutput.content) && 
+                    latestOutput.content.outputs?.map((agentOutput, index) => (
                       <AgentOutput
                         key={index}
                         agent={agentOutput.agent}
@@ -179,11 +160,11 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                         requirements={agentOutput.requirements}
                         index={index}
                       />
-                    ))}
-                  </div>
+                    ))
+                  }
                 </div>
-              );
-            })}
+              </div>
+            )}
           </div>
         </ScrollArea>
       </CardContent>

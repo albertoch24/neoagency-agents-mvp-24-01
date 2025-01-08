@@ -24,6 +24,21 @@ export const WorkflowStageList = ({
   console.log("WorkflowStageList received briefOutputs:", briefOutputs);
   console.log("WorkflowStageList showOutputs:", showOutputs);
 
+  // Get only the most recent output for each stage
+  const getLatestOutput = (stageId: string) => {
+    if (!Array.isArray(briefOutputs)) return null;
+    
+    const stageOutputs = briefOutputs.filter(output => output.stage === stageId);
+    if (!stageOutputs.length) return null;
+    
+    // Sort by created_at in descending order and take the first one
+    return stageOutputs.sort((a, b) => {
+      const dateA = new Date(a.created_at || 0).getTime();
+      const dateB = new Date(b.created_at || 0).getTime();
+      return dateB - dateA;
+    })[0];
+  };
+
   return (
     <div className="space-y-8">
       {stages.map(([stageId, conversations]) => {
@@ -37,11 +52,10 @@ export const WorkflowStageList = ({
           }
         }));
 
-        const output = Array.isArray(briefOutputs) 
-          ? briefOutputs.find((output) => output.stage === stageId)
-          : null;
+        // Get only the latest output for this stage
+        const latestOutput = getLatestOutput(stageId);
 
-        console.log("Stage output for", stageId, ":", output);
+        console.log("Latest output for stage", stageId, ":", latestOutput);
         console.log("Conversations for stage", stageId, ":", conversationalOutputs);
 
         const conversationsByStep = conversationalOutputs.reduce((acc: any, conv: any) => {
@@ -66,8 +80,8 @@ export const WorkflowStageList = ({
                 console.log("Rendering step:", stepId, "with conversations:", stepConvs);
                 return (
                   <div key={stepId} className="space-y-4">
-                    {output && showOutputs && (
-                      <StageOutput output={output} stepId={stepId} />
+                    {latestOutput && showOutputs && (
+                      <StageOutput output={latestOutput} stepId={stepId} />
                     )}
                     <AgentSequence conversations={stepConvs} />
                   </div>
