@@ -78,7 +78,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         return [];
       }
 
-      // Only proceed with the query if stageId is a valid UUID
+      // Skip the query if stageId is not a valid UUID
       if (!isValidUUID(stageId)) {
         console.log("Invalid stage ID format:", stageId);
         return [];
