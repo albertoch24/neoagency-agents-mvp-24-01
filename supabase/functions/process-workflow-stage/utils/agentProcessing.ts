@@ -12,15 +12,24 @@ export async function processAgents(briefId: string, stageId: string) {
   const supabase = createClient(supabaseUrl, supabaseKey);
   
   try {
-    // Validate all required data
+    // Validate all required data with detailed logging
+    console.log('Validating workflow data...');
     const { brief, stage } = await validateWorkflowData(briefId, stageId);
+    console.log('Workflow data validated successfully');
     
     const flowSteps = stage.flows?.flow_steps || [];
-    console.log('Processing flow steps:', flowSteps.length);
+    console.log('Processing flow steps:', {
+      count: flowSteps.length,
+      steps: flowSteps.map(s => ({
+        id: s.id,
+        agentId: s.agent_id,
+        orderIndex: s.order_index
+      }))
+    });
     
     const outputs = [];
     
-    // Process each flow step sequentially
+    // Process each flow step sequentially with retry mechanism
     for (const step of flowSteps) {
       console.log('Processing step:', {
         stepId: step.id,
@@ -33,35 +42,51 @@ export async function processAgents(briefId: string, stageId: string) {
         throw new Error(`Agent not found for step ${step.id}`);
       }
       
-      // Build the prompt
+      // Build the prompt with improved context
       const prompt = `You are ${agent.name}. ${agent.description || ''}
 
 Brief Title: ${brief.title}
 Brief Description: ${brief.description || ''}
 Brief Objectives: ${brief.objectives || ''}
+Target Audience: ${brief.target_audience || ''}
+Budget: ${brief.budget || 'Not specified'}
+Timeline: ${brief.timeline || 'Not specified'}
 
 Your task: ${step.requirements || 'Analyze the brief and provide insights'}
 
 Please provide your response in a clear, structured format.`;
       
-      // Generate response with retries
+      // Generate response with retries and proper error handling
       const response = await generateAgentResponse(
         prompt,
         agent.temperature || 0.7
       );
       
-      // Save conversation
-      const { data: conversation, error: convError } = await supabase
-        .from('workflow_conversations')
-        .insert({
-          brief_id: brief.id,
-          stage_id: stageId,
-          agent_id: step.agent_id,
-          content: response,
-          flow_step_id: step.id
-        })
-        .select()
-        .single();
+      // Save conversation with retry mechanism
+      const { data: conversation, error: convError } = await withRetry(
+        async () => {
+          const result = await supabase
+            .from('workflow_conversations')
+            .insert({
+              brief_id: brief.id,
+              stage_id: stageId,
+              agent_id: step.agent_id,
+              content: response,
+              flow_step_id: step.id
+            })
+            .select()
+            .single();
+            
+          if (result.error) throw result.error;
+          return result;
+        },
+        {
+          maxRetries: 3,
+          onRetry: (error, attempt) => {
+            console.error(`Failed to save conversation (attempt ${attempt}):`, error);
+          }
+        }
+      );
         
       if (convError) {
         console.error('Error saving conversation:', convError);
@@ -76,9 +101,14 @@ Please provide your response in a clear, structured format.`;
         conversation
       });
       
-      console.log('Step processed successfully:', step.id);
+      console.log('Step processed successfully:', {
+        stepId: step.id,
+        agentId: agent.id,
+        responseLength: response.length
+      });
     }
     
+    console.log('All steps processed successfully');
     return outputs;
     
   } catch (error) {

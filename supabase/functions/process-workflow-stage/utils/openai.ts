@@ -26,26 +26,32 @@ export async function generateAgentResponse(
   
   return withRetry(
     async () => {
-      const completion = await openai.createChatCompletion({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are a creative agency professional. Provide detailed, actionable insights."
-          },
-          { role: "user", content: prompt }
-        ],
-        temperature,
-        max_tokens: maxTokens,
-      });
+      try {
+        const completion = await openai.createChatCompletion({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are a creative agency professional. Provide detailed, actionable insights."
+            },
+            { role: "user", content: prompt }
+          ],
+          temperature,
+          max_tokens: maxTokens,
+        });
 
-      const response = completion.data.choices[0]?.message?.content;
-      
-      if (!response) {
-        throw new Error('No response from OpenAI');
+        const response = completion.data.choices[0]?.message?.content;
+        
+        if (!response) {
+          throw new Error('No response from OpenAI');
+        }
+        
+        console.log('OpenAI response generated successfully');
+        return response;
+      } catch (error) {
+        console.error('OpenAI API error:', error);
+        throw new Error(`OpenAI API error: ${error.message || 'Unknown error'}`);
       }
-      
-      return response;
     },
     {
       maxRetries: 3,
