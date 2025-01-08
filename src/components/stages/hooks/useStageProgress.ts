@@ -108,45 +108,6 @@ export const useStageProgress = () => {
     }
   };
 
-  // Effect to check current stage completion and progress to next stage
-  useEffect(() => {
-    const checkAndProgressStage = async () => {
-      if (!currentStage || !briefId) return;
-
-      try {
-        // Get all stages
-        const { data: stages } = await supabase
-          .from("stages")
-          .select("*")
-          .order("order_index", { ascending: true });
-
-        if (!stages) return;
-
-        const currentIndex = stages.findIndex(s => s.id === currentStage);
-        if (currentIndex === -1 || currentIndex === stages.length - 1) return;
-
-        // Check if current stage is completed
-        const isCompleted = await isStageCompleted(currentStage);
-        console.log("Current stage completion status:", { currentStage, isCompleted });
-
-        if (isCompleted) {
-          // Get next stage
-          const nextStage = stages[currentIndex + 1];
-          if (nextStage) {
-            console.log("Progressing to next stage:", nextStage.id);
-            await startStage(nextStage.id);
-          }
-        }
-      } catch (error) {
-        console.error("Error in stage progression:", error);
-      }
-    };
-
-    // Run the check periodically
-    const interval = setInterval(checkAndProgressStage, 5000);
-    return () => clearInterval(interval);
-  }, [currentStage, briefId]);
-
   // Set initial stage from URL if present
   useEffect(() => {
     const stage = searchParams.get('stage');

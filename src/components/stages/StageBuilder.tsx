@@ -97,6 +97,24 @@ export const StageBuilder = ({ stages }: StageBuilderProps) => {
     }
   };
 
+  const handleStageClick = async (stage: Stage, index: number) => {
+    // If it's the first stage, allow starting it
+    if (index === 0) {
+      startStage(stage.id);
+      return;
+    }
+
+    // Check if previous stage is completed
+    const previousStage = stages[index - 1];
+    const isPreviousCompleted = await isStageCompleted(previousStage.id);
+
+    if (isPreviousCompleted) {
+      startStage(stage.id);
+    } else {
+      toast.error("Please complete the previous stage first");
+    }
+  };
+
   return (
     <div className="space-y-4">
       {stages.map((stage, index) => {
@@ -105,7 +123,11 @@ export const StageBuilder = ({ stages }: StageBuilderProps) => {
         const canStart = index === 0 || (index > 0 && completedStages[stages[index - 1].id]);
 
         return (
-          <Card key={stage.id} className={isActive ? "border-primary" : ""}>
+          <Card 
+            key={stage.id} 
+            className={isActive ? "border-primary" : ""}
+            onClick={() => handleStageClick(stage, index)}
+          >
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <StageHeader 
@@ -124,7 +146,10 @@ export const StageBuilder = ({ stages }: StageBuilderProps) => {
                   />
                   {!isCompleted && canStart && (
                     <Button
-                      onClick={() => startStage(stage.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStageClick(stage, index);
+                      }}
                       className="flex items-center gap-2"
                     >
                       Start Stage
