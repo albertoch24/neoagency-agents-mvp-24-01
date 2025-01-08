@@ -28,7 +28,6 @@ export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageLi
   return (
     <div className="space-y-8">
       {stages.map(([stageId, conversations]) => {
-        // Add briefId to each conversation if it's not already present
         const conversationsWithIds = conversations.map((conv: any) => {
           console.log("Processing conversation:", conv);
           console.log("Flow step data:", conv.flow_steps);
@@ -50,7 +49,6 @@ export const WorkflowStageList = ({ stages, briefOutputs = [] }: WorkflowStageLi
         console.log("Stage output for", stageId, ":", output);
         console.log("Conversations for stage", stageId, ":", conversationsWithIds);
 
-        // Group conversations by flow step
         const conversationsByStep = conversationsWithIds.reduce((acc: any, conv: any) => {
           const stepId = conv.flow_step_id || `no-step-${conv.id}`;
           if (!acc[stepId]) {

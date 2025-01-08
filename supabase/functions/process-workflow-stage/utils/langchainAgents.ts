@@ -6,7 +6,6 @@ import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 export async function createAgentChain(agents: any[], brief: any) {
   const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
   
-  // Create a ChatOpenAI instance for each agent
   const agentModels = agents.map(agent => new ChatOpenAI({
     openAIApiKey,
     modelName: "gpt-4o-mini",
@@ -14,7 +13,6 @@ export async function createAgentChain(agents: any[], brief: any) {
     maxTokens: 2000,
   }));
 
-  // Create tools for inter-agent communication
   const tools = agents.map((agent, index) => {
     return new DynamicStructuredTool({
       name: `consult_${agent.name.toLowerCase().replace(/\s+/g, '_')}`,
@@ -27,8 +25,7 @@ export async function createAgentChain(agents: any[], brief: any) {
           {
             role: "system",
             content: `You are ${agent.name}. ${agent.description || ''} 
-            Please provide both a conversational response and a structured analysis.
-            For the structured analysis, focus on key points, metrics, and actionable items.`
+            Please provide a natural, conversational response that explains your thoughts and recommendations.`
           },
           {
             role: "user",
@@ -40,10 +37,9 @@ export async function createAgentChain(agents: any[], brief: any) {
     });
   });
 
-  // Create the main executor that will manage agent interactions
   const executor = await initializeAgentExecutorWithOptions(
     tools,
-    agentModels[0], // Use the first agent as the coordinator
+    agentModels[0],
     {
       agentType: "structured-chat-zero-shot-react-description",
       verbose: true,
@@ -69,34 +65,18 @@ export async function processAgentInteractions(
         Objectives: ${brief.objectives || ''}
         Requirements: ${requirements}
         
-        Please analyze this and provide:
-        1. A conversational response with natural language and explanations
-        2. A structured analysis with key points, metrics, and actionable items
-        
-        Format your response as:
-        ---CONVERSATIONAL---
-        [Your conversational response here]
-        ---STRUCTURED---
-        [Your structured analysis here]
+        Please analyze this and provide a detailed response with your thoughts, recommendations, and insights.
+        Focus on being clear, specific, and actionable in your response.
       `
     });
 
     console.log('Raw agent response:', result.output);
 
-    // Split the response into conversational and structured parts
-    const parts = result.output.split('---STRUCTURED---');
-    const conversationalPart = parts[0].replace('---CONVERSATIONAL---', '').trim();
-    const structuredPart = (parts[1] || '').trim();
-
     return {
       outputs: [
         {
-          content: conversationalPart,
+          content: result.output,
           type: 'conversational'
-        },
-        {
-          content: structuredPart,
-          type: 'structured'
         }
       ]
     };
