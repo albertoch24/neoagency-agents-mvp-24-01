@@ -29,6 +29,7 @@ export const WorkflowDisplayActions = ({
       toast.error("Please complete the current stage first");
       return;
     }
+    console.log("Moving to next stage, current stage completed:", isCurrentStageCompleted);
     onNextStage();
   };
 
