@@ -20,7 +20,7 @@ export const WorkflowDisplay = ({
   currentStage,
   onStageSelect,
   briefId,
-  showOutputs = false
+  showOutputs = true // Changed default to true to ensure outputs are shown
 }: WorkflowDisplayProps) => {
   const { data: stages = [] } = useStagesData(briefId);
   const { isProcessing, processStage } = useStageProcessing(briefId || "");
