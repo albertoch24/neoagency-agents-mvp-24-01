@@ -61,8 +61,7 @@ export const useStageProgress = () => {
         .select("*")
         .eq("brief_id", briefId)
         .or(`stage_id.eq.${stageId},stage.eq.${stageId}`)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .maybeSingle();
 
       if (outputsError) {
         console.error("Error checking outputs:", outputsError);
@@ -70,25 +69,24 @@ export const useStageProgress = () => {
       }
 
       // Log the check results
-      console.log("Stage completion check:", {
+      console.log("Stage completion check - outputs:", {
         stageId,
-        hasOutputs: outputs && outputs.length > 0,
-        outputs: outputs
+        hasOutput: !!outputs,
+        output: outputs
       });
 
-      // If we have outputs, the stage is completed
-      if (outputs && outputs.length > 0) {
+      // If we have an output, the stage is completed
+      if (outputs) {
         return true;
       }
 
       // If no outputs found, check workflow_conversations table
-      const { data: conversations, error: convsError } = await supabase
+      const { data: conversation, error: convsError } = await supabase
         .from("workflow_conversations")
         .select("*")
         .eq("brief_id", briefId)
         .eq("stage_id", stageId)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .maybeSingle();
 
       if (convsError) {
         console.error("Error checking conversations:", convsError);
@@ -96,14 +94,14 @@ export const useStageProgress = () => {
       }
 
       // Log conversations check
-      console.log("Conversations check:", {
+      console.log("Stage completion check - conversation:", {
         stageId,
-        hasConversations: conversations && conversations.length > 0,
-        conversations: conversations
+        hasConversation: !!conversation,
+        conversation: conversation
       });
 
       // A stage is completed if it has at least one conversation
-      return conversations && conversations.length > 0;
+      return !!conversation;
     } catch (error) {
       console.error("Error checking stage completion:", error);
       return false;
