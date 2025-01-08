@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Configuration, OpenAIApi } from 'openai';
+import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.3.0';
 import { Database } from '../../../types/supabase';
 
 async function collectAgentFeedback(
@@ -58,7 +58,7 @@ Please provide your response in a clear, structured format.`;
 
     try {
       const completion = await openai.createChatCompletion({
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [{ role: 'user', content: prompt }],
       });
 
@@ -138,7 +138,7 @@ Feedback: [Your detailed feedback]
 Rating: [1-5]`;
 
   const response = await openai.createChatCompletion({
-    model: "gpt-4",
+    model: "gpt-4o",
     messages: [{ role: "user", content: prompt }],
   });
 
