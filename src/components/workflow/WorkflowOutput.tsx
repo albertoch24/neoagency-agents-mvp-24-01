@@ -61,7 +61,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         .from("brief_outputs")
         .select("*")
         .eq("brief_id", briefId)
-        .eq("stage", stageId)
+        .eq("stage_id", stageId)
         .order("created_at", { ascending: false });
 
       if (error) {
