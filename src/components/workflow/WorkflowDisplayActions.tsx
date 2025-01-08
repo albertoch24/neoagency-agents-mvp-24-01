@@ -40,7 +40,7 @@ export const WorkflowDisplayActions = ({
           console.error("Error checking outputs:", outputsError);
         }
 
-        // Check in workflow_conversations table
+        // Check in workflow_conversations table using UUID comparison
         const { data: conversations, error: convsError } = await supabase
           .from("workflow_conversations")
           .select("*")
