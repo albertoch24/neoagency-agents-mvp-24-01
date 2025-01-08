@@ -33,12 +33,12 @@ export const OutputDisplay = ({ output }: OutputDisplayProps) => {
   return (
     <Card className="mt-4">
       <Accordion type="single" collapsible>
-        <AccordionItem value="output">
-          <AccordionTrigger className="px-4">
+        <AccordionItem value="output" className="border-none">
+          <AccordionTrigger className="px-4 py-3 text-lg font-semibold hover:no-underline">
             View Output Details
           </AccordionTrigger>
           <AccordionContent>
-            <ScrollArea className="h-[600px] px-4">
+            <ScrollArea className="h-[600px] px-4 pb-4">
               <div className="space-y-8">
                 {output.content.outputs.map((agentOutput, index) => (
                   <AgentOutput
