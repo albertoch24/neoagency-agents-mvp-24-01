@@ -1,36 +1,19 @@
 import { AgentSequence } from "../flows/AgentSequence";
-import { StageOutput } from "../flows/StageOutput";
 
 interface WorkflowStageListProps {
   stages: [string, any[]][];
-  briefOutputs: Array<{
-    stage: string;
-    content: {
-      response?: string;
-      [key: string]: any;
-    };
-    created_at?: string;
-    [key: string]: any;
-  }>;
-  showOutputs?: boolean;
 }
 
-export const WorkflowStageList = ({ 
-  stages, 
-  briefOutputs = [],
-  showOutputs = false
-}: WorkflowStageListProps) => {
+export const WorkflowStageList = ({ stages }: WorkflowStageListProps) => {
   console.log("WorkflowStageList received stages:", stages);
-  console.log("WorkflowStageList received briefOutputs:", briefOutputs);
-  console.log("WorkflowStageList showOutputs:", showOutputs);
 
   return (
     <div className="space-y-8">
       {stages.map(([stageId, conversations]) => {
-        // Filter out structured outputs and add briefId to each conversation
-        const conversationalOutputs = conversations
-          .filter((conv: any) => conv.output_type === 'conversational')
-          .map((conv: any) => ({
+        const conversationsWithIds = conversations.map((conv: any) => {
+          console.log("Processing conversation:", conv);
+          console.log("Flow step data:", conv.flow_steps);
+          return {
             ...conv,
             stage_id: stageId,
             brief_id: conv.brief_id || (conversations[0]?.brief_id),
@@ -38,17 +21,12 @@ export const WorkflowStageList = ({
               ...conv.flow_steps,
               order_index: conv.flow_steps?.order_index ?? 0
             }
-          }));
+          };
+        });
 
-        const output = Array.isArray(briefOutputs) 
-          ? briefOutputs.find((output) => output.stage === stageId)
-          : null;
+        console.log("Conversations for stage", stageId, ":", conversationsWithIds);
 
-        console.log("Stage output for", stageId, ":", output);
-        console.log("Conversations for stage", stageId, ":", conversationalOutputs);
-
-        // Group conversations by flow step
-        const conversationsByStep = conversationalOutputs.reduce((acc: any, conv: any) => {
+        const conversationsByStep = conversationsWithIds.reduce((acc: any, conv: any) => {
           const stepId = conv.flow_step_id || `no-step-${conv.id}`;
           if (!acc[stepId]) {
             acc[stepId] = [];
@@ -70,9 +48,6 @@ export const WorkflowStageList = ({
                 console.log("Rendering step:", stepId, "with conversations:", stepConvs);
                 return (
                   <div key={stepId} className="space-y-4">
-                    {output && showOutputs && (
-                      <StageOutput output={output} stepId={stepId} />
-                    )}
                     <AgentSequence conversations={stepConvs} />
                   </div>
                 );
