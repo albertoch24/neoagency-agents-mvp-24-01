@@ -37,7 +37,7 @@ export const OutputContainer = ({ briefId, stageId }: OutputContainerProps) => {
   });
 
   if (isLoading) return <OutputLoading />;
-  if (error) return <OutputError error={error} />;
+  if (error) return <OutputError error={error as Error} />;
   if (!outputs) return null;
 
   return <OutputDisplay output={outputs} />;
