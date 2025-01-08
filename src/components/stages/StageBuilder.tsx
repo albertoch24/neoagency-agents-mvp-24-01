@@ -1,30 +1,13 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { StageForm } from "./StageForm";
 import { useStageProgress } from "./hooks/useStageProgress";
-import { StageControls } from "./StageControls";
-import { StageHeader } from "./StageHeader";
+import { StageCard } from "./StageCard";
 import { toast } from "sonner";
-
-interface Flow {
-  id: string;
-  name: string;
-  description: string | null;
-}
-
-interface Stage {
-  id: string;
-  name: string;
-  description: string | null;
-  order_index: number;
-  user_id: string;
-  flow_id: string | null;
-  flows?: Flow;
-}
+import { useStageProgression } from "@/hooks/useStageProgression";
+import { Stage } from "@/types/workflow";
 
 interface StageBuilderProps {
   stages: Stage[];
@@ -33,8 +16,9 @@ interface StageBuilderProps {
 export const StageBuilder = ({ stages }: StageBuilderProps) => {
   const queryClient = useQueryClient();
   const [editingStage, setEditingStage] = useState<Stage | null>(null);
-  const { currentStage, startStage, isStageCompleted } = useStageProgress();
+  const { currentStage } = useStageProgress();
   const [completedStages, setCompletedStages] = useState<Record<string, boolean>>({});
+  const { isStageCompleted, handleStageProgression } = useStageProgression();
 
   // Check completion status of stages
   useEffect(() => {
@@ -97,24 +81,6 @@ export const StageBuilder = ({ stages }: StageBuilderProps) => {
     }
   };
 
-  const handleStageClick = async (stage: Stage, index: number) => {
-    // If it's the first stage, allow starting it
-    if (index === 0) {
-      startStage(stage.id);
-      return;
-    }
-
-    // Check if previous stage is completed
-    const previousStage = stages[index - 1];
-    const isPreviousCompleted = await isStageCompleted(previousStage.id);
-
-    if (isPreviousCompleted) {
-      startStage(stage.id);
-    } else {
-      toast.error("Please complete the previous stage first");
-    }
-  };
-
   return (
     <div className="space-y-4">
       {stages.map((stage, index) => {
@@ -123,42 +89,19 @@ export const StageBuilder = ({ stages }: StageBuilderProps) => {
         const canStart = index === 0 || (index > 0 && completedStages[stages[index - 1].id]);
 
         return (
-          <Card 
-            key={stage.id} 
-            className={isActive ? "border-primary" : ""}
-            onClick={() => handleStageClick(stage, index)}
-          >
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <StageHeader 
-                  stage={stage} 
-                  isActive={isActive}
-                  isCompleted={isCompleted}
-                />
-                <div className="flex items-center gap-2">
-                  <StageControls
-                    stage={stage}
-                    index={index}
-                    totalStages={stages.length}
-                    onMove={handleMoveStage}
-                    onEdit={() => setEditingStage(stage)}
-                    onDelete={handleDeleteStage}
-                  />
-                  {!isCompleted && canStart && (
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStageClick(stage, index);
-                      }}
-                      className="flex items-center gap-2"
-                    >
-                      Start Stage
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <StageCard
+            key={stage.id}
+            stage={stage}
+            index={index}
+            isActive={isActive}
+            isCompleted={isCompleted}
+            canStart={canStart}
+            totalStages={stages.length}
+            onStageClick={(stage, index) => handleStageProgression(stage, index, stages)}
+            onMove={handleMoveStage}
+            onEdit={() => setEditingStage(stage)}
+            onDelete={handleDeleteStage}
+          />
         );
       })}
 
