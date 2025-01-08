@@ -52,30 +52,22 @@ export async function saveConversation(
   content: string,
   flowStepId?: string
 ) {
-  console.log('Saving conversation:', {
-    briefId,
-    stageId,
-    agentId,
-    flowStepId,
-    contentLength: content.length
-  });
+  try {
+    const { error: conversationError } = await supabase
+      .from("workflow_conversations")
+      .insert({
+        brief_id: briefId,
+        stage_id: stageId,
+        agent_id: agentId,
+        content: content,
+        flow_step_id: flowStepId
+      });
 
-  const { error: conversationError } = await supabase
-    .from("workflow_conversations")
-    .insert({
-      brief_id: briefId,
-      stage_id: stageId,
-      agent_id: agentId,
-      content: content,
-      flow_step_id: flowStepId
-    });
-
-  if (conversationError) {
-    console.error('Error saving conversation:', conversationError);
-    throw conversationError;
+    if (conversationError) throw conversationError;
+  } catch (error) {
+    console.error('Error saving conversation:', error);
+    throw error;
   }
-
-  console.log('Conversation saved successfully');
 }
 
 export async function saveStructuredOutput(
@@ -85,28 +77,21 @@ export async function saveStructuredOutput(
   flowStepId: string,
   content: string
 ) {
-  console.log('Saving structured output:', {
-    briefId,
-    stageId,
-    flowStepId,
-    contentLength: content.length
-  });
+  try {
+    const { error: outputError } = await supabase
+      .from("structured_outputs")
+      .insert({
+        brief_id: briefId,
+        stage_id: stageId,
+        flow_step_id: flowStepId,
+        content: content
+      });
 
-  const { error: outputError } = await supabase
-    .from("structured_outputs")
-    .insert({
-      brief_id: briefId,
-      stage_id: stageId,
-      flow_step_id: flowStepId,
-      content: content
-    });
-
-  if (outputError) {
-    console.error('Error saving structured output:', outputError);
-    throw outputError;
+    if (outputError) throw outputError;
+  } catch (error) {
+    console.error('Error saving structured output:', error);
+    throw error;
   }
-
-  console.log('Structured output saved successfully');
 }
 
 export async function saveBriefOutput(
@@ -116,30 +101,32 @@ export async function saveBriefOutput(
   stageName: string,
   outputs: any[]
 ) {
-  console.log('Saving brief output:', {
-    briefId,
-    stageId,
-    stageName,
-    outputsCount: outputs.length
-  });
-
   try {
+    // Validate inputs
+    if (!briefId || !stageId || !stageName) {
+      throw new Error('Missing required parameters');
+    }
+
+    // Prepare the content object with minimal nesting
+    const content = {
+      stage_name: stageName,
+      outputs: outputs.map(output => ({
+        agent: output.agent || 'Unknown Agent',
+        requirements: output.requirements || '',
+        outputs: Array.isArray(output.outputs) ? output.outputs : [],
+        stepId: output.stepId || '',
+        orderIndex: output.orderIndex || 0
+      }))
+    };
+
+    // Insert the data
     const { error: outputError } = await supabase
       .from("brief_outputs")
       .insert({
         brief_id: briefId,
         stage: stageId,
         stage_id: stageId,
-        content: {
-          stage_name: stageName,
-          outputs: outputs.map(output => ({
-            agent: output.agent,
-            requirements: output.requirements,
-            outputs: output.outputs,
-            stepId: output.stepId,
-            orderIndex: output.orderIndex
-          }))
-        }
+        content
       });
 
     if (outputError) {
@@ -147,7 +134,6 @@ export async function saveBriefOutput(
       throw outputError;
     }
 
-    console.log('Brief output saved successfully');
   } catch (error) {
     console.error('Error in saveBriefOutput:', error);
     throw error;
