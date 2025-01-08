@@ -115,11 +115,10 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                   <div className="text-foreground">
                     {stageOutput.outputs?.map((agentOutput, index) => (
                       <div key={index} className="mt-8">
-                        {/* Prima sezione: Contenuto strutturato da brief_outputs */}
                         <div className="prose prose-sm max-w-none mb-8">
                           <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
                             <h4 className="text-lg font-semibold mb-4 text-primary">
-                              Output Strutturato - {agentOutput.agent}
+                              {agentOutput.agent}
                               {agentOutput.requirements && (
                                 <span className="text-sm font-normal text-muted-foreground ml-2">
                                   ({agentOutput.requirements})
@@ -134,7 +133,6 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                           </div>
                         </div>
 
-                        {/* Seconda sezione: Contenuto conversazionale da workflow_conversations */}
                         <Accordion type="single" collapsible className="w-full">
                           <AccordionItem 
                             value={`agent-${index}`} 
