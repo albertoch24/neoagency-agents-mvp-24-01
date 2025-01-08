@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import BriefForm from "@/components/brief/BriefForm";
 import BriefDisplay from "@/components/brief/BriefDisplay";
 import { WorkflowDisplay } from "@/components/workflow/WorkflowDisplay";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation } from "react-router-dom";
 import { BriefActions } from "@/components/brief/BriefActions";
 import { BriefSelector } from "@/components/brief/BriefSelector";
 import { useStageHandling } from "@/hooks/useStageHandling";
@@ -13,35 +13,39 @@ import { ProjectList } from "@/components/brief/ProjectList";
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const { user } = useAuth();
   const [showNewBrief, setShowNewBrief] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedBriefId, setSelectedBriefId] = useState<string | null>(null);
   const { currentStage, handleStageSelect } = useStageHandling(selectedBriefId);
-  const [showOutputs, setShowOutputs] = useState(true); // Set default to true
+  const [showOutputs, setShowOutputs] = useState(true);
 
-  // Initialize state from URL parameters
+  // Reset states when navigating to home page
   useEffect(() => {
     const briefIdFromUrl = searchParams.get("briefId");
-    const showOutputsParam = searchParams.get("showOutputs");
     
-    if (briefIdFromUrl) {
+    if (location.pathname === "/" && !briefIdFromUrl) {
+      setSelectedBriefId(null);
+      setShowNewBrief(false);
+      setIsEditing(false);
+      setShowOutputs(true);
+      // Clear URL parameters
+      setSearchParams({});
+    } else if (briefIdFromUrl) {
       setSelectedBriefId(briefIdFromUrl);
       setShowNewBrief(false);
       setIsEditing(false);
-      
-      // Always show outputs when selecting a brief
       setShowOutputs(true);
       
       const newParams = new URLSearchParams(searchParams);
-      newParams.set("briefId", briefIdFromUrl);
       if (!searchParams.get("stage")) {
         newParams.set("stage", "kickoff");
       }
       newParams.set("showOutputs", "true");
-      setSearchParams(newParams, { replace: true });
+      setSearchParams(newParams);
     }
-  }, [searchParams.get("briefId")]);
+  }, [location.pathname, searchParams.get("briefId")]);
 
   const { data: briefs, error: briefsError } = useQuery({
     queryKey: ["briefs", user?.id],
