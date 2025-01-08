@@ -10,7 +10,7 @@ interface RequireAuthProps {
 }
 
 export const RequireAuth = ({ children, requireAdmin = false }: RequireAuthProps) => {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -33,41 +33,40 @@ export const RequireAuth = ({ children, requireAdmin = false }: RequireAuthProps
       return data;
     },
     enabled: !!user?.id,
-    retry: 3,
+    retry: 1,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     refetchOnWindowFocus: false,
   });
 
+  const loading = authLoading || profileLoading;
+
   useEffect(() => {
-    if (loading || profileLoading) {
+    if (loading) {
       return;
     }
 
     if (!user) {
-      console.log("No user found, redirecting to /auth");
       navigate("/auth", { state: { from: location }, replace: true });
       return;
     }
 
     if (requireAdmin && !profile?.is_admin) {
-      console.log("User is not admin, redirecting to /");
       navigate("/", { replace: true });
+      return;
     }
-  }, [user, loading, profileLoading, profile, navigate, location, requireAdmin]);
+  }, [user, loading, profile, navigate, location, requireAdmin]);
 
-  if (loading || profileLoading) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <div className="text-lg font-medium">Loading...</div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="text-lg font-medium">Loading...</div>
+        </div>
       </div>
-    </div>;
+    );
   }
 
-  if (!user) {
-    return null;
-  }
-
-  if (requireAdmin && !profile?.is_admin) {
+  if (!user || (requireAdmin && !profile?.is_admin)) {
     return null;
   }
 
