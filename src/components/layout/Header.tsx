@@ -13,12 +13,9 @@ const Header = () => {
   const location = useLocation();
   const { user } = useAuth();
 
-  // Fetch profile data to check admin status with proper error handling
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
-      console.log("Fetching profile for user:", user?.id);
-      
       if (!user?.id) {
         throw new Error("No user ID available");
       }
@@ -34,12 +31,12 @@ const Header = () => {
         throw error;
       }
 
-      console.log("Profile data:", data);
       return data;
     },
     enabled: !!user?.id,
     retry: 3,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   const handleHomeClick = () => {
@@ -63,6 +60,7 @@ const Header = () => {
   console.log('User:', user?.id);
   console.log('Profile:', profile);
   console.log('Is admin?', profile?.is_admin);
+  console.log('Profile loading:', isLoading);
 
   return (
     <header className="border-b">
@@ -80,11 +78,9 @@ const Header = () => {
             Home
           </Button>
           
-          {/* Admin Navigation Menu - now with better error handling */}
           {profile?.is_admin && <AdminNavigation />}
         </div>
 
-        {/* Logout Button */}
         <Button
           variant="ghost"
           onClick={handleLogout}

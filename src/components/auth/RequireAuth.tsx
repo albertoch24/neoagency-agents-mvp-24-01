@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RequireAuthProps {
   children: React.ReactNode;
@@ -8,32 +10,51 @@ interface RequireAuthProps {
 }
 
 export const RequireAuth = ({ children, requireAdmin = false }: RequireAuthProps) => {
-  console.log("RequireAuth rendering", { requireAdmin });
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+    retry: 3,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
+
   useEffect(() => {
     console.log("RequireAuth effect running", {
       loading,
+      profileLoading,
       user: user?.id,
-      isAdmin: user?.user_metadata?.is_admin,
+      isAdmin: profile?.is_admin,
       requireAdmin
     });
 
-    if (!loading) {
+    if (!loading && !profileLoading) {
       if (!user) {
         console.log("No user found, redirecting to /auth");
         navigate("/auth", { state: { from: location }, replace: true });
-      } else if (requireAdmin && !user.user_metadata?.is_admin) {
+      } else if (requireAdmin && !profile?.is_admin) {
         console.log("User is not admin, redirecting to /");
         navigate("/", { replace: true });
       }
     }
-  }, [user, loading, navigate, location, requireAdmin]);
+  }, [user, loading, profileLoading, profile, navigate, location, requireAdmin]);
 
-  if (loading) {
-    console.log("Auth loading...");
+  if (loading || profileLoading) {
+    console.log("Auth or profile loading...");
     return <div>Loading...</div>;
   }
 
@@ -42,7 +63,7 @@ export const RequireAuth = ({ children, requireAdmin = false }: RequireAuthProps
     return null;
   }
 
-  if (requireAdmin && !user.user_metadata?.is_admin) {
+  if (requireAdmin && !profile?.is_admin) {
     console.log("User is not admin, not rendering admin content");
     return null;
   }
