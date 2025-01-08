@@ -38,7 +38,6 @@ interface StageOutput {
   outputs: AgentOutput[];
 }
 
-// Type guard to check if an object is a StageOutput
 function isStageOutput(obj: any): obj is StageOutput {
   return (
     typeof obj === 'object' &&
@@ -61,7 +60,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         .from("brief_outputs")
         .select("*")
         .eq("brief_id", briefId)
-        .eq("stage_id", stageId)
+        .eq("stage", stageId)  // Changed from stage_id to stage
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -139,7 +138,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                           </div>
                         </div>
 
-                        <Accordion type="single" defaultValue={`output-${index}`} className="w-full">
+                        <Accordion type="single" defaultValue={`output-${index}`} collapsible className="w-full">
                           <AccordionItem value={`output-${index}`}>
                             <AccordionTrigger className="text-sm font-medium">
                               View Output Details
