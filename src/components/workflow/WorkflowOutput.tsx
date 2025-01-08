@@ -136,6 +136,9 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
 
   // We only show the latest output
   const latestOutput = outputs[0];
+  const content = typeof latestOutput.content === 'string' 
+    ? JSON.parse(latestOutput.content) 
+    : latestOutput.content;
 
   return (
     <Card className="w-full bg-background shadow-lg">
@@ -145,13 +148,13 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
             {latestOutput && (
               <div key={latestOutput.id} className="space-y-8">
                 <OutputHeader 
-                  stageName={latestOutput.content.stage_name}
+                  stageName={content.stage_name}
                   createdAt={latestOutput.created_at}
                 />
                 
                 <div className="text-foreground">
-                  {isStageOutput(latestOutput.content) && 
-                    latestOutput.content.outputs?.map((agentOutput, index) => (
+                  {isStageOutput(content) && 
+                    content.outputs?.map((agentOutput, index) => (
                       <AgentOutput
                         key={index}
                         agent={agentOutput.agent}

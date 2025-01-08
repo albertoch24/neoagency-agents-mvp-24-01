@@ -49,12 +49,37 @@ export const useStageProgress = () => {
     }
   };
 
-  const isStageCompleted = (stageId: string) => {
+  const isStageCompleted = async (stageId: string) => {
     if (!briefId) return false;
     
-    // Check if there are outputs for this stage
-    const outputs = queryClient.getQueryData(["brief-outputs", briefId, stageId]);
-    return !!outputs;
+    try {
+      // Check for outputs in brief_outputs table
+      const { data: outputs, error } = await supabase
+        .from("brief_outputs")
+        .select("*")
+        .eq("brief_id", briefId)
+        .eq("stage_id", stageId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error("Error checking stage completion:", error);
+        return false;
+      }
+
+      // Log the check results
+      console.log("Stage completion check:", {
+        stageId,
+        hasOutputs: outputs && outputs.length > 0,
+        outputs: outputs
+      });
+
+      // A stage is completed if it has at least one output
+      return outputs && outputs.length > 0;
+    } catch (error) {
+      console.error("Error checking stage completion:", error);
+      return false;
+    }
   };
 
   // Set initial stage from URL if present
