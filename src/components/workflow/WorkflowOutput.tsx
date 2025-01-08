@@ -1,12 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { MarkdownContent } from "@/components/flows/MarkdownContent";
@@ -128,30 +122,6 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                             ))}
                           </div>
                         </div>
-
-                        <Accordion type="single" collapsible className="w-full">
-                          <AccordionItem 
-                            value={`agent-${index}`} 
-                            className="border rounded-lg shadow-sm bg-card/50 backdrop-blur-sm"
-                          >
-                            <AccordionTrigger className="px-6 py-4 text-xl font-semibold hover:no-underline data-[state=open]:text-primary">
-                              Output Strutturato - {agentOutput.agent}
-                            </AccordionTrigger>
-                            <AccordionContent className="px-6 pb-6">
-                              <div className="prose prose-sm max-w-none">
-                                <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
-                                  {agentOutput.outputs?.map((output, outputIndex) => (
-                                    output.type === 'structured' && (
-                                      <div key={outputIndex}>
-                                        <MarkdownContent content={output.content} />
-                                      </div>
-                                    )
-                                  ))}
-                                </div>
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                        </Accordion>
                       </div>
                     ))}
                   </div>
