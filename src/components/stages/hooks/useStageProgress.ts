@@ -55,8 +55,8 @@ export const useStageProgress = () => {
     try {
       console.log("Checking completion for stage:", stageId);
       
-      // Check for outputs using both stage_id and stage fields
-      const { data: outputs, error } = await supabase
+      // First check brief_outputs table
+      const { data: outputs, error: outputsError } = await supabase
         .from("brief_outputs")
         .select("*")
         .eq("brief_id", briefId)
@@ -64,8 +64,8 @@ export const useStageProgress = () => {
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (error) {
-        console.error("Error checking stage completion:", error);
+      if (outputsError) {
+        console.error("Error checking outputs:", outputsError);
         return false;
       }
 
@@ -76,8 +76,34 @@ export const useStageProgress = () => {
         outputs: outputs
       });
 
-      // A stage is completed if it has at least one output
-      return outputs && outputs.length > 0;
+      // If we have outputs, the stage is completed
+      if (outputs && outputs.length > 0) {
+        return true;
+      }
+
+      // If no outputs found, check workflow_conversations table
+      const { data: conversations, error: convsError } = await supabase
+        .from("workflow_conversations")
+        .select("*")
+        .eq("brief_id", briefId)
+        .eq("stage_id", stageId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (convsError) {
+        console.error("Error checking conversations:", convsError);
+        return false;
+      }
+
+      // Log conversations check
+      console.log("Conversations check:", {
+        stageId,
+        hasConversations: conversations && conversations.length > 0,
+        conversations: conversations
+      });
+
+      // A stage is completed if it has at least one conversation
+      return conversations && conversations.length > 0;
     } catch (error) {
       console.error("Error checking stage completion:", error);
       return false;
