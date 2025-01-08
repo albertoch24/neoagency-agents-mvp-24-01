@@ -1,6 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
-import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.3.0';
-import { Database } from '../../../types/supabase';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.3.0";
 
 async function collectAgentFeedback(
   supabase: any,
@@ -98,21 +97,21 @@ Please provide your response in a clear, structured format.`;
   }
 
   // After each agent processes, collect feedback from other agents
-  for (const step of flowSteps) {
-    const otherAgents = flowSteps.filter(s => s.agent_id !== step.agent_id);
+  for (const output of outputs) {
+    const otherAgents = outputs.filter(o => o.agent.id !== output.agent.id);
     
     for (const reviewer of otherAgents) {
       const feedback = await generateAgentFeedback(
         openai,
-        step.conversation.content,
+        output.conversation.content,
         reviewer.agent.name,
         reviewer.agent.description
       );
       
       await collectAgentFeedback(
         supabase,
-        step.conversation.id,
-        reviewer.agent_id,
+        output.conversation.id,
+        reviewer.agent.id,
         feedback.content,
         feedback.rating
       );
