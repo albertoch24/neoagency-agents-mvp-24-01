@@ -29,7 +29,7 @@ export async function generateAgentResponse(
     const completion = await withRetry(
       async () => {
         const response = await openai.createChatCompletion({
-          model: "gpt-4o-mini", // Corrected model name
+          model: "gpt-4o-mini",
           messages: [
             {
               role: "system",
@@ -61,7 +61,11 @@ export async function generateAgentResponse(
       firstChars: response.substring(0, 100)
     });
     
-    return response;
+    // Return both responses but with empty structured output
+    return {
+      conversationalResponse: response,
+      schematicResponse: "" // Empty string instead of generating a structured output
+    };
   } catch (error) {
     console.error('OpenAI API error details:', {
       error: error.message,
