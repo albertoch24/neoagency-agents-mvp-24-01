@@ -15,6 +15,20 @@ export type WorkflowStage = {
   updated_at?: string;
 };
 
+export type Stage = {
+  id: string;
+  name: string;
+  description: string | null;
+  order_index: number;
+  user_id: string;
+  flow_id: string | null;
+  flows?: {
+    name: string;
+  } | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
 export type WorkflowState = {
   currentStage: string;
   stages: Record<string, WorkflowStage>;
