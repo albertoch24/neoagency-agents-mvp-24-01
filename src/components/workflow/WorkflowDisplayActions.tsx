@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ArrowLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
@@ -22,6 +22,7 @@ export const WorkflowDisplayActions = ({
 }: WorkflowDisplayActionsProps) => {
   const currentIndex = stages.findIndex(stage => stage.id === currentStage);
   const isLastStage = currentIndex === stages.length - 1;
+  const isFirstStage = currentIndex === 0;
   const [isCurrentStageCompleted, setIsCurrentStageCompleted] = useState(false);
 
   useEffect(() => {
@@ -84,9 +85,29 @@ export const WorkflowDisplayActions = ({
     onNextStage();
   };
 
+  const handlePreviousStage = () => {
+    if (isFirstStage) {
+      toast.error("This is the first stage");
+      return;
+    }
+    const previousStage = stages[currentIndex - 1];
+    if (previousStage) {
+      console.log("Moving to previous stage:", previousStage.id);
+      onNextStage(); // We reuse the same handler as it will handle the stage transition
+    }
+  };
+
   return (
-    <Card>
-      <CardContent className="flex justify-end p-4">
+    <Card className="cursor-pointer hover:border-primary transition-colors">
+      <CardContent className="flex justify-between items-center p-4">
+        <Button
+          onClick={handlePreviousStage}
+          disabled={isFirstStage || isProcessing}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Previous Stage
+        </Button>
         <Button
           onClick={handleNextStage}
           disabled={isProcessing || !isCurrentStageCompleted}
