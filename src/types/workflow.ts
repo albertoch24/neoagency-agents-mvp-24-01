@@ -25,7 +25,8 @@ export type Stage = {
   flows?: {
     id: string;
     name: string;
-    flow_steps: Array<{
+    description?: string;
+    flow_steps?: Array<{
       id: string;
       agent_id: string;
       requirements: string;

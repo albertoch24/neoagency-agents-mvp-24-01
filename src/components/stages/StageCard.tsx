@@ -38,7 +38,13 @@ export const StageCard = ({
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <StageHeader 
-            stage={stage} 
+            stage={{
+              name: stage.name,
+              description: stage.description || "",
+              flows: stage.flows ? {
+                name: stage.flows.name
+              } : undefined
+            }}
             isActive={isActive}
             isCompleted={isCompleted}
           />
