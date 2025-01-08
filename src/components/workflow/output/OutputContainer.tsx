@@ -3,10 +3,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { OutputDisplay } from "./OutputDisplay";
 import { OutputError } from "./OutputError";
 import { OutputLoading } from "./OutputLoading";
+import { Json } from "@/integrations/supabase/types";
 
 interface OutputContainerProps {
   briefId?: string;
   stageId: string;
+}
+
+interface BriefOutput {
+  id: string;
+  brief_id: string;
+  stage: string;
+  stage_id: string;
+  content: Json;
+  created_at: string;
+  updated_at: string;
 }
 
 export const OutputContainer = ({ briefId, stageId }: OutputContainerProps) => {
@@ -40,5 +51,11 @@ export const OutputContainer = ({ briefId, stageId }: OutputContainerProps) => {
   if (error) return <OutputError error={error as Error} />;
   if (!outputs) return null;
 
-  return <OutputDisplay output={outputs} />;
+  // Ensure content is properly parsed if it's a string
+  const parsedOutput = {
+    ...outputs,
+    content: typeof outputs.content === 'string' ? JSON.parse(outputs.content) : outputs.content
+  };
+
+  return <OutputDisplay output={parsedOutput} />;
 };
