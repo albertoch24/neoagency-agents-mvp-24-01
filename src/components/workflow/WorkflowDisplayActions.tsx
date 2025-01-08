@@ -27,22 +27,40 @@ export const WorkflowDisplayActions = ({
   useEffect(() => {
     const checkStageCompletion = async () => {
       try {
+        console.log("Checking completion for stage:", currentStage);
+        
         // Check in brief_outputs table
-        const { data: outputs } = await supabase
+        const { data: outputs, error: outputsError } = await supabase
           .from("brief_outputs")
           .select("*")
           .eq("stage_id", currentStage)
           .maybeSingle();
 
+        if (outputsError) {
+          console.error("Error checking outputs:", outputsError);
+        }
+
         // Check in workflow_conversations table
-        const { data: conversations } = await supabase
+        const { data: conversations, error: convsError } = await supabase
           .from("workflow_conversations")
           .select("*")
           .eq("stage_id", currentStage)
           .maybeSingle();
 
+        if (convsError) {
+          console.error("Error checking conversations:", convsError);
+        }
+
         const isCompleted = !!outputs || !!conversations;
-        console.log("Stage completion check:", { currentStage, isCompleted, outputs, conversations });
+        console.log("Stage completion check:", { 
+          currentStage, 
+          isCompleted, 
+          hasOutputs: !!outputs, 
+          hasConversations: !!conversations,
+          outputs,
+          conversations
+        });
+        
         setIsCurrentStageCompleted(isCompleted);
       } catch (error) {
         console.error("Error checking stage completion:", error);
@@ -50,7 +68,9 @@ export const WorkflowDisplayActions = ({
       }
     };
 
-    checkStageCompletion();
+    if (currentStage) {
+      checkStageCompletion();
+    }
   }, [currentStage]);
 
   if (isLastStage) return null;
