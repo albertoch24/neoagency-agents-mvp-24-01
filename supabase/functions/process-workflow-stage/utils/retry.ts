@@ -1,48 +1,42 @@
-export async function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 interface RetryOptions {
   maxRetries?: number;
   initialDelay?: number;
   maxDelay?: number;
+  backoff?: number;
   onRetry?: (error: Error, attempt: number) => void;
 }
 
 export async function withRetry<T>(
-  operation: () => Promise<T>,
+  fn: () => Promise<T>,
   options: RetryOptions = {}
 ): Promise<T> {
   const {
     maxRetries = 3,
     initialDelay = 1000,
     maxDelay = 10000,
-    onRetry
+    backoff = 2,
+    onRetry = () => {}
   } = options;
 
   let lastError: Error;
-  
+  let delay = initialDelay;
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      return await operation();
+      return await fn();
     } catch (error) {
-      lastError = error as Error;
-      console.error(`Attempt ${attempt} failed:`, error);
+      lastError = error;
       
-      if (onRetry) {
-        onRetry(error as Error, attempt);
+      if (attempt === maxRetries) {
+        break;
       }
+
+      onRetry(error, attempt);
       
-      if (attempt < maxRetries) {
-        const delayTime = Math.min(
-          initialDelay * Math.pow(2, attempt - 1),
-          maxDelay
-        );
-        console.log(`Retrying in ${delayTime}ms...`);
-        await delay(delayTime);
-      }
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay = Math.min(delay * backoff, maxDelay);
     }
   }
-  
+
   throw lastError;
 }
