@@ -32,6 +32,26 @@ const App = () => (
                 </RequireAuth>
               }
             />
+            <Route
+              path="/brief/:briefId"
+              element={
+                <RequireAuth>
+                  <AppLayout>
+                    <Index />
+                  </AppLayout>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/brief/:briefId/stage/:stageId"
+              element={
+                <RequireAuth>
+                  <AppLayout>
+                    <Index />
+                  </AppLayout>
+                </RequireAuth>
+              }
+            />
             <Route path="/auth" element={<Auth />} />
             <Route
               path="/agents"

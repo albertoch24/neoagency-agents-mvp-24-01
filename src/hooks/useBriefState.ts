@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, useLocation } from "react-router-dom";
+import { useSearchParams, useLocation, useParams } from "react-router-dom";
 
 export const useBriefState = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
+  const params = useParams();
   const [showNewBrief, setShowNewBrief] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedBriefId, setSelectedBriefId] = useState<string | null>(null);
   const [showOutputs, setShowOutputs] = useState(true);
 
   useEffect(() => {
-    const briefIdFromUrl = searchParams.get("briefId");
+    const briefIdFromUrl = params.briefId || searchParams.get("briefId");
     
     if (location.pathname === "/" && !briefIdFromUrl) {
       setSelectedBriefId(null);
@@ -25,15 +26,8 @@ export const useBriefState = () => {
       setShowNewBrief(false);
       setIsEditing(false);
       setShowOutputs(true);
-      
-      const newParams = new URLSearchParams(searchParams);
-      if (!searchParams.get("stage")) {
-        newParams.set("stage", "kickoff");
-      }
-      newParams.set("showOutputs", "true");
-      setSearchParams(newParams);
     }
-  }, [location.pathname, searchParams, setSearchParams]);
+  }, [location.pathname, params.briefId, searchParams, setSearchParams]);
 
   const handleNewBrief = () => {
     setShowNewBrief(true);
@@ -56,14 +50,6 @@ export const useBriefState = () => {
     setSelectedBriefId(briefId);
     setShowNewBrief(false);
     setIsEditing(false);
-    
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set("briefId", briefId);
-    newParams.set("showOutputs", "true");
-    if (!searchParams.get("stage")) {
-      newParams.set("stage", "kickoff");
-    }
-    setSearchParams(newParams);
     setShowOutputs(true);
   };
 

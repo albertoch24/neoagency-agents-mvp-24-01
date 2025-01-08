@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Stage } from "@/types/workflow";
 import { StageHeader } from "./StageHeader";
 import { StageControls } from "./StageControls";
+import { useNavigate } from "react-router-dom";
 
 interface StageCardProps {
   stage: Stage;
@@ -11,6 +12,7 @@ interface StageCardProps {
   isCompleted: boolean;
   canStart: boolean;
   totalStages: number;
+  briefId: string;
   onStageClick: (stage: Stage, index: number) => void;
   onMove: (stageId: string, direction: "up" | "down") => void;
   onEdit: () => void;
@@ -24,16 +26,24 @@ export const StageCard = ({
   isCompleted,
   canStart,
   totalStages,
+  briefId,
   onStageClick,
   onMove,
   onEdit,
   onDelete
 }: StageCardProps) => {
+  const navigate = useNavigate();
+
+  const handleStageClick = (stage: Stage, index: number) => {
+    navigate(`/brief/${briefId}/stage/${stage.id}`);
+    onStageClick(stage, index);
+  };
+
   return (
     <Card 
       key={stage.id} 
       className={isActive ? "border-primary" : ""}
-      onClick={() => onStageClick(stage, index)}
+      onClick={() => handleStageClick(stage, index)}
     >
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
@@ -55,7 +65,7 @@ export const StageCard = ({
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onStageClick(stage, index);
+                  handleStageClick(stage, index);
                 }}
                 className="flex items-center gap-2"
               >

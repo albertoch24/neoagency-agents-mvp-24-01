@@ -4,6 +4,7 @@ import { Edit, Trash2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 interface Brief {
   id: string;
@@ -20,6 +21,7 @@ interface ProjectListProps {
 
 export const ProjectList = ({ briefs, onSelect, onEdit, onNew }: ProjectListProps) => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const handleDelete = async (briefId: string) => {
     try {
@@ -36,6 +38,11 @@ export const ProjectList = ({ briefs, onSelect, onEdit, onNew }: ProjectListProp
       console.error("Error deleting brief:", error);
       toast.error("Failed to delete project");
     }
+  };
+
+  const handleView = (briefId: string) => {
+    navigate(`/brief/${briefId}`);
+    onSelect(briefId);
   };
 
   return (
@@ -70,7 +77,7 @@ export const ProjectList = ({ briefs, onSelect, onEdit, onNew }: ProjectListProp
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onSelect(brief.id)}
+                  onClick={() => handleView(brief.id)}
                 >
                   <Eye className="h-4 w-4" />
                 </Button>
