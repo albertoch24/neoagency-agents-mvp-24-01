@@ -15,17 +15,17 @@ serve(async (req) => {
   try {
     console.log('Processing workflow stage request');
     
-    const { briefId, stageId } = await req.json();
+    const { briefId, stageId, flowId, flowSteps } = await req.json();
     
     if (!briefId || !stageId) {
       throw new Error('Missing required parameters: briefId and stageId are required');
     }
     
-    console.log('Processing workflow for:', { briefId, stageId });
+    console.log('Processing workflow for:', { briefId, stageId, flowId, flowSteps });
     
     const outputs = await processAgents(briefId, stageId);
     
-    console.log('Workflow processed successfully');
+    console.log('Workflow processed successfully:', outputs);
     
     return new Response(
       JSON.stringify({ 
