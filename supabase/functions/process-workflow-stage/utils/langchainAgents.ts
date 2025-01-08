@@ -1,7 +1,7 @@
-import { ChatOpenAI } from "@langchain/openai";
-import { initializeAgentExecutorWithOptions } from "langchain/agents";
-import { DynamicStructuredTool } from "@langchain/core/tools";
-import { z } from "zod";
+import { ChatOpenAI } from "https://esm.sh/@langchain/openai@0.0.14";
+import { initializeAgentExecutorWithOptions } from "https://esm.sh/langchain@0.0.200/agents";
+import { DynamicStructuredTool } from "https://esm.sh/@langchain/core@0.1.18/tools";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 export async function createAgentChain(agents: any[], brief: any) {
   const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
