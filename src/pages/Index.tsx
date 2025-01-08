@@ -31,7 +31,9 @@ const Index = () => {
       setIsEditing(false);
       setShowOutputs(true);
       // Clear URL parameters
-      setSearchParams({});
+      if (searchParams.toString()) {
+        setSearchParams({});
+      }
     } else if (briefIdFromUrl) {
       setSelectedBriefId(briefIdFromUrl);
       setShowNewBrief(false);
@@ -45,7 +47,7 @@ const Index = () => {
       newParams.set("showOutputs", "true");
       setSearchParams(newParams);
     }
-  }, [location.pathname, searchParams.get("briefId")]);
+  }, [location.pathname, searchParams]);
 
   const { data: briefs, error: briefsError } = useQuery({
     queryKey: ["briefs", user?.id],
@@ -129,6 +131,8 @@ const Index = () => {
           onNewBrief={() => {
             setShowNewBrief(true);
             setIsEditing(false);
+            setSelectedBriefId(null);
+            setSearchParams({});
           }}
           onEdit={() => setIsEditing(true)}
         />
@@ -144,6 +148,7 @@ const Index = () => {
           onSubmitSuccess={() => {
             setIsEditing(false);
             setSelectedBriefId(null);
+            setSearchParams({});
           }}
         />
       ) : (
