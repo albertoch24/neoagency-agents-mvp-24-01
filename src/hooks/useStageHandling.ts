@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { WorkflowStage } from "@/types/workflow";
+import { Stage } from "@/types/workflow";
 import { supabase } from "@/integrations/supabase/client";
 import { useStageProcessing } from "@/hooks/useStageProcessing";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -66,7 +66,7 @@ export const useStageHandling = (selectedBriefId: string | null) => {
     }
   }, [searchParams.get("stage"), selectedBriefId]);
 
-  const handleStageSelect = async (stage: WorkflowStage) => {
+  const handleStageSelect = async (stage: Stage) => {
     if (!selectedBriefId) return;
 
     console.log("Handling stage selection:", stage.id);

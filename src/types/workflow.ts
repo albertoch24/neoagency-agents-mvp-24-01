@@ -4,7 +4,7 @@ export type WorkflowRole = {
   responsibilities: string[];
 };
 
-// Unified Stage type that matches database schema and component usage
+// Comprehensive Stage type that matches database schema
 export type Stage = {
   id: string;
   name: string;
@@ -15,6 +15,7 @@ export type Stage = {
   flows?: {
     id: string;
     name: string;
+    description?: string;
     flow_steps: Array<{
       id: string;
       agent_id: string;
@@ -32,7 +33,7 @@ export type Stage = {
   updated_at?: string;
 };
 
-// Remove duplicate WorkflowStage type and use Stage instead
+// Use Stage type instead of WorkflowStage
 export type WorkflowState = {
   currentStage: string;
   stages: Record<string, Stage>;

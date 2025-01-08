@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { WorkflowStage } from "@/types/workflow";
+import { Stage } from "@/types/workflow";
 import { Flag, Search, Lightbulb, Film, Target } from "lucide-react";
 
 const iconMap = {
@@ -13,7 +13,7 @@ const iconMap = {
 };
 
 interface StageCardProps {
-  stage: WorkflowStage;
+  stage: Stage;
   index: number;
   isActive: boolean;
   isCompleted: boolean;
