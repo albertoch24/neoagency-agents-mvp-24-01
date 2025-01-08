@@ -27,10 +27,14 @@ export async function processAgents(
   stageId: string,
   stageName: string
 ) {
+  console.log("Starting agent processing with flow steps:", flowSteps);
+  
   const outputs = [];
-  const openai = new OpenAIApi(new Configuration({
+  const configuration = new Configuration({
     apiKey: Deno.env.get('OPENAI_API_KEY'),
-  }));
+  });
+  
+  const openai = new OpenAIApi(configuration);
 
   for (const step of flowSteps) {
     console.log(`Processing step for agent ${step.agent_id}`);
@@ -56,8 +60,10 @@ Your task: ${step.requirements || 'Analyze the brief and provide insights'}
 Please provide your response in a clear, structured format.`;
 
     try {
+      console.log("Sending prompt to OpenAI:", prompt);
+      
       const completion = await openai.createChatCompletion({
-        model: 'gpt-4o',
+        model: 'gpt-4',
         messages: [{ role: 'user', content: prompt }],
       });
 
@@ -66,6 +72,8 @@ Please provide your response in a clear, structured format.`;
       if (!response) {
         throw new Error('No response from OpenAI');
       }
+
+      console.log("Received response from OpenAI:", response);
 
       const { data: conversation, error: convError } = await supabase
         .from('workflow_conversations')
@@ -137,7 +145,7 @@ Feedback: [Your detailed feedback]
 Rating: [1-5]`;
 
   const response = await openai.createChatCompletion({
-    model: "gpt-4o",
+    model: "gpt-4",
     messages: [{ role: "user", content: prompt }],
   });
 
