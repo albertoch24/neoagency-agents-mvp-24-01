@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Stage } from "@/types/brief";
-import { validateWorkflowEntities } from "./validationService";
+import { Stage } from "@/types/workflow";
 import { toast } from "sonner";
 
 export const processWorkflowStage = async (
@@ -8,65 +7,53 @@ export const processWorkflowStage = async (
   stage: Stage,
   flowSteps: any[]
 ) => {
-  console.log("Starting workflow stage processing");
-  
-  // Validate all required entities exist
-  const validation = await validateWorkflowEntities(briefId, stage.id);
-  if (!validation.isValid) {
-    toast.error(validation.message || "Workflow validation failed");
-    throw new Error(validation.message);
-  }
-
-  if (!stage.flow_id) {
-    throw new Error(`Stage "${stage.name}" has no associated flow`);
-  }
-
-  // Use the validated flow steps from the database
-  const validatedFlowSteps = validation.flowSteps;
-  if (!validatedFlowSteps || validatedFlowSteps.length === 0) {
-    throw new Error("No valid flow steps found");
-  }
-
-  console.log("Processing workflow steps:", {
+  console.log("Processing workflow stage:", {
     briefId,
     stageId: stage.id,
-    flowId: stage.flow_id,
-    stepsCount: validatedFlowSteps.length,
-    steps: validatedFlowSteps.map(step => ({
-      id: step.id,
-      agentId: step.agent_id,
-      orderIndex: step.order_index
-    }))
+    flowStepsCount: flowSteps.length
   });
 
   try {
-    console.log("Invoking process-workflow-stage function with params:", {
-      briefId,
-      stageId: stage.id,
-      flowId: stage.flow_id
+    // Call the edge function to process the workflow
+    const { error } = await supabase.functions.invoke("process-workflow-stage", {
+      body: {
+        briefId,
+        stageId: stage.id,
+        flowSteps
+      }
     });
 
-    const { data: workflowData, error: workflowError } = await supabase.functions.invoke(
-      "process-workflow-stage",
-      {
-        body: { 
-          briefId, 
-          stageId: stage.id,
-          flowId: stage.flow_id,
-          flowSteps: validatedFlowSteps
-        },
-      }
-    );
-
-    if (workflowError) {
-      console.error("Error in workflow processing:", workflowError);
-      throw workflowError;
+    if (error) {
+      console.error("Error processing workflow stage:", error);
+      throw error;
     }
 
-    console.log("Workflow stage processed successfully:", workflowData);
-    return workflowData;
+    // Create workflow conversations for each flow step
+    for (const step of flowSteps) {
+      console.log("Creating workflow conversation for step:", step);
+      
+      const { error: conversationError } = await supabase
+        .from("workflow_conversations")
+        .insert({
+          brief_id: briefId,
+          stage_id: stage.id,
+          agent_id: step.agent_id,
+          content: JSON.stringify(step.outputs || []),
+          output_type: "conversational",
+          flow_step_id: step.id
+        });
+
+      if (conversationError) {
+        console.error("Error creating workflow conversation:", conversationError);
+        throw conversationError;
+      }
+    }
+
+    console.log("Successfully processed workflow stage and created conversations");
+    return true;
   } catch (error) {
-    console.error("Error invoking workflow function:", error);
-    throw new Error("Failed to process workflow stage. Please try again.");
+    console.error("Error in processWorkflowStage:", error);
+    toast.error("Failed to process workflow stage");
+    throw error;
   }
 };

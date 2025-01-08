@@ -67,7 +67,9 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
           throw new Error("No flow steps found for the first stage");
         }
 
+        // Process each flow step and create workflow conversations
         await processWorkflowStage(brief.id, stage, flowSteps);
+        
         toast.dismiss(toastId);
         toast.success(
           initialData 
@@ -76,7 +78,7 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
           { duration: 8000 }
         );
 
-        // Invalidate queries before navigation
+        // Invalidate queries to refresh data
         await queryClient.invalidateQueries({ queryKey: ["briefs"] });
         await queryClient.invalidateQueries({ queryKey: ["brief"] });
         await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
