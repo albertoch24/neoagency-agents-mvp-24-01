@@ -36,6 +36,19 @@ interface StageOutput {
   outputs: AgentOutput[];
 }
 
+// Type guard to check if an object is a StageOutput
+function isStageOutput(obj: any): obj is StageOutput {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'stage_name' in obj &&
+    'flow_name' in obj &&
+    'agent_count' in obj &&
+    'outputs' in obj &&
+    Array.isArray(obj.outputs)
+  );
+}
+
 export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
   const { data: outputs } = useQuery({
     queryKey: ["brief-outputs", briefId, stageId],
@@ -73,7 +86,12 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         <ScrollArea className="h-[600px] pr-6">
           <div className="space-y-12">
             {outputs.map((output) => {
-              const content = output.content as StageOutput;
+              // Safely type check the content
+              const content = output.content as unknown;
+              if (!isStageOutput(content)) {
+                console.error("Invalid stage output format:", content);
+                return null;
+              }
               
               console.log("Processing output content:", content);
 
