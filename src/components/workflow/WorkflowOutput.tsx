@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
-import { marked } from "marked";
 import { MarkdownContent } from "@/components/flows/MarkdownContent";
 
 interface WorkflowOutputProps {
@@ -17,17 +16,24 @@ interface WorkflowOutputProps {
   stageId: string;
 }
 
+interface Output {
+  content: string;
+  type: string;
+}
+
+interface AgentOutput {
+  agent: string;
+  requirements?: string;
+  outputs: Output[];
+  stepId: string;
+  orderIndex: number;
+}
+
 interface StageOutput {
   stage_name: string;
-  outputs: Array<{
-    agent: string;
-    requirements?: string;
-    outputs: Array<{
-      content: string;
-    }>;
-    stepId: string;
-    orderIndex: number;
-  }>;
+  flow_name: string;
+  agent_count: number;
+  outputs: AgentOutput[];
 }
 
 export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
@@ -40,7 +46,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         .from("brief_outputs")
         .select("*")
         .eq("brief_id", briefId)
-        .eq("stage", stageId)
+        .eq("stage_id", stageId)
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -57,28 +63,6 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
     refetchInterval: 5000,
   });
 
-  const formatText = (text: string) => {
-    const preparedText = text
-      .replace(/###|####/g, '')
-      .replace(/\*\*/g, '*')
-      .replace(/^-\s/gm, '• ')
-      .trim();
-
-    marked.setOptions({
-      gfm: true,
-      breaks: true,
-    });
-
-    const htmlContent = marked(preparedText);
-
-    return (
-      <div 
-        className="prose prose-gray max-w-none dark:prose-invert"
-        dangerouslySetInnerHTML={{ __html: htmlContent }} 
-      />
-    );
-  };
-
   if (!outputs?.length) {
     return null;
   }
@@ -89,23 +73,15 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         <ScrollArea className="h-[600px] pr-6">
           <div className="space-y-12">
             {outputs.map((output) => {
-              const content = output.content as any;
-              const stageOutput: StageOutput = {
-                stage_name: content.stage_name || 'Stage Output',
-                outputs: Array.isArray(content.outputs) ? content.outputs.map((out: any) => ({
-                  agent: out.agent || 'Unknown Agent',
-                  requirements: out.requirements,
-                  outputs: Array.isArray(out.outputs) ? out.outputs : [],
-                  stepId: out.stepId || '',
-                  orderIndex: out.orderIndex || 0
-                })) : []
-              };
+              const content = output.content as StageOutput;
+              
+              console.log("Processing output content:", content);
 
               return (
                 <div key={output.id} className="space-y-8">
                   <div className="flex items-center justify-between border-b pb-4">
                     <h3 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                      {stageOutput.stage_name}
+                      {content.stage_name}
                     </h3>
                     <span className="text-sm text-muted-foreground">
                       {format(new Date(output.created_at), "PPpp")}
@@ -113,7 +89,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                   </div>
                   
                   <div className="text-foreground">
-                    {stageOutput.outputs?.map((agentOutput, index) => (
+                    {content.outputs?.map((agentOutput, index) => (
                       <div key={index} className="mt-8">
                         <div className="prose prose-sm max-w-none mb-8">
                           <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
@@ -127,7 +103,9 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                             </h4>
                             {agentOutput.outputs?.map((output, outputIndex) => (
                               <div key={outputIndex} className="mb-8 last:mb-0">
-                                {formatText(output.content)}
+                                {output.type === 'conversational' && (
+                                  <MarkdownContent content={output.content} />
+                                )}
                               </div>
                             ))}
                           </div>
@@ -139,12 +117,18 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                             className="border rounded-lg shadow-sm bg-card/50 backdrop-blur-sm"
                           >
                             <AccordionTrigger className="px-6 py-4 text-xl font-semibold hover:no-underline data-[state=open]:text-primary">
-                              Conversazione Dettagliata - {agentOutput.agent}
+                              Output Strutturato - {agentOutput.agent}
                             </AccordionTrigger>
                             <AccordionContent className="px-6 pb-6">
                               <div className="prose prose-sm max-w-none">
                                 <div className="rounded-md bg-muted/30 p-6 backdrop-blur-sm">
-                                  <MarkdownContent content={String(output.content)} />
+                                  {agentOutput.outputs?.map((output, outputIndex) => (
+                                    output.type === 'structured' && (
+                                      <div key={outputIndex}>
+                                        <MarkdownContent content={output.content} />
+                                      </div>
+                                    )
+                                  ))}
                                 </div>
                               </div>
                             </AccordionContent>
