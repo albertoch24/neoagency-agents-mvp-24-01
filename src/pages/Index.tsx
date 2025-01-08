@@ -12,7 +12,6 @@ import { useBriefState } from "@/hooks/useBriefState";
 
 const Index = () => {
   const { user } = useAuth();
-  const { currentStage, handleStageSelect } = useStageHandling(selectedBriefId);
   const {
     showNewBrief,
     isEditing,
@@ -23,6 +22,8 @@ const Index = () => {
     handleSubmitSuccess,
     handleSelectBrief
   } = useBriefState();
+  
+  const { currentStage, handleStageSelect } = useStageHandling(selectedBriefId);
 
   const { data: briefs, error: briefsError } = useQuery({
     queryKey: ["briefs", user?.id],
@@ -73,7 +74,7 @@ const Index = () => {
         onSelect={handleSelectBrief}
         onEdit={(briefId) => {
           handleSelectBrief(briefId);
-          setIsEditing(true);
+          handleEdit();
         }}
         onNew={handleNewBrief}
       />
