@@ -23,7 +23,8 @@ export async function processAgents(briefId: string, stageId: string) {
       steps: flowSteps.map(s => ({
         id: s.id,
         agentId: s.agent_id,
-        orderIndex: s.order_index
+        orderIndex: s.order_index,
+        agentName: s.agents?.name
       }))
     });
     
@@ -34,7 +35,8 @@ export async function processAgents(briefId: string, stageId: string) {
       console.log('Processing step:', {
         stepId: step.id,
         agentId: step.agent_id,
-        requirements: step.requirements
+        requirements: step.requirements,
+        agentName: step.agents?.name
       });
       
       const agent = step.agents;
@@ -56,56 +58,65 @@ Your task: ${step.requirements || 'Analyze the brief and provide insights'}
 
 Please provide your response in a clear, structured format.`;
       
-      // Generate response with retries and proper error handling
-      const response = await generateAgentResponse(
-        prompt,
-        agent.temperature || 0.7
-      );
-      
-      // Save conversation with retry mechanism
-      const { data: conversation, error: convError } = await withRetry(
-        async () => {
-          const result = await supabase
-            .from('workflow_conversations')
-            .insert({
-              brief_id: brief.id,
-              stage_id: stageId,
-              agent_id: step.agent_id,
-              content: response,
-              flow_step_id: step.id
-            })
-            .select()
-            .single();
-            
-          if (result.error) throw result.error;
-          return result;
-        },
-        {
-          maxRetries: 3,
-          onRetry: (error, attempt) => {
-            console.error(`Failed to save conversation (attempt ${attempt}):`, error);
-          }
-        }
-      );
+      try {
+        // Generate response with retries and proper error handling
+        const response = await generateAgentResponse(
+          prompt,
+          agent.temperature || 0.7
+        );
         
-      if (convError) {
-        console.error('Error saving conversation:', convError);
-        throw convError;
+        // Save conversation with retry mechanism
+        const { data: conversation, error: convError } = await withRetry(
+          async () => {
+            const result = await supabase
+              .from('workflow_conversations')
+              .insert({
+                brief_id: brief.id,
+                stage_id: stageId,
+                agent_id: step.agent_id,
+                content: response,
+                flow_step_id: step.id
+              })
+              .select()
+              .single();
+              
+            if (result.error) throw result.error;
+            return result;
+          },
+          {
+            maxRetries: 3,
+            onRetry: (error, attempt) => {
+              console.error(`Failed to save conversation (attempt ${attempt}):`, error);
+            }
+          }
+        );
+          
+        if (convError) {
+          console.error('Error saving conversation:', convError);
+          throw convError;
+        }
+        
+        outputs.push({
+          agent,
+          requirements: step.requirements,
+          outputs: [{ content: response }],
+          stepId: step.id,
+          conversation
+        });
+        
+        console.log('Step processed successfully:', {
+          stepId: step.id,
+          agentId: agent.id,
+          responseLength: response.length
+        });
+      } catch (error) {
+        console.error('Error processing step:', {
+          stepId: step.id,
+          agentId: agent.id,
+          error: error.message
+        });
+        throw error;
       }
-      
-      outputs.push({
-        agent,
-        requirements: step.requirements,
-        outputs: [{ content: response }],
-        stepId: step.id,
-        conversation
-      });
-      
-      console.log('Step processed successfully:', {
-        stepId: step.id,
-        agentId: agent.id,
-        responseLength: response.length
-      });
     }
     
     console.log('All steps processed successfully');
