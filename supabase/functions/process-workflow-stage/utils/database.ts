@@ -1,141 +1,137 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from '@supabase/supabase-js';
+import { Database } from '../../../types/database';
 
-export function createSupabaseClient() {
-  return createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-  );
-}
+const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-export async function fetchBriefDetails(supabase: any, briefId: string) {
-  const { data: brief, error: briefError } = await supabase
-    .from("briefs")
-    .select("*")
-    .eq("id", briefId)
-    .single();
+const supabase = createClient<Database>(supabaseUrl, supabaseKey);
 
-  if (briefError) throw briefError;
-  return brief;
-}
-
-export async function fetchStageDetails(supabase: any, stageId: string) {
-  const { data: stage, error: stageError } = await supabase
-    .from("stages")
-    .select(`
-      *,
-      flows (
-        id,
-        name,
-        flow_steps (
-          *,
-          agents (
-            id,
-            name,
-            description,
-            skills (*)
-          )
-        )
-      )
-    `)
-    .eq("id", stageId)
-    .single();
-
-  if (stageError) throw stageError;
-  return stage;
-}
-
-export async function saveConversation(
-  supabase: any,
+export const saveBriefOutput = async (
   briefId: string,
-  stageId: string,
-  agentId: string,
-  content: string,
-  flowStepId?: string
-) {
+  stage: string,
+  content: any,
+  stageId?: string
+) => {
+  console.log('Saving brief output:', {
+    briefId,
+    stage,
+    stageId,
+    contentSample: JSON.stringify(content).substring(0, 100)
+  });
+
   try {
-    const { error: conversationError } = await supabase
-      .from("workflow_conversations")
+    const { data, error } = await supabase
+      .from('brief_outputs')
       .insert({
         brief_id: briefId,
-        stage_id: stageId,
-        agent_id: agentId,
+        stage: stage,
         content: content,
-        flow_step_id: flowStepId
-      });
+        stage_id: stageId
+      })
+      .select()
+      .single();
 
-    if (conversationError) throw conversationError;
-  } catch (error) {
-    console.error('Error saving conversation:', error);
-    throw error;
-  }
-}
-
-export async function saveStructuredOutput(
-  supabase: any,
-  briefId: string,
-  stageId: string,
-  flowStepId: string,
-  content: string
-) {
-  try {
-    const { error: outputError } = await supabase
-      .from("structured_outputs")
-      .insert({
-        brief_id: briefId,
-        stage_id: stageId,
-        flow_step_id: flowStepId,
-        content: content
-      });
-
-    if (outputError) throw outputError;
-  } catch (error) {
-    console.error('Error saving structured output:', error);
-    throw error;
-  }
-}
-
-export async function saveBriefOutput(
-  supabase: any,
-  briefId: string,
-  stageId: string,
-  stageName: string,
-  outputs: any[]
-) {
-  try {
-    // Validate inputs
-    if (!briefId || !stageId || !stageName) {
-      throw new Error('Missing required parameters');
+    if (error) {
+      console.error('Error saving brief output:', error);
+      throw error;
     }
 
-    // Prepare the content object with minimal nesting
-    const content = {
-      stage_name: stageName,
-      outputs: outputs.map(output => ({
-        agent: output.agent || 'Unknown Agent',
-        requirements: output.requirements || '',
-        outputs: Array.isArray(output.outputs) ? output.outputs : [],
-        stepId: output.stepId || '',
-        orderIndex: output.orderIndex || 0
-      }))
-    };
+    console.log('Successfully saved brief output:', {
+      id: data.id,
+      briefId: data.brief_id,
+      stage: data.stage,
+      contentSample: JSON.stringify(data.content).substring(0, 100)
+    });
 
-    // Insert the data
-    const { error: outputError } = await supabase
-      .from("brief_outputs")
-      .insert({
-        brief_id: briefId,
-        stage: stageId,
-        stage_id: stageId,
-        content
-      });
-
-    if (outputError) {
-      console.error('Error saving brief output:', outputError);
-      throw outputError;
-    }
-
+    return data;
   } catch (error) {
     console.error('Error in saveBriefOutput:', error);
     throw error;
   }
-}
+};
+
+export const saveWorkflowConversation = async (
+  briefId: string,
+  stageId: string,
+  agentId: string,
+  content: string,
+  outputType: string = 'conversational',
+  summary?: string,
+  flowStepId?: string
+) => {
+  try {
+    const { data, error } = await supabase
+      .from('workflow_conversations')
+      .insert({
+        brief_id: briefId,
+        stage_id: stageId,
+        agent_id: agentId,
+        content,
+        output_type: outputType,
+        summary,
+        flow_step_id: flowStepId
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error saving workflow conversation:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in saveWorkflowConversation:', error);
+    throw error;
+  }
+};
+
+export const getWorkflowConversations = async (briefId: string, stageId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('workflow_conversations')
+      .select(`
+        *,
+        agents (
+          id,
+          name,
+          description,
+          skills (*)
+        )
+      `)
+      .eq('brief_id', briefId)
+      .eq('stage_id', stageId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching workflow conversations:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getWorkflowConversations:', error);
+    throw error;
+  }
+};
+
+export const getBriefOutputs = async (briefId: string, stageId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('brief_outputs')
+      .select('*')
+      .eq('brief_id', briefId)
+      .eq('stage', stageId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching brief outputs:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getBriefOutputs:', error);
+    throw error;
+  }
+};
