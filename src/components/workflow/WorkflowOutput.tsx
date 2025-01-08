@@ -139,7 +139,7 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
                           </div>
                         </div>
 
-                        <Accordion type="single" collapsible className="w-full">
+                        <Accordion type="single" defaultValue={`output-${index}`} className="w-full">
                           <AccordionItem value={`output-${index}`}>
                             <AccordionTrigger className="text-sm font-medium">
                               View Output Details
