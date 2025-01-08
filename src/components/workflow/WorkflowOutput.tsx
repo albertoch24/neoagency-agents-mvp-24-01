@@ -8,5 +8,5 @@ interface WorkflowOutputProps {
 export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
   if (!briefId) return null;
   
-  return <OutputContainer briefId={briefId} stageId={stageId} />;
+  return <OutputContainer briefId={briefId} stage={stageId} />;
 };

@@ -36,14 +36,14 @@ export const WorkflowDisplayActions = ({
         const { data: outputs, error: outputsError } = await supabase
           .from("brief_outputs")
           .select("*")
-          .eq("stage_id", currentStage)
+          .eq("stage", currentStage)
           .maybeSingle();
 
         if (outputsError) {
           console.error("Error checking outputs:", outputsError);
         }
 
-        // Check in workflow_conversations table using UUID comparison
+        // Check in workflow_conversations table
         const { data: conversations, error: convsError } = await supabase
           .from("workflow_conversations")
           .select("*")
@@ -77,12 +77,16 @@ export const WorkflowDisplayActions = ({
   }, [currentStage]);
 
   const handleNextStage = () => {
-    if (!isCurrentStageCompleted) {
-      toast.error("Please complete the current stage first");
-      return;
+    if (!isCurrentStageCompleted && !isProcessing) {
+      console.log("Starting stage processing...");
+      onNextStage();
+    } else if (isCurrentStageCompleted) {
+      console.log("Moving to next stage, current stage completed:", isCurrentStageCompleted);
+      const nextStage = stages[currentIndex + 1];
+      if (nextStage && onStageSelect) {
+        onStageSelect(nextStage);
+      }
     }
-    console.log("Moving to next stage, current stage completed:", isCurrentStageCompleted);
-    onNextStage();
   };
 
   const handlePreviousStage = () => {
@@ -114,10 +118,16 @@ export const WorkflowDisplayActions = ({
         )}
         <Button
           onClick={handleNextStage}
-          disabled={isProcessing || !isCurrentStageCompleted}
+          disabled={isProcessing}
           className="flex items-center gap-2 ml-auto"
         >
-          {isProcessing ? "Processing next stage... Please wait" : "Next Stage"}
+          {isProcessing ? (
+            "Processing next stage... Please wait"
+          ) : !isCurrentStageCompleted ? (
+            "Start Stage Processing"
+          ) : (
+            "Next Stage"
+          )}
           <ArrowRight className="h-4 w-4" />
         </Button>
       </CardContent>
