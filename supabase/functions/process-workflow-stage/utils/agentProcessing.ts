@@ -1,5 +1,8 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.3.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
 
 async function collectAgentFeedback(
   supabase: any,
@@ -21,6 +24,23 @@ async function collectAgentFeedback(
 
   if (error) {
     console.error('Error collecting feedback:', error);
+    throw error;
+  }
+}
+
+async function delay(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function retryOperation(operation: () => Promise<any>, retries = MAX_RETRIES): Promise<any> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (retries > 0) {
+      console.log(`Operation failed, retrying... (${retries} attempts left)`);
+      await delay(RETRY_DELAY);
+      return retryOperation(operation, retries - 1);
+    }
     throw error;
   }
 }
@@ -78,16 +98,19 @@ Please provide your response in a clear, structured format.`;
     try {
       console.log("Sending prompt to OpenAI:", prompt);
       
-      const completion = await openai.createChatCompletion({
-        model: 'gpt-4o',
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are a creative agency professional. Provide detailed, actionable insights.'
-          },
-          { role: 'user', content: prompt }
-        ],
-        temperature: agent.temperature || 0.7,
+      const completion = await retryOperation(async () => {
+        const response = await openai.createChatCompletion({
+          model: 'gpt-4o',
+          messages: [
+            { 
+              role: 'system', 
+              content: 'You are a creative agency professional. Provide detailed, actionable insights.'
+            },
+            { role: 'user', content: prompt }
+          ],
+          temperature: agent.temperature || 0.7,
+        });
+        return response;
       });
 
       const response = completion.data.choices[0]?.message?.content;
@@ -179,10 +202,13 @@ Feedback: [Your detailed feedback]
 Rating: [1-5]`;
 
   try {
-    const response = await openai.createChatCompletion({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
+    const response = await retryOperation(async () => {
+      const completion = await openai.createChatCompletion({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+      });
+      return completion;
     });
 
     const feedbackText = response.data.choices[0]?.message?.content || "";
