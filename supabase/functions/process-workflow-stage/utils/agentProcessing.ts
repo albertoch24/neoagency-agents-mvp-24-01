@@ -1,154 +1,129 @@
-import { processAgent } from './workflow.ts';
-import { saveConversation, saveBriefOutput, saveStructuredOutput } from './database.ts';
-import { buildPrompt } from './promptBuilder.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { validateWorkflowData } from "./validation.ts";
+import { generateAgentResponse } from "./openai.ts";
+import { withRetry } from "./retry.ts";
 
-export async function processAgents(
-  supabase: any,
-  flowSteps: any[],
-  brief: any,
-  stageId: string,
-  stageName: string
-) {
-  console.log("Starting agent processing for stage:", {
-    stageName,
-    stageId,
-    briefId: brief.id,
-    flowStepsCount: flowSteps.length,
-    timestamp: new Date().toISOString()
-  });
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-  // Get previous stage outputs for context
-  const { data: previousOutputs } = await supabase
-    .from("brief_outputs")
-    .select("*")
-    .eq("brief_id", brief.id)
-    .lt("created_at", new Date().toISOString())
-    .order("created_at", { ascending: true });
-
-  console.log("Found previous outputs:", previousOutputs?.length || 0);
-
-  const outputs = [];
-
-  // Process each step in sequence
-  for (const step of flowSteps) {
-    console.log("Processing flow step:", {
-      stepId: step.id,
-      agentId: step.agent_id,
-      orderIndex: step.order_index,
-      requirements: step.requirements,
-      timestamp: new Date().toISOString()
+export async function processAgents(briefId: string, stageId: string) {
+  console.log('Starting agent processing:', { briefId, stageId });
+  
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  
+  try {
+    // Validate all required data with detailed logging
+    console.log('Validating workflow data...');
+    const { brief, stage } = await validateWorkflowData(briefId, stageId);
+    console.log('Workflow data validated successfully');
+    
+    const flowSteps = stage.flows?.flow_steps || [];
+    console.log('Processing flow steps:', {
+      count: flowSteps.length,
+      steps: flowSteps.map(s => ({
+        id: s.id,
+        agentId: s.agent_id,
+        orderIndex: s.order_index,
+        agentName: s.agents?.name
+      }))
     });
-
-    // Get agent with skills
-    const { data: agent, error: agentError } = await supabase
-      .from("agents")
-      .select(`
-        *,
-        skills (*)
-      `)
-      .eq("id", step.agent_id)
-      .maybeSingle();
-
-    if (agentError || !agent) {
-      console.error("Agent validation failed:", {
+    
+    const outputs = [];
+    
+    // Process each flow step sequentially with retry mechanism
+    for (const step of flowSteps) {
+      console.log('Processing step:', {
         stepId: step.id,
         agentId: step.agent_id,
-        error: agentError,
-        timestamp: new Date().toISOString()
+        requirements: step.requirements,
+        agentName: step.agents?.name
       });
-      throw new Error(`Agent not found for step: ${step.id}`);
-    }
-
-    console.log("Agent validation successful:", {
-      agentId: agent.id,
-      agentName: agent.name,
-      skillsCount: agent.skills?.length || 0,
-      requirements: step.requirements,
-      timestamp: new Date().toISOString()
-    });
-
-    // Process agent with requirements and previous context
-    const output = await processAgent(
-      supabase, 
-      agent, 
-      brief, 
-      stageId, 
-      step.requirements,
-      previousOutputs || []
-    );
-
-    // Add step metadata to output
-    const enrichedOutput = {
-      ...output,
-      stepId: step.id,
-      orderIndex: step.order_index,
-      requirements: step.requirements,
-      agent: {
-        id: agent.id,
-        name: agent.name,
-        description: agent.description
+      
+      const agent = step.agents;
+      if (!agent) {
+        throw new Error(`Agent not found for step ${step.id}`);
       }
-    };
+      
+      // Build the prompt with improved context
+      const prompt = `You are ${agent.name}. ${agent.description || ''}
 
-    outputs.push(enrichedOutput);
+Brief Title: ${brief.title}
+Brief Description: ${brief.description || ''}
+Brief Objectives: ${brief.objectives || ''}
+Target Audience: ${brief.target_audience || ''}
+Budget: ${brief.budget || 'Not specified'}
+Timeline: ${brief.timeline || 'Not specified'}
 
-    // Save conversation for this step
-    if (output?.outputs?.[0]?.content) {
-      console.log("Saving conversation for step:", {
-        briefId: brief.id,
-        stageId: stageId,
-        stepId: step.id,
-        agentId: agent.id,
-        timestamp: new Date().toISOString()
-      });
+Your task: ${step.requirements || 'Analyze the brief and provide insights'}
 
-      await saveConversation(
-        supabase, 
-        brief.id, 
-        stageId, 
-        agent.id, 
-        output.outputs[0].content,
-        step.id
-      );
-
-      // Extract and save structured content if available
-      const structuredOutput = output.outputs.find(out => out.type === 'structured');
-      if (structuredOutput?.content) {
-        console.log("Saving structured output:", {
-          briefId: brief.id,
-          stageId: stageId,
-          stepId: step.id,
-          timestamp: new Date().toISOString()
-        });
-
-        await saveStructuredOutput(
-          supabase,
-          brief.id,
-          stageId,
-          step.id,
-          structuredOutput.content
+Please provide your response in a clear, structured format.`;
+      
+      try {
+        // Generate response with retries and proper error handling
+        const response = await generateAgentResponse(
+          prompt,
+          agent.temperature || 0.7
         );
+        
+        // Save conversation with retry mechanism
+        const { data: conversation, error: convError } = await withRetry(
+          async () => {
+            const result = await supabase
+              .from('workflow_conversations')
+              .insert({
+                brief_id: brief.id,
+                stage_id: stageId,
+                agent_id: step.agent_id,
+                content: response,
+                flow_step_id: step.id
+              })
+              .select()
+              .single();
+              
+            if (result.error) throw result.error;
+            return result;
+          },
+          {
+            maxRetries: 3,
+            onRetry: (error, attempt) => {
+              console.error(`Failed to save conversation (attempt ${attempt}):`, error);
+            }
+          }
+        );
+          
+        if (convError) {
+          console.error('Error saving conversation:', convError);
+          throw convError;
+        }
+        
+        outputs.push({
+          agent,
+          requirements: step.requirements,
+          outputs: [{ content: response }],
+          stepId: step.id,
+          conversation
+        });
+        
+        console.log('Step processed successfully:', {
+          stepId: step.id,
+          agentId: agent.id,
+          responseLength: response.length
+        });
+      } catch (error) {
+        console.error('Error processing step:', {
+          stepId: step.id,
+          agentId: agent.id,
+          error: error.message
+        });
+        throw error;
       }
-    } else {
-      console.error("Invalid output format from agent:", {
-        agentId: agent.id,
-        agentName: agent.name,
-        output,
-        timestamp: new Date().toISOString()
-      });
-      throw new Error(`Invalid output format from agent: ${agent.name}`);
     }
+    
+    console.log('All steps processed successfully');
+    return outputs;
+    
+  } catch (error) {
+    console.error('Error in processAgents:', error);
+    throw error;
   }
-
-  console.log("Saving brief output with all steps:", {
-    briefId: brief.id,
-    stageId: stageId,
-    stageName: stageName,
-    outputsCount: outputs.length,
-    timestamp: new Date().toISOString()
-  });
-
-  // Save complete stage output with all steps
-  await saveBriefOutput(supabase, brief.id, stageId, stageName, outputs);
-  return outputs;
 }

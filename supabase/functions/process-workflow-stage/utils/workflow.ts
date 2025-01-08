@@ -1,5 +1,6 @@
 import { generateAgentResponse } from './openai.ts';
 import { buildPrompt } from './promptBuilder.ts';
+import { createAgentChain, processAgentInteractions } from './langchainAgents.ts';
 
 export async function processAgent(
   supabase: any,
@@ -19,6 +20,32 @@ export async function processAgent(
       previousOutputsCount: previousOutputs.length
     });
 
+    // Get all agents involved in this stage
+    const { data: stageAgents } = await supabase
+      .from('agents')
+      .select('*')
+      .eq('stage_id', stageId);
+
+    // Create LangChain agent chain if multiple agents are involved
+    if (stageAgents && stageAgents.length > 1) {
+      const executor = await createAgentChain(stageAgents, brief);
+      const response = await processAgentInteractions(executor, brief, requirements);
+
+      return {
+        outputs: [
+          {
+            content: response,
+            type: 'conversational'
+          },
+          {
+            content: response,
+            type: 'structured'
+          }
+        ]
+      };
+    }
+
+    // Fallback to original single-agent processing if only one agent
     const isFirstStage = previousOutputs.length === 0;
     const { conversationalPrompt, schematicPrompt } = buildPrompt(
       agent,
@@ -28,19 +55,10 @@ export async function processAgent(
       isFirstStage
     );
 
-    // Generate both conversational and schematic responses
     const [conversationalResponse, schematicResponse] = await Promise.all([
       generateAgentResponse(conversationalPrompt),
       generateAgentResponse(schematicPrompt)
     ]);
-
-    console.log('Agent responses generated successfully:', {
-      agentId: agent.id,
-      conversationalLength: conversationalResponse?.length,
-      schematicLength: schematicResponse?.length,
-      isFirstStage,
-      hasContext: previousOutputs.length > 0
-    });
 
     return {
       outputs: [
