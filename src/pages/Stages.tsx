@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { StageBuilder } from "@/components/stages/StageBuilder";
 import { StagesHeader } from "@/components/stages/StagesHeader";
 import { toast } from "sonner";
+import { Stage } from "@/types/workflow";
 
 const Stages = () => {
   const { user } = useAuth();
@@ -49,7 +50,19 @@ const Stages = () => {
           flows (
             id,
             name,
-            description
+            description,
+            flow_steps (
+              id,
+              agent_id,
+              requirements,
+              order_index,
+              outputs,
+              agents (
+                id,
+                name,
+                description
+              )
+            )
           )
         `)
         .eq("user_id", user?.id)
@@ -85,18 +98,30 @@ const Stages = () => {
               flows (
                 id,
                 name,
-                description
+                description,
+                flow_steps (
+                  id,
+                  agent_id,
+                  requirements,
+                  order_index,
+                  outputs,
+                  agents (
+                    id,
+                    name,
+                    description
+                  )
+                )
               )
             `)
             .eq("user_id", user?.id)
             .order("order_index", { ascending: true });
             
           console.log("Newly created stages:", newStages);
-          return newStages || [];
+          return newStages as Stage[] || [];
         }
       }
 
-      return stages || [];
+      return stages as Stage[] || [];
     },
     enabled: !!user,
   });

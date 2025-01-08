@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { BriefFormData } from "@/types/brief";
+import { Stage } from "@/types/workflow";
 import { 
   cleanupExistingBriefData,
   createOrUpdateBrief,
@@ -43,7 +44,7 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       console.log("Brief created/updated successfully:", brief);
 
       // Get the first stage and its flow
-      const stage = await fetchFirstStage(user.id);
+      const stage = await fetchFirstStage(user.id) as Stage;
       if (!stage) {
         toast.error("No stages found. Please create stages first.", {
           duration: 8000

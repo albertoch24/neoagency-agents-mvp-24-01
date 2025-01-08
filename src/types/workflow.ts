@@ -16,7 +16,7 @@ export type Stage = {
     id: string;
     name: string;
     description?: string;
-    flow_steps: Array<{
+    flow_steps?: Array<{
       id: string;
       agent_id: string;
       requirements: string;
@@ -33,7 +33,6 @@ export type Stage = {
   updated_at?: string;
 };
 
-// Use Stage type instead of WorkflowStage
 export type WorkflowState = {
   currentStage: string;
   stages: Record<string, Stage>;

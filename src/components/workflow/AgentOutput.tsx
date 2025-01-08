@@ -31,7 +31,7 @@ export const AgentOutput = ({ agent, outputs, orderIndex, requirements, index }:
     <Accordion type="single" defaultValue={`output-${index}`} collapsible className="w-full">
       <AccordionItem value={`output-${index}`}>
         <AccordionTrigger>
-          {({ open }: { open: boolean }) => open ? "Hide Output Details" : "View Output Details"}
+          {open => open ? "Hide Output Details" : "View Output Details"}
         </AccordionTrigger>
         <AccordionContent>
           <div className="prose prose-sm max-w-none mb-8">
