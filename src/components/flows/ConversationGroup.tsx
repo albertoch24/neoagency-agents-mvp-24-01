@@ -10,11 +10,9 @@ interface ConversationGroupProps {
   isPlaying: { [key: string]: boolean };
   audioElements: { [key: string]: HTMLAudioElement | null };
   visibleTexts: { [key: string]: boolean };
-  visibleStructuredOutputs: { [key: string]: boolean };
   onPlayStateChange: (convId: string, playing: boolean) => void;
   onAudioElement: (convId: string, audio: HTMLAudioElement | null) => void;
   onToggleText: (convId: string) => void;
-  onToggleStructuredOutput: (stepId: string) => void;
 }
 
 export const ConversationGroup = ({
@@ -23,11 +21,9 @@ export const ConversationGroup = ({
   isPlaying,
   audioElements,
   visibleTexts,
-  visibleStructuredOutputs,
   onPlayStateChange,
   onAudioElement,
   onToggleText,
-  onToggleStructuredOutput,
 }: ConversationGroupProps) => {
   console.log("ConversationGroup rendering with group:", {
     groupId: group?.id,
@@ -46,11 +42,10 @@ export const ConversationGroup = ({
   });
 
   const { data: briefOutputs } = useBriefOutputs(group.briefId, group.stageId);
-  const { filterConversationalOutputs, filterStructuredOutputs } = useConversationFilters(group.conversations);
+  const { filterConversationalOutputs } = useConversationFilters(group.conversations);
 
   // Filter conversations by output type
   const conversationalOutputs = filterConversationalOutputs(visibleTexts);
-  const structuredOutputs = filterStructuredOutputs(visibleTexts);
 
   return (
     <Card className="overflow-hidden border-agent">
@@ -61,11 +56,9 @@ export const ConversationGroup = ({
           conversationalOutputs={conversationalOutputs}
           isPlaying={isPlaying}
           visibleTexts={visibleTexts}
-          visibleStructuredOutputs={visibleStructuredOutputs}
           onPlayStateChange={onPlayStateChange}
           onAudioElement={onAudioElement}
           onToggleText={onToggleText}
-          onToggleStructuredOutput={onToggleStructuredOutput}
         />
       </CardContent>
     </Card>

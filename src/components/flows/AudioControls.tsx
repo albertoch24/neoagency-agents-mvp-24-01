@@ -3,11 +3,17 @@ import { Headphones } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AudioControlsProps {
+  url: string;
   isPlaying: boolean;
-  onPlay: () => void;
+  onPlayStateChange: (playing: boolean) => void;
+  onAudioElement: (audio: HTMLAudioElement | null) => void;
 }
 
-export const AudioControls = ({ isPlaying, onPlay }: AudioControlsProps) => {
+export const AudioControls = ({ url, isPlaying, onPlayStateChange, onAudioElement }: AudioControlsProps) => {
+  const handleClick = () => {
+    onPlayStateChange(!isPlaying);
+  };
+
   return (
     <Button
       variant="outline"
@@ -16,7 +22,7 @@ export const AudioControls = ({ isPlaying, onPlay }: AudioControlsProps) => {
         "gap-2",
         isPlaying && "bg-primary text-primary-foreground hover:bg-primary/90"
       )}
-      onClick={onPlay}
+      onClick={handleClick}
     >
       <Headphones className="h-4 w-4" />
       {isPlaying ? "Playing..." : "Play"}
