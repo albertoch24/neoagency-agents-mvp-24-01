@@ -13,20 +13,33 @@ const Header = () => {
   const location = useLocation();
   const { user } = useAuth();
 
-  // Fetch profile data to check admin status
+  // Fetch profile data to check admin status with proper error handling
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
+      console.log("Fetching profile for user:", user?.id);
+      
+      if (!user?.id) {
+        throw new Error("No user ID available");
+      }
+
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", user?.id)
+        .eq("id", user.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching profile:", error);
+        throw error;
+      }
+
+      console.log("Profile data:", data);
       return data;
     },
-    enabled: !!user,
+    enabled: !!user?.id,
+    retry: 3,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
   const handleHomeClick = () => {
@@ -67,7 +80,7 @@ const Header = () => {
             Home
           </Button>
           
-          {/* Admin Navigation Menu - now checking profile.is_admin */}
+          {/* Admin Navigation Menu - now with better error handling */}
           {profile?.is_admin && <AdminNavigation />}
         </div>
 
