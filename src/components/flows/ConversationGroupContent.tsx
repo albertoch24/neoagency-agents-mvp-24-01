@@ -35,6 +35,9 @@ export const ConversationGroupContent = ({
   const stepOrderIndex = group.conversations?.[0]?.flow_step?.order_index ?? group.orderIndex;
   const stepDescription = group.conversations?.[0]?.flow_step?.description;
 
+  // Filter out structured outputs
+  const filteredOutputs = conversationalOutputs.filter(conv => conv.output_type !== 'structured');
+
   return (
     <div className="p-4">
       <AgentHeader 
@@ -55,7 +58,7 @@ export const ConversationGroupContent = ({
                   <AgentSkills skills={group.agent?.skills || []} />
                 </div>
 
-                {conversationalOutputs.map((conversation: any) => (
+                {filteredOutputs.map((conversation: any) => (
                   <ConversationContent
                     key={conversation.id}
                     conversation={conversation}

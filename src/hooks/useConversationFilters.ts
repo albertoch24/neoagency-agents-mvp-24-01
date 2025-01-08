@@ -24,24 +24,7 @@ export const useConversationFilters = (conversations: Conversation[] = []) => {
     });
   };
 
-  const filterStructuredOutputs = (visibleTexts: Record<string, boolean>) => {
-    return conversations.filter((conv) => {
-      const isStructured = conv.output_type === 'structured';
-      console.log("Filtering structured output:", {
-        id: conv.id,
-        type: conv.output_type,
-        isStructured,
-        hasContent: !!conv.content,
-        flowStepId: conv.flow_step_id,
-        contentLength: conv.content?.length,
-        isVisible: visibleTexts[conv.id]
-      });
-      return isStructured;
-    });
-  };
-
   return {
-    filterConversationalOutputs,
-    filterStructuredOutputs
+    filterConversationalOutputs
   };
 };
