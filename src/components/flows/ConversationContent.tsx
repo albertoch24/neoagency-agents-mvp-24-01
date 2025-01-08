@@ -22,8 +22,8 @@ export const ConversationContent = ({
   return (
     <div className="space-y-4">
       <ConversationControls
-        visibleText={visibleText}
-        onToggleText={onToggleText}
+        isVisible={visibleText}
+        onToggle={onToggleText}
       />
 
       {visibleText && (
@@ -36,7 +36,7 @@ export const ConversationContent = ({
 
       {conversation.audio_url && (
         <AudioControls
-          audioUrl={conversation.audio_url}
+          url={conversation.audio_url}
           isPlaying={isPlaying}
           onPlayStateChange={onPlayStateChange}
           onAudioElement={onAudioElement}

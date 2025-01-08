@@ -10,7 +10,6 @@ interface DatabaseBriefOutput {
   created_at: string;
   updated_at: string;
   stage_id: string | null;
-  output_type: string;
 }
 
 export const useBriefOutputs = (briefId: string | undefined, stageId: string | undefined) => {
@@ -40,7 +39,6 @@ export const useBriefOutputs = (briefId: string | undefined, stageId: string | u
         count: data?.length,
         outputs: data?.map(output => ({
           id: output.id,
-          type: output.output_type,
           hasContent: !!output.content,
           contentType: typeof output.content,
           stage: output.stage,
