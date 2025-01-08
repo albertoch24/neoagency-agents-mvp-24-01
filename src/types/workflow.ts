@@ -4,7 +4,6 @@ export type WorkflowRole = {
   responsibilities: string[];
 };
 
-// Comprehensive Stage type that matches database schema
 export type Stage = {
   id: string;
   name: string;
@@ -38,16 +37,25 @@ export type WorkflowState = {
   stages: Record<string, Stage>;
 };
 
+export type Output = {
+  content: string;
+  type: string | null;
+};
+
+export type AgentOutput = {
+  agent: string;
+  stepId?: string;
+  outputs: Output[];
+  orderIndex?: number;
+  requirements?: string;
+};
+
 export type WorkflowOutputContent = {
   stage_name?: string;
   flow_name?: string;
   agent_count?: number;
   response?: string;
-  outputs?: Array<{
-    agent: string;
-    requirements?: string;
-    outputs?: Array<{ text: string }>;
-  }>;
+  outputs?: AgentOutput[];
   [key: string]: any;
 };
 

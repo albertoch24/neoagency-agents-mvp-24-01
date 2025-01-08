@@ -3,27 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { OutputDisplay } from "./OutputDisplay";
 import { OutputError } from "./OutputError";
 import { OutputLoading } from "./OutputLoading";
-import { Json } from "@/integrations/supabase/types";
+import { BriefOutput, WorkflowOutputContent } from "@/types/workflow";
 
 interface OutputContainerProps {
   briefId: string;
   stage: string;
-}
-
-interface BriefOutput {
-  content: {
-    outputs?: Array<{
-      agent: string;
-      stepId?: string;
-      outputs: Array<{
-        content: string;
-        type?: string;
-      }>;
-      orderIndex?: number;
-      requirements?: string;
-    }>;
-    [key: string]: any;
-  };
 }
 
 export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
@@ -49,7 +33,7 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
       if (!data) return null;
 
       // Handle the case where content is a string (JSON)
-      let parsedContent: BriefOutput['content'];
+      let parsedContent: WorkflowOutputContent;
       if (typeof data.content === 'string') {
         try {
           parsedContent = JSON.parse(data.content);
@@ -58,12 +42,13 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
           throw new Error("Invalid content format");
         }
       } else {
-        parsedContent = data.content as BriefOutput['content'];
+        parsedContent = data.content as WorkflowOutputContent;
       }
 
       return {
+        ...data,
         content: parsedContent
-      };
+      } as BriefOutput;
     },
     enabled: !!briefId && !!stage
   });
