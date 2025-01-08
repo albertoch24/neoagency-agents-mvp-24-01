@@ -1,49 +1,6 @@
 import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.3.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000; // 1 second
-
-async function collectAgentFeedback(
-  supabase: any,
-  conversationId: string,
-  reviewerAgentId: string,
-  content: string,
-  rating: number
-) {
-  console.log('Collecting feedback:', { conversationId, reviewerAgentId, rating });
-  
-  const { error } = await supabase
-    .from('agent_feedback')
-    .insert({
-      conversation_id: conversationId,
-      reviewer_agent_id: reviewerAgentId,
-      content,
-      rating,
-    });
-
-  if (error) {
-    console.error('Error collecting feedback:', error);
-    throw error;
-  }
-}
-
-async function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function retryOperation(operation: () => Promise<any>, retries = MAX_RETRIES): Promise<any> {
-  try {
-    return await operation();
-  } catch (error) {
-    if (retries > 0) {
-      console.log(`Operation failed, retrying... (${retries} attempts left)`);
-      await delay(RETRY_DELAY);
-      return retryOperation(operation, retries - 1);
-    }
-    throw error;
-  }
-}
+import { collectAgentFeedback, generateAgentFeedback } from "./feedback.ts";
+import { processAgentPrompt } from "./openai.ts";
 
 export async function processAgents(
   supabase: any,
@@ -96,30 +53,7 @@ Your task: ${step.requirements || 'Analyze the brief and provide insights'}
 Please provide your response in a clear, structured format.`;
 
     try {
-      console.log("Sending prompt to OpenAI:", prompt);
-      
-      const completion = await retryOperation(async () => {
-        const response = await openai.createChatCompletion({
-          model: 'gpt-4o',
-          messages: [
-            { 
-              role: 'system', 
-              content: 'You are a creative agency professional. Provide detailed, actionable insights.'
-            },
-            { role: 'user', content: prompt }
-          ],
-          temperature: agent.temperature || 0.7,
-        });
-        return response;
-      });
-
-      const response = completion.data.choices[0]?.message?.content;
-      
-      if (!response) {
-        console.error('No response from OpenAI');
-        throw new Error('No response from OpenAI');
-      }
-
+      const response = await processAgentPrompt(openai, prompt, agent.temperature);
       console.log("Received response from OpenAI:", response.substring(0, 100) + '...');
 
       const { data: conversation, error: convError } = await supabase
@@ -184,44 +118,4 @@ Please provide your response in a clear, structured format.`;
   }
 
   return outputs;
-}
-
-async function generateAgentFeedback(
-  openai: OpenAIApi,
-  content: string,
-  reviewerName: string,
-  reviewerDescription: string
-): Promise<{ content: string; rating: number }> {
-  const prompt = `As ${reviewerName} (${reviewerDescription}), provide constructive feedback on the following content from another team member. Include both positive aspects and areas for improvement. Rate the content from 1-5 stars based on its effectiveness and alignment with project goals.
-
-Content to review:
-${content}
-
-Provide your feedback in the following format:
-Feedback: [Your detailed feedback]
-Rating: [1-5]`;
-
-  try {
-    const response = await retryOperation(async () => {
-      const completion = await openai.createChatCompletion({
-        model: "gpt-4o",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-      });
-      return completion;
-    });
-
-    const feedbackText = response.data.choices[0]?.message?.content || "";
-    const ratingMatch = feedbackText.match(/Rating:\s*(\d+)/);
-    const rating = ratingMatch ? parseInt(ratingMatch[1]) : 3;
-    const feedback = feedbackText.replace(/Rating:\s*\d+/, "").replace("Feedback:", "").trim();
-
-    return {
-      content: feedback,
-      rating: Math.min(Math.max(rating, 1), 5), // Ensure rating is between 1-5
-    };
-  } catch (error) {
-    console.error('Error generating feedback:', error);
-    throw error;
-  }
 }
