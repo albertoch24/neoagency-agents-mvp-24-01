@@ -8,6 +8,8 @@ async function collectAgentFeedback(
   content: string,
   rating: number
 ) {
+  console.log('Collecting feedback:', { conversationId, reviewerAgentId, rating });
+  
   const { error } = await supabase
     .from('agent_feedback')
     .insert({
@@ -17,7 +19,10 @@ async function collectAgentFeedback(
       rating,
     });
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error collecting feedback:', error);
+    throw error;
+  }
 }
 
 export async function processAgents(
@@ -27,7 +32,13 @@ export async function processAgents(
   stageId: string,
   stageName: string
 ) {
-  console.log("Starting agent processing with flow steps:", flowSteps);
+  console.log("Starting agent processing with flow steps:", 
+    flowSteps.map(step => ({
+      id: step.id,
+      agentId: step.agent_id,
+      requirements: step.requirements
+    }))
+  );
   
   const outputs = [];
   const configuration = new Configuration({
@@ -39,11 +50,16 @@ export async function processAgents(
   for (const step of flowSteps) {
     console.log(`Processing step for agent ${step.agent_id}`);
     
-    const { data: agent } = await supabase
+    const { data: agent, error: agentError } = await supabase
       .from('agents')
       .select('*')
       .eq('id', step.agent_id)
       .single();
+
+    if (agentError) {
+      console.error(`Error fetching agent ${step.agent_id}:`, agentError);
+      throw agentError;
+    }
 
     if (!agent) {
       throw new Error(`Agent ${step.agent_id} not found`);
@@ -63,17 +79,25 @@ Please provide your response in a clear, structured format.`;
       console.log("Sending prompt to OpenAI:", prompt);
       
       const completion = await openai.createChatCompletion({
-        model: 'gpt-4',
-        messages: [{ role: 'user', content: prompt }],
+        model: 'gpt-4o',
+        messages: [
+          { 
+            role: 'system', 
+            content: 'You are a creative agency professional. Provide detailed, actionable insights.'
+          },
+          { role: 'user', content: prompt }
+        ],
+        temperature: agent.temperature || 0.7,
       });
 
       const response = completion.data.choices[0]?.message?.content;
       
       if (!response) {
+        console.error('No response from OpenAI');
         throw new Error('No response from OpenAI');
       }
 
-      console.log("Received response from OpenAI:", response);
+      console.log("Received response from OpenAI:", response.substring(0, 100) + '...');
 
       const { data: conversation, error: convError } = await supabase
         .from('workflow_conversations')
@@ -87,7 +111,10 @@ Please provide your response in a clear, structured format.`;
         .select()
         .single();
 
-      if (convError) throw convError;
+      if (convError) {
+        console.error('Error creating conversation:', convError);
+        throw convError;
+      }
 
       outputs.push({
         agent: agent,
@@ -105,24 +132,31 @@ Please provide your response in a clear, structured format.`;
   }
 
   // After each agent processes, collect feedback from other agents
+  console.log("Starting feedback collection between agents");
+  
   for (const output of outputs) {
     const otherAgents = outputs.filter(o => o.agent.id !== output.agent.id);
     
     for (const reviewer of otherAgents) {
-      const feedback = await generateAgentFeedback(
-        openai,
-        output.conversation.content,
-        reviewer.agent.name,
-        reviewer.agent.description
-      );
-      
-      await collectAgentFeedback(
-        supabase,
-        output.conversation.id,
-        reviewer.agent.id,
-        feedback.content,
-        feedback.rating
-      );
+      try {
+        const feedback = await generateAgentFeedback(
+          openai,
+          output.conversation.content,
+          reviewer.agent.name,
+          reviewer.agent.description
+        );
+        
+        await collectAgentFeedback(
+          supabase,
+          output.conversation.id,
+          reviewer.agent.id,
+          feedback.content,
+          feedback.rating
+        );
+      } catch (error) {
+        console.error('Error collecting feedback:', error);
+        // Continue with other feedback even if one fails
+      }
     }
   }
 
@@ -144,18 +178,24 @@ Provide your feedback in the following format:
 Feedback: [Your detailed feedback]
 Rating: [1-5]`;
 
-  const response = await openai.createChatCompletion({
-    model: "gpt-4",
-    messages: [{ role: "user", content: prompt }],
-  });
+  try {
+    const response = await openai.createChatCompletion({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+    });
 
-  const feedbackText = response.data.choices[0]?.message?.content || "";
-  const ratingMatch = feedbackText.match(/Rating:\s*(\d+)/);
-  const rating = ratingMatch ? parseInt(ratingMatch[1]) : 3;
-  const feedback = feedbackText.replace(/Rating:\s*\d+/, "").replace("Feedback:", "").trim();
+    const feedbackText = response.data.choices[0]?.message?.content || "";
+    const ratingMatch = feedbackText.match(/Rating:\s*(\d+)/);
+    const rating = ratingMatch ? parseInt(ratingMatch[1]) : 3;
+    const feedback = feedbackText.replace(/Rating:\s*\d+/, "").replace("Feedback:", "").trim();
 
-  return {
-    content: feedback,
-    rating: Math.min(Math.max(rating, 1), 5), // Ensure rating is between 1-5
-  };
+    return {
+      content: feedback,
+      rating: Math.min(Math.max(rating, 1), 5), // Ensure rating is between 1-5
+    };
+  } catch (error) {
+    console.error('Error generating feedback:', error);
+    throw error;
+  }
 }
