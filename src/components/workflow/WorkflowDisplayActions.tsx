@@ -93,7 +93,7 @@ export const WorkflowDisplayActions = ({
     const previousStage = stages[currentIndex - 1];
     if (previousStage && onStageSelect) {
       console.log("Moving to previous stage:", previousStage.id);
-      onStageSelect(previousStage); // Use onStageSelect instead of onNextStage
+      onStageSelect(previousStage);
     }
   };
 
@@ -102,18 +102,20 @@ export const WorkflowDisplayActions = ({
   return (
     <Card className="cursor-pointer hover:border-primary transition-colors">
       <CardContent className="flex justify-between items-center p-4">
-        <Button
-          onClick={handlePreviousStage}
-          disabled={isFirstStage || isProcessing}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Previous Stage
-        </Button>
+        {!isFirstStage && (
+          <Button
+            onClick={handlePreviousStage}
+            disabled={isProcessing}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Previous Stage
+          </Button>
+        )}
         <Button
           onClick={handleNextStage}
           disabled={isProcessing || !isCurrentStageCompleted}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 ml-auto"
         >
           {isProcessing ? "Processing next stage... Please wait" : "Next Stage"}
           <ArrowRight className="h-4 w-4" />
