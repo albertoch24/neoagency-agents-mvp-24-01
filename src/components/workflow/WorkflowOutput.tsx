@@ -30,7 +30,8 @@ interface StageOutput {
 }
 
 function isStageOutput(obj: any): obj is StageOutput {
-  return (
+  console.log("Validating output structure:", obj);
+  const isValid = (
     typeof obj === 'object' &&
     obj !== null &&
     'stage_name' in obj &&
@@ -39,6 +40,8 @@ function isStageOutput(obj: any): obj is StageOutput {
     'outputs' in obj &&
     Array.isArray(obj.outputs)
   );
+  console.log("Is valid stage output?", isValid);
+  return isValid;
 }
 
 export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
@@ -106,8 +109,8 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         <ScrollArea className="h-[600px] pr-6">
           <div className="space-y-12">
             {outputs.map((output) => {
-              const content = output.content as unknown;
               console.log("Processing output:", output);
+              const content = output.content;
               
               if (!isStageOutput(content)) {
                 console.error("Invalid stage output format:", content);
