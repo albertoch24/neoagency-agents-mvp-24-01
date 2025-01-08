@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { User } from "lucide-react";
+import { toast } from "sonner";
 
 interface WorkflowOutputProps {
   briefId: string;
@@ -51,20 +52,28 @@ function isStageOutput(obj: any): obj is StageOutput {
 }
 
 export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
-  const { data: outputs } = useQuery({
+  console.log("WorkflowOutput rendered with:", { briefId, stageId });
+
+  const { data: outputs, error } = useQuery({
     queryKey: ["brief-outputs", briefId, stageId],
     queryFn: async () => {
-      console.log("Fetching outputs for stage:", stageId);
+      console.log("Fetching outputs for:", { briefId, stageId });
       
+      if (!briefId || !stageId) {
+        console.log("Missing briefId or stageId");
+        return [];
+      }
+
       const { data, error } = await supabase
         .from("brief_outputs")
         .select("*")
         .eq("brief_id", briefId)
-        .eq("stage", stageId)  // Changed from stage_id to stage
+        .eq("stage", stageId)
         .order("created_at", { ascending: false });
 
       if (error) {
         console.error("Error fetching outputs:", error);
+        toast.error("Failed to fetch outputs");
         return [];
       }
 
@@ -77,8 +86,28 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
     refetchInterval: 5000,
   });
 
+  console.log("Current outputs state:", outputs);
+
+  if (error) {
+    console.error("Query error:", error);
+    return (
+      <div className="p-4 text-red-500">
+        Error loading outputs. Please try again.
+      </div>
+    );
+  }
+
   if (!outputs?.length) {
-    return null;
+    console.log("No outputs found");
+    return (
+      <Card className="w-full bg-background shadow-lg">
+        <CardContent className="p-8">
+          <div className="text-center text-muted-foreground">
+            No outputs available yet. Processing may be in progress...
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -88,13 +117,13 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
           <div className="space-y-12">
             {outputs.map((output) => {
               const content = output.content as unknown;
+              console.log("Processing output:", output);
+              
               if (!isStageOutput(content)) {
                 console.error("Invalid stage output format:", content);
                 return null;
               }
               
-              console.log("Processing output content:", content);
-
               return (
                 <div key={output.id} className="space-y-8">
                   <div className="flex items-center justify-between border-b pb-4">
