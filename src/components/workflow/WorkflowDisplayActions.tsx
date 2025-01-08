@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WorkflowDisplayActionsProps {
   currentStage: string;
@@ -20,7 +22,36 @@ export const WorkflowDisplayActions = ({
 }: WorkflowDisplayActionsProps) => {
   const currentIndex = stages.findIndex(stage => stage.id === currentStage);
   const isLastStage = currentIndex === stages.length - 1;
-  const isCurrentStageCompleted = completedStages?.includes(currentStage);
+  const [isCurrentStageCompleted, setIsCurrentStageCompleted] = useState(false);
+
+  useEffect(() => {
+    const checkStageCompletion = async () => {
+      try {
+        // Check in brief_outputs table
+        const { data: outputs } = await supabase
+          .from("brief_outputs")
+          .select("*")
+          .eq("stage_id", currentStage)
+          .maybeSingle();
+
+        // Check in workflow_conversations table
+        const { data: conversations } = await supabase
+          .from("workflow_conversations")
+          .select("*")
+          .eq("stage_id", currentStage)
+          .maybeSingle();
+
+        const isCompleted = !!outputs || !!conversations;
+        console.log("Stage completion check:", { currentStage, isCompleted, outputs, conversations });
+        setIsCurrentStageCompleted(isCompleted);
+      } catch (error) {
+        console.error("Error checking stage completion:", error);
+        setIsCurrentStageCompleted(false);
+      }
+    };
+
+    checkStageCompletion();
+  }, [currentStage]);
 
   if (isLastStage) return null;
 
