@@ -32,6 +32,8 @@ export async function processAgent(
       const response = await processAgentInteractions(executor, brief, requirements);
 
       return {
+        agent: agent.name,
+        requirements,
         outputs: [
           {
             content: response,
@@ -41,7 +43,9 @@ export async function processAgent(
             content: response,
             type: 'structured'
           }
-        ]
+        ],
+        stepId: agent.id,
+        orderIndex: 0
       };
     }
 
@@ -55,12 +59,24 @@ export async function processAgent(
       isFirstStage
     );
 
+    console.log('Generated prompts:', {
+      conversationalPrompt: conversationalPrompt.substring(0, 100) + '...',
+      schematicPrompt: schematicPrompt.substring(0, 100) + '...'
+    });
+
     const [conversationalResponse, schematicResponse] = await Promise.all([
       generateAgentResponse(conversationalPrompt),
       generateAgentResponse(schematicPrompt)
     ]);
 
+    console.log('Received responses:', {
+      conversationalLength: conversationalResponse.length,
+      schematicLength: schematicResponse.length
+    });
+
     return {
+      agent: agent.name,
+      requirements,
       outputs: [
         {
           content: conversationalResponse,
@@ -70,7 +86,9 @@ export async function processAgent(
           content: schematicResponse,
           type: 'structured'
         }
-      ]
+      ],
+      stepId: agent.id,
+      orderIndex: 0
     };
   } catch (error) {
     console.error('Error in processAgent:', error);
