@@ -9,7 +9,7 @@ import { AgentOutputHeader } from "./AgentOutputHeader";
 
 interface Output {
   content: string;
-  type: string;
+  type?: string; // Reso opzionale aggiungendo ?
 }
 
 interface AgentOutputProps {
