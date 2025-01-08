@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from 'react';
 import { cn } from "@/lib/utils";
 import { MarkdownContent } from "./MarkdownContent";
 import { AudioControls } from "./AudioControls";
 import { ConversationControls } from "./ConversationControls";
 import { TextToSpeechButton } from "./TextToSpeechButton";
+import { AgentFeedback } from "./AgentFeedback";
 
 interface ConversationContentProps {
   conversation: any;
@@ -41,7 +42,7 @@ export const ConversationContent = ({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         <TextToSpeechButton
           text={conversation.content}
@@ -61,6 +62,8 @@ export const ConversationContent = ({
           <MarkdownContent content={conversation.content} />
         </div>
       )}
+
+      <AgentFeedback conversationId={conversation.id} />
     </div>
   );
 };

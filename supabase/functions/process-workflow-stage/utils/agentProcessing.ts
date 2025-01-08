@@ -1,6 +1,25 @@
-import { processAgent } from './workflow.ts';
-import { saveConversation, saveBriefOutput, saveStructuredOutput } from './database.ts';
-import { buildPrompt } from './promptBuilder.ts';
+import { createClient } from '@supabase/supabase-js';
+import { Configuration, OpenAIApi } from 'openai';
+import { Database } from '../../../types/supabase';
+
+async function collectAgentFeedback(
+  supabase: any,
+  conversationId: string,
+  reviewerAgentId: string,
+  content: string,
+  rating: number
+) {
+  const { error } = await supabase
+    .from('agent_feedback')
+    .insert({
+      conversation_id: conversationId,
+      reviewer_agent_id: reviewerAgentId,
+      content,
+      rating,
+    });
+
+  if (error) throw error;
+}
 
 export async function processAgents(
   supabase: any,
@@ -9,146 +28,127 @@ export async function processAgents(
   stageId: string,
   stageName: string
 ) {
-  console.log("Starting agent processing for stage:", {
-    stageName,
-    stageId,
-    briefId: brief.id,
-    flowStepsCount: flowSteps.length,
-    timestamp: new Date().toISOString()
-  });
-
-  // Get previous stage outputs for context
-  const { data: previousOutputs } = await supabase
-    .from("brief_outputs")
-    .select("*")
-    .eq("brief_id", brief.id)
-    .lt("created_at", new Date().toISOString())
-    .order("created_at", { ascending: true });
-
-  console.log("Found previous outputs:", previousOutputs?.length || 0);
-
   const outputs = [];
+  const openai = new OpenAIApi(new Configuration({
+    apiKey: Deno.env.get('OPENAI_API_KEY'),
+  }));
 
-  // Process each step in sequence
   for (const step of flowSteps) {
-    console.log("Processing flow step:", {
-      stepId: step.id,
-      agentId: step.agent_id,
-      orderIndex: step.order_index,
-      requirements: step.requirements,
-      timestamp: new Date().toISOString()
-    });
+    console.log(`Processing step for agent ${step.agent_id}`);
+    
+    const { data: agent } = await supabase
+      .from('agents')
+      .select('*')
+      .eq('id', step.agent_id)
+      .single();
 
-    // Get agent with skills
-    const { data: agent, error: agentError } = await supabase
-      .from("agents")
-      .select(`
-        *,
-        skills (*)
-      `)
-      .eq("id", step.agent_id)
-      .maybeSingle();
-
-    if (agentError || !agent) {
-      console.error("Agent validation failed:", {
-        stepId: step.id,
-        agentId: step.agent_id,
-        error: agentError,
-        timestamp: new Date().toISOString()
-      });
-      throw new Error(`Agent not found for step: ${step.id}`);
+    if (!agent) {
+      throw new Error(`Agent ${step.agent_id} not found`);
     }
 
-    console.log("Agent validation successful:", {
-      agentId: agent.id,
-      agentName: agent.name,
-      skillsCount: agent.skills?.length || 0,
-      requirements: step.requirements,
-      timestamp: new Date().toISOString()
-    });
+    const prompt = `You are ${agent.name}. ${agent.description || ''}
 
-    // Process agent with requirements and previous context
-    const output = await processAgent(
-      supabase, 
-      agent, 
-      brief, 
-      stageId, 
-      step.requirements,
-      previousOutputs || []
-    );
+Brief Title: ${brief.title}
+Brief Description: ${brief.description || ''}
+Brief Objectives: ${brief.objectives || ''}
 
-    // Add step metadata to output
-    const enrichedOutput = {
-      ...output,
-      stepId: step.id,
-      orderIndex: step.order_index,
-      requirements: step.requirements,
-      agent: {
-        id: agent.id,
-        name: agent.name,
-        description: agent.description
+Your task: ${step.requirements || 'Analyze the brief and provide insights'}
+
+Please provide your response in a clear, structured format.`;
+
+    try {
+      const completion = await openai.createChatCompletion({
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: prompt }],
+      });
+
+      const response = completion.data.choices[0]?.message?.content;
+      
+      if (!response) {
+        throw new Error('No response from OpenAI');
       }
-    };
 
-    outputs.push(enrichedOutput);
+      const { data: conversation, error: convError } = await supabase
+        .from('workflow_conversations')
+        .insert({
+          brief_id: brief.id,
+          stage_id: stageId,
+          agent_id: step.agent_id,
+          content: response,
+          flow_step_id: step.id
+        })
+        .select()
+        .single();
 
-    // Save conversation for this step
-    if (output?.outputs?.[0]?.content) {
-      console.log("Saving conversation for step:", {
-        briefId: brief.id,
-        stageId: stageId,
+      if (convError) throw convError;
+
+      outputs.push({
+        agent: agent,
+        requirements: step.requirements,
+        outputs: [{ content: response }],
         stepId: step.id,
-        agentId: agent.id,
-        timestamp: new Date().toISOString()
+        orderIndex: step.order_index,
+        conversation: conversation
       });
 
-      await saveConversation(
-        supabase, 
-        brief.id, 
-        stageId, 
-        agent.id, 
-        output.outputs[0].content,
-        step.id
-      );
-
-      // Extract and save structured content if available
-      const structuredOutput = output.outputs.find(out => out.type === 'structured');
-      if (structuredOutput?.content) {
-        console.log("Saving structured output:", {
-          briefId: brief.id,
-          stageId: stageId,
-          stepId: step.id,
-          timestamp: new Date().toISOString()
-        });
-
-        await saveStructuredOutput(
-          supabase,
-          brief.id,
-          stageId,
-          step.id,
-          structuredOutput.content
-        );
-      }
-    } else {
-      console.error("Invalid output format from agent:", {
-        agentId: agent.id,
-        agentName: agent.name,
-        output,
-        timestamp: new Date().toISOString()
-      });
-      throw new Error(`Invalid output format from agent: ${agent.name}`);
+    } catch (error) {
+      console.error(`Error processing agent ${agent.name}:`, error);
+      throw error;
     }
   }
 
-  console.log("Saving brief output with all steps:", {
-    briefId: brief.id,
-    stageId: stageId,
-    stageName: stageName,
-    outputsCount: outputs.length,
-    timestamp: new Date().toISOString()
+  // After each agent processes, collect feedback from other agents
+  for (const step of flowSteps) {
+    const otherAgents = flowSteps.filter(s => s.agent_id !== step.agent_id);
+    
+    for (const reviewer of otherAgents) {
+      const feedback = await generateAgentFeedback(
+        openai,
+        step.conversation.content,
+        reviewer.agent.name,
+        reviewer.agent.description
+      );
+      
+      await collectAgentFeedback(
+        supabase,
+        step.conversation.id,
+        reviewer.agent_id,
+        feedback.content,
+        feedback.rating
+      );
+    }
+  }
+
+  return outputs;
+}
+
+async function generateAgentFeedback(
+  openai: OpenAIApi,
+  content: string,
+  reviewerName: string,
+  reviewerDescription: string
+): Promise<{ content: string; rating: number }> {
+  const prompt = `As ${reviewerName} (${reviewerDescription}), provide constructive feedback on the following content from another team member. Include both positive aspects and areas for improvement. Rate the content from 1-5 stars based on its effectiveness and alignment with project goals.
+
+Content to review:
+${content}
+
+Provide your feedback in the following format:
+Feedback: [Your detailed feedback]
+Rating: [1-5]`;
+
+  const response = await openai.createChatCompletion({
+    model: "gpt-4",
+    messages: [{ role: "user", content: prompt }],
   });
 
-  // Save complete stage output with all steps
-  await saveBriefOutput(supabase, brief.id, stageId, stageName, outputs);
-  return outputs;
+  const feedbackText = response.data.choices[0]?.message?.content || "";
+  const ratingMatch = feedbackText.match(/Rating:\s*(\d+)/);
+  const rating = ratingMatch ? parseInt(ratingMatch[1]) : 3;
+  const feedback = feedbackText.replace(/Rating:\s*\d+/, "").replace("Feedback:", "").trim();
+
+  return {
+    content: feedback,
+    rating: Math.min(Math.max(rating, 1), 5), // Ensure rating is between 1-5
+  };
 }
