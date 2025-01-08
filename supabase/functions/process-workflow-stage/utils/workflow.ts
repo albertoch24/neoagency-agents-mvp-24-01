@@ -30,20 +30,16 @@ export async function processAgent(
     if (stageAgents && stageAgents.length > 1) {
       const executor = await createAgentChain(stageAgents, brief);
       const response = await processAgentInteractions(executor, brief, requirements);
+      
+      console.log('Multi-agent response:', response);
 
       return {
         agent: agent.name,
         requirements,
-        outputs: [
-          {
-            content: response,
-            type: 'conversational'
-          },
-          {
-            content: response,
-            type: 'structured'
-          }
-        ],
+        outputs: [{
+          content: response.outputs[0].content,
+          type: 'conversational'
+        }],
         stepId: agent.id,
         orderIndex: 0
       };
@@ -69,24 +65,29 @@ export async function processAgent(
       generateAgentResponse(schematicPrompt)
     ]);
 
-    console.log('Received responses:', {
-      conversationalLength: conversationalResponse.length,
-      schematicLength: schematicResponse.length
+    console.log('Agent responses:', {
+      conversationalLength: conversationalResponse.conversationalResponse?.length,
+      schematicLength: schematicResponse.schematicResponse?.length
     });
+
+    const outputs = [
+      {
+        content: conversationalResponse.conversationalResponse,
+        type: 'conversational'
+      }
+    ];
+
+    if (schematicResponse.schematicResponse) {
+      outputs.push({
+        content: schematicResponse.schematicResponse,
+        type: 'structured'
+      });
+    }
 
     return {
       agent: agent.name,
       requirements,
-      outputs: [
-        {
-          content: conversationalResponse,
-          type: 'conversational'
-        },
-        {
-          content: schematicResponse,
-          type: 'structured'
-        }
-      ],
+      outputs,
       stepId: agent.id,
       orderIndex: 0
     };

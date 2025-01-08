@@ -73,29 +73,37 @@ export async function processAgents(briefId: string, stageId: string) {
         outputs
       );
 
-      outputs.push(...result.outputs);
+      outputs.push(result);
     }
 
-    // Save the outputs to brief_outputs table
-    console.log('Saving outputs to brief_outputs:', {
-      briefId,
-      stageId,
-      stageName: stage.name,
-      outputsCount: outputs.length
-    });
-
-    await saveBriefOutput(
-      supabase,
-      briefId,
-      stageId,
-      stage.name,
-      outputs.map(output => ({
+    // Prepare the content object for saving
+    const content = {
+      stage_name: stage.name,
+      flow_name: stage.flows.name,
+      agent_count: flowSteps.length,
+      outputs: outputs.map(output => ({
         agent: output.agent,
         requirements: output.requirements,
         outputs: output.outputs,
         stepId: output.stepId,
         orderIndex: output.orderIndex
       }))
+    };
+
+    console.log('Saving outputs to brief_outputs:', {
+      briefId,
+      stageId,
+      stageName: stage.name,
+      outputsCount: outputs.length,
+      contentSample: JSON.stringify(content).substring(0, 100)
+    });
+
+    await saveBriefOutput(
+      supabase,
+      briefId,
+      stageId,
+      content,
+      stage.name
     );
 
     return outputs;
