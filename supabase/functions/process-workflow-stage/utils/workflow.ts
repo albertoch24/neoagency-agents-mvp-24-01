@@ -45,9 +45,9 @@ export async function processAgent(
       };
     }
 
-    // Single agent processing
+    // Fallback to original single-agent processing if only one agent
     const isFirstStage = previousOutputs.length === 0;
-    const { conversationalPrompt } = buildPrompt(
+    const { conversationalPrompt, schematicPrompt } = buildPrompt(
       agent,
       brief,
       previousOutputs,
@@ -55,23 +55,39 @@ export async function processAgent(
       isFirstStage
     );
 
-    console.log('Generated prompt:', {
-      conversationalPrompt: conversationalPrompt.substring(0, 100) + '...'
+    console.log('Generated prompts:', {
+      conversationalPrompt: conversationalPrompt.substring(0, 100) + '...',
+      schematicPrompt: schematicPrompt.substring(0, 100) + '...'
     });
 
-    const response = await generateAgentResponse(conversationalPrompt);
+    const [conversationalResponse, schematicResponse] = await Promise.all([
+      generateAgentResponse(conversationalPrompt),
+      generateAgentResponse(schematicPrompt)
+    ]);
 
-    console.log('Agent response:', {
-      responseLength: response.conversationalResponse?.length
+    console.log('Agent responses:', {
+      conversationalLength: conversationalResponse.conversationalResponse?.length,
+      schematicLength: schematicResponse.schematicResponse?.length
     });
+
+    const outputs = [
+      {
+        content: conversationalResponse.conversationalResponse,
+        type: 'conversational'
+      }
+    ];
+
+    if (schematicResponse.schematicResponse) {
+      outputs.push({
+        content: schematicResponse.schematicResponse,
+        type: 'structured'
+      });
+    }
 
     return {
       agent: agent.name,
       requirements,
-      outputs: [{
-        content: response.conversationalResponse,
-        type: 'conversational'
-      }],
+      outputs,
       stepId: agent.id,
       orderIndex: 0
     };
