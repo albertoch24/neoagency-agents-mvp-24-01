@@ -1,6 +1,7 @@
 import { WorkflowStages } from "./WorkflowStages";
 import { WorkflowConversation } from "./WorkflowConversation";
 import { WorkflowDisplayActions } from "./WorkflowDisplayActions";
+import { WorkflowOutput } from "./WorkflowOutput";
 import { useStagesData } from "@/hooks/useStagesData";
 import { useStageProcessing } from "@/hooks/useStageProcessing";
 import { useEffect, useCallback } from "react";
@@ -15,7 +16,7 @@ interface WorkflowDisplayProps {
   showOutputs?: boolean;
 }
 
-export const WorkflowDisplay = ({
+export const WorkflowDisplay = ({ 
   currentStage,
   onStageSelect,
   briefId,
@@ -162,11 +163,18 @@ export const WorkflowDisplay = ({
       />
       {briefId && (
         <>
-          <WorkflowConversation
-            briefId={briefId}
-            currentStage={currentStage}
-            showOutputs={showOutputs}
-          />
+          {showOutputs ? (
+            <WorkflowOutput
+              briefId={briefId}
+              stageId={currentStage}
+            />
+          ) : (
+            <WorkflowConversation
+              briefId={briefId}
+              currentStage={currentStage}
+              showOutputs={showOutputs}
+            />
+          )}
           <WorkflowDisplayActions
             currentStage={currentStage}
             stages={stages}
