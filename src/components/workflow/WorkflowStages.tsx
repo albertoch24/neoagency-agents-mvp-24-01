@@ -2,12 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { StageCard } from "./StageCard";
-import { WorkflowStage } from "@/types/workflow";
+import { Stage } from "@/types/workflow";
 
 interface WorkflowStagesProps {
-  stages: WorkflowStage[];
+  stages: Stage[];
   currentStage: string;
-  onStageSelect: (stage: WorkflowStage) => void;
+  onStageSelect: (stage: Stage) => void;
   disabled?: boolean;
   briefId?: string;
 }
@@ -87,7 +87,7 @@ export function WorkflowStages({
     enabled: !!currentStage
   });
 
-  const handleStageClick = async (stage: WorkflowStage, index: number) => {
+  const handleStageClick = async (stage: Stage, index: number) => {
     if (disabled) return;
 
     console.log("Stage clicked:", stage.id, "Current stage:", currentStage);

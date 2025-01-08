@@ -4,24 +4,14 @@ export type WorkflowRole = {
   responsibilities: string[];
 };
 
-export type WorkflowStage = {
+// Unified Stage type that matches database schema and component usage
+export type Stage = {
   id: string;
   name: string;
   description: string | null;
   order_index: number;
   user_id: string;
   flow_id: string | null;
-  created_at?: string;
-  updated_at?: string;
-};
-
-export type Stage = {
-  id: string;
-  name: string;
-  description?: string | null;
-  order_index?: number;
-  user_id?: string;
-  flow_id?: string | null;
   flows?: {
     id: string;
     name: string;
@@ -31,16 +21,21 @@ export type Stage = {
       requirements: string;
       order_index: number;
       outputs: any[];
-      description?: string;
+      agents?: {
+        id: string;
+        name: string;
+        description: string;
+      };
     }>;
-  };
+  } | null;
   created_at?: string;
   updated_at?: string;
 };
 
+// Remove duplicate WorkflowStage type and use Stage instead
 export type WorkflowState = {
   currentStage: string;
-  stages: Record<string, WorkflowStage>;
+  stages: Record<string, Stage>;
 };
 
 export type WorkflowOutputContent = {
