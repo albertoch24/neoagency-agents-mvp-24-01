@@ -30,7 +30,12 @@ interface StageOutput {
 }
 
 function isStageOutput(obj: any): obj is StageOutput {
-  console.log("🔍 Validating output structure:", obj);
+  console.log("🔍 Validating output structure:", {
+    rawObject: obj,
+    type: typeof obj,
+    keys: obj ? Object.keys(obj) : 'null'
+  });
+  
   const isValid = (
     typeof obj === 'object' &&
     obj !== null &&
@@ -40,6 +45,7 @@ function isStageOutput(obj: any): obj is StageOutput {
     'outputs' in obj &&
     Array.isArray(obj.outputs)
   );
+  
   console.log("✓ Is valid stage output?", isValid);
   if (!isValid) {
     console.log("❌ Missing required fields:", {
@@ -48,6 +54,14 @@ function isStageOutput(obj: any): obj is StageOutput {
       hasAgentCountField: 'agent_count' in obj,
       hasOutputsField: 'outputs' in obj,
       outputsIsArray: Array.isArray(obj?.outputs)
+    });
+  } else {
+    console.log("✨ Valid output structure details:", {
+      stageName: obj.stage_name,
+      flowName: obj.flow_name,
+      agentCount: obj.agent_count,
+      outputsCount: obj.outputs?.length,
+      firstOutput: obj.outputs?.[0]
     });
   }
   return isValid;
@@ -79,7 +93,18 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         return [];
       }
 
-      console.log("✨ Found outputs:", data);
+      console.log("✨ Found outputs:", {
+        count: data?.length,
+        outputs: data?.map(output => ({
+          id: output.id,
+          briefId: output.brief_id,
+          stageId: output.stage_id,
+          contentType: typeof output.content,
+          contentKeys: output.content ? Object.keys(output.content) : [],
+          rawContent: output.content
+        }))
+      });
+      
       return data;
     },
     enabled: !!briefId && !!stageId,
@@ -88,7 +113,11 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
     refetchInterval: 5000,
   });
 
-  console.log("📊 Current outputs state:", outputs);
+  console.log("📊 Current outputs state:", {
+    hasOutputs: !!outputs?.length,
+    outputCount: outputs?.length,
+    firstOutput: outputs?.[0]
+  });
 
   if (error) {
     console.error("❌ Query error:", error);
@@ -118,7 +147,14 @@ export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
         <ScrollArea className="h-[600px] pr-6">
           <div className="space-y-12">
             {outputs.map((output) => {
-              console.log("🔄 Processing output:", output);
+              console.log("🔄 Processing output:", {
+                outputId: output.id,
+                hasContent: !!output.content,
+                contentType: typeof output.content,
+                contentKeys: output.content ? Object.keys(output.content) : [],
+                rawContent: output.content
+              });
+              
               const content = output.content;
               
               if (!isStageOutput(content)) {
