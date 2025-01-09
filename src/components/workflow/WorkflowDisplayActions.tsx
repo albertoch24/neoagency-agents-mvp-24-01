@@ -36,8 +36,7 @@ export const WorkflowDisplayActions = ({
         const { data: outputs, error: outputsError } = await supabase
           .from("brief_outputs")
           .select("*")
-          .eq("stage", currentStage)
-          .maybeSingle();
+          .eq("stage", currentStage);
 
         if (outputsError) {
           console.error("Error checking outputs:", outputsError);
@@ -47,19 +46,21 @@ export const WorkflowDisplayActions = ({
         const { data: conversations, error: convsError } = await supabase
           .from("workflow_conversations")
           .select("*")
-          .eq("stage_id", currentStage)
-          .maybeSingle();
+          .eq("stage_id", currentStage);
 
         if (convsError) {
           console.error("Error checking conversations:", convsError);
         }
 
-        const isCompleted = !!outputs || !!conversations;
+        const hasOutputs = outputs && outputs.length > 0;
+        const hasConversations = conversations && conversations.length > 0;
+        const isCompleted = hasOutputs || hasConversations;
+
         console.log("Stage completion check:", { 
           currentStage, 
           isCompleted, 
-          hasOutputs: !!outputs, 
-          hasConversations: !!conversations,
+          hasOutputs, 
+          hasConversations,
           outputs,
           conversations
         });
