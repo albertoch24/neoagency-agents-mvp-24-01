@@ -153,10 +153,38 @@ export const WorkflowDisplay = ({
     );
   }
 
+  // Transform stages data into the required format [string, any[]][]
+  const transformedStages = stages.map(stage => {
+    // Query to get conversations for this stage
+    const { data: conversations } = useQuery({
+      queryKey: ["stage-conversations", briefId, stage.id],
+      queryFn: async () => {
+        if (!briefId) return [];
+        
+        const { data, error } = await supabase
+          .from("workflow_conversations")
+          .select("*")
+          .eq("brief_id", briefId)
+          .eq("stage_id", stage.id)
+          .order("created_at", { ascending: true });
+
+        if (error) {
+          console.error("Error fetching stage conversations:", error);
+          return [];
+        }
+        
+        return data || [];
+      },
+      enabled: !!briefId
+    });
+
+    return [stage.id, conversations || []] as [string, any[]];
+  });
+
   return (
     <div className="space-y-8">
       <WorkflowStages
-        stages={stages}
+        stages={transformedStages}
         currentStage={currentStage}
         onStageSelect={onStageSelect}
         briefId={briefId}
