@@ -22,40 +22,13 @@ interface OutputDisplayProps {
 }
 
 export const OutputDisplay = ({ output }: OutputDisplayProps) => {
-  console.log("🎨 OutputDisplay received:", {
-    hasContent: !!output?.content,
-    contentKeys: output?.content ? Object.keys(output.content) : [],
-    outputsCount: output?.content?.outputs?.length || 0,
-    outputs: output?.content?.outputs?.map(out => ({
-      agent: out.agent || 'Unknown Agent',
-      hasStepId: !!out.stepId,
-      outputsCount: out.outputs?.length || 0,
-      firstOutput: out.outputs?.[0]?.content
-    }))
-  });
+  console.log("OutputDisplay received output:", output);
 
-  const outputs = output?.content?.outputs || [];
+  const outputs = output.content.outputs || [];
 
-  // Ensure outputs have required properties and validate structure
-  const validOutputs = outputs.map(out => {
-    const processedOutput = {
-      ...out,
-      agent: out.agent || 'Unknown Agent',
-      outputs: Array.isArray(out.outputs) ? out.outputs.filter(o => !!o.content) : [],
-      orderIndex: out.orderIndex || 0,
-      requirements: out.requirements || ''
-    };
+  console.log("Parsed outputs:", outputs);
 
-    console.log(`Processing output for agent ${processedOutput.agent}:`, {
-      outputsCount: processedOutput.outputs.length,
-      hasValidContent: processedOutput.outputs.some(o => !!o.content)
-    });
-
-    return processedOutput;
-  });
-
-  if (!validOutputs || validOutputs.length === 0) {
-    console.log("⚠️ No valid outputs available to display");
+  if (!outputs || outputs.length === 0) {
     return (
       <Card className="mt-4 p-4">
         <p className="text-muted-foreground">No output available</p>
@@ -63,19 +36,9 @@ export const OutputDisplay = ({ output }: OutputDisplayProps) => {
     );
   }
 
-  console.log("✅ Rendering outputs:", {
-    count: validOutputs.length,
-    agents: validOutputs.map(o => o.agent),
-    outputDetails: validOutputs.map(o => ({
-      agent: o.agent,
-      outputsCount: o.outputs.length,
-      hasContent: o.outputs.some(out => !!out.content)
-    }))
-  });
-
   return (
     <Card className="mt-4">
-      <Accordion type="single" collapsible defaultValue="output">
+      <Accordion type="single" collapsible defaultValue="">
         <AccordionItem value="output" className="border-none">
           <AccordionTrigger className="px-4 py-3 text-lg font-semibold hover:no-underline">
             View Output Details
@@ -83,13 +46,13 @@ export const OutputDisplay = ({ output }: OutputDisplayProps) => {
           <AccordionContent>
             <ScrollArea className="h-[600px] px-4 pb-4">
               <div className="space-y-8">
-                {validOutputs.map((agentOutput, index) => (
+                {outputs.map((agentOutput, index) => (
                   <AgentOutput
                     key={index}
                     index={index}
                     agent={agentOutput.agent}
                     outputs={agentOutput.outputs}
-                    orderIndex={agentOutput.orderIndex}
+                    orderIndex={agentOutput.orderIndex || index}
                     requirements={agentOutput.requirements}
                   />
                 ))}
