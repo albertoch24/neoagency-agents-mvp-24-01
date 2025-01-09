@@ -27,16 +27,25 @@ export const OutputDisplay = ({ output }: OutputDisplayProps) => {
     contentKeys: output?.content ? Object.keys(output.content) : [],
     outputsCount: output?.content?.outputs?.length || 0,
     outputs: output?.content?.outputs?.map(out => ({
-      agent: out.agent,
+      agent: out.agent || 'Unknown Agent',
       hasStepId: !!out.stepId,
-      outputsCount: out.outputs?.length
+      outputsCount: out.outputs?.length || 0,
+      firstOutput: out.outputs?.[0]?.content
     }))
   });
 
-  const outputs = output.content.outputs || [];
+  const outputs = output?.content?.outputs || [];
 
-  if (!outputs || outputs.length === 0) {
-    console.log("⚠️ No outputs available to display");
+  // Ensure outputs have required properties
+  const validOutputs = outputs.map(out => ({
+    ...out,
+    agent: out.agent || 'Unknown Agent',
+    outputs: Array.isArray(out.outputs) ? out.outputs : [],
+    orderIndex: out.orderIndex || 0
+  }));
+
+  if (!validOutputs || validOutputs.length === 0) {
+    console.log("⚠️ No valid outputs available to display");
     return (
       <Card className="mt-4 p-4">
         <p className="text-muted-foreground">No output available</p>
@@ -45,8 +54,13 @@ export const OutputDisplay = ({ output }: OutputDisplayProps) => {
   }
 
   console.log("✅ Rendering outputs:", {
-    count: outputs.length,
-    agents: outputs.map(o => o.agent)
+    count: validOutputs.length,
+    agents: validOutputs.map(o => o.agent),
+    outputDetails: validOutputs.map(o => ({
+      agent: o.agent,
+      outputsCount: o.outputs.length,
+      hasContent: o.outputs.some(out => !!out.content)
+    }))
   });
 
   return (
@@ -59,13 +73,13 @@ export const OutputDisplay = ({ output }: OutputDisplayProps) => {
           <AccordionContent>
             <ScrollArea className="h-[600px] px-4 pb-4">
               <div className="space-y-8">
-                {outputs.map((agentOutput, index) => (
+                {validOutputs.map((agentOutput, index) => (
                   <AgentOutput
                     key={index}
                     index={index}
                     agent={agentOutput.agent}
                     outputs={agentOutput.outputs}
-                    orderIndex={agentOutput.orderIndex || index}
+                    orderIndex={agentOutput.orderIndex}
                     requirements={agentOutput.requirements}
                   />
                 ))}
