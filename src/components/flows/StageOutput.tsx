@@ -33,11 +33,11 @@ export const StageOutput = ({ output, stepId }: StageOutputProps) => {
   }
 
   // Handle both array and object formats for outputs
-  const outputs = Array.isArray(output.content.outputs) 
-    ? output.content.outputs 
-    : [output.content];
+  const outputs = output.content.outputs || [];
+  console.log("Processing outputs:", outputs);
 
   const stepOutput = outputs.find(out => out.stepId === stepId);
+  console.log("Found step output:", stepOutput);
 
   if (!stepOutput) {
     console.log("No output found for step:", stepId);
@@ -45,7 +45,7 @@ export const StageOutput = ({ output, stepId }: StageOutputProps) => {
   }
 
   const formattedContent = stepOutput.outputs
-    ?.map(out => typeof out === 'string' ? out : out.content)
+    ?.map(out => out.content)
     .filter(Boolean)
     .join('\n\n');
 
