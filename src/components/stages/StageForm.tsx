@@ -65,6 +65,7 @@ export const StageForm = ({ onClose, editingStage }: StageFormProps) => {
             name,
             description,
             flow_id: selectedFlowId,
+            updated_at: new Date().toISOString(),
           })
           .eq("id", editingStage.id);
 
