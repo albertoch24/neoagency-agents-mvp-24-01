@@ -18,8 +18,34 @@ export const buildPrompt = (
   ].filter(Boolean).join('\n\n');
 
   const conversationalPrompt = `
-    As ${agent.name}, ${isFirstStage ? 'analyze this creative brief' : 'analyze this creative brief, previous stage outputs, and any specific flow step outputs'} in a natural, conversational way:
-    
+    As ${agent.name}, I'd like you to analyze this creative brief in two complementary ways:
+
+    1. CONVERSATIONAL ANALYSIS:
+    First, provide your thoughts in a natural, conversational way. Use first-person perspective, share your expertise, and explain your reasoning as if you're speaking in a meeting. Include:
+    - Your initial impressions and insights
+    - How your specific expertise applies to this brief
+    - Any concerns or opportunities you see
+    - References to previous discussions or outputs where relevant
+
+    2. STRUCTURED OUTPUT:
+    Then, provide a clear, structured analysis addressing each required output:
+    ${outputRequirements.map((req: string, index: number) => `${index + 1}. ${req}`).join('\n')}
+
+    Format your response with:
+    ### Conversational Response
+    [Your natural, dialogue-style analysis]
+
+    ### Structured Outputs
+    [Your point-by-point structured responses]
+
+    Remember to:
+    - Maintain your unique voice and personality throughout
+    - Reference specific parts of the brief and previous outputs
+    - Ensure each structured output is concrete and actionable
+    - Keep the conversational part engaging and insightful
+    - Connect your structured outputs to your conversational analysis
+
+    Here is the context for your analysis:
     ${sections}
   `;
 
