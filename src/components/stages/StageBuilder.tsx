@@ -25,12 +25,9 @@ export const StageBuilder = ({ stages, briefId }: StageBuilderProps) => {
     setEditingStage(stage);
   };
 
-  const handleStageMove = async (stageId: string, direction: "up" | "down") => {
+  const handleStageMove = async (stageId: string, newIndex: number) => {
     const currentIndex = stages.findIndex((s) => s.id === stageId);
-    if (currentIndex === -1) return;
-
-    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    if (newIndex < 0 || newIndex >= stages.length) return;
+    if (currentIndex === -1 || newIndex === currentIndex) return;
 
     const updatedStages = [...stages];
     const [movedStage] = updatedStages.splice(currentIndex, 1);

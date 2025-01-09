@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, Save } from "lucide-react";
 import { Stage } from "@/types/workflow";
 import {
   Select,
@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useState } from "react";
 
 interface StageControlsProps {
   stage: Stage;
@@ -28,17 +29,26 @@ export const StageControls = ({
   onDelete,
   isTemplate = false,
 }: StageControlsProps) => {
+  const [pendingIndex, setPendingIndex] = useState<number>(index);
+  const [hasChanges, setHasChanges] = useState(false);
+
   if (!isTemplate) return null;
 
   const handleOrderChange = (value: string) => {
     const newIndex = parseInt(value) - 1; // Convert to 0-based index
-    onMove(stage.id, newIndex);
+    setPendingIndex(newIndex);
+    setHasChanges(true);
+  };
+
+  const handleSave = () => {
+    onMove(stage.id, pendingIndex);
+    setHasChanges(false);
   };
 
   return (
-    <>
+    <div className="flex items-center gap-2">
       <Select
-        value={(index + 1).toString()}
+        value={(pendingIndex + 1).toString()}
         onValueChange={handleOrderChange}
       >
         <SelectTrigger className="w-[100px]">
@@ -52,6 +62,15 @@ export const StageControls = ({
           ))}
         </SelectContent>
       </Select>
+      {hasChanges && (
+        <Button 
+          variant="outline" 
+          size="icon"
+          onClick={handleSave}
+        >
+          <Save className="h-4 w-4" />
+        </Button>
+      )}
       <Button 
         variant="outline" 
         size="icon"
@@ -66,6 +85,6 @@ export const StageControls = ({
       >
         <Trash2 className="h-4 w-4" />
       </Button>
-    </>
+    </div>
   );
 };

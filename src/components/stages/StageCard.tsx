@@ -29,17 +29,20 @@ export const StageCard = ({
   return (
     <Card
       className={cn(
-        "cursor-pointer hover:border-primary transition-colors min-w-[180px] max-w-[180px]",
+        "cursor-pointer hover:border-primary transition-colors w-[250px] h-[150px]",
         isActive && "border-primary"
       )}
       onClick={() => onStageClick(stage)}
     >
-      <div className="p-4">
+      <div className="p-4 h-full flex flex-col">
         <StageHeader
           stage={stage}
           isActive={isActive}
           isCompleted={isCompleted}
         />
+        <p className="text-sm text-muted-foreground mt-2 line-clamp-3">
+          {stage.description}
+        </p>
       </div>
     </Card>
   );
