@@ -76,7 +76,7 @@ export const WorkflowStageList = ({ stages, briefOutputs = [], showOutputs = fal
                 console.log("Rendering step:", stepId, "with conversations:", stepConvs);
                 return (
                   <div key={stepId} className="space-y-4">
-                    {output && showOutputs && <StageOutput output={output} stepId={stepId} />}
+                    {showOutputs && <StageOutput output={output} stepId={stepId} />}
                     <AgentSequence conversations={stepConvs} />
                   </div>
                 );
