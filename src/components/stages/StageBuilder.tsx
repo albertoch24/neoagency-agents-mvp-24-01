@@ -1,4 +1,3 @@
-import { WorkflowStages } from "@/components/workflow/WorkflowStages";
 import { Stage } from "@/types/workflow";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -6,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { StageForm } from "./StageForm";
+import { StageList } from "./StageList";
 
 interface StageBuilderProps {
   stages: Stage[];
@@ -89,7 +89,7 @@ export const StageBuilder = ({ stages, briefId }: StageBuilderProps) => {
 
   return (
     <div className="space-y-8">
-      <WorkflowStages
+      <StageList
         stages={stages}
         currentStage={selectedStage}
         onStageSelect={handleStageSelect}
