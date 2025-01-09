@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const buildDetailedSkillsPrompt = (skills: any[]) => {
-  return skills.map(skill => `
+  const prompt = skills.map(skill => `
     ${skill.name.toUpperCase()} EXPERTISE:
     ${skill.description}
     
@@ -20,6 +20,9 @@ const buildDetailedSkillsPrompt = (skills: any[]) => {
     - Apply specific techniques from ${skill.name} expertise
     - Provide concrete recommendations based on ${skill.name} principles
   `).join('\n\n');
+  
+  console.log('Built skills prompt:', prompt);
+  return prompt;
 };
 
 serve(async (req) => {
@@ -29,13 +32,16 @@ serve(async (req) => {
 
   try {
     const { agentId, input } = await req.json();
-    
-    // Fetch agent details from database
+    console.log('Received request for agent:', agentId);
+    console.log('Input:', input);
+
+    // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    console.log('Fetching agent details...');
     const { data: agent, error: agentError } = await supabaseClient
       .from('agents')
       .select(`
@@ -45,7 +51,16 @@ serve(async (req) => {
       .eq('id', agentId)
       .single();
 
-    if (agentError) throw agentError;
+    if (agentError) {
+      console.error('Error fetching agent:', agentError);
+      throw agentError;
+    }
+
+    console.log('Agent details:', {
+      name: agent.name,
+      skillsCount: agent.skills?.length,
+      temperature: agent.temperature
+    });
 
     const systemPrompt = `You are ${agent.name}, a creative agency professional participating in a team meeting. 
     Your communication style should be natural, engaging, and conversational, as if you're speaking face-to-face.
@@ -83,21 +98,17 @@ serve(async (req) => {
     
     ${agent.description}`;
 
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    const elevenLabsApiKey = Deno.env.get('ELEVEN_LABS_API_KEY');
-    
-    console.log(`Using temperature: ${agent.temperature || 0.7} for agent: ${agent.name}`);
     console.log('System prompt:', systemPrompt);
-    
-    // Get text response from OpenAI
+    console.log('Using temperature:', agent.temperature || 0.7);
+
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: input }
@@ -108,61 +119,25 @@ serve(async (req) => {
     });
 
     const openAIData = await openAIResponse.json();
-    const textResponse = openAIData.choices[0].message.content;
-
-    // If agent has a voice_id, generate audio
-    let audioUrl = null;
-    if (agent.voice_id && elevenLabsApiKey) {
-      try {
-        const voiceResponse = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${agent.voice_id}`, {
-          method: 'POST',
-          headers: {
-            'xi-api-key': elevenLabsApiKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            text: textResponse,
-            model_id: 'eleven_monolingual_v1',
-            voice_settings: {
-              stability: 0.5,
-              similarity_boost: 0.5,
-            },
-          }),
-        });
-
-        if (voiceResponse.ok) {
-          const audioBlob = await voiceResponse.blob();
-          const base64Audio = await blobToBase64(audioBlob);
-          audioUrl = `data:audio/mpeg;base64,${base64Audio}`;
-        }
-      } catch (error) {
-        console.error('Error generating voice response:', error);
-      }
+    console.log('OpenAI response status:', openAIResponse.status);
+    
+    if (!openAIResponse.ok) {
+      console.error('OpenAI error:', openAIData);
+      throw new Error(`OpenAI API error: ${openAIData.error?.message || 'Unknown error'}`);
     }
 
-    return new Response(JSON.stringify({ 
-      response: textResponse,
-      audioUrl
-    }), {
+    const response = openAIData.choices[0].message.content;
+    console.log('Generated response length:', response.length);
+
+    return new Response(JSON.stringify({ response }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in agent-response function:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
-
-// Helper function to convert Blob to base64
-async function blobToBase64(blob: Blob): Promise<string> {
-  const buffer = await blob.arrayBuffer();
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
