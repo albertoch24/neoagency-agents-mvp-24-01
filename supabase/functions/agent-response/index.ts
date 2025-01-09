@@ -8,6 +8,8 @@ const corsHeaders = {
 };
 
 const buildDetailedSkillsPrompt = (skills: any[]) => {
+  console.log('Building skills prompt for skills:', skills.map(s => s.name));
+  
   const prompt = skills.map(skill => `
     ${skill.name.toUpperCase()} EXPERTISE:
     ${skill.description}
