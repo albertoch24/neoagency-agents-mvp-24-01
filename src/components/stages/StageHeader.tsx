@@ -18,11 +18,6 @@ export const StageHeader = ({ stage, isActive, isCompleted }: StageHeaderProps) 
     <div className="space-y-1">
       <div className="flex items-center gap-2">
         <h3 className="text-lg font-semibold">{stage.name}</h3>
-        {stage.flows && (
-          <Badge variant="secondary" className="text-xs">
-            {stage.flows.name}
-          </Badge>
-        )}
         {isActive && (
           <Badge variant="default" className="text-xs">
             Active
