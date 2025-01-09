@@ -41,6 +41,9 @@ export const WorkflowConversation = ({
 
       if (error) {
         console.error("Error fetching conversations:", error);
+        toast.error("Error loading conversations", {
+          description: error.message
+        });
         return [];
       }
 
@@ -91,7 +94,26 @@ export const WorkflowConversation = ({
 
         if (error) {
           console.error("Error fetching outputs:", error);
+          toast.error("Error loading brief outputs", {
+            description: error.message
+          });
           throw error;
+        }
+
+        // Monitor data structure changes
+        if (data && data.length > 0) {
+          const dataStructure = Object.keys(data[0]).sort();
+          console.warn("🔍 Brief Output Data Structure Check:");
+          console.warn("- Fields present:", dataStructure);
+          console.warn("- Sample content type:", typeof data[0].content);
+          
+          // Alert if content structure changes
+          if (typeof data[0].content === 'string') {
+            console.warn("⚠️ Content is string, expected object");
+            toast.warning("Brief output format changed", {
+              description: "Content structure needs verification"
+            });
+          }
         }
 
         console.log("Found outputs:", data);
@@ -102,6 +124,9 @@ export const WorkflowConversation = ({
         }));
       } catch (error) {
         console.error("Error checking outputs:", error);
+        toast.error("Error processing brief outputs", {
+          description: error instanceof Error ? error.message : "Unknown error"
+        });
         return [];
       }
     },
@@ -111,41 +136,58 @@ export const WorkflowConversation = ({
     refetchInterval: 5000
   });
 
-  // Helper function to transform content into the expected format
+  // Helper function to transform content with monitoring
   const transformContent = (content: any) => {
-    console.log("Transforming content:", content);
+    console.warn("🔍 Content Transformation Check:");
+    console.warn("- Input type:", typeof content);
+    console.warn("- Input structure:", content);
     
     if (typeof content === 'string') {
       try {
-        return { response: JSON.parse(content) };
+        const parsed = JSON.parse(content);
+        console.warn("- Parsed string content successfully");
+        return { response: parsed };
       } catch {
+        console.warn("- Failed to parse string content");
+        toast.warning("Content parsing issue", {
+          description: "String content could not be parsed as JSON"
+        });
         return { response: content };
       }
     }
     
     if (typeof content === 'object' && content !== null) {
+      console.warn("- Processing object content");
       if ('response' in content) {
         return content;
       }
       if ('outputs' in content) {
-        return {
+        const transformed = {
           ...content,
           response: content.outputs?.map((o: any) => o.content).join('\n')
         };
+        console.warn("- Transformed outputs to response");
+        return transformed;
       }
+      console.warn("- Fallback: Converting object to string");
       return { response: JSON.stringify(content) };
     }
     
+    console.warn("- Fallback: Converting to string");
     return { response: String(content) };
   };
 
-  // Group conversations by stage
+  // Group conversations by stage with monitoring
   const conversationsByStage = conversations?.reduce((acc: Record<string, any[]>, conv: any) => {
-    if (!conv) return acc;
+    if (!conv) {
+      console.warn("⚠️ Null conversation detected");
+      return acc;
+    }
     
     const stageId = conv.stage_id;
     if (!acc[stageId]) {
       acc[stageId] = [];
+      console.warn(`Created new stage group: ${stageId}`);
     }
     acc[stageId].push(conv);
     return acc;
