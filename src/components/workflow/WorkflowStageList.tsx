@@ -7,6 +7,16 @@ interface WorkflowStageListProps {
     stage: string;
     content: {
       response?: string;
+      outputs?: Array<{
+        agent: string;
+        stepId?: string;
+        outputs: Array<{
+          content: string;
+          type?: string;
+        }>;
+        orderIndex?: number;
+        requirements?: string;
+      }>;
       [key: string]: any;
     };
     created_at?: string;
@@ -42,7 +52,14 @@ export const WorkflowStageList = ({
   return (
     <div className="space-y-8">
       {stages.map(([stageId, conversations]) => {
-        const conversationalOutputs = conversations.map((conv: any) => ({
+        // Sort conversations by flow step order_index
+        const sortedConversations = conversations.sort((a, b) => {
+          const aIndex = a.flow_steps?.order_index ?? 0;
+          const bIndex = b.flow_steps?.order_index ?? 0;
+          return aIndex - bIndex;
+        });
+
+        const conversationalOutputs = sortedConversations.map((conv: any) => ({
           ...conv,
           stage_id: stageId,
           brief_id: conv.brief_id || (conversations[0]?.brief_id),
@@ -58,6 +75,7 @@ export const WorkflowStageList = ({
         console.log("Latest output for stage", stageId, ":", latestOutput);
         console.log("Conversations for stage", stageId, ":", conversationalOutputs);
 
+        // Group conversations by flow step ID to maintain step sequence
         const conversationsByStep = conversationalOutputs.reduce((acc: any, conv: any) => {
           const stepId = conv.flow_step_id || `no-step-${conv.id}`;
           if (!acc[stepId]) {
@@ -73,10 +91,17 @@ export const WorkflowStageList = ({
           return acc;
         }, {});
 
+        // Sort steps by order_index
+        const sortedSteps = Object.entries(conversationsByStep).sort(([, a]: [string, any[]], [, b]: [string, any[]]) => {
+          const aIndex = a[0]?.flow_step?.order_index ?? 0;
+          const bIndex = b[0]?.flow_step?.order_index ?? 0;
+          return aIndex - bIndex;
+        });
+
         return (
           <div key={stageId} className="space-y-6">
             <div className="pl-4 space-y-4">
-              {Object.entries(conversationsByStep).map(([stepId, stepConvs]: [string, any[]]) => {
+              {sortedSteps.map(([stepId, stepConvs]: [string, any[]]) => {
                 console.log("Rendering step:", stepId, "with conversations:", stepConvs);
                 return (
                   <div key={stepId} className="space-y-4">
