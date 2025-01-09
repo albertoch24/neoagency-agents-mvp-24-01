@@ -45,21 +45,19 @@ export const ConversationContent = ({
   return (
     <Card className="relative overflow-hidden">
       <ConversationControls
-        isPlaying={isPlaying}
-        visibleText={visibleText}
-        onPlayStateChange={onPlayStateChange}
-        onAudioElement={onAudioElement}
-        onToggleText={onToggleText}
-        content={conversation.content}
+        isVisible={visibleText}
+        onToggle={onToggleText}
       />
       
-      <ConversationSection visible={visibleText}>
-        {parsedContent && parsedContent.map((item, index) => (
-          <div key={index} className="mb-4">
-            <MarkdownContent content={item.text} />
-          </div>
-        ))}
-      </ConversationSection>
+      <div className={`${visibleText ? 'block' : 'hidden'} bg-muted/30 rounded-lg p-4 backdrop-blur-sm`}>
+        <div className="prose prose-sm max-w-none">
+          {parsedContent && parsedContent.map((item, index) => (
+            <div key={index} className="mb-4">
+              <MarkdownContent content={item.text} />
+            </div>
+          ))}
+        </div>
+      </div>
     </Card>
   );
 };
