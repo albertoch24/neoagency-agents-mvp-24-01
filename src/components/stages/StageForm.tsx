@@ -10,15 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-
-interface Stage {
-  id: string;
-  name: string;
-  description: string | null;
-  order_index: number;
-  user_id: string;
-  flow_id: string | null;
-}
+import { Stage } from "@/types/workflow";
 
 interface StageFormProps {
   onClose: () => void;
@@ -144,7 +136,7 @@ export const StageForm = ({ onClose, editingStage }: StageFormProps) => {
               <SelectValue placeholder="Select a workflow (optional)" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">No workflow</SelectItem>
+              <SelectItem value="">No workflow</SelectItem>
               {flows?.map((flow) => (
                 <SelectItem key={flow.id} value={flow.id}>
                   {flow.name}

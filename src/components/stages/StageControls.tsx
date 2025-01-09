@@ -1,13 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { ArrowUp, ArrowDown, Edit, Trash2 } from "lucide-react";
+import { Stage } from "@/types/workflow";
 
 interface StageControlsProps {
-  stage: { id: string };
+  stage: Stage;
   index: number;
   totalStages: number;
   onMove: (stageId: string, direction: "up" | "down") => void;
-  onEdit: () => void;
+  onEdit: (stage: Stage) => void;
   onDelete: (stageId: string) => void;
+  isTemplate?: boolean;
 }
 
 export const StageControls = ({
@@ -17,7 +19,10 @@ export const StageControls = ({
   onMove,
   onEdit,
   onDelete,
+  isTemplate = false,
 }: StageControlsProps) => {
+  if (!isTemplate) return null;
+
   return (
     <>
       <Button
@@ -39,7 +44,7 @@ export const StageControls = ({
       <Button 
         variant="outline" 
         size="icon"
-        onClick={onEdit}
+        onClick={() => onEdit(stage)}
       >
         <Edit className="h-4 w-4" />
       </Button>

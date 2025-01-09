@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { StageForm } from "./StageForm";
 
 interface StageBuilderProps {
   stages: Stage[];
@@ -12,10 +14,15 @@ interface StageBuilderProps {
 
 export const StageBuilder = ({ stages, briefId }: StageBuilderProps) => {
   const [selectedStage, setSelectedStage] = useState<string>(stages[0]?.id || '');
+  const [editingStage, setEditingStage] = useState<Stage | null>(null);
   const queryClient = useQueryClient();
 
   const handleStageSelect = (stage: Stage) => {
     setSelectedStage(stage.id);
+  };
+
+  const handleStageEdit = (stage: Stage) => {
+    setEditingStage(stage);
   };
 
   const handleStageMove = async (stageId: string, direction: "up" | "down") => {
@@ -88,9 +95,18 @@ export const StageBuilder = ({ stages, briefId }: StageBuilderProps) => {
         onStageSelect={handleStageSelect}
         onStageMove={handleStageMove}
         onStageDelete={handleStageDelete}
+        onStageEdit={handleStageEdit}
         briefId={briefId}
         isTemplate={!briefId}
       />
+      <Dialog open={!!editingStage} onOpenChange={() => setEditingStage(null)}>
+        <DialogContent>
+          <StageForm 
+            onClose={() => setEditingStage(null)} 
+            editingStage={editingStage} 
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
