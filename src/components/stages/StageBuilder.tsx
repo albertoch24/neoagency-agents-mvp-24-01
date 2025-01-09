@@ -100,7 +100,12 @@ export const StageBuilder = ({ stages, briefId }: StageBuilderProps) => {
         briefId={briefId}
         isTemplate={!briefId}
       />
-      <Dialog open={!!editingStage} onOpenChange={handleCloseDialog}>
+      <Dialog 
+        open={!!editingStage} 
+        onOpenChange={(open) => {
+          if (!open) handleCloseDialog();
+        }}
+      >
         <DialogContent>
           <StageForm 
             onClose={handleCloseDialog} 
