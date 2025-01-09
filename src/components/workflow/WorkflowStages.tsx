@@ -1,159 +1,69 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { StageCard } from "./StageCard";
 import { Stage } from "@/types/workflow";
+import { StageCard } from "@/components/stages/StageCard";
+import { useState } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { StageForm } from "@/components/stages/StageForm";
 
 interface WorkflowStagesProps {
   stages: Stage[];
   currentStage: string;
   onStageSelect: (stage: Stage) => void;
-  disabled?: boolean;
+  onStageMove?: (stageId: string, direction: "up" | "down") => void;
+  onStageDelete?: (stageId: string) => void;
   briefId?: string;
   isTemplate?: boolean;
 }
 
-export function WorkflowStages({ 
-  stages, 
-  currentStage, 
-  onStageSelect, 
-  disabled, 
+export function WorkflowStages({
+  stages,
+  currentStage,
+  onStageSelect,
+  onStageMove,
+  onStageDelete,
   briefId,
   isTemplate = false
 }: WorkflowStagesProps) {
-  // Query to check completed stages - only if not a template
-  const { data: completedStages } = useQuery({
-    queryKey: ["completed-stages", briefId],
-    queryFn: async () => {
-      if (!briefId) return [];
-      
-      const { data } = await supabase
-        .from("workflow_conversations")
-        .select("stage_id")
-        .eq("brief_id", briefId)
-        .order("created_at", { ascending: true });
-      
-      return data?.map(item => item.stage_id) || [];
-    },
-    enabled: !!briefId && !isTemplate
-  });
+  const [editingStage, setEditingStage] = useState<Stage | null>(null);
 
-  // Query to fetch flow steps for each stage
-  const { data: stageFlowSteps } = useQuery({
-    queryKey: ["stage-flow-steps", currentStage],
-    queryFn: async () => {
-      if (!currentStage || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentStage)) {
-        console.log("Invalid stage ID format:", currentStage);
-        return null;
-      }
-
-      console.log("Fetching flow steps for stage:", currentStage);
-      
-      try {
-        const { data: stageData, error: stageError } = await supabase
-          .from("stages")
-          .select(`
-            *,
-            flows (
-              id,
-              name,
-              flow_steps (
-                id,
-                agent_id,
-                requirements,
-                order_index,
-                outputs,
-                agents (
-                  id,
-                  name,
-                  description
-                )
-              )
-            )
-          `)
-          .eq("id", currentStage)
-          .single();
-
-        if (stageError) {
-          console.error("Error fetching stage flow steps:", stageError);
-          return null;
-        }
-
-        console.log("Stage data with flow steps:", stageData);
-        return stageData;
-      } catch (error) {
-        console.error("Error in stage flow steps query:", error);
-        return null;
-      }
-    },
-    enabled: !!currentStage
-  });
-
-  const handleStageClick = async (stage: Stage, index: number) => {
-    if (disabled) return;
-
-    console.log("Stage clicked:", stage.id, "Current stage:", currentStage);
-
-    // If this is a template, allow direct selection without checking completion
-    if (isTemplate) {
-      onStageSelect(stage);
-      return;
-    }
-
-    const currentIndex = stages.findIndex(s => s.id === currentStage);
-    const isCompleted = completedStages?.includes(stage.id);
-    const isPreviousCompleted = index > 0 ? completedStages?.includes(stages[index - 1].id) : true;
-    const isNextStage = index === currentIndex + 1;
-
-    // Allow selecting completed stages or the next available stage
-    if (isCompleted || (isPreviousCompleted && isNextStage)) {
-      console.log("Selecting stage:", stage.id);
-      onStageSelect(stage);
-      toast.success(`Moving to ${stage.name}`);
-    } else if (!isPreviousCompleted) {
-      console.log("Stage selection blocked - Previous stage not completed");
-      toast.error("Please complete the previous stage first");
-    } else if (!isNextStage) {
-      console.log("Stage selection blocked - Not the next stage in sequence");
-      toast.error("Please complete stages in order");
-    }
+  const handleStageClick = (stage: Stage, index: number) => {
+    onStageSelect(stage);
   };
 
-  if (!stages || stages.length === 0) {
-    return null;
-  }
+  const handleEdit = (stage: Stage) => {
+    setEditingStage(stage);
+  };
 
-  const currentStageIndex = stages.findIndex(stage => stage.id === currentStage);
+  const handleCloseEdit = () => {
+    setEditingStage(null);
+  };
 
   return (
-    <div className="grid gap-4 md:grid-cols-5">
-      {stages.map((stage, index) => {
-        if (!stage.name || !stage.description) {
-          return null;
-        }
+    <div className="space-y-4">
+      {stages.map((stage, index) => (
+        <StageCard
+          key={stage.id}
+          stage={stage}
+          index={index}
+          isActive={currentStage === stage.id}
+          isCompleted={false}
+          canStart={true}
+          totalStages={stages.length}
+          briefId={briefId || ''}
+          onStageClick={handleStageClick}
+          onMove={onStageMove || (() => {})}
+          onEdit={() => handleEdit(stage)}
+          onDelete={onStageDelete || (() => {})}
+        />
+      ))}
 
-        const isActive = currentStage === stage.id;
-        const isCompleted = isTemplate ? false : completedStages?.includes(stage.id);
-        const isNext = index === currentStageIndex + 1;
-        const isPreviousCompleted = isTemplate ? true : (index > 0 ? completedStages?.includes(stages[index - 1].id) : true);
-        const isClickable = isTemplate ? true : (!disabled && (isCompleted || (isPreviousCompleted && isNext)));
-        const flowStepsCount = stageFlowSteps?.flows?.flow_steps?.length || 0;
-
-        return (
-          <StageCard
-            key={stage.id}
-            stage={stage}
-            index={index}
-            isActive={isActive}
-            isCompleted={isCompleted}
-            isNext={isNext}
-            isClickable={isClickable}
-            disabled={!!disabled}
-            flowStepsCount={flowStepsCount}
-            onClick={() => handleStageClick(stage, index)}
+      <Dialog open={!!editingStage} onOpenChange={() => setEditingStage(null)}>
+        <DialogContent>
+          <StageForm
+            onClose={handleCloseEdit}
+            editingStage={editingStage}
           />
-        );
-      })}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

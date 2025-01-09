@@ -57,7 +57,7 @@ const Stages = () => {
     <div className="container mx-auto px-4 py-8">
       <StagesHeader isCreating={isCreating} setIsCreating={setIsCreating} />
       <div className="mt-8">
-        <StageBuilder stages={stages || []} briefId={briefId || ''} />
+        <StageBuilder stages={stages || []} briefId={briefId} />
       </div>
     </div>
   );
