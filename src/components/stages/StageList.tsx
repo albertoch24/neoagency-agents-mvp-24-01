@@ -6,7 +6,7 @@ interface StageListProps {
   stages: Stage[];
   currentStage: string;
   onStageSelect: (stage: Stage) => void;
-  onStageMove: (stageId: string, direction: "up" | "down") => Promise<void>;
+  onStageMove: (stageId: string, newIndex: number) => Promise<void>;
   onStageDelete: (stageId: string) => Promise<void>;
   onStageEdit: (stage: Stage) => void;
   briefId?: string;
@@ -23,6 +23,11 @@ export const StageList = ({
   briefId,
   isTemplate = false,
 }: StageListProps) => {
+  const handleStageMove = async (stageId: string, newIndex: number) => {
+    if (newIndex < 0 || newIndex >= stages.length) return;
+    await onStageMove(stageId, newIndex);
+  };
+
   return (
     <div className="flex gap-4 overflow-x-auto pb-4">
       {stages.map((stage, index) => (
@@ -43,7 +48,7 @@ export const StageList = ({
                 stage={stage}
                 index={index}
                 totalStages={stages.length}
-                onMove={onStageMove}
+                onMove={handleStageMove}
                 onEdit={onStageEdit}
                 onDelete={onStageDelete}
                 isTemplate={isTemplate}
