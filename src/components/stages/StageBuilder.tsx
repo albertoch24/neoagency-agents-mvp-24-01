@@ -1,22 +1,23 @@
-import { WorkflowStages } from "@/components/workflow/WorkflowStages";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Stage } from "@/types/workflow";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { StageForm } from "./StageForm";
+import { ArrowUp, ArrowDown, Edit, Trash2 } from "lucide-react";
 
 interface StageBuilderProps {
   stages: Stage[];
   briefId?: string;
 }
 
-export const StageBuilder = ({ stages, briefId }: StageBuilderProps) => {
+export const StageBuilder = ({ stages }: StageBuilderProps) => {
   const [selectedStage, setSelectedStage] = useState<string>(stages[0]?.id || '');
+  const [isEditing, setIsEditing] = useState(false);
   const queryClient = useQueryClient();
-
-  const handleStageSelect = (stage: Stage) => {
-    setSelectedStage(stage.id);
-  };
 
   const handleStageMove = async (stageId: string, direction: "up" | "down") => {
     const currentIndex = stages.findIndex((s) => s.id === stageId);
@@ -29,7 +30,6 @@ export const StageBuilder = ({ stages, briefId }: StageBuilderProps) => {
     const [movedStage] = updatedStages.splice(currentIndex, 1);
     updatedStages.splice(newIndex, 0, movedStage);
 
-    // Update order_index for affected stages
     const updates = updatedStages.map((stage, index) => ({
       id: stage.id,
       order_index: index,
@@ -65,7 +65,6 @@ export const StageBuilder = ({ stages, briefId }: StageBuilderProps) => {
       await queryClient.invalidateQueries({ queryKey: ["stages"] });
       toast.success("Stage deleted successfully");
 
-      // Select the first remaining stage if the deleted stage was selected
       if (selectedStage === stageId) {
         const remainingStages = stages.filter(s => s.id !== stageId);
         if (remainingStages.length > 0) {
@@ -81,16 +80,63 @@ export const StageBuilder = ({ stages, briefId }: StageBuilderProps) => {
   };
 
   return (
-    <div className="space-y-8">
-      <WorkflowStages
-        stages={stages}
-        currentStage={selectedStage}
-        onStageSelect={handleStageSelect}
-        onStageMove={handleStageMove}
-        onStageDelete={handleStageDelete}
-        briefId={briefId}
-        isTemplate={!briefId}
-      />
+    <div className="space-y-4">
+      {stages.map((stage, index) => (
+        <Card key={stage.id} className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold">{stage.name}</h3>
+              {stage.description && (
+                <p className="text-sm text-gray-500">{stage.description}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleStageMove(stage.id, "up")}
+                disabled={index === 0}
+              >
+                <ArrowUp className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleStageMove(stage.id, "down")}
+                disabled={index === stages.length - 1}
+              >
+                <ArrowDown className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  setSelectedStage(stage.id);
+                  setIsEditing(true);
+                }}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="destructive"
+                size="icon"
+                onClick={() => handleStageDelete(stage.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </Card>
+      ))}
+
+      <Dialog open={isEditing} onOpenChange={setIsEditing}>
+        <DialogContent>
+          <StageForm
+            onClose={() => setIsEditing(false)}
+            editingStage={stages.find(s => s.id === selectedStage)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
