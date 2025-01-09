@@ -38,7 +38,7 @@ export const OutputDisplay = ({ output }: OutputDisplayProps) => {
 
   return (
     <Card className="mt-4">
-      <Accordion type="single" collapsible defaultValue="">
+      <Accordion type="single" collapsible>
         <AccordionItem value="output" className="border-none">
           <AccordionTrigger className="px-4 py-3 text-lg font-semibold hover:no-underline">
             View Output Details
