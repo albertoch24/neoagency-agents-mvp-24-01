@@ -1,36 +1,44 @@
 import { Stage } from "@/types/workflow";
-import { ProjectStages } from "./ProjectStages";
-import { WorkflowStageList } from "./WorkflowStageList";
+import { StageCard } from "@/components/stages/StageCard";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface WorkflowStagesProps {
   stages: Stage[];
   currentStage: string;
   onStageSelect: (stage: Stage) => void;
-  onStageMove?: (stageId: string, direction: "up" | "down") => void;
-  onStageDelete?: (stageId: string) => void;
   briefId?: string;
+  onStageMove?: (stageId: string, direction: "up" | "down") => Promise<void>;
+  onStageDelete?: (stageId: string) => Promise<void>;
   isTemplate?: boolean;
 }
 
-export const WorkflowStages = ({
+export function WorkflowStages({
   stages,
   currentStage,
   onStageSelect,
   briefId,
-}: WorkflowStagesProps) => {
+}: WorkflowStagesProps) {
+  const handleStageClick = (stage: Stage) => {
+    onStageSelect(stage);
+  };
+
   return (
-    <div className="space-y-8">
-      <ProjectStages
-        stages={stages}
-        currentStage={currentStage}
-        onStageSelect={onStageSelect}
-        briefId={briefId}
-      />
-      <WorkflowStageList
-        stages={stages}
-        briefOutputs={[]}
-        showOutputs={true}
-      />
-    </div>
+    <ScrollArea className="w-full">
+      <div className="flex space-x-3 pb-4 px-1">
+        {stages.map((stage, index) => (
+          <StageCard
+            key={stage.id}
+            stage={stage}
+            index={index}
+            isActive={currentStage === stage.id}
+            isCompleted={false}
+            canStart={!!briefId}
+            totalStages={stages.length}
+            briefId={briefId || ''}
+            onStageClick={handleStageClick}
+          />
+        ))}
+      </div>
+    </ScrollArea>
   );
-};
+}
