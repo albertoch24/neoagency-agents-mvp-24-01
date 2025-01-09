@@ -11,7 +11,9 @@ interface StageCardProps {
   canStart: boolean;
   totalStages: number;
   briefId: string;
-  onStageClick: (stage: Stage, index: number) => void;
+  onStageClick: (stage: Stage) => void;
+  onStageMove?: (stageId: string, direction: "up" | "down") => Promise<void>;
+  onStageDelete?: (stageId: string) => Promise<void>;
 }
 
 export const StageCard = ({
@@ -27,10 +29,10 @@ export const StageCard = ({
   return (
     <Card
       className={cn(
-        "cursor-pointer hover:border-primary transition-colors",
+        "cursor-pointer hover:border-primary transition-colors min-w-[250px]",
         isActive && "border-primary"
       )}
-      onClick={() => onStageClick(stage, index)}
+      onClick={() => onStageClick(stage)}
     >
       <div className="p-4">
         <StageHeader
