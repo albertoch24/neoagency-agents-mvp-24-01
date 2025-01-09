@@ -29,7 +29,7 @@ export const StageCard = ({
   return (
     <Card
       className={cn(
-        "cursor-pointer hover:border-primary transition-colors min-w-[250px]",
+        "cursor-pointer hover:border-primary transition-colors min-w-[180px] max-w-[180px]",
         isActive && "border-primary"
       )}
       onClick={() => onStageClick(stage)}

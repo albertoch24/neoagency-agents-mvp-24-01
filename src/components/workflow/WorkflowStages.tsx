@@ -24,7 +24,7 @@ export function WorkflowStages({
 
   return (
     <ScrollArea className="w-full">
-      <div className="flex space-x-4 pb-4 px-1">
+      <div className="flex space-x-3 pb-4 px-1">
         {stages.map((stage, index) => (
           <StageCard
             key={stage.id}
