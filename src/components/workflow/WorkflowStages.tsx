@@ -10,6 +10,7 @@ interface WorkflowStagesProps {
   onStageSelect: (stage: Stage) => void;
   disabled?: boolean;
   briefId?: string;
+  isTemplate?: boolean;
 }
 
 export function WorkflowStages({ 
@@ -17,9 +18,10 @@ export function WorkflowStages({
   currentStage, 
   onStageSelect, 
   disabled, 
-  briefId 
+  briefId,
+  isTemplate = false
 }: WorkflowStagesProps) {
-  // Query to check completed stages
+  // Query to check completed stages - only if not a template
   const { data: completedStages } = useQuery({
     queryKey: ["completed-stages", briefId],
     queryFn: async () => {
@@ -33,7 +35,7 @@ export function WorkflowStages({
       
       return data?.map(item => item.stage_id) || [];
     },
-    enabled: !!briefId
+    enabled: !!briefId && !isTemplate
   });
 
   // Query to fetch flow steps for each stage
@@ -92,6 +94,12 @@ export function WorkflowStages({
 
     console.log("Stage clicked:", stage.id, "Current stage:", currentStage);
 
+    // If this is a template, allow direct selection without checking completion
+    if (isTemplate) {
+      onStageSelect(stage);
+      return;
+    }
+
     const currentIndex = stages.findIndex(s => s.id === currentStage);
     const isCompleted = completedStages?.includes(stage.id);
     const isPreviousCompleted = index > 0 ? completedStages?.includes(stages[index - 1].id) : true;
@@ -125,10 +133,10 @@ export function WorkflowStages({
         }
 
         const isActive = currentStage === stage.id;
-        const isCompleted = completedStages?.includes(stage.id);
+        const isCompleted = isTemplate ? false : completedStages?.includes(stage.id);
         const isNext = index === currentStageIndex + 1;
-        const isPreviousCompleted = index > 0 ? completedStages?.includes(stages[index - 1].id) : true;
-        const isClickable = !disabled && (isCompleted || (isPreviousCompleted && isNext));
+        const isPreviousCompleted = isTemplate ? true : (index > 0 ? completedStages?.includes(stages[index - 1].id) : true);
+        const isClickable = isTemplate ? true : (!disabled && (isCompleted || (isPreviousCompleted && isNext)));
         const flowStepsCount = stageFlowSteps?.flows?.flow_steps?.length || 0;
 
         return (
