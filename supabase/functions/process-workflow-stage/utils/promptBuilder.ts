@@ -9,11 +9,16 @@ export const buildPrompt = (
     ? `\nSpecific Requirements for this Step:\n${requirements}`
     : '';
 
+  // Get outputs from agent's flow steps if available
+  const outputRequirements = agent.flow_steps?.[0]?.outputs
+    ?.map((output: any) => output.text)
+    .filter(Boolean) || [];
+
   const sections = [
     buildBriefDetails(brief),
     buildPreviousOutputsSection(previousOutputs, isFirstStage),
     buildAgentSkillsSection(agent),
-    buildOutputRequirementsSection(agent.flow_steps?.[0]?.outputs?.map((output: any) => output.text).filter(Boolean) || []),
+    buildOutputRequirementsSection(outputRequirements),
     formattedRequirements
   ].filter(Boolean).join('\n\n');
 
@@ -29,7 +34,9 @@ export const buildPrompt = (
 
     2. STRUCTURED OUTPUT:
     Then, provide a clear, structured analysis addressing each required output:
-    ${outputRequirements.map((req: string, index: number) => `${index + 1}. ${req}`).join('\n')}
+    ${outputRequirements.length > 0 
+      ? outputRequirements.map((req: string, index: number) => `${index + 1}. ${req}`).join('\n')
+      : '- Provide your expert analysis and recommendations'}
 
     Format your response with:
     ### Conversational Response
@@ -48,6 +55,14 @@ export const buildPrompt = (
     Here is the context for your analysis:
     ${sections}
   `;
+
+  console.log('Generated prompt:', {
+    agentName: agent.name,
+    briefTitle: brief.title,
+    requirementsCount: outputRequirements.length,
+    previousOutputsCount: previousOutputs.length,
+    promptLength: conversationalPrompt.length
+  });
 
   return { conversationalPrompt };
 };
