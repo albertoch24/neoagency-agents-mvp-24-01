@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkflowStageList } from "../flows/WorkflowStageList";
+import { toast } from "sonner";
 
 interface WorkflowConversationProps {
   briefId: string;
@@ -43,8 +44,32 @@ export const WorkflowConversation = ({
         return [];
       }
 
-      console.log("Found conversations:", data);
-      return data || [];
+      // IMPORTANT: Sorting monitor
+      console.warn("🔍 Workflow Conversation Sorting Check:");
+      console.warn("- Stage:", currentStage);
+      console.warn("- Raw data count:", data?.length);
+      
+      // Sort conversations by flow step order_index
+      const sortedData = data?.sort((a, b) => {
+        const aIndex = a.flow_steps?.order_index ?? 0;
+        const bIndex = b.flow_steps?.order_index ?? 0;
+        console.warn(`Comparing steps: ${aIndex} vs ${bIndex}`);
+        return aIndex - bIndex;
+      });
+
+      // Verify sorting
+      const sortingVerification = sortedData?.map(item => ({
+        id: item.id,
+        order_index: item.flow_steps?.order_index,
+        agent: item.agents?.name
+      }));
+      
+      console.warn("Sorted order verification:", sortingVerification);
+      toast.info("Workflow sorting verification completed", {
+        description: `${sortedData?.length || 0} conversations processed`
+      });
+
+      return sortedData || [];
     },
     enabled: !!briefId && !!currentStage,
     staleTime: 0,
