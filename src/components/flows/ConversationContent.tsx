@@ -24,37 +24,49 @@ export const ConversationContent = ({
   const [parsedContent, setParsedContent] = useState<ParsedContent[]>([]);
 
   useEffect(() => {
-    if (!conversation.content) {
+    if (!conversation?.content) {
       setParsedContent([]);
       return;
     }
 
     try {
-      // Se il content è già un array di oggetti, usalo direttamente
+      // Handle direct array content
       if (Array.isArray(conversation.content)) {
-        setParsedContent(conversation.content);
+        setParsedContent(conversation.content.map(item => ({
+          text: typeof item === 'string' ? item : item.text || String(item)
+        })));
         return;
       }
 
-      // Se è una stringa JSON, prova a parsarla
+      // Handle JSON string
       if (typeof conversation.content === 'string') {
-        const parsed = JSON.parse(conversation.content);
-        if (Array.isArray(parsed)) {
-          setParsedContent(parsed);
+        try {
+          const parsed = JSON.parse(conversation.content);
+          if (Array.isArray(parsed)) {
+            setParsedContent(parsed.map(item => ({
+              text: typeof item === 'string' ? item : item.text || String(item)
+            })));
+          } else {
+            setParsedContent([{ text: String(parsed) }]);
+          }
+          return;
+        } catch {
+          // If JSON parsing fails, treat as plain text
+          setParsedContent([{ text: conversation.content }]);
           return;
         }
-        // Se il parsing produce un oggetto non-array, wrappalo
-        setParsedContent([{ text: String(parsed) }]);
-        return;
       }
 
-      // Fallback per altri tipi
+      // Handle other types
       setParsedContent([{ text: String(conversation.content) }]);
     } catch (error) {
-      console.log("Content parsing failed:", error);
+      console.error("Content parsing failed:", error);
       setParsedContent([{ text: String(conversation.content) }]);
     }
-  }, [conversation.content]);
+  }, [conversation?.content]);
+
+  console.log("Parsed content:", parsedContent); // Debug log
+  console.log("Visibility state:", visibleText); // Debug log
 
   return (
     <Card className="relative overflow-hidden">
@@ -63,17 +75,15 @@ export const ConversationContent = ({
         onToggle={onToggleText}
       />
       
-      {visibleText && (
-        <div className="bg-muted/30 rounded-lg p-4 backdrop-blur-sm">
-          <div className="prose prose-sm max-w-none">
-            {parsedContent.map((item, index) => (
-              <div key={index} className="mb-4">
-                <MarkdownContent content={item.text} />
-              </div>
-            ))}
-          </div>
+      <div className={`${visibleText ? 'block' : 'hidden'} bg-muted/30 rounded-lg p-4 backdrop-blur-sm`}>
+        <div className="prose prose-sm max-w-none">
+          {parsedContent.map((item, index) => (
+            <div key={index} className="mb-4">
+              <MarkdownContent content={item.text} />
+            </div>
+          ))}
         </div>
-      )}
+      </div>
     </Card>
   );
 };
