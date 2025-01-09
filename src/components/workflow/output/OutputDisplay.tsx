@@ -36,13 +36,23 @@ export const OutputDisplay = ({ output }: OutputDisplayProps) => {
 
   const outputs = output?.content?.outputs || [];
 
-  // Ensure outputs have required properties
-  const validOutputs = outputs.map(out => ({
-    ...out,
-    agent: out.agent || 'Unknown Agent',
-    outputs: Array.isArray(out.outputs) ? out.outputs : [],
-    orderIndex: out.orderIndex || 0
-  }));
+  // Ensure outputs have required properties and validate structure
+  const validOutputs = outputs.map(out => {
+    const processedOutput = {
+      ...out,
+      agent: out.agent || 'Unknown Agent',
+      outputs: Array.isArray(out.outputs) ? out.outputs.filter(o => !!o.content) : [],
+      orderIndex: out.orderIndex || 0,
+      requirements: out.requirements || ''
+    };
+
+    console.log(`Processing output for agent ${processedOutput.agent}:`, {
+      outputsCount: processedOutput.outputs.length,
+      hasValidContent: processedOutput.outputs.some(o => !!o.content)
+    });
+
+    return processedOutput;
+  });
 
   if (!validOutputs || validOutputs.length === 0) {
     console.log("⚠️ No valid outputs available to display");
