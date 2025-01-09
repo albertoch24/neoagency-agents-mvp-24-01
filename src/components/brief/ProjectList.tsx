@@ -45,6 +45,11 @@ export const ProjectList = ({ briefs, onSelect, onEdit, onNew }: ProjectListProp
     onSelect(briefId);
   };
 
+  const handleEdit = (briefId: string) => {
+    navigate(`/brief/${briefId}`);
+    onEdit(briefId);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       <div className="flex justify-between items-center">
@@ -70,7 +75,7 @@ export const ProjectList = ({ briefs, onSelect, onEdit, onNew }: ProjectListProp
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onEdit(brief.id)}
+                  onClick={() => handleEdit(brief.id)}
                 >
                   <Edit className="h-4 w-4" />
                 </Button>
