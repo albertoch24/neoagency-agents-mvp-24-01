@@ -14,6 +14,10 @@ const Stages = () => {
   const { data: stages, isLoading } = useQuery({
     queryKey: ["stages", user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
+      console.log("Fetching stages for user:", user.id);
+      
       const { data, error } = await supabase
         .from("stages")
         .select(`
@@ -31,10 +35,15 @@ const Stages = () => {
             )
           )
         `)
-        .eq("user_id", user?.id)
+        .eq("user_id", user.id)
         .order("order_index", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching stages:", error);
+        throw error;
+      }
+
+      console.log("Fetched stages:", data);
       return data || [];
     },
     enabled: !!user
