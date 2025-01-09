@@ -87,6 +87,10 @@ export const StageBuilder = ({ stages, briefId }: StageBuilderProps) => {
     }
   };
 
+  const handleCloseDialog = () => {
+    setEditingStage(null);
+  };
+
   return (
     <div className="space-y-8">
       <StageList
@@ -99,11 +103,11 @@ export const StageBuilder = ({ stages, briefId }: StageBuilderProps) => {
         briefId={briefId}
         isTemplate={!briefId}
       />
-      <Dialog open={!!editingStage} onOpenChange={() => setEditingStage(null)}>
+      <Dialog open={!!editingStage} onOpenChange={handleCloseDialog}>
         <DialogContent>
           <StageForm 
-            onClose={() => setEditingStage(null)} 
-            editingStage={editingStage} 
+            onClose={handleCloseDialog} 
+            editingStage={editingStage}
           />
         </DialogContent>
       </Dialog>

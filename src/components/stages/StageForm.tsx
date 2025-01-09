@@ -47,7 +47,7 @@ export const StageForm = ({ onClose, editingStage }: StageFormProps) => {
     if (editingStage) {
       setName(editingStage.name);
       setDescription(editingStage.description || "");
-      setSelectedFlowId(editingStage.flow_id);
+      setSelectedFlowId(editingStage.flow_id || null);
     }
   }, [editingStage]);
 
@@ -96,7 +96,7 @@ export const StageForm = ({ onClose, editingStage }: StageFormProps) => {
         toast.success("Stage created successfully");
       }
 
-      queryClient.invalidateQueries({ queryKey: ["stages"] });
+      await queryClient.invalidateQueries({ queryKey: ["stages"] });
       onClose();
     } catch (error) {
       console.error("Error saving stage:", error);
