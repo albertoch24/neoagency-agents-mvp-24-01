@@ -4,10 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { StageBuilder } from "@/components/stages/StageBuilder";
 import { StagesHeader } from "@/components/stages/StagesHeader";
 import { useParams } from "react-router-dom";
+import { useState } from "react";
 
 const Stages = () => {
   const { user } = useAuth();
   const { briefId } = useParams();
+  const [isCreating, setIsCreating] = useState(false);
 
   const { data: stages, isLoading } = useQuery({
     queryKey: ["stages", user?.id],
@@ -44,7 +46,7 @@ const Stages = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <StagesHeader />
+      <StagesHeader isCreating={isCreating} setIsCreating={setIsCreating} />
       <div className="mt-8">
         <StageBuilder stages={stages || []} briefId={briefId || ''} />
       </div>
