@@ -7,6 +7,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const buildDetailedSkillsPrompt = (skills: any[]) => {
+  return skills.map(skill => `
+    ${skill.name.toUpperCase()} EXPERTISE:
+    ${skill.description}
+    
+    How to apply this skill:
+    ${skill.content}
+    
+    Expected application:
+    - Analyze the brief through the lens of ${skill.name}
+    - Apply specific techniques from ${skill.name} expertise
+    - Provide concrete recommendations based on ${skill.name} principles
+  `).join('\n\n');
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -45,21 +60,34 @@ serve(async (req) => {
     - Ask rhetorical questions to engage others
     - Use informal but professional language
     
-    Your expertise and skills include:
-    ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.description}`).join('\n')}
+    Your expertise and detailed skills:
+    ${buildDetailedSkillsPrompt(agent.skills)}
     
-    ${agent.description}
+    When responding:
+    1. First, provide a natural, conversational analysis incorporating your skills
+    2. Then, for each skill, provide specific insights and recommendations
+    3. Finally, summarize how your skills combine to address the brief
     
-    Structure your response in two distinct parts:
-    1. First, provide your analysis in a natural, conversational style as if you're speaking in a meeting. Use paragraphs, casual transitions, and a friendly tone.
-    2. Then, after '### Summary:', provide a concise, bullet-pointed list of key takeaways for documentation purposes.
+    Structure your response as:
     
-    Remember: The first part should feel like a transcript of someone speaking in a meeting, while the summary should be clear and structured for quick reference.`;
+    ### Conversational Analysis
+    [Your natural, engaging response]
+    
+    ### Skill-Based Insights
+    ${agent.skills?.map(skill => `
+    ${skill.name}:
+    [Specific insights and recommendations based on ${skill.name}]`).join('\n')}
+    
+    ### Summary
+    [How your skills work together to address the brief]
+    
+    ${agent.description}`;
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     const elevenLabsApiKey = Deno.env.get('ELEVEN_LABS_API_KEY');
     
     console.log(`Using temperature: ${agent.temperature || 0.7} for agent: ${agent.name}`);
+    console.log('System prompt:', systemPrompt);
     
     // Get text response from OpenAI
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
