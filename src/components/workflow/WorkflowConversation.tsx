@@ -43,15 +43,8 @@ export const WorkflowConversation = ({
         return [];
       }
 
-      // Sort conversations by flow step order_index
-      const sortedData = data?.sort((a, b) => {
-        const aIndex = a.flow_steps?.order_index ?? 0;
-        const bIndex = b.flow_steps?.order_index ?? 0;
-        return aIndex - bIndex;
-      });
-
-      console.log("Found conversations:", sortedData);
-      return sortedData || [];
+      console.log("Found conversations:", data);
+      return data || [];
     },
     enabled: !!briefId && !!currentStage,
     staleTime: 0,
@@ -63,24 +56,29 @@ export const WorkflowConversation = ({
     queryKey: ["brief-outputs", briefId, currentStage],
     queryFn: async () => {
       console.log("Fetching outputs for stage:", currentStage);
-      const { data, error } = await supabase
-        .from("brief_outputs")
-        .select("*")
-        .eq("brief_id", briefId)
-        .eq("stage", currentStage)
-        .order("created_at", { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from("brief_outputs")
+          .select("*")
+          .eq("brief_id", briefId)
+          .eq("stage", currentStage)
+          .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching outputs:", error);
+        if (error) {
+          console.error("Error fetching outputs:", error);
+          throw error;
+        }
+
+        console.log("Found outputs:", data);
+        return data?.map(output => ({
+          stage: output.stage,
+          content: transformContent(output.content),
+          created_at: output.created_at
+        }));
+      } catch (error) {
+        console.error("Error checking outputs:", error);
         return [];
       }
-
-      console.log("Found outputs:", data);
-      return data?.map(output => ({
-        stage: output.stage,
-        content: transformContent(output.content),
-        created_at: output.created_at
-      }));
     },
     enabled: !!briefId && !!currentStage,
     staleTime: 0,
@@ -90,6 +88,8 @@ export const WorkflowConversation = ({
 
   // Helper function to transform content into the expected format
   const transformContent = (content: any) => {
+    console.log("Transforming content:", content);
+    
     if (typeof content === 'string') {
       try {
         return { response: JSON.parse(content) };
@@ -97,6 +97,7 @@ export const WorkflowConversation = ({
         return { response: content };
       }
     }
+    
     if (typeof content === 'object' && content !== null) {
       if ('response' in content) {
         return content;
@@ -109,6 +110,7 @@ export const WorkflowConversation = ({
       }
       return { response: JSON.stringify(content) };
     }
+    
     return { response: String(content) };
   };
 
