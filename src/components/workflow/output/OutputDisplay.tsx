@@ -22,19 +22,32 @@ interface OutputDisplayProps {
 }
 
 export const OutputDisplay = ({ output }: OutputDisplayProps) => {
-  console.log("OutputDisplay received output:", output);
+  console.log("🎨 OutputDisplay received:", {
+    hasContent: !!output?.content,
+    contentKeys: output?.content ? Object.keys(output.content) : [],
+    outputsCount: output?.content?.outputs?.length || 0,
+    outputs: output?.content?.outputs?.map(out => ({
+      agent: out.agent,
+      hasStepId: !!out.stepId,
+      outputsCount: out.outputs?.length
+    }))
+  });
 
   const outputs = output.content.outputs || [];
 
-  console.log("Parsed outputs:", outputs);
-
   if (!outputs || outputs.length === 0) {
+    console.log("⚠️ No outputs available to display");
     return (
       <Card className="mt-4 p-4">
         <p className="text-muted-foreground">No output available</p>
       </Card>
     );
   }
+
+  console.log("✅ Rendering outputs:", {
+    count: outputs.length,
+    agents: outputs.map(o => o.agent)
+  });
 
   return (
     <Card className="mt-4">
