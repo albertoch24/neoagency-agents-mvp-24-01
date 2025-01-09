@@ -26,14 +26,14 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
   const [audioElements, setAudioElements] = useState<{[key: string]: HTMLAudioElement | null}>({});
   const [visibleTexts, setVisibleTexts] = useState<{[key: string]: boolean}>({});
 
-  // Sort conversations by flow step order first, then creation date
+  // Sort conversations by order_index first, then creation date
   const sortedConversations = [...conversations].sort((a, b) => {
     console.log("Sorting conversation A:", a);
     console.log("Sorting conversation B:", b);
     
-    // First try to sort by flow step order_index
-    const aIndex = a.flow_step?.order_index ?? 0;
-    const bIndex = b.flow_step?.order_index ?? 0;
+    // First try to sort by order_index directly from the conversation
+    const aIndex = a.order_index ?? 0;
+    const bIndex = b.order_index ?? 0;
     
     console.log("Comparing order indices:", aIndex, bIndex);
     
@@ -52,13 +52,15 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
     const stepId = conv.flow_step_id || `no-step-${conv.id}`;
     if (!acc[stepId]) {
       acc[stepId] = {
-        agent: conv.agents || { id: conv.agent_id, name: 'Unknown Agent' },
+        agent: conv.agents || { id: conv.agent_id, name: conv.agent_name || 'Unknown Agent' },
         conversations: [],
         summary: null,
-        orderIndex: conv.flow_step?.order_index ?? 0,
+        orderIndex: conv.order_index ?? 0,
         briefId: conv.brief_id,
         stageId: conv.stage_id,
-        flowStep: conv.flow_step
+        flowStep: {
+          order_index: conv.order_index ?? 0
+        }
       };
     }
     
@@ -94,13 +96,13 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
   // Sort groups by order index to maintain step sequence
   const sortedGroups = Object.entries(groupedConversations)
     .sort(([, a]: [string, GroupedConversation], [, b]: [string, GroupedConversation]) => {
-      const aIndex = a.flowStep?.order_index ?? 0;
-      const bIndex = b.flowStep?.order_index ?? 0;
+      const aIndex = a.orderIndex ?? 0;
+      const bIndex = b.orderIndex ?? 0;
       return aIndex - bIndex;
     });
 
   console.log("Sorted groups:", sortedGroups.map(([, group]: [string, GroupedConversation]) => ({
-    orderIndex: group.flowStep?.order_index,
+    orderIndex: group.orderIndex,
     flowStep: group.flowStep
   })));
 
@@ -111,7 +113,7 @@ export const AgentSequence = ({ conversations = [] }: AgentSequenceProps) => {
           <CardContent>
             <ConversationGroup
               group={group}
-              index={group.flowStep?.order_index ?? 0}
+              index={group.orderIndex}
               isPlaying={isPlaying}
               audioElements={audioElements}
               visibleTexts={visibleTexts}
