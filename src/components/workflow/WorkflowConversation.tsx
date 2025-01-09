@@ -18,7 +18,10 @@ export const WorkflowConversation = ({
   const { data: briefOutputs } = useBriefOutputsQuery(briefId, currentStage);
 
   const conversationsByStage = groupConversationsByStage(conversations);
-  const stages = Object.entries(conversationsByStage || {});
+  // Explicitly type the stages array to match WorkflowStageList props
+  const stages: [string, any[]][] = Object.entries(conversationsByStage || {}).map(
+    ([stageId, convs]) => [stageId, Array.isArray(convs) ? convs : []]
+  );
 
   console.warn("Rendering WorkflowConversation with:", {
     briefId,
