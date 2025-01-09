@@ -1,5 +1,7 @@
-import { AudioControls } from "./AudioControls";
+import { useState, useEffect } from "react";
+import { Card } from "@/components/ui/card";
 import { ConversationControls } from "./ConversationControls";
+import { ConversationSection } from "./ConversationSection";
 import { MarkdownContent } from "./MarkdownContent";
 
 interface ConversationContentProps {
@@ -19,29 +21,45 @@ export const ConversationContent = ({
   onAudioElement,
   onToggleText,
 }: ConversationContentProps) => {
+  const [parsedContent, setParsedContent] = useState<Array<{ text: string }> | null>(null);
+
+  useEffect(() => {
+    if (!conversation.content) return;
+
+    try {
+      // Try to parse as JSON if it's a string
+      if (typeof conversation.content === 'string') {
+        const parsed = JSON.parse(conversation.content);
+        setParsedContent(Array.isArray(parsed) ? parsed : [{ text: conversation.content }]);
+      } else {
+        // If it's already an object/array, use it directly
+        setParsedContent(Array.isArray(conversation.content) ? conversation.content : [{ text: String(conversation.content) }]);
+      }
+    } catch (error) {
+      // If parsing fails, treat as plain text
+      console.log("Content parsing failed, using as plain text:", error);
+      setParsedContent([{ text: conversation.content }]);
+    }
+  }, [conversation.content]);
+
   return (
-    <div className="space-y-4">
+    <Card className="relative overflow-hidden">
       <ConversationControls
-        isVisible={visibleText}
-        onToggle={onToggleText}
+        isPlaying={isPlaying}
+        visibleText={visibleText}
+        onPlayStateChange={onPlayStateChange}
+        onAudioElement={onAudioElement}
+        onToggleText={onToggleText}
+        content={conversation.content}
       />
-
-      {visibleText && (
-        <div className="bg-muted/30 rounded-lg p-4 backdrop-blur-sm">
-          <div className="prose prose-sm max-w-none">
-            <MarkdownContent content={conversation.content} />
+      
+      <ConversationSection visible={visibleText}>
+        {parsedContent && parsedContent.map((item, index) => (
+          <div key={index} className="mb-4">
+            <MarkdownContent content={item.text} />
           </div>
-        </div>
-      )}
-
-      {conversation.audio_url && (
-        <AudioControls
-          url={conversation.audio_url}
-          isPlaying={isPlaying}
-          onPlayStateChange={onPlayStateChange}
-          onAudioElement={onAudioElement}
-        />
-      )}
-    </div>
+        ))}
+      </ConversationSection>
+    </Card>
   );
 };
