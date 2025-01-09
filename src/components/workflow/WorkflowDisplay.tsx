@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useStageProcessing } from "@/hooks/useStageProcessing";
 import { WorkflowContent } from "./WorkflowContent";
-import { supabase } from "@/integrations/supabase/client";
+import { useWorkflowStages } from "./hooks/useWorkflowStages";
 import { toast } from "sonner";
 
 interface WorkflowDisplayProps {
@@ -20,22 +20,18 @@ export const WorkflowDisplay = ({
 }: WorkflowDisplayProps) => {
   const { isProcessing, processStage } = useStageProcessing(briefId || "");
   const queryClient = useQueryClient();
+  const { stages, rawStages } = useWorkflowStages(briefId);
 
   const handleNextStage = useCallback(async () => {
     if (!briefId) return;
 
     try {
-      const { data: stages } = await supabase
-        .from("stages")
-        .select("*")
-        .order("order_index", { ascending: true });
+      if (!rawStages?.length) return;
 
-      if (!stages?.length) return;
+      const currentIndex = rawStages.findIndex(stage => stage.id === currentStage);
+      if (currentIndex === -1 || currentIndex === rawStages.length - 1) return;
 
-      const currentIndex = stages.findIndex(stage => stage.id === currentStage);
-      if (currentIndex === -1 || currentIndex === stages.length - 1) return;
-
-      const nextStage = stages[currentIndex + 1];
+      const nextStage = rawStages[currentIndex + 1];
       if (!nextStage) return;
 
       console.log("Processing next stage:", nextStage.id);
@@ -54,7 +50,7 @@ export const WorkflowDisplay = ({
       console.error("Error processing next stage:", error);
       toast.error("Failed to process next stage");
     }
-  }, [briefId, currentStage, processStage, onStageSelect, queryClient]);
+  }, [briefId, currentStage, processStage, onStageSelect, queryClient, rawStages]);
 
   return (
     <WorkflowContent

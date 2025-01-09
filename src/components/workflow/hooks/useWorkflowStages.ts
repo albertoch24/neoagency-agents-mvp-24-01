@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const useWorkflowStages = (briefId: string | undefined) => {
   // Query to get stages data
-  const { data: stages = [] } = useQuery({
+  const { data: rawStages = [] } = useQuery({
     queryKey: ["stages", briefId],
     queryFn: async () => {
       console.log("Fetching stages for brief:", briefId);
@@ -60,13 +60,13 @@ export const useWorkflowStages = (briefId: string | undefined) => {
   });
 
   // Transform stages and conversations into the required format [string, any[]][]
-  const transformedStages = stages.map(stage => {
+  const transformedStages = rawStages.map(stage => {
     const stageConversations = conversations.filter(conv => conv.stage_id === stage.id);
     return [stage.id, stageConversations] as [string, any[]];
   });
 
   return {
     stages: transformedStages,
-    rawStages: stages,
+    rawStages,
   };
 };
