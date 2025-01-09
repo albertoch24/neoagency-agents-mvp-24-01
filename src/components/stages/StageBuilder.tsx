@@ -11,9 +11,10 @@ import { Stage } from "@/types/workflow";
 
 interface StageBuilderProps {
   stages: Stage[];
+  briefId: string;
 }
 
-export const StageBuilder = ({ stages }: StageBuilderProps) => {
+export const StageBuilder = ({ stages, briefId }: StageBuilderProps) => {
   const queryClient = useQueryClient();
   const [editingStage, setEditingStage] = useState<Stage | null>(null);
   const { currentStage } = useStageProgress();
@@ -97,6 +98,7 @@ export const StageBuilder = ({ stages }: StageBuilderProps) => {
             isCompleted={isCompleted}
             canStart={canStart}
             totalStages={stages.length}
+            briefId={briefId}
             onStageClick={(stage, index) => handleStageProgression(stage, index, stages)}
             onMove={handleMoveStage}
             onEdit={() => setEditingStage(stage)}
