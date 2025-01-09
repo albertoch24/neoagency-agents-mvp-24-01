@@ -46,7 +46,7 @@ export function WorkflowStages({
           index={index}
           isActive={currentStage === stage.id}
           isCompleted={false}
-          canStart={true}
+          canStart={!isTemplate}
           totalStages={stages.length}
           briefId={briefId || ''}
           onStageClick={handleStageClick}

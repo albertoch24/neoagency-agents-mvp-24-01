@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Stage } from "@/types/workflow";
 import { StageHeader } from "./StageHeader";
 import { StageControls } from "./StageControls";
-import { useNavigate } from "react-router-dom";
 
 interface StageCardProps {
   stage: Stage;
@@ -32,10 +31,8 @@ export const StageCard = ({
   onEdit,
   onDelete
 }: StageCardProps) => {
-  const navigate = useNavigate();
-
-  const handleStageClick = (stage: Stage, index: number) => {
-    navigate(`/brief/${briefId}/stage/${stage.id}`);
+  const handleStageClick = (e: React.MouseEvent) => {
+    e.preventDefault();
     onStageClick(stage, index);
   };
 
@@ -43,7 +40,7 @@ export const StageCard = ({
     <Card 
       key={stage.id} 
       className={isActive ? "border-primary" : ""}
-      onClick={() => handleStageClick(stage, index)}
+      onClick={handleStageClick}
     >
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
@@ -61,11 +58,11 @@ export const StageCard = ({
               onEdit={onEdit}
               onDelete={onDelete}
             />
-            {!isCompleted && canStart && (
+            {!isCompleted && canStart && briefId && (
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleStageClick(stage, index);
+                  handleStageClick(e);
                 }}
                 className="flex items-center gap-2"
               >

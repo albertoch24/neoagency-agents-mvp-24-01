@@ -68,7 +68,11 @@ export const StageBuilder = ({ stages, briefId }: StageBuilderProps) => {
       // Select the first remaining stage if the deleted stage was selected
       if (selectedStage === stageId) {
         const remainingStages = stages.filter(s => s.id !== stageId);
-        setSelectedStage(remainingStages[0]?.id || '');
+        if (remainingStages.length > 0) {
+          setSelectedStage(remainingStages[0].id);
+        } else {
+          setSelectedStage('');
+        }
       }
     } catch (error) {
       console.error("Error deleting stage:", error);
