@@ -37,7 +37,8 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
         .select("*")
         .eq("brief_id", briefId)
         .eq("stage", stage)
-        .maybeSingle();
+        .order("created_at", { ascending: false })
+        .limit(1);
 
       if (error) {
         console.error("Error fetching output:", error);
@@ -46,19 +47,19 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
 
       console.log("Raw output data:", data);
 
-      if (!data) return null;
+      if (!data || data.length === 0) return null;
 
       // Handle the case where content is a string (JSON)
       let parsedContent: BriefOutput['content'];
-      if (typeof data.content === 'string') {
+      if (typeof data[0].content === 'string') {
         try {
-          parsedContent = JSON.parse(data.content);
+          parsedContent = JSON.parse(data[0].content);
         } catch (e) {
           console.error("Error parsing content:", e);
           throw new Error("Invalid content format");
         }
       } else {
-        parsedContent = data.content as BriefOutput['content'];
+        parsedContent = data[0].content as BriefOutput['content'];
       }
 
       return {
