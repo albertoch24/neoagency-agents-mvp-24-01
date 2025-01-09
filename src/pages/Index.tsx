@@ -9,9 +9,11 @@ import { BriefSelector } from "@/components/brief/BriefSelector";
 import { useStageHandling } from "@/hooks/useStageHandling";
 import { ProjectList } from "@/components/brief/ProjectList";
 import { useBriefState } from "@/hooks/useBriefState";
+import { useParams } from "react-router-dom";
 
 const Index = () => {
   const { user } = useAuth();
+  const { briefId } = useParams();
   const {
     showNewBrief,
     isEditing,
@@ -23,7 +25,7 @@ const Index = () => {
     handleSelectBrief
   } = useBriefState();
   
-  const { currentStage, handleStageSelect } = useStageHandling(selectedBriefId);
+  const { currentStage, handleStageSelect } = useStageHandling(briefId || selectedBriefId);
 
   const { data: briefs, error: briefsError } = useQuery({
     queryKey: ["briefs", user?.id],
@@ -42,15 +44,15 @@ const Index = () => {
   });
 
   const { data: currentBrief, error: currentBriefError } = useQuery({
-    queryKey: ["brief", selectedBriefId || "latest", user?.id],
+    queryKey: ["brief", briefId || selectedBriefId || "latest", user?.id],
     queryFn: async () => {
       const query = supabase
         .from("briefs")
         .select("*, brief_outputs(*)")
         .eq("user_id", user?.id);
 
-      if (selectedBriefId) {
-        query.eq("id", selectedBriefId);
+      if (briefId || selectedBriefId) {
+        query.eq("id", briefId || selectedBriefId);
       } else {
         query.order("created_at", { ascending: false });
       }
@@ -67,7 +69,8 @@ const Index = () => {
     console.error("Error in briefs query:", briefsError || currentBriefError);
   }
 
-  if (!selectedBriefId && !showNewBrief) {
+  // Se non c'è un brief selezionato e non stiamo creando un nuovo brief, mostra la lista
+  if (!briefId && !selectedBriefId && !showNewBrief) {
     return (
       <ProjectList 
         briefs={briefs || []}
