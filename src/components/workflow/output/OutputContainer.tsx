@@ -41,7 +41,7 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
         .from("brief_outputs")
         .select("*")
         .eq("brief_id", briefId)
-        .eq("stage", stage)
+        .eq("stage_id", stage)
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -53,7 +53,13 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
       console.log("📊 Full output data:", {
         found: !!data?.length,
         count: data?.length,
-        data: data
+        data: data,
+        firstItem: data?.[0] ? {
+          id: data[0].id,
+          briefId: data[0].brief_id,
+          stageId: data[0].stage_id,
+          contentSample: JSON.stringify(data[0].content).substring(0, 100)
+        } : null
       });
 
       if (!data || data.length === 0) {
