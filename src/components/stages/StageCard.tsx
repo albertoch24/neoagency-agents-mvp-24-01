@@ -40,9 +40,6 @@ export const StageCard = ({
           isActive={isActive}
           isCompleted={isCompleted}
         />
-        <p className="text-sm text-muted-foreground mt-2 line-clamp-3">
-          {stage.description}
-        </p>
       </div>
     </Card>
   );

@@ -28,7 +28,7 @@ export const StageHeader = ({ stage, isActive, isCompleted }: StageHeaderProps) 
         )}
       </div>
       {stage.description && (
-        <p className="text-sm text-muted-foreground">{stage.description}</p>
+        <p className="text-sm text-muted-foreground line-clamp-3">{stage.description}</p>
       )}
     </div>
   );
