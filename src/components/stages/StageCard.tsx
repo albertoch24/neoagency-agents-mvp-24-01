@@ -1,8 +1,7 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Stage } from "@/types/workflow";
 import { StageHeader } from "./StageHeader";
-import { StageControls } from "./StageControls";
+import { cn } from "@/lib/utils";
 
 interface StageCardProps {
   stage: Stage;
@@ -13,9 +12,6 @@ interface StageCardProps {
   totalStages: number;
   briefId: string;
   onStageClick: (stage: Stage, index: number) => void;
-  onMove: (stageId: string, direction: "up" | "down") => void;
-  onEdit: () => void;
-  onDelete: (stageId: string) => void;
 }
 
 export const StageCard = ({
@@ -27,51 +23,22 @@ export const StageCard = ({
   totalStages,
   briefId,
   onStageClick,
-  onMove,
-  onEdit,
-  onDelete
 }: StageCardProps) => {
-  const handleStageClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    onStageClick(stage, index);
-  };
-
   return (
-    <Card 
-      key={stage.id} 
-      className={isActive ? "border-primary" : ""}
-      onClick={handleStageClick}
+    <Card
+      className={cn(
+        "cursor-pointer hover:border-primary transition-colors",
+        isActive && "border-primary"
+      )}
+      onClick={() => onStageClick(stage, index)}
     >
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <StageHeader 
-            stage={stage} 
-            isActive={isActive}
-            isCompleted={isCompleted}
-          />
-          <div className="flex items-center gap-2">
-            <StageControls
-              stage={stage}
-              index={index}
-              totalStages={totalStages}
-              onMove={onMove}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
-            {!isCompleted && canStart && briefId && (
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleStageClick(e);
-                }}
-                className="flex items-center gap-2"
-              >
-                Start Stage
-              </Button>
-            )}
-          </div>
-        </div>
-      </CardContent>
+      <div className="p-4">
+        <StageHeader
+          stage={stage}
+          isActive={isActive}
+          isCompleted={isCompleted}
+        />
+      </div>
     </Card>
   );
 };

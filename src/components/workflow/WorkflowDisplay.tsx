@@ -20,7 +20,7 @@ export const WorkflowDisplay = ({
   currentStage,
   onStageSelect,
   briefId,
-  showOutputs = true // Changed default to true to ensure outputs are shown
+  showOutputs = true
 }: WorkflowDisplayProps) => {
   const { data: stages = [] } = useStagesData(briefId);
   const { isProcessing, processStage } = useStageProcessing(briefId || "");
@@ -148,7 +148,7 @@ export const WorkflowDisplay = ({
   if (!stages.length) {
     return (
       <div className="text-center text-muted-foreground">
-        No stages found. Please create stages first.
+        No stages found for this project.
       </div>
     );
   }
