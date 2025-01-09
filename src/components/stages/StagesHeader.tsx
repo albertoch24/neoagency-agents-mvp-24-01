@@ -23,7 +23,10 @@ export const StagesHeader = ({ isCreating, setIsCreating }: StagesHeaderProps) =
           </Button>
         </DialogTrigger>
         <DialogContent>
-          <StageForm onClose={() => setIsCreating(false)} />
+          <StageForm 
+            onClose={() => setIsCreating(false)} 
+            editingStage={null}
+          />
         </DialogContent>
       </Dialog>
     </div>
