@@ -25,18 +25,35 @@ export const StageForm = ({ onClose, editingStage }: StageFormProps) => {
   });
 
   // Fetch available flows for the user
-  const { data: flows } = useQuery({
+  const { data: flows, isLoading: isLoadingFlows } = useQuery({
     queryKey: ["flows", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       
+      console.log("Fetching flows for user:", user.id);
+      
       const { data, error } = await supabase
         .from("flows")
-        .select("*")
+        .select(`
+          id,
+          name,
+          description,
+          flow_steps (
+            id,
+            agent_id,
+            requirements,
+            order_index
+          )
+        `)
         .eq("user_id", user.id)
         .order("name", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching flows:", error);
+        throw error;
+      }
+
+      console.log("Fetched flows:", data);
       return data || [];
     },
     enabled: !!user
@@ -125,7 +142,7 @@ export const StageForm = ({ onClose, editingStage }: StageFormProps) => {
           required
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select a workflow" />
+            <SelectValue placeholder={isLoadingFlows ? "Loading workflows..." : "Select a workflow"} />
           </SelectTrigger>
           <SelectContent>
             {flows?.map((flow) => (
