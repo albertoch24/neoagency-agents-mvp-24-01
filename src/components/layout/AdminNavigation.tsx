@@ -1,5 +1,5 @@
 import { Users, GitBranch, Layers } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -10,6 +10,13 @@ import {
 
 const AdminNavigation = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleNavigation = (path: string) => {
+    if (location.pathname !== path) {
+      navigate(path);
+    }
+  };
 
   return (
     <NavigationMenu>
@@ -17,7 +24,7 @@ const AdminNavigation = () => {
         <NavigationMenuItem>
           <NavigationMenuLink
             className={navigationMenuTriggerStyle()}
-            onClick={() => navigate('/agents')}
+            onClick={() => handleNavigation('/agents')}
           >
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -29,7 +36,7 @@ const AdminNavigation = () => {
         <NavigationMenuItem>
           <NavigationMenuLink
             className={navigationMenuTriggerStyle()}
-            onClick={() => navigate('/flows')}
+            onClick={() => handleNavigation('/flows')}
           >
             <div className="flex items-center gap-2">
               <GitBranch className="h-4 w-4" />
@@ -41,7 +48,7 @@ const AdminNavigation = () => {
         <NavigationMenuItem>
           <NavigationMenuLink
             className={navigationMenuTriggerStyle()}
-            onClick={() => navigate('/stages')}
+            onClick={() => handleNavigation('/stages')}
           >
             <div className="flex items-center gap-2">
               <Layers className="h-4 w-4" />
