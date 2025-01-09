@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Send, Volume2 } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { CardContent } from "@/components/ui/card";
 
@@ -29,6 +29,19 @@ export const AgentCardContent: React.FC<AgentCardContentProps> = ({
   onSubmit,
   updatedAt
 }) => {
+  // Parse the content if it's a JSON string
+  const parseContent = (content: string) => {
+    try {
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) {
+        return parsed.map(item => item.text).join('\n');
+      }
+      return content;
+    } catch (e) {
+      return content;
+    }
+  };
+
   return (
     <CardContent className="flex-1 flex flex-col gap-4 p-4">
       <ScrollArea className="flex-1 pr-4">
@@ -48,7 +61,7 @@ export const AgentCardContent: React.FC<AgentCardContentProps> = ({
                 }`}
               >
                 <div className="flex flex-col gap-2">
-                  <div>{message.content}</div>
+                  <div>{parseContent(message.content)}</div>
                   {message.audioUrl && (
                     <div className="mt-2">
                       <audio controls className="w-full">

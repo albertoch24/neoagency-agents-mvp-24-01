@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { WorkflowStageList } from "./WorkflowStageList";
+import { WorkflowStageList } from "../flows/WorkflowStageList";
 
 interface WorkflowConversationProps {
   briefId: string;
@@ -30,7 +30,8 @@ export const WorkflowConversation = ({
           flow_steps (
             id,
             order_index,
-            description
+            description,
+            requirements
           )
         `)
         .eq("brief_id", briefId)
@@ -42,8 +43,15 @@ export const WorkflowConversation = ({
         return [];
       }
 
-      console.log("Found conversations:", data);
-      return data;
+      // Sort conversations by flow step order_index
+      const sortedData = data?.sort((a, b) => {
+        const aIndex = a.flow_steps?.order_index ?? 0;
+        const bIndex = b.flow_steps?.order_index ?? 0;
+        return aIndex - bIndex;
+      });
+
+      console.log("Found conversations:", sortedData);
+      return sortedData || [];
     },
     enabled: !!briefId && !!currentStage,
     staleTime: 0,
@@ -83,24 +91,24 @@ export const WorkflowConversation = ({
   // Helper function to transform content into the expected format
   const transformContent = (content: any) => {
     if (typeof content === 'string') {
-      return { response: content };
+      try {
+        return { response: JSON.parse(content) };
+      } catch {
+        return { response: content };
+      }
     }
     if (typeof content === 'object' && content !== null) {
-      // If content already has a response property, return as is
       if ('response' in content) {
         return content;
       }
-      // If content has outputs property, maintain the structure
       if ('outputs' in content) {
         return {
           ...content,
           response: content.outputs?.map((o: any) => o.content).join('\n')
         };
       }
-      // For any other object, stringify it and use as response
       return { response: JSON.stringify(content) };
     }
-    // For any other type (number, boolean, etc.), convert to string
     return { response: String(content) };
   };
 
