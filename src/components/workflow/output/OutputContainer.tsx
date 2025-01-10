@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { OutputDisplay } from "./OutputDisplay";
 import { OutputError } from "./OutputError";
 import { OutputLoading } from "./OutputLoading";
-import { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 
 interface OutputContainerProps {
@@ -27,6 +26,11 @@ interface BriefOutput {
   };
 }
 
+const isUUID = (str: string) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+};
+
 export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
   const { data: output, isLoading, error } = useQuery({
     queryKey: ["brief-outputs", briefId, stage],
@@ -34,14 +38,23 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
       console.log("🔍 Fetching output for:", {
         briefId,
         stage,
+        isUuid: isUUID(stage),
         timestamp: new Date().toISOString()
       });
       
-      const { data, error } = await supabase
+      let query = supabase
         .from("brief_outputs")
         .select("*")
-        .eq("brief_id", briefId)
-        .eq("stage_id", stage)
+        .eq("brief_id", briefId);
+
+      // If stage is a UUID, use stage_id, otherwise use stage field
+      if (isUUID(stage)) {
+        query = query.eq("stage_id", stage);
+      } else {
+        query = query.eq("stage", stage);
+      }
+
+      const { data, error } = await query
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -58,6 +71,7 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
           id: data[0].id,
           briefId: data[0].brief_id,
           stageId: data[0].stage_id,
+          stage: data[0].stage,
           contentSample: JSON.stringify(data[0].content).substring(0, 100)
         } : null
       });
@@ -70,7 +84,7 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
       const latestOutput = data[0];
       console.log("Latest output:", latestOutput);
 
-      // Handle the case where content is a string (JSON)
+      // Handle both array and object formats for outputs
       let parsedContent: BriefOutput['content'];
       if (typeof latestOutput.content === 'string') {
         try {
