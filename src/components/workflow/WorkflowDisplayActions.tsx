@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useLocation } from "react-router-dom";
 
 interface WorkflowDisplayActionsProps {
   currentStage: string;
@@ -26,6 +27,7 @@ export const WorkflowDisplayActions = ({
   const isLastStage = currentIndex === stages.length - 1;
   const isFirstStage = currentIndex === 0;
   const [nextStageHasOutput, setNextStageHasOutput] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const checkNextStageOutput = async () => {
@@ -35,36 +37,49 @@ export const WorkflowDisplayActions = ({
       if (!nextStage) return;
 
       try {
-        console.log("Checking outputs for next stage:", nextStage);
+        console.log("Checking outputs for next stage:", {
+          nextStageId: nextStage.id,
+          nextStageName: nextStage.name
+        });
 
-        // Check in brief_outputs table using both stage_id and stage name
-        const { data: outputs, error: outputsError } = await supabase
+        // Check in brief_outputs table using stage_id
+        const { data: outputsById, error: outputsError } = await supabase
           .from("brief_outputs")
           .select("*")
-          .or(`stage_id.eq.${nextStage.id},stage.eq.${nextStage.name}`)
+          .eq("stage_id", nextStage.id)
           .maybeSingle();
 
         if (outputsError) {
-          console.error("Error checking outputs:", outputsError);
+          console.error("Error checking outputs by ID:", outputsError);
         }
 
-        // Check in workflow_conversations table using both stage_id and stage name
+        // Check in brief_outputs table using stage name
+        const { data: outputsByName, error: outputsNameError } = await supabase
+          .from("brief_outputs")
+          .select("*")
+          .eq("stage", nextStage.name)
+          .maybeSingle();
+
+        if (outputsNameError) {
+          console.error("Error checking outputs by name:", outputsNameError);
+        }
+
+        // Check in workflow_conversations table
         const { data: conversations, error: convsError } = await supabase
           .from("workflow_conversations")
           .select("*")
-          .or(`stage_id.eq.${nextStage.id},stage_id.eq.${nextStage.name}`)
+          .eq("stage_id", nextStage.id)
           .maybeSingle();
 
         if (convsError) {
           console.error("Error checking conversations:", convsError);
         }
 
-        const hasOutput = !!(outputs || conversations);
-        console.log("Next stage output check:", {
-          nextStageId: nextStage.id,
-          nextStageName: nextStage.name,
+        const hasOutput = !!(outputsById || outputsByName || conversations);
+        console.log("Next stage output check result:", {
           hasOutput,
-          outputs,
+          outputsById,
+          outputsByName,
           conversations
         });
         
@@ -117,13 +132,16 @@ export const WorkflowDisplayActions = ({
     }
   };
 
+  // Non mostrare nulla se siamo nella home page
+  if (location.pathname === '/') return null;
+
   // Non mostrare nulla se è l'ultimo stage
   if (isLastStage) return null;
 
   return (
     <Card className="cursor-pointer hover:border-primary transition-colors">
       <CardContent className="flex justify-between items-center p-4">
-        {!isFirstStage && (
+        {!isFirstStage && location.pathname.includes('brief/') && (
           <Button
             onClick={handlePreviousStage}
             disabled={isProcessing}
