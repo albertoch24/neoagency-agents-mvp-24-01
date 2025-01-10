@@ -5,14 +5,26 @@ export const buildPrompt = (
   requirements?: string,
   isFirstStage: boolean = false
 ) => {
+  console.log("BuildPrompt called with:", {
+    agentName: agent.name,
+    briefTitle: brief.title,
+    previousOutputsCount: previousOutputs?.length,
+    requirements: requirements?.substring(0, 100) + "...",
+    isFirstStage
+  });
+
   const formattedRequirements = requirements 
     ? `\nSpecific Requirements for this Step:\n${requirements}`
     : '';
 
-  // Get outputs from agent's flow steps if available
   const outputRequirements = agent.flow_steps?.[0]?.outputs
     ?.map((output: any) => output.text)
     .filter(Boolean) || [];
+
+  console.log("Output requirements prepared:", {
+    requirementsCount: outputRequirements.length,
+    requirements: outputRequirements
+  });
 
   const sections = [
     buildBriefDetails(brief),
@@ -61,7 +73,14 @@ export const buildPrompt = (
     briefTitle: brief.title,
     requirementsCount: outputRequirements.length,
     previousOutputsCount: previousOutputs.length,
-    promptLength: conversationalPrompt.length
+    promptLength: conversationalPrompt.length,
+    sectionsIncluded: {
+      hasBriefDetails: !!buildBriefDetails(brief),
+      hasPreviousOutputs: !!buildPreviousOutputsSection(previousOutputs, isFirstStage),
+      hasAgentSkills: !!buildAgentSkillsSection(agent),
+      hasOutputRequirements: !!buildOutputRequirementsSection(outputRequirements),
+      hasFormattedRequirements: !!formattedRequirements
+    }
   });
 
   return { conversationalPrompt };
@@ -80,15 +99,33 @@ const buildSystemInstructions = () => `
   10. Ensure that every response is practical and actionable, tying back to the goals of the brief and previous outputs.
 `;
 
-const buildBriefDetails = (brief: any) => `
+const buildBriefDetails = (brief: any) => {
+  console.log("Building brief details for:", {
+    briefTitle: brief.title,
+    hasDescription: !!brief.description,
+    hasObjectives: !!brief.objectives
+  });
+  
+  return `
 Brief Details:
 Title: ${brief.title}
 Description: ${brief.description}
 Objectives: ${brief.objectives}
 `;
+};
 
 const buildPreviousOutputsSection = (previousOutputs: any[], isFirstStage: boolean) => {
-  if (isFirstStage) return '';
+  console.log("Building previous outputs section:", {
+    outputsCount: previousOutputs?.length,
+    isFirstStage,
+    outputTypes: previousOutputs?.map(o => o.output_type),
+    hasContent: previousOutputs?.every(o => o.content)
+  });
+
+  if (isFirstStage) {
+    console.log("Skipping previous outputs - first stage");
+    return '';
+  }
   
   const outputs = previousOutputs
     ?.filter((output: any) => 
@@ -108,10 +145,20 @@ const buildPreviousOutputsSection = (previousOutputs: any[], isFirstStage: boole
     })
     .join('\n\n');
 
+  console.log("Processed previous outputs:", {
+    hasOutputs: !!outputs,
+    outputLength: outputs?.length
+  });
+
   return outputs ? `\nPrevious Stage Outputs:\n${outputs}` : '';
 };
 
 const buildFlowStepOutputsSection = (flowStepOutputs?: { title: string; content: string }[]) => {
+  console.log("Building flow step outputs:", {
+    hasOutputs: !!flowStepOutputs?.length,
+    outputCount: flowStepOutputs?.length
+  });
+
   if (!flowStepOutputs?.length) return '';
   
   return `\nFlow Step Outputs:\n${flowStepOutputs.map(output => 
@@ -119,15 +166,29 @@ const buildFlowStepOutputsSection = (flowStepOutputs?: { title: string; content:
   ).join('\n\n')}`;
 };
 
-const buildAgentSkillsSection = (agent: any) => `
+const buildAgentSkillsSection = (agent: any) => {
+  console.log("Building agent skills section:", {
+    agentName: agent.name,
+    hasDescription: !!agent.description,
+    skillsCount: agent.skills?.length
+  });
+
+  return `
 Your Role and Background:
 ${agent.description}
 
 Skills Applied:
 ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
 `;
+};
 
-const buildOutputRequirementsSection = (outputRequirements: string[]) => `
+const buildOutputRequirementsSection = (outputRequirements: string[]) => {
+  console.log("Building output requirements section:", {
+    requirementsCount: outputRequirements.length,
+    requirements: outputRequirements
+  });
+
+  return `
 Please provide a structured analysis that specifically addresses each of these required outputs:
 ${outputRequirements.map((req: string, index: number) => `${index + 1}. ${req}`).join('\n')}
 
@@ -144,3 +205,4 @@ When referencing previous outputs or flow step outputs:
 - Explicitly indicate their relevance and how they inform your recommendations.
 - Tie your answers back to the brief's goals to ensure alignment.
 `;
+};
