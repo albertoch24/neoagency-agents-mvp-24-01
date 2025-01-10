@@ -22,8 +22,24 @@ export const useStageProcessing = (briefId: string) => {
         flows: nextStage.flows
       });
 
-      // Fetch the flow directly from the database to ensure we have the latest data
-      console.log("Fetching flow for stage:", nextStage.id);
+      // Check for any pending clarifications
+      const { data: clarifications, error: clarificationsError } = await supabase
+        .from("stage_clarifications")
+        .select("*")
+        .eq("brief_id", briefId)
+        .eq("stage_id", nextStage.id)
+        .eq("status", "pending");
+
+      if (clarificationsError) throw clarificationsError;
+
+      if (clarifications && clarifications.length > 0) {
+        toast.dismiss(toastId);
+        toast.info("Please answer the clarification questions before proceeding");
+        setIsProcessing(false);
+        return false;
+      }
+
+      // Fetch the flow directly from the database
       const { data: stageData, error: stageError } = await supabase
         .from("stages")
         .select(`
@@ -73,7 +89,7 @@ export const useStageProcessing = (briefId: string) => {
         throw new Error("No flow steps found for this stage");
       }
 
-      // Sort flow steps by order_index to ensure correct processing order
+      // Sort flow steps by order_index
       flowSteps.sort((a, b) => a.order_index - b.order_index);
 
       console.log("Found flow steps:", {
@@ -89,10 +105,10 @@ export const useStageProcessing = (briefId: string) => {
         }))
       });
 
-      // Process the workflow stage with the sorted flow steps
+      // Process the workflow stage
       await processWorkflowStage(briefId, stageData, flowSteps);
 
-      // Invalidate queries to refresh data
+      // Invalidate queries
       await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
       await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
 

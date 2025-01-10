@@ -610,6 +610,8 @@ export type Database = {
           flow_step_id: string | null
           id: string
           output_type: string
+          reprocessed_at: string | null
+          reprocessing: boolean | null
           stage_id: string
           summary: string | null
         }
@@ -621,6 +623,8 @@ export type Database = {
           flow_step_id?: string | null
           id?: string
           output_type?: string
+          reprocessed_at?: string | null
+          reprocessing?: boolean | null
           stage_id: string
           summary?: string | null
         }
@@ -632,6 +636,8 @@ export type Database = {
           flow_step_id?: string | null
           id?: string
           output_type?: string
+          reprocessed_at?: string | null
+          reprocessing?: boolean | null
           stage_id?: string
           summary?: string | null
         }

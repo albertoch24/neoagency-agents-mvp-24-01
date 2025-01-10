@@ -4,10 +4,12 @@ import { WorkflowDisplayActions } from "./WorkflowDisplayActions";
 import { WorkflowOutput } from "./WorkflowOutput";
 import { useStagesData } from "@/hooks/useStagesData";
 import { useStageProcessing } from "@/hooks/useStageProcessing";
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { StageClarificationDialog } from "./StageClarificationDialog";
+import { StageFeedbackDialog } from "./StageFeedbackDialog";
 
 interface WorkflowDisplayProps {
   currentStage: string;
@@ -25,6 +27,8 @@ export const WorkflowDisplay = ({
   const { data: stages = [] } = useStagesData(briefId);
   const { isProcessing, processStage } = useStageProcessing(briefId || "");
   const queryClient = useQueryClient();
+  const [showClarificationDialog, setShowClarificationDialog] = useState(false);
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
 
   // Query to check completed stages - always initialized
   const { data: completedStages = [] } = useQuery({
@@ -55,6 +59,32 @@ export const WorkflowDisplay = ({
     retry: 3
   });
 
+  // Query to check for pending clarifications
+  const { data: pendingClarifications = [] } = useQuery({
+    queryKey: ["stage-clarifications", briefId, currentStage],
+    queryFn: async () => {
+      if (!briefId || !currentStage) return [];
+      
+      const { data, error } = await supabase
+        .from("stage_clarifications")
+        .select("*")
+        .eq("brief_id", briefId)
+        .eq("stage_id", currentStage)
+        .eq("status", "pending");
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!briefId && !!currentStage
+  });
+
+  // Effect to show clarification dialog when there are pending clarifications
+  useEffect(() => {
+    if (pendingClarifications.length > 0) {
+      setShowClarificationDialog(true);
+    }
+  }, [pendingClarifications]);
+
   const handleNextStage = useCallback(async () => {
     if (!briefId || !stages.length) return;
 
@@ -76,74 +106,15 @@ export const WorkflowDisplay = ({
         await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
         await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
         await queryClient.invalidateQueries({ queryKey: ["stage-flow-steps"] });
+        
+        // Show feedback dialog after successful processing
+        setShowFeedbackDialog(true);
       }
     } catch (error) {
       console.error("Error processing next stage:", error);
       toast.error("Failed to process next stage");
     }
   }, [briefId, currentStage, stages, processStage, onStageSelect, queryClient]);
-
-  // Effect for handling automatic progression of first stage
-  useEffect(() => {
-    if (!briefId || !currentStage || isProcessing || !stages.length) {
-      return;
-    }
-
-    const checkAndProgressFirstStage = async () => {
-      try {
-        // Get current stage index
-        const currentIndex = stages.findIndex(stage => stage.id === currentStage);
-        
-        // Only proceed if this is the first stage
-        if (currentIndex !== 0) {
-          return;
-        }
-
-        console.log("Checking conversations for first stage:", currentStage);
-        const { data: conversations, error } = await supabase
-          .from("workflow_conversations")
-          .select("*")
-          .eq("brief_id", briefId)
-          .eq("stage_id", currentStage);
-
-        if (error) {
-          console.error("Error fetching conversations:", error);
-          return;
-        }
-
-        console.log("Found conversations:", conversations?.length);
-        
-        // If we have conversations for the first stage, try to progress
-        if (conversations?.length > 0) {
-          const nextStage = stages[1]; // Get second stage
-          
-          if (nextStage) {
-            console.log("Checking next stage conversations:", nextStage.id);
-            // Check if next stage already has conversations
-            const { data: nextStageConversations, error: nextError } = await supabase
-              .from("workflow_conversations")
-              .select("*")
-              .eq("brief_id", briefId)
-              .eq("stage_id", nextStage.id);
-
-            if (nextError) {
-              console.error("Error checking next stage:", nextError);
-              return;
-            }
-
-            // Only process next stage if it hasn't been processed yet
-            if (!nextStageConversations?.length) {
-              console.log("First stage completed, ready for manual progression to next stage");
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error in progression check:", error);
-      }
-    };
-
-    checkAndProgressFirstStage();
-  }, [briefId, currentStage, stages, isProcessing]);
 
   if (!stages.length) {
     return (
@@ -182,6 +153,22 @@ export const WorkflowDisplay = ({
             isProcessing={isProcessing}
             completedStages={completedStages}
           />
+          {showClarificationDialog && (
+            <StageClarificationDialog
+              isOpen={showClarificationDialog}
+              onClose={() => setShowClarificationDialog(false)}
+              stageId={currentStage}
+              briefId={briefId}
+            />
+          )}
+          {showFeedbackDialog && (
+            <StageFeedbackDialog
+              isOpen={showFeedbackDialog}
+              onClose={() => setShowFeedbackDialog(false)}
+              stageId={currentStage}
+              briefId={briefId}
+            />
+          )}
         </>
       )}
     </div>
