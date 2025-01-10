@@ -33,7 +33,11 @@ export const WorkflowDisplay = ({
   // Find the current stage object to get its UUID
   const currentStageData = stages.find(stage => stage.id === currentStage);
 
-  // Query to check completed stages - always initialized
+  console.log("Current stage data:", currentStageData);
+  console.log("All stages:", stages);
+  console.log("Current stage ID:", currentStage);
+
+  // Query to check completed stages
   const { data: completedStages = [] } = useQuery({
     queryKey: ["completed-stages", briefId],
     queryFn: async () => {
@@ -58,8 +62,7 @@ export const WorkflowDisplay = ({
         return [];
       }
     },
-    enabled: !!briefId,
-    retry: 3
+    enabled: !!briefId
   });
 
   // Query to check for pending clarifications
