@@ -35,22 +35,24 @@ export const WorkflowDisplayActions = ({
       if (!nextStage) return;
 
       try {
-        // Check in brief_outputs table
+        console.log("Checking outputs for next stage:", nextStage);
+
+        // Check in brief_outputs table using both stage_id and stage name
         const { data: outputs, error: outputsError } = await supabase
           .from("brief_outputs")
           .select("*")
-          .eq("stage_id", nextStage.id)
+          .or(`stage_id.eq.${nextStage.id},stage.eq.${nextStage.name}`)
           .maybeSingle();
 
         if (outputsError) {
           console.error("Error checking outputs:", outputsError);
         }
 
-        // Check in workflow_conversations table
+        // Check in workflow_conversations table using both stage_id and stage name
         const { data: conversations, error: convsError } = await supabase
           .from("workflow_conversations")
           .select("*")
-          .eq("stage_id", nextStage.id)
+          .or(`stage_id.eq.${nextStage.id},stage_id.eq.${nextStage.name}`)
           .maybeSingle();
 
         if (convsError) {
@@ -60,6 +62,7 @@ export const WorkflowDisplayActions = ({
         const hasOutput = !!(outputs || conversations);
         console.log("Next stage output check:", {
           nextStageId: nextStage.id,
+          nextStageName: nextStage.name,
           hasOutput,
           outputs,
           conversations
@@ -82,6 +85,12 @@ export const WorkflowDisplayActions = ({
 
     const nextStage = stages[currentIndex + 1];
     if (!nextStage) return;
+
+    console.log("Handling next stage:", {
+      nextStage,
+      hasOutput: nextStageHasOutput,
+      willProcess: !nextStageHasOutput
+    });
 
     if (nextStageHasOutput) {
       // Solo navigazione
