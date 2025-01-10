@@ -8,8 +8,5 @@ interface WorkflowOutputProps {
 export const WorkflowOutput = ({ briefId, stageId }: WorkflowOutputProps) => {
   if (!briefId) return null;
   
-  // Convert stageId to stage name if it's a UUID
-  const stageName = stageId.includes("-") ? "kickoff" : stageId; // Default to kickoff for first stage
-  
-  return <OutputContainer briefId={briefId} stage={stageName} />;
+  return <OutputContainer briefId={briefId} stage={stageId} />;
 };
