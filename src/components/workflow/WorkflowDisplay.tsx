@@ -30,6 +30,9 @@ export const WorkflowDisplay = ({
   const [showClarificationDialog, setShowClarificationDialog] = useState(false);
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
 
+  // Find the current stage object to get its UUID
+  const currentStageData = stages.find(stage => stage.id === currentStage);
+
   // Query to check completed stages - always initialized
   const { data: completedStages = [] } = useQuery({
     queryKey: ["completed-stages", briefId],
@@ -63,19 +66,27 @@ export const WorkflowDisplay = ({
   const { data: pendingClarifications = [] } = useQuery({
     queryKey: ["stage-clarifications", briefId, currentStage],
     queryFn: async () => {
-      if (!briefId || !currentStage) return [];
+      if (!briefId || !currentStageData?.id) return [];
       
+      console.log("Checking clarifications for stage:", {
+        briefId,
+        stageId: currentStageData.id
+      });
+
       const { data, error } = await supabase
         .from("stage_clarifications")
         .select("*")
         .eq("brief_id", briefId)
-        .eq("stage_id", currentStage)
+        .eq("stage_id", currentStageData.id)
         .eq("status", "pending");
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching clarifications:", error);
+        throw error;
+      }
       return data;
     },
-    enabled: !!briefId && !!currentStage
+    enabled: !!briefId && !!currentStageData?.id
   });
 
   // Effect to show clarification dialog when there are pending clarifications
@@ -153,19 +164,19 @@ export const WorkflowDisplay = ({
             isProcessing={isProcessing}
             completedStages={completedStages}
           />
-          {showClarificationDialog && (
+          {showClarificationDialog && currentStageData && (
             <StageClarificationDialog
               isOpen={showClarificationDialog}
               onClose={() => setShowClarificationDialog(false)}
-              stageId={currentStage}
+              stageId={currentStageData.id}
               briefId={briefId}
             />
           )}
-          {showFeedbackDialog && (
+          {showFeedbackDialog && currentStageData && (
             <StageFeedbackDialog
               isOpen={showFeedbackDialog}
               onClose={() => setShowFeedbackDialog(false)}
-              stageId={currentStage}
+              stageId={currentStageData.id}
               briefId={briefId}
             />
           )}
