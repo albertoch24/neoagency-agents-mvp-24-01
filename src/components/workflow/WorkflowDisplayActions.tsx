@@ -25,18 +25,22 @@ export const WorkflowDisplayActions = ({
   const currentIndex = stages.findIndex(stage => stage.id === currentStage);
   const isLastStage = currentIndex === stages.length - 1;
   const isFirstStage = currentIndex === 0;
-  const [isCurrentStageCompleted, setIsCurrentStageCompleted] = useState(false);
+  const [nextStageHasOutput, setNextStageHasOutput] = useState(false);
 
   useEffect(() => {
-    const checkStageCompletion = async () => {
+    const checkNextStageOutput = async () => {
+      if (isLastStage) return;
+      
+      const nextStage = stages[currentIndex + 1];
+      if (!nextStage) return;
+
       try {
-        console.log("Checking completion for stage:", currentStage);
-        
         // Check in brief_outputs table
         const { data: outputs, error: outputsError } = await supabase
           .from("brief_outputs")
           .select("*")
-          .eq("stage", currentStage);
+          .eq("stage_id", nextStage.id)
+          .maybeSingle();
 
         if (outputsError) {
           console.error("Error checking outputs:", outputsError);
@@ -46,47 +50,49 @@ export const WorkflowDisplayActions = ({
         const { data: conversations, error: convsError } = await supabase
           .from("workflow_conversations")
           .select("*")
-          .eq("stage_id", currentStage);
+          .eq("stage_id", nextStage.id)
+          .maybeSingle();
 
         if (convsError) {
           console.error("Error checking conversations:", convsError);
         }
 
-        const hasOutputs = outputs && outputs.length > 0;
-        const hasConversations = conversations && conversations.length > 0;
-        const isCompleted = hasOutputs || hasConversations;
-
-        console.log("Stage completion check:", { 
-          currentStage, 
-          isCompleted, 
-          hasOutputs, 
-          hasConversations,
+        const hasOutput = !!(outputs || conversations);
+        console.log("Next stage output check:", {
+          nextStageId: nextStage.id,
+          hasOutput,
           outputs,
           conversations
         });
         
-        setIsCurrentStageCompleted(isCompleted);
+        setNextStageHasOutput(hasOutput);
       } catch (error) {
-        console.error("Error checking stage completion:", error);
-        setIsCurrentStageCompleted(false);
+        console.error("Error checking next stage output:", error);
       }
     };
 
-    if (currentStage) {
-      checkStageCompletion();
-    }
-  }, [currentStage]);
+    checkNextStageOutput();
+  }, [currentStage, stages, currentIndex, isLastStage]);
 
   const handleNextStage = () => {
-    if (!isCurrentStageCompleted && !isProcessing) {
-      console.log("Starting stage processing...");
-      onNextStage();
-    } else if (isCurrentStageCompleted) {
-      console.log("Moving to next stage, current stage completed:", isCurrentStageCompleted);
-      const nextStage = stages[currentIndex + 1];
-      if (nextStage && onStageSelect) {
+    if (isLastStage) {
+      toast.error("This is the last stage");
+      return;
+    }
+
+    const nextStage = stages[currentIndex + 1];
+    if (!nextStage) return;
+
+    if (nextStageHasOutput) {
+      // Solo navigazione
+      if (onStageSelect) {
+        console.log("Navigating to next stage:", nextStage.id);
         onStageSelect(nextStage);
       }
+    } else {
+      // Avvia nuovo processo
+      console.log("Starting process for next stage:", nextStage.id);
+      onNextStage();
     }
   };
 
@@ -97,11 +103,12 @@ export const WorkflowDisplayActions = ({
     }
     const previousStage = stages[currentIndex - 1];
     if (previousStage && onStageSelect) {
-      console.log("Moving to previous stage:", previousStage.id);
+      console.log("Navigating to previous stage:", previousStage.id);
       onStageSelect(previousStage);
     }
   };
 
+  // Non mostrare nulla se è l'ultimo stage
   if (isLastStage) return null;
 
   return (
@@ -124,10 +131,10 @@ export const WorkflowDisplayActions = ({
         >
           {isProcessing ? (
             "Processing next stage... Please wait"
-          ) : !isCurrentStageCompleted ? (
-            "Start Stage Processing"
-          ) : (
+          ) : nextStageHasOutput ? (
             "Next Stage"
+          ) : (
+            "Start Stage Processing"
           )}
           <ArrowRight className="h-4 w-4" />
         </Button>
