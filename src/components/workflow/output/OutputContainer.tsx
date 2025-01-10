@@ -36,12 +36,30 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
         stage,
         timestamp: new Date().toISOString()
       });
-      
+
+      // First get the stage ID from the stages table
+      const { data: stageData, error: stageError } = await supabase
+        .from("stages")
+        .select("id")
+        .eq("name", stage)
+        .maybeSingle();
+
+      if (stageError) {
+        console.error("❌ Error fetching stage:", stageError);
+        toast.error("Error finding stage");
+        throw stageError;
+      }
+
+      if (!stageData) {
+        console.log("⚠️ No stage found for name:", stage);
+        return null;
+      }
+
       const { data, error } = await supabase
         .from("brief_outputs")
         .select("*")
         .eq("brief_id", briefId)
-        .eq("stage_id", stage)
+        .eq("stage_id", stageData.id)
         .order("created_at", { ascending: false });
 
       if (error) {
