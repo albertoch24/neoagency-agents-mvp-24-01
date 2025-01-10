@@ -119,8 +119,20 @@ const buildPreviousOutputsSection = (previousOutputs: any[], isFirstStage: boole
     outputsCount: previousOutputs?.length,
     isFirstStage,
     outputTypes: previousOutputs?.map(o => o.output_type),
-    hasContent: previousOutputs?.every(o => o.content)
+    hasContent: previousOutputs?.every(o => o.content),
+    rawOutputs: previousOutputs?.map(o => ({
+      type: o.output_type,
+      contentType: typeof o.content,
+      contentSample: typeof o.content === 'string' 
+        ? o.content.substring(0, 100) 
+        : 'non-string content'
+    }))
   });
+
+  if (!Array.isArray(previousOutputs) || previousOutputs.length === 0) {
+    console.log("No valid previous outputs found");
+    return '';
+  }
 
   if (isFirstStage) {
     console.log("Skipping previous outputs - first stage");
@@ -128,26 +140,41 @@ const buildPreviousOutputsSection = (previousOutputs: any[], isFirstStage: boole
   }
   
   const outputs = previousOutputs
-    ?.filter((output: any) => 
-      output.content && 
-      typeof output.content === 'object' && 
-      output.output_type === 'structured'
-    )
-    ?.map((output: any) => {
-      const content = typeof output.content === 'string' 
-        ? output.content 
-        : JSON.stringify(output.content, null, 2);
-        
+    .filter((output: any) => {
+      const hasValidContent = output?.content && 
+        (typeof output.content === 'string' || typeof output.content === 'object');
+      
+      console.log("Validating output:", {
+        hasContent: !!output?.content,
+        contentType: typeof output?.content,
+        isValid: hasValidContent
+      });
+      
+      return hasValidContent;
+    })
+    .map((output: any) => {
+      let content = output.content;
+      if (typeof content === 'object') {
+        try {
+          content = JSON.stringify(content, null, 2);
+        } catch (e) {
+          console.error("Error stringifying content:", e);
+          return null;
+        }
+      }
+      
       return `
-      Stage: ${output.stage}
+      Stage: ${output.stage || 'Unknown Stage'}
       Content: ${content}
       `;
     })
+    .filter(Boolean)
     .join('\n\n');
 
   console.log("Processed previous outputs:", {
     hasOutputs: !!outputs,
-    outputLength: outputs?.length
+    outputLength: outputs?.length,
+    outputPreview: outputs?.substring(0, 100)
   });
 
   return outputs ? `\nPrevious Stage Outputs:\n${outputs}` : '';
