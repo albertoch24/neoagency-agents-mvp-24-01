@@ -1,6 +1,5 @@
 import { WorkflowStages } from "./WorkflowStages";
 import { WorkflowConversation } from "./WorkflowConversation";
-import { WorkflowDisplayActions } from "./WorkflowDisplayActions";
 import { WorkflowOutput } from "./WorkflowOutput";
 import { useStagesData } from "@/hooks/useStagesData";
 import { useStageProcessing } from "@/hooks/useStageProcessing";
@@ -8,8 +7,8 @@ import { useEffect, useCallback, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { StageClarificationDialog } from "./StageClarificationDialog";
-import { StageFeedbackDialog } from "./StageFeedbackDialog";
+import { StageNavigation } from "./stage-navigation/StageNavigation";
+import { StageDialogsContainer } from "./stage-dialogs/StageDialogsContainer";
 
 interface WorkflowDisplayProps {
   currentStage: string;
@@ -29,13 +28,46 @@ export const WorkflowDisplay = ({
   const queryClient = useQueryClient();
   const [showClarificationDialog, setShowClarificationDialog] = useState(false);
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
+  const [nextStageHasOutput, setNextStageHasOutput] = useState(false);
 
   // Find the current stage object to get its UUID
   const currentStageData = stages.find(stage => stage.id === currentStage);
+  const currentIndex = stages.findIndex(stage => stage.id === currentStage);
 
-  console.log("Current stage data:", currentStageData);
-  console.log("All stages:", stages);
-  console.log("Current stage ID:", currentStage);
+  useEffect(() => {
+    const checkNextStageOutput = async () => {
+      if (currentIndex === stages.length - 1) return;
+      
+      const nextStage = stages[currentIndex + 1];
+      if (!nextStage) return;
+
+      try {
+        const { data: outputsById } = await supabase
+          .from("brief_outputs")
+          .select("*")
+          .eq("stage_id", nextStage.id)
+          .maybeSingle();
+
+        const { data: outputsByName } = await supabase
+          .from("brief_outputs")
+          .select("*")
+          .eq("stage", nextStage.name)
+          .maybeSingle();
+
+        const { data: conversations } = await supabase
+          .from("workflow_conversations")
+          .select("*")
+          .eq("stage_id", nextStage.id)
+          .maybeSingle();
+
+        setNextStageHasOutput(!!(outputsById || outputsByName || conversations));
+      } catch (error) {
+        console.error("Error checking next stage output:", error);
+      }
+    };
+
+    checkNextStageOutput();
+  }, [currentStage, stages, currentIndex]);
 
   // Query to check completed stages
   const { data: completedStages = [] } = useQuery({
@@ -43,24 +75,19 @@ export const WorkflowDisplay = ({
     queryFn: async () => {
       if (!briefId) return [];
       
-      try {
-        const { data, error } = await supabase
-          .from("workflow_conversations")
-          .select("stage_id")
-          .eq("brief_id", briefId)
-          .order("created_at", { ascending: true });
+      const { data, error } = await supabase
+        .from("workflow_conversations")
+        .select("stage_id")
+        .eq("brief_id", briefId)
+        .order("created_at", { ascending: true });
 
-        if (error) {
-          console.error("Error fetching completed stages:", error);
-          toast.error("Failed to fetch completed stages");
-          return [];
-        }
-        
-        return data?.map(item => item.stage_id) || [];
-      } catch (error) {
-        console.error("Error in completedStages query:", error);
+      if (error) {
+        console.error("Error fetching completed stages:", error);
+        toast.error("Failed to fetch completed stages");
         return [];
       }
+      
+      return data?.map(item => item.stage_id) || [];
     },
     enabled: !!briefId
   });
@@ -71,11 +98,6 @@ export const WorkflowDisplay = ({
     queryFn: async () => {
       if (!briefId || !currentStageData?.id) return [];
       
-      console.log("Checking clarifications for stage:", {
-        briefId,
-        stageId: currentStageData.id
-      });
-
       const { data, error } = await supabase
         .from("stage_clarifications")
         .select("*")
@@ -83,16 +105,12 @@ export const WorkflowDisplay = ({
         .eq("stage_id", currentStageData.id)
         .eq("status", "pending");
 
-      if (error) {
-        console.error("Error fetching clarifications:", error);
-        throw error;
-      }
+      if (error) throw error;
       return data;
     },
     enabled: !!briefId && !!currentStageData?.id
   });
 
-  // Effect to show clarification dialog when there are pending clarifications
   useEffect(() => {
     if (pendingClarifications.length > 0) {
       setShowClarificationDialog(true);
@@ -109,19 +127,13 @@ export const WorkflowDisplay = ({
     if (!nextStage) return;
 
     try {
-      console.log("Processing next stage:", nextStage.id);
       const success = await processStage(nextStage);
       
       if (success) {
-        console.log("Stage processed successfully, selecting next stage:", nextStage.id);
         onStageSelect(nextStage);
-        
-        // Invalidate queries to refresh data
         await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
         await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
         await queryClient.invalidateQueries({ queryKey: ["stage-flow-steps"] });
-        
-        // Show feedback dialog after successful processing
         setShowFeedbackDialog(true);
       }
     } catch (error) {
@@ -160,26 +172,20 @@ export const WorkflowDisplay = ({
               showOutputs={showOutputs}
             />
           )}
-          <WorkflowDisplayActions
+          <StageNavigation
             currentStage={currentStage}
             stages={stages}
             onNextStage={handleNextStage}
             isProcessing={isProcessing}
-            completedStages={completedStages}
             onStageSelect={onStageSelect}
+            nextStageHasOutput={nextStageHasOutput}
           />
-          {showClarificationDialog && currentStageData && (
-            <StageClarificationDialog
-              isOpen={showClarificationDialog}
-              onClose={() => setShowClarificationDialog(false)}
-              stageId={currentStageData.id}
-              briefId={briefId}
-            />
-          )}
-          {showFeedbackDialog && currentStageData && (
-            <StageFeedbackDialog
-              isOpen={showFeedbackDialog}
-              onClose={() => setShowFeedbackDialog(false)}
+          {currentStageData && (
+            <StageDialogsContainer
+              showClarificationDialog={showClarificationDialog}
+              showFeedbackDialog={showFeedbackDialog}
+              onClarificationClose={() => setShowClarificationDialog(false)}
+              onFeedbackClose={() => setShowFeedbackDialog(false)}
               stageId={currentStageData.id}
               briefId={briefId}
             />
