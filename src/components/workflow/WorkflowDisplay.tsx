@@ -67,7 +67,7 @@ export const WorkflowDisplay = ({
 
   // Query to check for pending clarifications
   const { data: pendingClarifications = [] } = useQuery({
-    queryKey: ["stage-clarifications", briefId, currentStage],
+    queryKey: ["stage-clarifications", briefId, currentStageData?.id],
     queryFn: async () => {
       if (!briefId || !currentStageData?.id) return [];
       
