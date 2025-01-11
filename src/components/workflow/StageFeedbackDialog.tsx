@@ -2,94 +2,102 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Star, StarHalf } from "lucide-react";
 
 interface StageFeedbackDialogProps {
-  isOpen: boolean;
+  open: boolean;
   onClose: () => void;
   stageId: string;
   briefId: string;
 }
 
 export const StageFeedbackDialog = ({
-  isOpen,
+  open,
   onClose,
   stageId,
   briefId,
 }: StageFeedbackDialogProps) => {
-  const [content, setContent] = useState("");
-  const [rating, setRating] = useState(0);
+  const [feedback, setFeedback] = useState("");
   const [requiresRevision, setRequiresRevision] = useState(false);
-  const queryClient = useQueryClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
+    if (!feedback.trim()) {
+      toast.error("Please provide feedback before submitting");
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       const { error } = await supabase.from("stage_feedback").insert({
         stage_id: stageId,
         brief_id: briefId,
-        content,
-        rating,
-        requires_revision: requiresRevision,
+        content: feedback,
+        requires_revision: requiresRevision
       });
 
       if (error) throw error;
 
-      await queryClient.invalidateQueries({ queryKey: ["stage-feedback"] });
       toast.success("Feedback submitted successfully");
+      
+      // Solo se richiede revisione, mostra un messaggio informativo
+      if (requiresRevision) {
+        toast.info(
+          "Revision requested. Please wait for the team to review your feedback.",
+          { duration: 5000 }
+        );
+      }
+
+      setFeedback("");
+      setRequiresRevision(false);
       onClose();
     } catch (error) {
       console.error("Error submitting feedback:", error);
-      toast.error("Failed to submit feedback");
+      toast.error("Failed to submit feedback. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => onClose()}>
+    <Dialog open={open} onOpenChange={() => !isSubmitting && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Provide Stage Feedback</DialogTitle>
+          <DialogTitle>Stage Feedback</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="flex justify-center space-x-2">
-            {[1, 2, 3, 4, 5].map((value) => (
-              <button
-                key={value}
-                onClick={() => setRating(value)}
-                className="focus:outline-none"
-              >
-                {value <= rating ? (
-                  <Star className="h-6 w-6 fill-yellow-400 text-yellow-400" />
-                ) : (
-                  <StarHalf className="h-6 w-6 text-gray-300" />
-                )}
-              </button>
-            ))}
-          </div>
+        <div className="grid gap-4 py-4">
           <Textarea
-            placeholder="Enter your feedback..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
+            placeholder="Please provide your feedback for this stage..."
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
             className="min-h-[100px]"
           />
           <div className="flex items-center space-x-2">
             <input
               type="checkbox"
-              id="requiresRevision"
+              id="requires-revision"
               checked={requiresRevision}
               onChange={(e) => setRequiresRevision(e.target.checked)}
-              className="rounded border-gray-300"
+              className="rounded border-gray-300 text-primary focus:ring-primary"
             />
-            <label htmlFor="requiresRevision">Requires revision</label>
+            <label htmlFor="requires-revision" className="text-sm text-gray-700">
+              This stage requires revision
+            </label>
           </div>
         </div>
         <div className="flex justify-end space-x-2">
-          <Button variant="outline" onClick={onClose}>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!content || rating === 0}>
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
             Submit Feedback
           </Button>
         </div>
