@@ -166,6 +166,7 @@ export const WorkflowDisplay = ({
             onNextStage={handleNextStage}
             isProcessing={isProcessing}
             completedStages={completedStages}
+            onStageSelect={onStageSelect}
           />
           {showClarificationDialog && currentStageData && (
             <StageClarificationDialog
