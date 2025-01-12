@@ -1,9 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { ChatOpenAI } from "https://esm.sh/@langchain/openai@0.0.14";
-import { initializeAgentExecutorWithOptions } from "https://esm.sh/langchain@0.0.200/agents";
-import { DynamicStructuredTool } from "https://esm.sh/@langchain/core@0.1.18/tools";
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { processAgent } from "./utils/workflow.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,8 +36,46 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Workflow processing logic here
-    // (Assuming this part includes the logic to process the workflow stage)
+    // Get the brief details
+    const { data: brief, error: briefError } = await supabase
+      .from('briefs')
+      .select('*')
+      .eq('id', briefId)
+      .single();
+
+    if (briefError) throw briefError;
+
+    // Process each flow step
+    const outputs = [];
+    for (const step of flowSteps) {
+      console.log('Processing step:', {
+        stepId: step.id,
+        agentId: step.agent_id,
+        requirements: step.requirements?.substring(0, 100) + '...'
+      });
+
+      const { data: agent } = await supabase
+        .from('agents')
+        .select('*, skills(*)')
+        .eq('id', step.agent_id)
+        .single();
+
+      if (!agent) {
+        console.error('Agent not found:', step.agent_id);
+        continue;
+      }
+
+      const output = await processAgent(
+        supabase,
+        agent,
+        brief,
+        stageId,
+        step.requirements || '',
+        outputs // Pass previous outputs for context
+      );
+
+      outputs.push(output);
+    }
 
     return new Response(
       JSON.stringify({ 
