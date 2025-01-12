@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
-import { TextSplitter } from "https://esm.sh/@langchain/text";
+import { RecursiveCharacterTextSplitter } from "https://esm.sh/langchain/text/splitters";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,7 +23,7 @@ serve(async (req) => {
     console.log('Processing website content for brand:', brand);
 
     // Initialize text splitter
-    const textSplitter = new TextSplitter({
+    const textSplitter = new RecursiveCharacterTextSplitter({
       chunkSize: 1000,
       chunkOverlap: 200,
     });
