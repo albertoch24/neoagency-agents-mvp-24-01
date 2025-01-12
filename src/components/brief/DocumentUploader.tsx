@@ -20,8 +20,7 @@ export const DocumentUploader = () => {
 
     setIsUploading(true);
     
-    toast({
-      title: "Uploading...",
+    toast("Uploading...", {
       description: "Brand documents are being uploaded"
     });
 
@@ -42,14 +41,12 @@ export const DocumentUploader = () => {
         setUploadedFiles(prev => [...prev, { name: fileName, path: filePath }]);
       }
 
-      toast({
-        title: "Success",
+      toast("Success", {
         description: "Documents uploaded successfully",
       });
     } catch (error) {
       console.error('Upload error:', error);
-      toast({
-        title: "Error",
+      toast("Error", {
         description: "Error uploading documents. Please try again.",
         variant: "destructive",
       });
@@ -67,14 +64,12 @@ export const DocumentUploader = () => {
       if (error) throw error;
 
       setUploadedFiles(prev => prev.filter(file => file.path !== filePath));
-      toast({
-        title: "Success",
+      toast("Success", {
         description: "File removed successfully",
       });
     } catch (error) {
       console.error('Remove error:', error);
-      toast({
-        title: "Error",
+      toast("Error", {
         description: "Error removing file. Please try again.",
         variant: "destructive",
       });
