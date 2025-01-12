@@ -47,11 +47,31 @@ export const WorkflowStageList = ({
     if (!stageOutputs.length) return null;
     
     // Sort by created_at in descending order and take the first one
-    return stageOutputs.sort((a, b) => {
+    const latestOutput = stageOutputs.sort((a, b) => {
       const dateA = new Date(a.created_at || 0).getTime();
       const dateB = new Date(b.created_at || 0).getTime();
       return dateB - dateA;
     })[0];
+
+    // Transform the relevantDocs structure if it exists
+    if (latestOutput.content.relevantDocs) {
+      return {
+        ...latestOutput,
+        content: {
+          ...latestOutput.content,
+          relevantDocs: latestOutput.content.relevantDocs.map(doc => ({
+            content: doc.pageContent,
+            metadata: {
+              title: doc.metadata.title || 'Untitled',
+              source: doc.metadata.source
+            },
+            similarity: doc.metadata.similarity || 0
+          }))
+        }
+      };
+    }
+
+    return latestOutput;
   };
 
   return (
