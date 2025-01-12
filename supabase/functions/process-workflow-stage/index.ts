@@ -83,8 +83,8 @@ serve(async (req) => {
         brief,
         stageId,
         step.requirements || '',
-        outputs, // Pass previous outputs for context
-        feedback // Pass feedback if available
+        [], // Empty array since it's the first stage
+        feedback // Pass the feedback if available
       );
 
       outputs.push(output);

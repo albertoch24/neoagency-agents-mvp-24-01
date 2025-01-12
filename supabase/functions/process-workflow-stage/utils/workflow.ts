@@ -8,7 +8,8 @@ export async function processAgent(
   brief: any,
   stageId: string,
   requirements: string,
-  previousOutputs: any[] = []
+  previousOutputs: any[] = [],
+  feedback?: string
 ) {
   try {
     console.log('Processing agent:', {
@@ -16,8 +17,9 @@ export async function processAgent(
       agentName: agent?.name,
       briefId: brief?.id,
       stageId,
-      requirements,
+      requirements: requirements?.substring(0, 100) + '...',
       previousOutputsCount: Array.isArray(previousOutputs) ? previousOutputs.length : 0,
+      hasFeedback: !!feedback,
       previousOutputsSample: Array.isArray(previousOutputs) ? previousOutputs.map(output => ({
         id: output?.id,
         type: output?.output_type,
@@ -70,14 +72,15 @@ export async function processAgent(
     }
 
     // Single agent processing
-    const isFirstStage = safeOutputs.length === 0;
+    const isFirstStage = true; // Force isFirstStage to true as per request
     console.log('Building prompt for single agent:', {
       agentName: agent.name,
       isFirstStage,
-      previousOutputsCount: safeOutputs.length
+      previousOutputsCount: safeOutputs.length,
+      hasFeedback: !!feedback
     });
 
-    const prompt = await buildPrompt(brief, stageId, requirements, safeOutputs);
+    const prompt = await buildPrompt(brief, stageId, requirements, safeOutputs, feedback);
 
     console.log('Generated prompt:', {
       promptLength: prompt.length,
