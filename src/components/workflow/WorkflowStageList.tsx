@@ -17,10 +17,15 @@ interface WorkflowStageListProps {
         orderIndex?: number;
         requirements?: string;
       }>;
-      [key: string]: any;
+      stage_name?: string;
+      flow_name?: string;
+      agent_count?: number;
+      relevantDocs?: Array<{
+        pageContent: string;
+        metadata: Record<string, any>;
+      }>;
     };
     created_at?: string;
-    [key: string]: any;
   }>;
   showOutputs?: boolean;
 }
