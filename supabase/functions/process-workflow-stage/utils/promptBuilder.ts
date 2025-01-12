@@ -1,3 +1,5 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 export const buildPrompt = (
   agent: any,
   brief: any,
@@ -13,9 +15,22 @@ export const buildPrompt = (
     isFirstStage
   });
 
-  const formattedRequirements = requirements 
-    ? `\nSpecific Requirements for this Step:\n${requirements}`
+  // Extract feedback-specific requirements if present
+  const feedbackSection = requirements?.includes("Previous feedback received:") 
+    ? requirements
     : '';
+
+  const standardRequirements = requirements?.split("Previous feedback received:")[0] || '';
+
+  const formattedRequirements = `
+${standardRequirements}
+
+${feedbackSection ? `
+Important Feedback Updates:
+${feedbackSection}
+
+Please ensure your response specifically addresses the feedback provided above, particularly any requested changes to target audience, objectives, or other specific aspects of the brief.
+` : ''}`;
 
   const outputRequirements = agent.flow_steps?.[0]?.outputs
     ?.map((output: any) => output.text)

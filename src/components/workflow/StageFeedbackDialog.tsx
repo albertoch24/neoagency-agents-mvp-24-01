@@ -74,6 +74,19 @@ export const StageFeedbackDialog = ({
 
         const flowSteps = stageData?.flows?.flow_steps || [];
         
+        // Transform the feedback into a structured format for the prompt
+        const feedbackPrompt = `
+Previous feedback received:
+${content}
+
+Please incorporate this feedback into your analysis and recommendations, particularly regarding any specific changes or improvements requested. If the feedback mentions specific aspects (like target audience, objectives, etc.), prioritize these updates in your response while maintaining consistency with other brief requirements.
+
+Key points to address from feedback:
+1. Update any specific parameters mentioned (e.g., target audience, timeline, etc.)
+2. Revise recommendations based on the new information
+3. Ensure alignment with the updated requirements
+`;
+        
         const transformedStageData = {
           ...stageData,
           flows: {
@@ -81,7 +94,7 @@ export const StageFeedbackDialog = ({
             flow_steps: flowSteps.map(step => ({
               ...step,
               outputs: step.outputs || [],
-              requirements: `${step.requirements || ''}\n\nRevision feedback: ${content}`
+              requirements: `${step.requirements || ''}\n\n${feedbackPrompt}`
             }))
           }
         };
