@@ -1,5 +1,5 @@
-import { AgentSequence } from "../flows/AgentSequence";
-import { StageOutput } from "../flows/StageOutput";
+import { AgentSequence } from "./AgentSequence";
+import { StageOutput } from "./StageOutput";
 
 interface WorkflowStageListProps {
   stages: [string, any[]][];
@@ -26,6 +26,7 @@ interface WorkflowStageListProps {
       }>;
     };
     created_at?: string;
+    stage_id?: string;
   }>;
   showOutputs?: boolean;
 }
@@ -56,14 +57,16 @@ export const WorkflowStageList = ({
     // Transform the relevantDocs structure if it exists
     if (latestOutput.content.relevantDocs) {
       return {
-        ...latestOutput,
+        stage: latestOutput.stage,
+        stage_id: latestOutput.stage_id,
+        created_at: latestOutput.created_at,
         content: {
           ...latestOutput.content,
           relevantDocs: latestOutput.content.relevantDocs.map(doc => ({
             content: doc.pageContent,
             metadata: {
               title: doc.metadata.title || 'Untitled',
-              source: doc.metadata.source
+              source: doc.metadata.source || ''
             },
             similarity: doc.metadata.similarity || 0
           }))
@@ -71,7 +74,12 @@ export const WorkflowStageList = ({
       };
     }
 
-    return latestOutput;
+    return {
+      stage: latestOutput.stage,
+      stage_id: latestOutput.stage_id,
+      created_at: latestOutput.created_at,
+      content: latestOutput.content
+    };
   };
 
   return (
