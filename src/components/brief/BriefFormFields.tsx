@@ -27,7 +27,11 @@ export const BriefFormFields = ({ form }: BriefFormFieldsProps) => {
     if (!files || files.length === 0) return;
 
     setIsUploading(true);
-    const toastId = toast.loading("Uploading brand documents...");
+    
+    toast({
+      title: "Uploading...",
+      description: "Brand documents are being uploaded"
+    });
 
     try {
       for (const file of Array.from(files)) {
@@ -46,10 +50,18 @@ export const BriefFormFields = ({ form }: BriefFormFieldsProps) => {
         setUploadedFiles(prev => [...prev, { name: fileName, path: filePath }]);
       }
 
-      toast.success("Documents uploaded successfully", { id: toastId });
+      toast({
+        title: "Success",
+        description: "Documents uploaded successfully",
+        variant: "default",
+      });
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error("Error uploading documents. Please try again.", { id: toastId });
+      toast({
+        title: "Error",
+        description: "Error uploading documents. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsUploading(false);
     }
@@ -64,10 +76,18 @@ export const BriefFormFields = ({ form }: BriefFormFieldsProps) => {
       if (error) throw error;
 
       setUploadedFiles(prev => prev.filter(file => file.path !== filePath));
-      toast.success("File removed successfully");
+      toast({
+        title: "Success",
+        description: "File removed successfully",
+        variant: "default",
+      });
     } catch (error) {
       console.error('Remove error:', error);
-      toast.error("Error removing file. Please try again.");
+      toast({
+        title: "Error",
+        description: "Error removing file. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
