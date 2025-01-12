@@ -25,6 +25,19 @@ export const BriefFormFields = ({ form }: BriefFormFieldsProps) => {
       />
       <FormField
         control={form.control}
+        name="brand"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Brand</FormLabel>
+            <FormControl>
+              <Input placeholder="Enter brand name" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
         name="description"
         render={({ field }) => (
           <FormItem>

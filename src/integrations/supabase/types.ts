@@ -98,6 +98,54 @@ export type Database = {
           },
         ]
       }
+      brand_knowledge: {
+        Row: {
+          brand: string
+          brief_id: string | null
+          content: Json
+          created_at: string
+          id: string
+          stage_id: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          brand: string
+          brief_id?: string | null
+          content: Json
+          created_at?: string
+          id?: string
+          stage_id?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          brand?: string
+          brief_id?: string | null
+          content?: Json
+          created_at?: string
+          id?: string
+          stage_id?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_knowledge_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_knowledge_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brief_outputs: {
         Row: {
           brief_id: string
@@ -145,6 +193,7 @@ export type Database = {
       }
       briefs: {
         Row: {
+          brand: string | null
           budget: string | null
           created_at: string
           current_stage: string | null
@@ -160,6 +209,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          brand?: string | null
           budget?: string | null
           created_at?: string
           current_stage?: string | null
@@ -175,6 +225,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          brand?: string | null
           budget?: string | null
           created_at?: string
           current_stage?: string | null
