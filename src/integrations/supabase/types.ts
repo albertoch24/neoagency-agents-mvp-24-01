@@ -447,6 +447,112 @@ export type Database = {
           },
         ]
       }
+      stage_clarifications: {
+        Row: {
+          agent_id: string
+          answer: string | null
+          brief_id: string
+          created_at: string
+          id: string
+          question: string
+          stage_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          answer?: string | null
+          brief_id: string
+          created_at?: string
+          id?: string
+          question: string
+          stage_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          answer?: string | null
+          brief_id?: string
+          created_at?: string
+          id?: string
+          question?: string
+          stage_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_clarifications_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_clarifications_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_clarifications_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stage_feedback: {
+        Row: {
+          brief_id: string
+          content: string
+          created_at: string
+          id: string
+          rating: number | null
+          requires_revision: boolean | null
+          stage_id: string
+          updated_at: string
+        }
+        Insert: {
+          brief_id: string
+          content: string
+          created_at?: string
+          id?: string
+          rating?: number | null
+          requires_revision?: boolean | null
+          stage_id: string
+          updated_at?: string
+        }
+        Update: {
+          brief_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          rating?: number | null
+          requires_revision?: boolean | null
+          stage_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_feedback_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_feedback_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stages: {
         Row: {
           created_at: string
@@ -504,6 +610,8 @@ export type Database = {
           flow_step_id: string | null
           id: string
           output_type: string
+          reprocessed_at: string | null
+          reprocessing: boolean | null
           stage_id: string
           summary: string | null
         }
@@ -515,6 +623,8 @@ export type Database = {
           flow_step_id?: string | null
           id?: string
           output_type?: string
+          reprocessed_at?: string | null
+          reprocessing?: boolean | null
           stage_id: string
           summary?: string | null
         }
@@ -526,6 +636,8 @@ export type Database = {
           flow_step_id?: string | null
           id?: string
           output_type?: string
+          reprocessed_at?: string | null
+          reprocessing?: boolean | null
           stage_id?: string
           summary?: string | null
         }
