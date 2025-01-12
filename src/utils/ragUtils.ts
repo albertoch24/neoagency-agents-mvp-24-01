@@ -14,11 +14,15 @@ export const queryRAG = async (
   context?: string
 ): Promise<RAGResponse> => {
   try {
+    if (!query?.trim()) {
+      throw new Error('Query string cannot be empty');
+    }
+
     console.log('Sending RAG query:', { query, briefId, context });
     
     const { data, error } = await supabase.functions.invoke('rag-processor', {
       body: {
-        query,
+        query: query.trim(),
         briefId,
         context
       }

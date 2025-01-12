@@ -19,17 +19,21 @@ serve(async (req) => {
     console.log('Starting RAG processor');
     
     // Parse request body
-    const body = await req.json().catch(() => ({}));
+    const body = await req.json();
     console.log('Received request body:', body);
 
-    // Validate request body
-    if (!body || typeof body.query !== 'string' || !body.query.trim()) {
-      console.error('Invalid or missing query in request body');
+    // Validate request body and query
+    if (!body || typeof body !== 'object') {
+      throw new Error('Invalid request body');
+    }
+
+    const { query, briefId, context } = body;
+
+    if (!query || typeof query !== 'string' || !query.trim()) {
       throw new Error('A valid query string is required');
     }
 
-    const query = body.query.trim();
-    console.log('Processing query:', query);
+    console.log('Processing query:', { query, briefId, context });
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
@@ -60,7 +64,7 @@ serve(async (req) => {
     });
 
     console.log('Performing similarity search');
-    const results = await vectorStore.similaritySearch(query, 5);
+    const results = await vectorStore.similaritySearch(query.trim(), 5);
     console.log(`Found ${results.length} relevant documents`);
 
     console.log('Processing results with OpenAI');
@@ -85,9 +89,9 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        answer,
-        sources: results.map(doc => ({
-          content: doc.pageContent,
+        response: answer,
+        relevantDocs: results.map(doc => ({
+          pageContent: doc.pageContent,
           metadata: doc.metadata
         }))
       }),
