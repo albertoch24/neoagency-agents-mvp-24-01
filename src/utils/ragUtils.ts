@@ -14,7 +14,9 @@ export const queryRAG = async (
   context?: string
 ): Promise<RAGResponse> => {
   try {
+    // Validate query string
     if (!query?.trim()) {
+      console.error('Invalid query:', query);
       throw new Error('Query string cannot be empty');
     }
 
