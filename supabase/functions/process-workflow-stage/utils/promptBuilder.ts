@@ -1,5 +1,5 @@
+import { buildOutputRequirements } from "./prompt/requirementsBuilder.ts";
 import { formatFeedbackForPrompt } from "./prompt/feedbackFormatter.ts";
-import { buildRequirementsPrompt } from "./prompt/requirementsBuilder.ts";
 import { buildSectionsPrompt } from "./prompt/sectionsBuilder.ts";
 
 export const buildPrompt = async (
@@ -11,7 +11,7 @@ export const buildPrompt = async (
 ) => {
   console.log("Building prompt with feedback:", feedback);
 
-  const requirements = buildRequirementsPrompt(flowStep?.requirements || "");
+  const requirements = buildOutputRequirements(flowStep?.requirements || "");
   const sections = buildSectionsPrompt(previousOutputs);
   
   const promptParts = [
