@@ -4,6 +4,7 @@ import { ChatOpenAI } from "https://esm.sh/@langchain/openai@0.0.14";
 import { SupabaseVectorStore } from "https://esm.sh/@langchain/community@0.3.24/vectorstores/supabase";
 import { OpenAIEmbeddings } from "https://esm.sh/@langchain/openai@0.0.14";
 
+// Add CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -34,8 +35,12 @@ serve(async (req) => {
       tableName: 'documents',
     });
 
+    console.log("Searching for relevant documents for query:", query);
+    
     // Search for relevant documents
     const relevantDocs = await vectorStore.similaritySearch(query, 5);
+
+    console.log("Found relevant documents:", relevantDocs.length);
 
     // Generate response using the model
     const response = await model.predict(
@@ -43,6 +48,8 @@ serve(async (req) => {
         relevantDocs.map(doc => doc.pageContent).join('\n')
       }\n\nQuery: ${query}`
     );
+
+    console.log("Generated response");
 
     return new Response(
       JSON.stringify({
