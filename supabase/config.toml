@@ -1,31 +1,4 @@
-# Project configs
 project_id = "szufbafdhfwqclyixdpd"
 
-[api]
-enabled = true
-port = 54321
-schemas = ["public", "storage", "graphql_public"]
-
-[db]
-port = 54322
-
-[studio]
-enabled = true
-port = 54323
-api_url = "http://localhost"
-
-[inbucket]
-enabled = true
-port = 54324
-
-[storage]
-enabled = true
-
-[auth]
-enabled = true
-
-[analytics]
-enabled = true
-
-[realtime]
-enabled = true
+[functions.process-brand-documents]
+verify_jwt = true
