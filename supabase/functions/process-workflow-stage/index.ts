@@ -20,7 +20,8 @@ serve(async (req) => {
   try {
     console.log('Starting workflow stage processing:', {
       timestamp: new Date().toISOString(),
-      method: req.method
+      method: req.method,
+      url: req.url
     });
 
     // Get request body
