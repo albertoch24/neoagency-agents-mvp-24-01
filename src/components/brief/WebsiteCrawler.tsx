@@ -7,6 +7,7 @@ import { Loader2, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { crawlWebsite } from "@/utils/websiteCrawler";
 import { supabase } from "@/integrations/supabase/client";
+import { useParams } from "react-router-dom";
 
 interface WebsiteCrawlerProps {
   form: UseFormReturn<any>;
@@ -14,6 +15,7 @@ interface WebsiteCrawlerProps {
 
 export const WebsiteCrawler = ({ form }: WebsiteCrawlerProps) => {
   const [isCrawling, setIsCrawling] = useState(false);
+  const { briefId } = useParams(); // Get briefId from URL params
 
   const handleWebsiteCrawl = async () => {
     const websiteUrl = form.getValues("website");
@@ -27,36 +29,38 @@ export const WebsiteCrawler = ({ form }: WebsiteCrawlerProps) => {
       return;
     }
 
+    if (!briefId) {
+      toast.error("No brief ID found");
+      return;
+    }
+
     setIsCrawling(true);
     toast("Crawling website", {
       description: "Please wait while we analyze the brand website...",
     });
 
     try {
-      const { data: briefData } = await supabase
-        .from('briefs')
-        .select('id')
-        .single();
-
+      console.log("Starting website crawl for brief:", briefId);
+      
       const crawledContent = await crawlWebsite(websiteUrl, brand);
+      console.log("Crawled content:", crawledContent);
 
       // Store the crawled content
       const { error: storageError } = await supabase
         .from('brand_knowledge')
         .insert({
-          brief_id: briefData.id,
+          brief_id: briefId,
           brand: brand,
           content: crawledContent,
           type: 'website_content'
         });
 
       if (storageError) {
+        console.error("Error storing crawled content:", storageError);
         throw new Error('Failed to store crawled content');
       }
 
-      toast("Success", {
-        description: "Website content analyzed and stored successfully",
-      });
+      toast.success("Website content analyzed and stored successfully");
     } catch (error) {
       console.error('Error crawling website:', error);
       const errorMessage = error instanceof Error ? error.message : "Failed to analyze website content";
