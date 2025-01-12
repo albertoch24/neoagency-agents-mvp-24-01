@@ -4,9 +4,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { UseFormReturn } from "react-hook-form";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, Loader2, X } from "lucide-react";
+import { Upload, Loader2, X, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import FirecrawlApp from '@mendable/firecrawl-js';
 
 interface BriefFormFieldsProps {
   form: UseFormReturn<any>;
@@ -19,8 +20,81 @@ interface UploadedFile {
 
 export const BriefFormFields = ({ form }: BriefFormFieldsProps) => {
   const [isUploading, setIsUploading] = useState(false);
+  const [isCrawling, setIsCrawling] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const { toast } = useToast();
+
+  const handleWebsiteCrawl = async () => {
+    const websiteUrl = form.getValues("website");
+    if (!websiteUrl) {
+      toast({
+        title: "Error",
+        description: "Please enter a website URL first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCrawling(true);
+    toast({
+      title: "Crawling website",
+      description: "Please wait while we analyze the brand website...",
+    });
+
+    try {
+      const { data: { secret } } = await supabase
+        .from('secrets')
+        .select('secret')
+        .eq('name', 'FIRECRAWL_API_KEY')
+        .single();
+
+      if (!secret) {
+        toast({
+          title: "Error",
+          description: "Firecrawl API key not configured",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const firecrawl = new FirecrawlApp({ apiKey: secret });
+      const response = await firecrawl.crawlUrl(websiteUrl, {
+        limit: 100,
+        scrapeOptions: {
+          formats: ['markdown', 'html'],
+        }
+      });
+
+      if (response.success) {
+        // Store crawled data in brand_knowledge
+        const { error: insertError } = await supabase
+          .from('brand_knowledge')
+          .insert({
+            brand: form.getValues("brand"),
+            content: response.data,
+            type: 'website_content'
+          });
+
+        if (insertError) throw insertError;
+
+        toast({
+          title: "Success",
+          description: "Website content analyzed and stored successfully",
+        });
+      } else {
+        throw new Error("Failed to crawl website");
+      }
+    } catch (error) {
+      console.error('Error crawling website:', error);
+      toast({
+        title: "Error",
+        description: "Failed to analyze website content",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCrawling(false);
+    }
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -53,7 +127,6 @@ export const BriefFormFields = ({ form }: BriefFormFieldsProps) => {
       toast({
         title: "Success",
         description: "Documents uploaded successfully",
-        variant: "default",
       });
     } catch (error) {
       console.error('Upload error:', error);
@@ -79,7 +152,6 @@ export const BriefFormFields = ({ form }: BriefFormFieldsProps) => {
       toast({
         title: "Success",
         description: "File removed successfully",
-        variant: "default",
       });
     } catch (error) {
       console.error('Remove error:', error);
@@ -115,6 +187,38 @@ export const BriefFormFields = ({ form }: BriefFormFieldsProps) => {
             <FormControl>
               <Input placeholder="Enter brand name" {...field} />
             </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="website"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Brand Website</FormLabel>
+            <div className="flex gap-2">
+              <FormControl>
+                <Input 
+                  type="url" 
+                  placeholder="https://example.com" 
+                  {...field} 
+                />
+              </FormControl>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleWebsiteCrawl}
+                disabled={isCrawling || !field.value}
+              >
+                {isCrawling ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Globe className="mr-2 h-4 w-4" />
+                )}
+                Analyze
+              </Button>
+            </div>
             <FormMessage />
           </FormItem>
         )}

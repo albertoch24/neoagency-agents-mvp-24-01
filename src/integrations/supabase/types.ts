@@ -207,6 +207,7 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          website: string | null
         }
         Insert: {
           brand?: string | null
@@ -223,6 +224,7 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
+          website?: string | null
         }
         Update: {
           brand?: string | null
@@ -239,6 +241,7 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          website?: string | null
         }
         Relationships: [
           {
