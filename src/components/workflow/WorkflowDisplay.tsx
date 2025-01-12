@@ -30,7 +30,7 @@ export const WorkflowDisplay = ({
   const [showClarificationDialog, setShowClarificationDialog] = useState(false);
   const [nextStageHasOutput, setNextStageHasOutput] = useState(false);
 
-  // Find the current stage object to get its UUID
+  // Find the current stage object
   const currentStageData = stages.find(stage => stage.id === currentStage);
   const currentIndex = stages.findIndex(stage => stage.id === currentStage);
 
@@ -92,10 +92,16 @@ export const WorkflowDisplay = ({
         },
         async (payload) => {
           console.log('Feedback change detected:', payload);
-          // Invalidate relevant queries
-          await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
-          await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
-          await refetchCompletedStages();
+          
+          // Force immediate refetch of conversations and outputs
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] }),
+            queryClient.invalidateQueries({ queryKey: ["brief-outputs"] }),
+            refetchCompletedStages()
+          ]);
+
+          // Refresh the page to show updated content
+          window.location.reload();
         }
       )
       .subscribe();

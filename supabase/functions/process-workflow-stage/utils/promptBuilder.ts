@@ -1,78 +1,45 @@
-import { formatFeedback } from "./prompt/feedbackFormatter.ts";
-import { buildBriefDetails, buildPreviousOutputsSection, buildAgentSkillsSection } from "./prompt/sectionsBuilder.ts";
-import { buildOutputRequirements, formatRequirements } from "./prompt/requirementsBuilder.ts";
+import { formatFeedbackForPrompt } from "./prompt/feedbackFormatter.ts";
+import { buildRequirementsPrompt } from "./prompt/requirementsBuilder.ts";
+import { buildSectionsPrompt } from "./prompt/sectionsBuilder.ts";
 
-export const buildPrompt = (
-  agent: any,
+export const buildPrompt = async (
   brief: any,
-  previousOutputs: any[] = [],
-  requirements?: string,
-  isFirstStage: boolean = false
+  stage: any,
+  flowStep: any,
+  previousOutputs: any[],
+  feedback?: string
 ) => {
-  console.log("Building prompt for:", {
-    agentName: agent.name,
-    briefTitle: brief.title,
-    requirementsCount: previousOutputs?.length,
-    isFirstStage
-  });
+  console.log("Building prompt with feedback:", feedback);
 
-  const { baseRequirements, feedbackSection } = formatFeedback(requirements);
-  const outputRequirements = buildOutputRequirements(agent);
+  const requirements = buildRequirementsPrompt(flowStep?.requirements || "");
+  const sections = buildSectionsPrompt(previousOutputs);
+  
+  const promptParts = [
+    "You are a professional consultant working on a creative project.",
+    "",
+    "PROJECT BRIEF:",
+    `Title: ${brief.title}`,
+    `Description: ${brief.description || ""}`,
+    `Objectives: ${brief.objectives || ""}`,
+    "",
+    "REQUIREMENTS:",
+    requirements,
+    "",
+    "PREVIOUS OUTPUTS:",
+    sections,
+    ""
+  ];
 
-  console.log("Building output requirements section:", {
-    requirementsCount: outputRequirements.length,
-    requirements: outputRequirements
-  });
+  // Add feedback section if provided
+  if (feedback) {
+    promptParts.push("FEEDBACK TO INCORPORATE:");
+    promptParts.push(formatFeedbackForPrompt(feedback));
+    promptParts.push("");
+  }
 
-  const sections = [
-    buildBriefDetails(brief),
-    !isFirstStage ? buildPreviousOutputsSection(previousOutputs, isFirstStage) : '',
-    buildAgentSkillsSection(agent),
-    formatRequirements(outputRequirements),
-    baseRequirements,
-    feedbackSection ? `\nFEEDBACK INCORPORATION:\n${feedbackSection}` : ''
-  ].filter(Boolean).join('\n\n');
-
-  const conversationalPrompt = `
-    As ${agent.name}, I'd like you to analyze this creative brief in two complementary ways:
-
-    1. CONVERSATIONAL ANALYSIS:
-    Share your thoughts naturally, including:
-    - Your initial impressions and insights
-    - How your specific expertise applies to this brief
-    - Any concerns or opportunities you see
-    ${feedbackSection ? '- How you are addressing each aspect of the provided feedback' : ''}
-    ${!isFirstStage ? '- References to previous discussions or outputs where relevant' : ''}
-
-    2. STRUCTURED OUTPUT:
-    Then, provide your specific recommendations and insights in a structured format:
-    ${outputRequirements.map((req: string, index: number) => 
-      `${index + 1}. ${req}`
-    ).join('\n    ')}
-
-    IMPORTANT GUIDELINES:
-    - Be specific and actionable in your recommendations
-    - Keep your tone professional but conversational
-    - Connect your structured outputs to your analysis
-    ${feedbackSection ? '- Demonstrate how you\'ve incorporated all feedback elements' : ''}
-
-    Here is the context for your analysis:
-    ${sections}
-  `;
-
-  console.log("Generated prompt:", {
-    promptLength: conversationalPrompt.length,
-    preview: conversationalPrompt.substring(0, 100),
-    sectionsIncluded: {
-      hasBriefDetails: true,
-      hasPreviousOutputs: !isFirstStage,
-      hasAgentSkills: true,
-      hasOutputRequirements: true,
-      hasFormattedRequirements: true
-    }
-  });
-
-  return {
-    conversationalPrompt
-  };
+  promptParts.push("Please provide your response in two sections:");
+  promptParts.push("1. Conversational Response - A natural dialogue discussing your thoughts and recommendations");
+  promptParts.push("2. Structured Outputs - A detailed breakdown of your analysis and specific recommendations");
+  
+  return promptParts.join("\n");
 };
