@@ -20,6 +20,7 @@ export async function processAgent(
       requirements: requirements?.substring(0, 100) + '...',
       previousOutputsCount: Array.isArray(previousOutputs) ? previousOutputs.length : 0,
       hasFeedback: !!feedback,
+      feedbackPreview: feedback?.substring(0, 100),
       previousOutputsSample: Array.isArray(previousOutputs) ? previousOutputs.map(output => ({
         id: output?.id,
         type: output?.output_type,
@@ -77,7 +78,8 @@ export async function processAgent(
       agentName: agent.name,
       isFirstStage,
       previousOutputsCount: safeOutputs.length,
-      hasFeedback: !!feedback
+      hasFeedback: !!feedback,
+      feedbackPreview: feedback?.substring(0, 100)
     });
 
     const prompt = await buildPrompt(brief, stageId, requirements, safeOutputs, feedback);
@@ -86,7 +88,8 @@ export async function processAgent(
       promptLength: prompt.length,
       preview: prompt.substring(0, 100),
       containsPreviousOutputs: prompt.includes('Previous Stage Outputs'),
-      containsRequirements: prompt.includes(requirements || '')
+      containsRequirements: prompt.includes(requirements || ''),
+      containsFeedback: prompt.includes('FEEDBACK TO INCORPORATE')
     });
 
     const response = await generateAgentResponse(prompt);

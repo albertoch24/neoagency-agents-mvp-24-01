@@ -32,6 +32,7 @@ serve(async (req) => {
       stageId,
       flowStepsCount: flowSteps?.length,
       hasFeedback: !!feedback,
+      feedbackContent: feedback?.substring(0, 100),
       timestamp: new Date().toISOString()
     });
 
@@ -84,7 +85,7 @@ serve(async (req) => {
         stageId,
         step.requirements || '',
         [], // Empty array since it's the first stage
-        feedback // Pass the feedback if available
+        feedback // Pass feedback to processAgent
       );
 
       outputs.push(output);

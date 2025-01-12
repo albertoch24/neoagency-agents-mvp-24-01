@@ -14,7 +14,8 @@ export const buildPrompt = async (
     stageId,
     hasRequirements: !!requirements,
     previousOutputsCount: Array.isArray(previousOutputs) ? previousOutputs.length : 0,
-    hasFeedback: !!feedback
+    hasFeedback: !!feedback,
+    feedbackPreview: feedback?.substring(0, 100)
   });
 
   const outputRequirements = buildOutputRequirements(requirements || "");
@@ -37,7 +38,9 @@ export const buildPrompt = async (
     promptParts.push(
       "",
       "FEEDBACK TO INCORPORATE:",
-      feedbackSection
+      feedbackSection,
+      "",
+      "IMPORTANT: Make sure to address ALL the feedback points above in your response."
     );
   }
 
@@ -63,7 +66,9 @@ export const buildPrompt = async (
     promptLength: finalPrompt.length,
     preview: finalPrompt.substring(0, 100),
     containsPreviousOutputs: finalPrompt.includes('Previous Stage Outputs'),
-    containsRequirements: finalPrompt.includes(requirements || '')
+    containsRequirements: finalPrompt.includes(requirements || ''),
+    containsFeedback: finalPrompt.includes('FEEDBACK TO INCORPORATE'),
+    feedbackIncluded: feedback ? finalPrompt.includes(feedback) : 'No feedback provided'
   });
 
   return finalPrompt;
