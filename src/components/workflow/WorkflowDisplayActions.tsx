@@ -132,8 +132,8 @@ export const WorkflowDisplayActions = ({
     }
   };
 
-  // Non mostrare nulla se siamo nella home page senza brief selezionato
-  if (location.pathname === '/' && !location.search.includes('briefId')) return null;
+  // Non mostrare nulla se siamo nella home page
+  if (location.pathname === '/') return null;
 
   // Non mostrare nulla se è l'ultimo stage
   if (isLastStage) return null;
