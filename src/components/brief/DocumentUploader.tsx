@@ -36,29 +36,37 @@ export const DocumentUploader = () => {
         }
       }
 
-      // Process the uploaded documents - now handling multiple briefs
-      const { data: briefsData, error: briefError } = await supabase
+      // Get the current brief data
+      const { data: briefData, error: briefError } = await supabase
         .from('briefs')
-        .select('id, brand');
+        .select('id, brand')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
       if (briefError) {
-        console.error('Error fetching briefs:', briefError);
+        console.error('Error fetching brief:', briefError);
         throw new Error('Failed to fetch brief data');
       }
 
-      // Use the most recent brief if multiple exist
-      const brief = briefsData?.[0];
-      if (!brief) {
-        throw new Error('No brief found');
+      if (!briefData || !briefData.brand) {
+        throw new Error('No brief or brand found');
       }
+
+      console.log("Processing documents for brief:", {
+        briefId: briefData.id,
+        brand: briefData.brand,
+        filePaths: uploadedPaths
+      });
 
       const { error: processingError } = await supabase.functions.invoke(
         'process-brand-documents',
         {
           body: {
             filePaths: uploadedPaths,
-            briefId: brief.id,
-            brand: brief.brand
+            briefId: briefData.id,
+            brand: briefData.brand,
+            content: "Document content for processing" // Adding required content parameter
           }
         }
       );
