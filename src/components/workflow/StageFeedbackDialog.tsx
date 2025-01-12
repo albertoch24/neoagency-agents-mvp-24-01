@@ -31,14 +31,6 @@ export const StageFeedbackDialog = ({
   const handleSubmit = async () => {
     try {
       setIsProcessing(true);
-      console.log("🔄 Starting feedback submission process:", {
-        stageId,
-        briefId,
-        content,
-        rating,
-        requiresRevision,
-        timestamp: new Date().toISOString()
-      });
 
       const { error: feedbackError } = await supabase.from("stage_feedback").insert({
         stage_id: stageId,
@@ -50,10 +42,8 @@ export const StageFeedbackDialog = ({
 
       if (feedbackError) throw feedbackError;
 
-      console.log("✅ Feedback saved successfully to database");
-
       if (requiresRevision) {
-        console.log("🔄 Revision requested, starting reprocessing for stage:", stageId);
+        console.log("Revision requested, starting reprocessing for stage:", stageId);
         
         const { data: stageData, error: stageError } = await supabase
           .from("stages")
@@ -82,36 +72,8 @@ export const StageFeedbackDialog = ({
 
         if (stageError) throw stageError;
 
-        console.log("📋 Retrieved stage data:", {
-          stageName: stageData.name,
-          flowStepsCount: stageData?.flows?.flow_steps?.length || 0,
-          flowSteps: stageData?.flows?.flow_steps?.map(step => ({
-            id: step.id,
-            agentName: step.agents?.name,
-            requirements: step.requirements?.substring(0, 100) + '...'
-          }))
-        });
-
         const flowSteps = stageData?.flows?.flow_steps || [];
         
-        // Transform the feedback into a structured format for the prompt
-        const feedbackPrompt = `
-Previous feedback received:
-${content}
-
-Please incorporate this feedback into your analysis and recommendations, particularly regarding any specific changes or improvements requested. If the feedback mentions specific aspects (like target audience, objectives, etc.), prioritize these updates in your response while maintaining consistency with other brief requirements.
-
-Key points to address from feedback:
-1. Update any specific parameters mentioned (e.g., target audience, timeline, etc.)
-2. Revise recommendations based on the new information
-3. Ensure alignment with the updated requirements
-
-Original feedback text for reference:
-"${content}"
-`;
-        
-        console.log("🎯 Created feedback prompt:", feedbackPrompt);
-
         const transformedStageData = {
           ...stageData,
           flows: {
@@ -119,20 +81,11 @@ Original feedback text for reference:
             flow_steps: flowSteps.map(step => ({
               ...step,
               outputs: step.outputs || [],
-              requirements: `${step.requirements || ''}\n\n${feedbackPrompt}`
+              requirements: `${step.requirements || ''}\n\nRevision feedback: ${content}`
             }))
           }
         };
         
-        console.log("🔄 Starting workflow stage processing with feedback:", {
-          briefId,
-          stageId,
-          flowStepsCount: flowSteps.length,
-          feedbackIncluded: transformedStageData.flows.flow_steps.every(step => 
-            step.requirements?.includes(feedbackPrompt)
-          )
-        });
-
         const toastId = toast.loading(
           "Starting revision process... This may take a few minutes. We're reprocessing the stage with your feedback.",
           { duration: 120000 }
@@ -141,7 +94,6 @@ Original feedback text for reference:
         try {
           await processWorkflowStage(briefId, transformedStageData, flowSteps);
           
-          console.log("✅ Stage successfully reprocessed with feedback");
           toast.dismiss(toastId);
           toast.success("Stage has been reprocessed with your feedback!");
           
@@ -149,13 +101,12 @@ Original feedback text for reference:
           await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
           await queryClient.invalidateQueries({ queryKey: ["stage-feedback"] });
         } catch (error) {
-          console.error("❌ Error reprocessing stage:", error);
+          console.error("Error reprocessing stage:", error);
           toast.dismiss(toastId);
           toast.error("Failed to reprocess the stage. Please try again or contact support.");
           throw error;
         }
       } else {
-        console.log("✅ Feedback submitted without revision request");
         toast.success("Feedback submitted successfully");
       }
 
@@ -168,7 +119,7 @@ Original feedback text for reference:
         setRequiresRevision(false);
       }
     } catch (error) {
-      console.error("❌ Error in feedback submission process:", error);
+      console.error("Error submitting feedback:", error);
       toast.error("Failed to submit feedback");
     } finally {
       setIsProcessing(false);

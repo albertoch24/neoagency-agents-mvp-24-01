@@ -42,90 +42,79 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
         timestamp: new Date().toISOString()
       });
       
-      try {
-        const { data: session } = await supabase.auth.getSession();
-        if (!session?.session?.access_token) {
-          throw new Error('No authentication token found');
-        }
+      let query = supabase
+        .from("brief_outputs")
+        .select("*")
+        .eq("brief_id", briefId);
 
-        let query = supabase
-          .from("brief_outputs")
-          .select("*")
-          .eq("brief_id", briefId);
+      // If stage is a UUID, use stage_id, otherwise use stage field
+      if (isUUID(stage)) {
+        query = query.eq("stage_id", stage);
+      } else {
+        query = query.eq("stage", stage);
+      }
 
-        // If stage is a UUID, use stage_id, otherwise use stage field
-        if (isUUID(stage)) {
-          query = query.eq("stage_id", stage);
-        } else {
-          query = query.eq("stage", stage);
-        }
+      const { data, error } = await query
+        .order("created_at", { ascending: false });
 
-        const { data, error } = await query
-          .order("created_at", { ascending: false });
-
-        if (error) {
-          console.error("❌ Error fetching output:", error);
-          toast.error("Error loading outputs");
-          throw error;
-        }
-
-        console.log("📊 Full output data:", {
-          found: !!data?.length,
-          count: data?.length,
-          data: data,
-          firstItem: data?.[0] ? {
-            id: data[0].id,
-            briefId: data[0].brief_id,
-            stageId: data[0].stage_id,
-            stage: data[0].stage,
-            contentSample: JSON.stringify(data[0].content).substring(0, 100)
-          } : null
-        });
-
-        if (!data || data.length === 0) {
-          console.log("⚠️ No output data found");
-          return null;
-        }
-
-        const latestOutput = data[0];
-        console.log("Latest output:", latestOutput);
-
-        // Handle both array and object formats for outputs
-        let parsedContent: BriefOutput['content'];
-        if (typeof latestOutput.content === 'string') {
-          try {
-            console.log("🔄 Attempting to parse string content");
-            parsedContent = JSON.parse(latestOutput.content);
-            console.log("✅ Successfully parsed content string");
-          } catch (e) {
-            console.error("❌ Error parsing content:", e);
-            toast.error("Error parsing output content");
-            throw new Error("Invalid content format");
-          }
-        } else {
-          console.log("✅ Content is already an object");
-          parsedContent = latestOutput.content as BriefOutput['content'];
-        }
-
-        console.log("🎯 Final parsed content structure:", {
-          hasOutputs: !!parsedContent.outputs,
-          outputsCount: parsedContent.outputs?.length,
-          firstOutput: parsedContent.outputs?.[0] ? {
-            agent: parsedContent.outputs[0].agent,
-            hasStepId: !!parsedContent.outputs[0].stepId,
-            outputsCount: parsedContent.outputs[0].outputs?.length
-          } : null,
-          fullContent: parsedContent
-        });
-
-        return {
-          content: parsedContent
-        };
-      } catch (error) {
-        console.error("Error in output container:", error);
-        toast.error("Failed to load output data");
+      if (error) {
+        console.error("❌ Error fetching output:", error);
+        toast.error("Error loading outputs");
         throw error;
       }
+
+      console.log("📊 Full output data:", {
+        found: !!data?.length,
+        count: data?.length,
+        data: data,
+        firstItem: data?.[0] ? {
+          id: data[0].id,
+          briefId: data[0].brief_id,
+          stageId: data[0].stage_id,
+          stage: data[0].stage,
+          contentSample: JSON.stringify(data[0].content).substring(0, 100)
+        } : null
+      });
+
+      if (!data || data.length === 0) {
+        console.log("⚠️ No output data found");
+        return null;
+      }
+
+      const latestOutput = data[0];
+      console.log("Latest output:", latestOutput);
+
+      // Handle both array and object formats for outputs
+      let parsedContent: BriefOutput['content'];
+      if (typeof latestOutput.content === 'string') {
+        try {
+          console.log("🔄 Attempting to parse string content");
+          parsedContent = JSON.parse(latestOutput.content);
+          console.log("✅ Successfully parsed content string");
+        } catch (e) {
+          console.error("❌ Error parsing content:", e);
+          toast.error("Error parsing output content");
+          throw new Error("Invalid content format");
+        }
+      } else {
+        console.log("✅ Content is already an object");
+        parsedContent = latestOutput.content as BriefOutput['content'];
+      }
+
+      console.log("🎯 Final parsed content structure:", {
+        hasOutputs: !!parsedContent.outputs,
+        outputsCount: parsedContent.outputs?.length,
+        firstOutput: parsedContent.outputs?.[0] ? {
+          agent: parsedContent.outputs[0].agent,
+          hasStepId: !!parsedContent.outputs[0].stepId,
+          outputsCount: parsedContent.outputs[0].outputs?.length
+        } : null,
+        fullContent: parsedContent
+      });
+
+      return {
+        content: parsedContent
+      };
     },
     enabled: !!briefId && !!stage,
     staleTime: 0,

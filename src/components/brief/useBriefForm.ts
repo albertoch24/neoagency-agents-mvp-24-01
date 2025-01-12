@@ -80,18 +80,16 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         );
 
         // Invalidate queries to refresh data
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["briefs"] }),
-          queryClient.invalidateQueries({ queryKey: ["brief"] }),
-          queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] }),
-          queryClient.invalidateQueries({ queryKey: ["brief-outputs"] })
-        ]);
+        await queryClient.invalidateQueries({ queryKey: ["briefs"] });
+        await queryClient.invalidateQueries({ queryKey: ["brief"] });
+        await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+        await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
 
         setIsProcessing(false);
         onSubmitSuccess?.();
         
         // Force a small delay to ensure queries are invalidated
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // Update URL parameters and navigate with state
         const searchParams = new URLSearchParams();
@@ -99,15 +97,14 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         searchParams.set("stage", stage.id);
         searchParams.set("showOutputs", "true");
         
-        // Navigate with state to ensure the outputs are shown and force a refresh
+        // Navigate with state to ensure the outputs are shown
         navigate(`/?${searchParams.toString()}`, {
           replace: true,
           state: { 
             briefId: brief.id,
             stage: stage.id,
             showOutputs: true,
-            forceShowOutputs: true,
-            timestamp: Date.now() // Add timestamp to force refresh
+            forceShowOutputs: true
           }
         });
 

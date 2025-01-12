@@ -7,15 +7,14 @@ export const processWorkflowStage = async (
   stage: Stage,
   flowSteps: any[]
 ) => {
-  console.log("🔄 Processing workflow stage:", {
+  console.log("Processing workflow stage:", {
     briefId,
     stageId: stage.id,
-    flowStepsCount: flowSteps.length,
-    timestamp: new Date().toISOString()
+    flowStepsCount: flowSteps.length
   });
 
   try {
-    console.log("🚀 Calling edge function to process workflow stage");
+    // Call the edge function to process the workflow
     const { error } = await supabase.functions.invoke("process-workflow-stage", {
       body: {
         briefId,
@@ -25,19 +24,13 @@ export const processWorkflowStage = async (
     });
 
     if (error) {
-      console.error("❌ Error from edge function:", error);
+      console.error("Error processing workflow stage:", error);
       throw error;
     }
 
-    console.log("✅ Edge function completed successfully");
-
     // Create workflow conversations for each flow step
     for (const step of flowSteps) {
-      console.log("📝 Creating workflow conversation for step:", {
-        stepId: step.id,
-        agentId: step.agent_id,
-        timestamp: new Date().toISOString()
-      });
+      console.log("Creating workflow conversation for step:", step);
       
       const { error: conversationError } = await supabase
         .from("workflow_conversations")
@@ -51,15 +44,15 @@ export const processWorkflowStage = async (
         });
 
       if (conversationError) {
-        console.error("❌ Error creating workflow conversation:", conversationError);
+        console.error("Error creating workflow conversation:", conversationError);
         throw conversationError;
       }
     }
 
-    console.log("✅ Successfully processed workflow stage and created all conversations");
+    console.log("Successfully processed workflow stage and created conversations");
     return true;
   } catch (error) {
-    console.error("❌ Error in processWorkflowStage:", error);
+    console.error("Error in processWorkflowStage:", error);
     toast.error("Failed to process workflow stage");
     throw error;
   }

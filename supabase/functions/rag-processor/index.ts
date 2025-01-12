@@ -1,9 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { ChatOpenAI } from "https://esm.sh/@langchain/openai@0.0.14";
-import { SupabaseVectorStore } from "https://esm.sh/langchain@0.0.200/vectorstores/supabase";
-import { OpenAIEmbeddings } from "https://esm.sh/langchain@0.0.200/embeddings/openai";
+import { ChatOpenAI } from "https://esm.sh/langchain/chat_models/openai";
+import { SupabaseVectorStore } from "https://esm.sh/langchain/vectorstores/supabase";
+import { OpenAIEmbeddings } from "https://esm.sh/langchain/embeddings/openai";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

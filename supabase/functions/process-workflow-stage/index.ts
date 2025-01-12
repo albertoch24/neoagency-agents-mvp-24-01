@@ -1,102 +1,42 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { processAgent } from "./utils/workflow.ts";
+import { processAgents } from "./utils/agentProcessing.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('Starting workflow stage processing:', {
-      timestamp: new Date().toISOString(),
-      method: req.method,
-      url: req.url
-    });
-
-    // Get request body
-    const { briefId, stageId, flowSteps, feedback } = await req.json();
+    console.log('Processing workflow stage request');
     
-    console.log('Processing workflow stage:', {
-      briefId,
-      stageId,
-      flowStepsCount: flowSteps?.length,
-      hasFeedback: !!feedback,
-      feedbackContent: feedback?.substring(0, 100),
-      timestamp: new Date().toISOString()
-    });
-
+    // Parse request body
+    const { briefId, stageId, flowId, flowSteps } = await req.json();
+    
+    // Validate required parameters
     if (!briefId || !stageId) {
-      throw new Error('Missing required parameters: briefId and stageId');
+      throw new Error('Missing required parameters: briefId and stageId are required');
     }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Get the brief details
-    const { data: brief, error: briefError } = await supabase
-      .from('briefs')
-      .select('*')
-      .eq('id', briefId)
-      .single();
-
-    if (briefError) {
-      console.error('Error fetching brief:', briefError);
-      throw briefError;
-    }
-
-    // Process each flow step
-    const outputs = [];
-    for (const step of flowSteps) {
-      console.log('Processing step:', {
-        stepId: step.id,
-        agentId: step.agent_id,
-        requirements: step.requirements?.substring(0, 100) + '...',
-        timestamp: new Date().toISOString()
-      });
-
-      const { data: agent } = await supabase
-        .from('agents')
-        .select('*, skills(*)')
-        .eq('id', step.agent_id)
-        .single();
-
-      if (!agent) {
-        console.error('Agent not found:', step.agent_id);
-        continue;
-      }
-
-      const output = await processAgent(
-        supabase,
-        agent,
-        brief,
-        stageId,
-        step.requirements || '',
-        [], // Empty array since it's the first stage
-        feedback // Pass feedback to processAgent
-      );
-
-      outputs.push(output);
-    }
-
+    
+    console.log('Processing workflow for:', { briefId, stageId, flowId, flowSteps });
+    
+    // Process the workflow
+    const outputs = await processAgents(briefId, stageId);
+    
+    console.log('Workflow processed successfully:', outputs);
+    
     // Return success response with CORS headers
     return new Response(
       JSON.stringify({ 
-        message: "Stage processed successfully",
+        message: "Stage processed successfully", 
         outputs 
-      }), 
+      }),
       { 
         headers: { 
           ...corsHeaders,
@@ -104,19 +44,19 @@ serve(async (req) => {
         } 
       }
     );
-
-  } catch (error) {
-    console.error('Error in process-workflow-stage:', error);
     
+  } catch (error) {
+    console.error('Error processing workflow stage:', error);
+    
+    // Return error response with CORS headers
     return new Response(
-      JSON.stringify({
+      JSON.stringify({ 
         error: error.message || 'An unexpected error occurred',
-        details: error.toString(),
-        timestamp: new Date().toISOString()
+        details: error.toString()
       }),
       { 
         status: 500,
-        headers: {
+        headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json'
         }
