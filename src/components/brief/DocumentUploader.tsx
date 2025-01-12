@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FormLabel } from "@/components/ui/form";
-import { Upload, Loader2, X } from "lucide-react";
+import { Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadFile, removeFile } from "@/utils/fileOperations";
+import { FileList } from "./FileList";
 
 interface UploadedFile {
   name: string;
@@ -19,26 +20,16 @@ export const DocumentUploader = () => {
     if (!files || files.length === 0) return;
 
     setIsUploading(true);
-    
     toast("Uploading...", {
       description: "Brand documents are being uploaded"
     });
 
     try {
       for (const file of Array.from(files)) {
-        const fileName = file.name.replace(/[^\x00-\x7F]/g, '');
-        const fileExt = fileName.split('.').pop();
-        const filePath = `${crypto.randomUUID()}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('brand_documents')
-          .upload(filePath, file);
-
-        if (uploadError) {
-          throw uploadError;
+        const result = await uploadFile(file);
+        if (result) {
+          setUploadedFiles(prev => [...prev, result]);
         }
-
-        setUploadedFiles(prev => [...prev, { name: fileName, path: filePath }]);
       }
 
       toast("Success", {
@@ -55,14 +46,9 @@ export const DocumentUploader = () => {
     }
   };
 
-  const removeFile = async (filePath: string) => {
+  const handleRemoveFile = async (filePath: string) => {
     try {
-      const { error } = await supabase.storage
-        .from('brand_documents')
-        .remove([filePath]);
-
-      if (error) throw error;
-
+      await removeFile(filePath);
       setUploadedFiles(prev => prev.filter(file => file.path !== filePath));
       toast("Success", {
         description: "File removed successfully",
@@ -102,24 +88,7 @@ export const DocumentUploader = () => {
           accept=".pdf,.doc,.docx,.txt"
         />
       </div>
-
-      {uploadedFiles.length > 0 && (
-        <div className="mt-4 space-y-2">
-          {uploadedFiles.map((file) => (
-            <div key={file.path} className="flex items-center justify-between p-2 bg-muted rounded-md">
-              <span className="text-sm truncate">{file.name}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => removeFile(file.path)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
+      <FileList files={uploadedFiles} onRemove={handleRemoveFile} />
     </div>
   );
 };

@@ -5,8 +5,7 @@ import { Input } from "@/components/ui/input";
 import { UseFormReturn } from "react-hook-form";
 import { Loader2, Globe } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import FirecrawlApp from '@mendable/firecrawl-js';
+import { crawlWebsite } from "@/utils/websiteCrawler";
 
 interface WebsiteCrawlerProps {
   form: UseFormReturn<any>;
@@ -17,6 +16,8 @@ export const WebsiteCrawler = ({ form }: WebsiteCrawlerProps) => {
 
   const handleWebsiteCrawl = async () => {
     const websiteUrl = form.getValues("website");
+    const brand = form.getValues("brand");
+    
     if (!websiteUrl) {
       toast("Please enter a website URL first", {
         description: "A valid URL is required",
@@ -31,60 +32,14 @@ export const WebsiteCrawler = ({ form }: WebsiteCrawlerProps) => {
     });
 
     try {
-      const { data: { secret } } = await supabase
-        .from('secrets')
-        .select('secret')
-        .eq('name', 'FIRECRAWL_API_KEY')
-        .single();
-
-      if (!secret) {
-        toast("Firecrawl API key not configured", {
-          description: "Please contact support",
-          style: { backgroundColor: 'red', color: 'white' }
-        });
-        return;
-      }
-
-      const firecrawl = new FirecrawlApp({ apiKey: secret });
-      const response = await firecrawl.crawlUrl(websiteUrl, {
-        limit: 100,
-        scrapeOptions: {
-          formats: ['markdown', 'html'],
-        }
+      await crawlWebsite(websiteUrl, brand);
+      toast("Success", {
+        description: "Website content analyzed and stored successfully",
       });
-
-      if (response.success) {
-        const formattedContent = {
-          pages: response.data.map((doc: any) => ({
-            url: doc.url,
-            title: doc.title,
-            content: doc.content,
-            metadata: {
-              crawledAt: new Date().toISOString(),
-              format: doc.format
-            }
-          }))
-        };
-
-        const { error: insertError } = await supabase
-          .from('brand_knowledge')
-          .insert({
-            brand: form.getValues("brand"),
-            content: formattedContent,
-            type: 'website_content'
-          });
-
-        if (insertError) throw insertError;
-
-        toast("Success", {
-          description: "Website content analyzed and stored successfully",
-        });
-      } else {
-        throw new Error("Failed to crawl website");
-      }
     } catch (error) {
       console.error('Error crawling website:', error);
-      toast("Failed to analyze website content", {
+      const errorMessage = error instanceof Error ? error.message : "Failed to analyze website content";
+      toast(errorMessage, {
         description: "Please try again later",
         style: { backgroundColor: 'red', color: 'white' }
       });
