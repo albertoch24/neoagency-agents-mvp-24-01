@@ -1,8 +1,7 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
-import { RecursiveCharacterTextSplitter } from "https://esm.sh/langchain/text/splitters";
+import { RecursiveCharacterTextSplitter } from "https://esm.sh/langchain@0.0.200/text/splitters";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
