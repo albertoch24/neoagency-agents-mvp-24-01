@@ -15,7 +15,7 @@ interface WebsiteCrawlerProps {
 
 export const WebsiteCrawler = ({ form }: WebsiteCrawlerProps) => {
   const [isCrawling, setIsCrawling] = useState(false);
-  const { briefId } = useParams(); // Get briefId from URL params
+  const { briefId } = useParams();
 
   const handleWebsiteCrawl = async () => {
     const websiteUrl = form.getValues("website");
@@ -42,6 +42,17 @@ export const WebsiteCrawler = ({ form }: WebsiteCrawlerProps) => {
     try {
       console.log("Starting website crawl for brief:", briefId);
       
+      // Fetch the brief data using maybeSingle() to handle the case where no brief is found
+      const { data: briefData, error: briefError } = await supabase
+        .from('briefs')
+        .select('id, brand')
+        .eq('id', briefId)
+        .maybeSingle();
+
+      if (briefError || !briefData) {
+        throw new Error('Failed to fetch brief data');
+      }
+
       const crawledContent = await crawlWebsite(websiteUrl, brand);
       console.log("Crawled content:", crawledContent);
 
