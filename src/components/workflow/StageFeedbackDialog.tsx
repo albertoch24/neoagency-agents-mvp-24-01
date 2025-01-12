@@ -164,7 +164,7 @@ export const StageFeedbackDialog = ({
           type="checkbox"
           id="requiresRevision"
           checked={requiresRevision}
-          onChange={(e) => setRequiresRevision(e.target.checked)}
+          onChange={(e) => setRequiresRevision(e.checked)}
           className="rounded border-gray-300"
         />
         <label htmlFor="requiresRevision">Requires revision</label>
