@@ -1,10 +1,10 @@
-import { formatFeedback } from './prompt/feedbackFormatter';
-import { buildOutputRequirements, formatRequirements } from './prompt/requirementsBuilder';
+import { formatFeedback } from "./prompt/feedbackFormatter.ts";
+import { buildOutputRequirements, formatRequirements } from "./prompt/requirementsBuilder.ts";
 import { 
   buildBriefDetails, 
   buildPreviousOutputsSection, 
   buildAgentSkillsSection 
-} from './prompt/sectionsBuilder';
+} from "./prompt/sectionsBuilder.ts";
 
 export const buildPrompt = (
   agent: any,
