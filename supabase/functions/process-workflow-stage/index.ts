@@ -19,12 +19,13 @@ serve(async (req) => {
 
   try {
     // Get request body
-    const { briefId, stageId, flowSteps } = await req.json();
+    const { briefId, stageId, flowSteps, feedback } = await req.json();
     
     console.log('Processing workflow stage:', {
       briefId,
       stageId,
-      flowStepsCount: flowSteps?.length
+      flowStepsCount: flowSteps?.length,
+      hasFeedback: !!feedback
     });
 
     if (!briefId || !stageId) {
@@ -43,7 +44,10 @@ serve(async (req) => {
       .eq('id', briefId)
       .single();
 
-    if (briefError) throw briefError;
+    if (briefError) {
+      console.error('Error fetching brief:', briefError);
+      throw briefError;
+    }
 
     // Process each flow step
     const outputs = [];
@@ -71,12 +75,14 @@ serve(async (req) => {
         brief,
         stageId,
         step.requirements || '',
-        outputs // Pass previous outputs for context
+        outputs, // Pass previous outputs for context
+        feedback // Pass feedback if available
       );
 
       outputs.push(output);
     }
 
+    // Return success response with CORS headers
     return new Response(
       JSON.stringify({ 
         message: "Stage processed successfully",
