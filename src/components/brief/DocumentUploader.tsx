@@ -46,9 +46,9 @@ export const DocumentUploader = () => {
       });
     } catch (error) {
       console.error('Upload error:', error);
-      toast("Error", {
-        description: "Error uploading documents. Please try again.",
-        variant: "destructive",
+      toast("Error uploading documents. Please try again.", {
+        description: "Please try again later",
+        style: { backgroundColor: 'red', color: 'white' }
       });
     } finally {
       setIsUploading(false);
@@ -69,9 +69,9 @@ export const DocumentUploader = () => {
       });
     } catch (error) {
       console.error('Remove error:', error);
-      toast("Error", {
-        description: "Error removing file. Please try again.",
-        variant: "destructive",
+      toast("Error removing file.", {
+        description: "Please try again later",
+        style: { backgroundColor: 'red', color: 'white' }
       });
     }
   };

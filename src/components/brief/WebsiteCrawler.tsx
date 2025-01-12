@@ -18,9 +18,9 @@ export const WebsiteCrawler = ({ form }: WebsiteCrawlerProps) => {
   const handleWebsiteCrawl = async () => {
     const websiteUrl = form.getValues("website");
     if (!websiteUrl) {
-      toast("Error", {
-        description: "Please enter a website URL first",
-        variant: "destructive",
+      toast("Please enter a website URL first", {
+        description: "A valid URL is required",
+        style: { backgroundColor: 'red', color: 'white' }
       });
       return;
     }
@@ -38,9 +38,9 @@ export const WebsiteCrawler = ({ form }: WebsiteCrawlerProps) => {
         .single();
 
       if (!secret) {
-        toast("Error", {
-          description: "Firecrawl API key not configured",
-          variant: "destructive",
+        toast("Firecrawl API key not configured", {
+          description: "Please contact support",
+          style: { backgroundColor: 'red', color: 'white' }
         });
         return;
       }
@@ -84,9 +84,9 @@ export const WebsiteCrawler = ({ form }: WebsiteCrawlerProps) => {
       }
     } catch (error) {
       console.error('Error crawling website:', error);
-      toast("Error", {
-        description: "Failed to analyze website content",
-        variant: "destructive",
+      toast("Failed to analyze website content", {
+        description: "Please try again later",
+        style: { backgroundColor: 'red', color: 'white' }
       });
     } finally {
       setIsCrawling(false);
