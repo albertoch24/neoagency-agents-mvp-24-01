@@ -1,45 +1,39 @@
 import { buildOutputRequirements } from "./prompt/requirementsBuilder.ts";
-import { formatFeedbackForPrompt } from "./prompt/feedbackFormatter.ts";
-import { buildPreviousOutputsSection } from "./prompt/sectionsBuilder.ts";
+import { buildPreviousOutputsSection, buildBriefDetails, buildAgentSkillsSection } from "./prompt/sectionsBuilder.ts";
 
 export const buildPrompt = async (
   brief: any,
-  stage: any,
-  flowStep: any,
-  previousOutputs: any[],
-  feedback?: string
+  stageId: string,
+  requirements: string,
+  previousOutputs: any[] = []
 ) => {
-  console.log("Building prompt with feedback:", feedback);
+  console.log("Building prompt with:", {
+    briefId: brief?.id,
+    stageId,
+    hasRequirements: !!requirements,
+    previousOutputsCount: Array.isArray(previousOutputs) ? previousOutputs.length : 0
+  });
 
-  const requirements = buildOutputRequirements(flowStep?.requirements || "");
-  const sections = buildPreviousOutputsSection(previousOutputs);
+  const outputRequirements = buildOutputRequirements(requirements || "");
+  const briefDetails = buildBriefDetails(brief);
+  const previousOutputsSection = buildPreviousOutputsSection(previousOutputs);
   
   const promptParts = [
     "You are a professional consultant working on a creative project.",
     "",
     "PROJECT BRIEF:",
-    `Title: ${brief.title}`,
-    `Description: ${brief.description || ""}`,
-    `Objectives: ${brief.objectives || ""}`,
+    briefDetails,
     "",
     "REQUIREMENTS:",
-    requirements,
+    outputRequirements,
     "",
     "PREVIOUS OUTPUTS:",
-    sections,
-    ""
+    previousOutputsSection,
+    "",
+    "Please provide your response in two sections:",
+    "1. Conversational Response - A natural dialogue discussing your thoughts and recommendations",
+    "2. Structured Outputs - A detailed breakdown of your analysis and specific recommendations"
   ];
 
-  // Add feedback section if provided
-  if (feedback) {
-    promptParts.push("FEEDBACK TO INCORPORATE:");
-    promptParts.push(formatFeedbackForPrompt(feedback));
-    promptParts.push("");
-  }
-
-  promptParts.push("Please provide your response in two sections:");
-  promptParts.push("1. Conversational Response - A natural dialogue discussing your thoughts and recommendations");
-  promptParts.push("2. Structured Outputs - A detailed breakdown of your analysis and specific recommendations");
-  
   return promptParts.join("\n");
 };

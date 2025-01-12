@@ -12,20 +12,28 @@ export async function processAgent(
 ) {
   try {
     console.log('Processing agent:', {
-      agentId: agent.id,
-      agentName: agent.name,
-      briefId: brief.id,
+      agentId: agent?.id,
+      agentName: agent?.name,
+      briefId: brief?.id,
       stageId,
       requirements,
-      previousOutputsCount: previousOutputs.length,
-      previousOutputsSample: previousOutputs.map(output => ({
-        id: output.id,
-        type: output.output_type,
-        contentPreview: typeof output.content === 'string' 
+      previousOutputsCount: Array.isArray(previousOutputs) ? previousOutputs.length : 0,
+      previousOutputsSample: Array.isArray(previousOutputs) ? previousOutputs.map(output => ({
+        id: output?.id,
+        type: output?.output_type,
+        contentPreview: typeof output?.content === 'string' 
           ? output.content.substring(0, 100) 
           : 'Complex content structure'
-      }))
+      })) : []
     });
+
+    // Validate required inputs
+    if (!agent?.id || !brief?.id || !stageId) {
+      throw new Error('Missing required parameters: agent, brief, or stage');
+    }
+
+    // Ensure previousOutputs is always an array
+    const safeOutputs = Array.isArray(previousOutputs) ? previousOutputs : [];
 
     // Get all agents involved in this stage
     const { data: stageAgents } = await supabase
@@ -42,7 +50,7 @@ export async function processAgent(
       });
 
       const executor = await createAgentChain(stageAgents, brief);
-      const response = await processAgentInteractions(executor, brief, requirements, previousOutputs);
+      const response = await processAgentInteractions(executor, brief, requirements, safeOutputs);
       
       console.log('Multi-agent response received:', {
         responseLength: response.outputs[0].content.length,
@@ -62,36 +70,30 @@ export async function processAgent(
     }
 
     // Single agent processing
-    const isFirstStage = previousOutputs.length === 0;
+    const isFirstStage = safeOutputs.length === 0;
     console.log('Building prompt for single agent:', {
       agentName: agent.name,
       isFirstStage,
-      previousOutputsCount: previousOutputs.length
+      previousOutputsCount: safeOutputs.length
     });
 
-    const { conversationalPrompt } = buildPrompt(
-      agent,
-      brief,
-      previousOutputs,
-      requirements,
-      isFirstStage
-    );
+    const prompt = await buildPrompt(brief, stageId, requirements, safeOutputs);
 
     console.log('Generated prompt:', {
-      promptLength: conversationalPrompt.length,
-      preview: conversationalPrompt.substring(0, 100),
-      containsPreviousOutputs: conversationalPrompt.includes('Previous Stage Outputs'),
-      containsRequirements: conversationalPrompt.includes(requirements || '')
+      promptLength: prompt.length,
+      preview: prompt.substring(0, 100),
+      containsPreviousOutputs: prompt.includes('Previous Stage Outputs'),
+      containsRequirements: prompt.includes(requirements || '')
     });
 
-    const response = await generateAgentResponse(conversationalPrompt);
+    const response = await generateAgentResponse(prompt);
 
     console.log('Agent response received:', {
-      responseLength: response.conversationalResponse?.length,
-      preview: response.conversationalResponse?.substring(0, 100),
-      containsReferences: response.conversationalResponse?.includes('previous') || 
-                         response.conversationalResponse?.includes('earlier') ||
-                         response.conversationalResponse?.includes('before')
+      responseLength: response?.conversationalResponse?.length,
+      preview: response?.conversationalResponse?.substring(0, 100),
+      containsReferences: response?.conversationalResponse?.includes('previous') || 
+                         response?.conversationalResponse?.includes('earlier') ||
+                         response?.conversationalResponse?.includes('before')
     });
 
     return {

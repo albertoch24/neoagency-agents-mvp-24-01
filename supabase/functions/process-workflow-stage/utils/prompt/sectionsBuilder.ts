@@ -1,31 +1,34 @@
 export const buildBriefDetails = (brief: any) => {
   console.log("Building brief details for:", {
-    briefTitle: brief.title,
-    hasDescription: !!brief.description,
-    hasObjectives: !!brief.objectives
+    briefTitle: brief?.title,
+    hasDescription: !!brief?.description,
+    hasObjectives: !!brief?.objectives
   });
   
   return `
 Brief Details:
-Title: ${brief.title}
-Description: ${brief.description}
-Objectives: ${brief.objectives}
+Title: ${brief?.title || 'Untitled'}
+Description: ${brief?.description || 'No description provided'}
+Objectives: ${brief?.objectives || 'No objectives specified'}
 `;
 };
 
-export const buildPreviousOutputsSection = (previousOutputs: any[], isFirstStage: boolean) => {
+export const buildPreviousOutputsSection = (previousOutputs: any[] = [], isFirstStage = false) => {
+  // Ensure previousOutputs is always an array
+  const safeOutputs = Array.isArray(previousOutputs) ? previousOutputs : [];
+
   console.log("Building previous outputs section:", {
-    outputsCount: previousOutputs?.length,
+    outputsCount: safeOutputs.length,
     isFirstStage,
-    outputTypes: previousOutputs?.map(o => o.output_type),
-    hasContent: previousOutputs?.every(o => o.content)
+    outputTypes: safeOutputs.map(o => o?.output_type),
+    hasContent: safeOutputs.every(o => o?.content)
   });
 
-  if (!Array.isArray(previousOutputs) || previousOutputs.length === 0 || isFirstStage) {
+  if (safeOutputs.length === 0 || isFirstStage) {
     return '';
   }
   
-  const outputs = previousOutputs
+  const outputs = safeOutputs
     .filter((output: any) => {
       const hasValidContent = output?.content && 
         (typeof output.content === 'string' || typeof output.content === 'object');
@@ -62,16 +65,16 @@ export const buildPreviousOutputsSection = (previousOutputs: any[], isFirstStage
 
 export const buildAgentSkillsSection = (agent: any) => {
   console.log("Building agent skills section:", {
-    agentName: agent.name,
-    hasDescription: !!agent.description,
-    skillsCount: agent.skills?.length
+    agentName: agent?.name,
+    hasDescription: !!agent?.description,
+    skillsCount: agent?.skills?.length
   });
 
   return `
 Your Role and Background:
-${agent.description}
+${agent?.description || 'No description available'}
 
 Skills Applied:
-${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n')}
+${agent?.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\n') || 'No skills specified'}
 `;
 };
