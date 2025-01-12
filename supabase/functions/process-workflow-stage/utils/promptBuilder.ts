@@ -1,8 +1,8 @@
-import { RAGResponse } from "./types";
-import { buildBriefDetails } from "./sections/briefSection";
-import { buildPreviousOutputsSection } from "./sections/previousOutputs";
-import { buildAgentSkillsSection } from "./sections/agentSkills";
-import { buildOutputRequirementsSection } from "./sections/outputRequirements";
+import { RAGResponse, PromptSection } from "./types.ts";
+import { buildBriefDetails } from "./sections/briefSection.ts";
+import { buildPreviousOutputsSection } from "./sections/previousOutputs.ts";
+import { buildAgentSkillsSection } from "./sections/agentSkills.ts";
+import { buildOutputRequirementsSection } from "./sections/outputRequirements.ts";
 
 export const buildPrompt = (
   agent: any,
@@ -38,7 +38,7 @@ ${relevantDocs.map(doc => doc.pageContent).join('\n\n')}
 Please incorporate these insights naturally into your analysis, referencing them as if they were part of your knowledge base rather than direct quotes.`
     : '';
 
-  const sections = [
+  const sections: PromptSection[] = [
     buildBriefDetails(brief),
     { title: "Document Context", content: documentContext },
     buildPreviousOutputsSection(previousOutputs, isFirstStage),
