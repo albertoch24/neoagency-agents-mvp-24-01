@@ -5,6 +5,7 @@ import { Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { uploadFile, removeFile } from "@/utils/fileOperations";
 import { FileList } from "./FileList";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UploadedFile {
   name: string;
@@ -25,19 +26,49 @@ export const DocumentUploader = () => {
     });
 
     try {
+      const uploadedPaths: string[] = [];
+      
       for (const file of Array.from(files)) {
         const result = await uploadFile(file);
         if (result) {
           setUploadedFiles(prev => [...prev, result]);
+          uploadedPaths.push(result.path);
         }
       }
 
+      // Process the uploaded documents
+      const { data: briefData, error: briefError } = await supabase
+        .from('briefs')
+        .select('id, brand')
+        .single();
+
+      if (briefError) {
+        console.error('Error fetching brief:', briefError);
+        throw new Error('Failed to fetch brief data');
+      }
+
+      const { error: processingError } = await supabase.functions.invoke(
+        'process-brand-documents',
+        {
+          body: {
+            filePaths: uploadedPaths,
+            briefId: briefData.id,
+            brand: briefData.brand
+          }
+        }
+      );
+
+      if (processingError) {
+        console.error('Error processing documents:', processingError);
+        throw new Error('Failed to process documents');
+      }
+
       toast("Success", {
-        description: "Documents uploaded successfully",
+        description: "Documents uploaded and processed successfully",
       });
     } catch (error) {
-      console.error('Upload error:', error);
-      toast("Error uploading documents. Please try again.", {
+      console.error('Upload/processing error:', error);
+      toast("Error uploading or processing documents. Please try again.", {
         description: "Please try again later",
         style: { backgroundColor: 'red', color: 'white' }
       });

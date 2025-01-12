@@ -6,6 +6,7 @@ import { UseFormReturn } from "react-hook-form";
 import { Loader2, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { crawlWebsite } from "@/utils/websiteCrawler";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WebsiteCrawlerProps {
   form: UseFormReturn<any>;
@@ -32,7 +33,27 @@ export const WebsiteCrawler = ({ form }: WebsiteCrawlerProps) => {
     });
 
     try {
-      await crawlWebsite(websiteUrl, brand);
+      const { data: briefData } = await supabase
+        .from('briefs')
+        .select('id')
+        .single();
+
+      const crawledContent = await crawlWebsite(websiteUrl, brand);
+
+      // Store the crawled content
+      const { error: storageError } = await supabase
+        .from('brand_knowledge')
+        .insert({
+          brief_id: briefData.id,
+          brand: brand,
+          content: crawledContent,
+          type: 'website_content'
+        });
+
+      if (storageError) {
+        throw new Error('Failed to store crawled content');
+      }
+
       toast("Success", {
         description: "Website content analyzed and stored successfully",
       });

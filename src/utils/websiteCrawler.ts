@@ -2,6 +2,8 @@ import { supabase } from "@/integrations/supabase/client";
 import FirecrawlApp from '@mendable/firecrawl-js';
 
 export const crawlWebsite = async (websiteUrl: string, brand: string) => {
+  console.log('Starting website crawl:', websiteUrl);
+
   const { data: { secret } } = await supabase
     .from('secrets')
     .select('secret')
@@ -21,8 +23,11 @@ export const crawlWebsite = async (websiteUrl: string, brand: string) => {
   });
 
   if (!response.success) {
+    console.error('Crawl failed:', response);
     throw new Error('Failed to crawl website');
   }
+
+  console.log('Crawl successful:', response);
 
   const formattedContent = {
     pages: response.data.map((doc: any) => ({
@@ -35,16 +40,6 @@ export const crawlWebsite = async (websiteUrl: string, brand: string) => {
       }
     }))
   };
-
-  const { error: insertError } = await supabase
-    .from('brand_knowledge')
-    .insert({
-      brand,
-      content: formattedContent,
-      type: 'website_content'
-    });
-
-  if (insertError) throw insertError;
 
   return formattedContent;
 };
