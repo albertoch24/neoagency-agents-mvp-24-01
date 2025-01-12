@@ -4,17 +4,26 @@ import FirecrawlApp from '@mendable/firecrawl-js';
 export const crawlWebsite = async (websiteUrl: string, brand: string) => {
   console.log('Starting website crawl:', websiteUrl);
 
-  const { data: { secret } } = await supabase
+  const { data, error } = await supabase
     .from('secrets')
     .select('secret')
     .eq('name', 'FIRECRAWL_API_KEY')
-    .single();
+    .maybeSingle();
 
-  if (!secret) {
+  if (error) {
+    console.error('Error fetching Firecrawl API key:', error);
+    throw new Error('Failed to fetch Firecrawl API key');
+  }
+
+  if (!data) {
+    console.error('Firecrawl API key not found in secrets');
     throw new Error('Firecrawl API key not configured');
   }
 
-  const firecrawl = new FirecrawlApp({ apiKey: secret });
+  const firecrawl = new FirecrawlApp({ apiKey: data.secret });
+  
+  console.log('Initiating crawl for URL:', websiteUrl);
+  
   const response = await firecrawl.crawlUrl(websiteUrl, {
     limit: 100,
     scrapeOptions: {
