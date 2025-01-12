@@ -12,24 +12,30 @@ export const buildPrompt = (
     briefTitle: brief.title,
     previousOutputsCount: previousOutputs?.length,
     requirements: requirements?.substring(0, 100) + "...",
-    isFirstStage
+    isFirstStage,
+    hasFeedback: requirements?.includes("Previous feedback received:")
   });
 
-  // Extract feedback-specific requirements if present
-  const feedbackSection = requirements?.includes("Previous feedback received:") 
-    ? requirements
-    : '';
-
-  const standardRequirements = requirements?.split("Previous feedback received:")[0] || '';
+  // Extract and format feedback if present
+  const [baseRequirements, feedbackSection] = requirements?.split("Previous feedback received:") || [requirements, ''];
+  
+  console.log("Processing requirements:", {
+    hasBaseRequirements: !!baseRequirements,
+    hasFeedbackSection: !!feedbackSection,
+    feedbackPreview: feedbackSection?.substring(0, 100)
+  });
 
   const formattedRequirements = `
-${standardRequirements}
+${baseRequirements || ''}
 
 ${feedbackSection ? `
-Important Feedback Updates:
+Important Feedback to Address:
 ${feedbackSection}
 
-Please ensure your response specifically addresses the feedback provided above, particularly any requested changes to target audience, objectives, or other specific aspects of the brief.
+Please ensure your response specifically addresses:
+1. The feedback provided above
+2. Any requested changes to target audience, objectives, or other aspects
+3. How your new response improves upon the previous version
 ` : ''}`;
 
   const outputRequirements = agent.flow_steps?.[0]?.outputs
@@ -41,23 +47,25 @@ Please ensure your response specifically addresses the feedback provided above, 
     requirements: outputRequirements
   });
 
+  // For kickoff stage, skip previous outputs but maintain other sections
   const sections = [
     buildBriefDetails(brief),
-    buildPreviousOutputsSection(previousOutputs, isFirstStage),
+    !isFirstStage ? buildPreviousOutputsSection(previousOutputs, isFirstStage) : '',
     buildAgentSkillsSection(agent),
     buildOutputRequirementsSection(outputRequirements),
     formattedRequirements
   ].filter(Boolean).join('\n\n');
 
   const conversationalPrompt = `
-    As ${agent.name}, I'd like you to analyze this creative brief in two complementary ways:
+    As ${agent.name}, I'd like you to analyze this creative brief${feedbackSection ? ' with special attention to the provided feedback' : ''}:
 
     1. CONVERSATIONAL ANALYSIS:
     First, provide your thoughts in a natural, conversational way. Use first-person perspective, share your expertise, and explain your reasoning as if you're speaking in a meeting. Include:
     - Your initial impressions and insights
     - How your specific expertise applies to this brief
     - Any concerns or opportunities you see
-    - References to previous discussions or outputs where relevant
+    ${feedbackSection ? '- How you are addressing the specific feedback provided' : ''}
+    ${!isFirstStage ? '- References to previous discussions or outputs where relevant' : ''}
 
     2. STRUCTURED OUTPUT:
     Then, provide a clear, structured analysis addressing each required output:
@@ -74,10 +82,11 @@ Please ensure your response specifically addresses the feedback provided above, 
 
     Remember to:
     - Maintain your unique voice and personality throughout
-    - Reference specific parts of the brief and previous outputs
+    ${!isFirstStage ? '- Reference specific parts of the brief and previous outputs' : '- Focus on setting the right foundation for the project'}
     - Ensure each structured output is concrete and actionable
     - Keep the conversational part engaging and insightful
     - Connect your structured outputs to your conversational analysis
+    ${feedbackSection ? '- Explicitly address how you\'ve incorporated the feedback' : ''}
 
     Here is the context for your analysis:
     ${sections}
@@ -91,10 +100,11 @@ Please ensure your response specifically addresses the feedback provided above, 
     promptLength: conversationalPrompt.length,
     sectionsIncluded: {
       hasBriefDetails: !!buildBriefDetails(brief),
-      hasPreviousOutputs: !!buildPreviousOutputsSection(previousOutputs, isFirstStage),
+      hasPreviousOutputs: !isFirstStage && !!buildPreviousOutputsSection(previousOutputs, isFirstStage),
       hasAgentSkills: !!buildAgentSkillsSection(agent),
       hasOutputRequirements: !!buildOutputRequirementsSection(outputRequirements),
-      hasFormattedRequirements: !!formattedRequirements
+      hasFormattedRequirements: !!formattedRequirements,
+      hasFeedbackSection: !!feedbackSection
     }
   });
 
