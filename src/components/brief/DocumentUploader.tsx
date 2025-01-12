@@ -36,15 +36,20 @@ export const DocumentUploader = () => {
         }
       }
 
-      // Process the uploaded documents
-      const { data: briefData, error: briefError } = await supabase
+      // Process the uploaded documents - now handling multiple briefs
+      const { data: briefsData, error: briefError } = await supabase
         .from('briefs')
-        .select('id, brand')
-        .single();
+        .select('id, brand');
 
       if (briefError) {
-        console.error('Error fetching brief:', briefError);
+        console.error('Error fetching briefs:', briefError);
         throw new Error('Failed to fetch brief data');
+      }
+
+      // Use the most recent brief if multiple exist
+      const brief = briefsData?.[0];
+      if (!brief) {
+        throw new Error('No brief found');
       }
 
       const { error: processingError } = await supabase.functions.invoke(
@@ -52,8 +57,8 @@ export const DocumentUploader = () => {
         {
           body: {
             filePaths: uploadedPaths,
-            briefId: briefData.id,
-            brand: briefData.brand
+            briefId: brief.id,
+            brand: brief.brand
           }
         }
       );
@@ -63,15 +68,10 @@ export const DocumentUploader = () => {
         throw new Error('Failed to process documents');
       }
 
-      toast("Success", {
-        description: "Documents uploaded and processed successfully",
-      });
+      toast.success("Documents uploaded and processed successfully");
     } catch (error) {
       console.error('Upload/processing error:', error);
-      toast("Error uploading or processing documents. Please try again.", {
-        description: "Please try again later",
-        style: { backgroundColor: 'red', color: 'white' }
-      });
+      toast.error("Error uploading or processing documents. Please try again.");
     } finally {
       setIsUploading(false);
     }
@@ -81,15 +81,10 @@ export const DocumentUploader = () => {
     try {
       await removeFile(filePath);
       setUploadedFiles(prev => prev.filter(file => file.path !== filePath));
-      toast("Success", {
-        description: "File removed successfully",
-      });
+      toast.success("File removed successfully");
     } catch (error) {
       console.error('Remove error:', error);
-      toast("Error removing file.", {
-        description: "Please try again later",
-        style: { backgroundColor: 'red', color: 'white' }
-      });
+      toast.error("Error removing file. Please try again later");
     }
   };
 

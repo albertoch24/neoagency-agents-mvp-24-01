@@ -1,18 +1,16 @@
-import { PromptSection } from "../types";
+import { PromptSection } from "../types.ts";
 
-export function buildBriefDetails(brief: any): PromptSection {
-  console.log("Building brief details for:", {
-    briefTitle: brief.title,
-    hasDescription: !!brief.description,
-    hasObjectives: !!brief.objectives
-  });
-  
+export const buildBriefDetails = (brief: any): PromptSection => {
   return {
     title: "Brief Details",
     content: `
 Title: ${brief.title}
-Description: ${brief.description}
-Objectives: ${brief.objectives}
-`
+Description: ${brief.description || ''}
+Objectives: ${brief.objectives || ''}
+Target Audience: ${brief.target_audience || ''}
+Budget: ${brief.budget || ''}
+Timeline: ${brief.timeline || ''}
+Brand: ${brief.brand || ''}
+    `.trim()
   };
-}
+};
