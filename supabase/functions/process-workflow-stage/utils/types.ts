@@ -1,9 +1,11 @@
 export interface RAGResponse {
-  response: string;
-  relevantDocs: Array<{
-    pageContent: string;
-    metadata: Record<string, any>;
-  }>;
+  content: string;
+  metadata?: {
+    brand?: string;
+    source?: string;
+    [key: string]: any;
+  };
+  similarity: number;
 }
 
 export interface PromptSection {
