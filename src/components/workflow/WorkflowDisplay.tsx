@@ -34,43 +34,8 @@ export const WorkflowDisplay = ({
   const currentStageData = stages.find(stage => stage.id === currentStage);
   const currentIndex = stages.findIndex(stage => stage.id === currentStage);
 
-  useEffect(() => {
-    const checkNextStageOutput = async () => {
-      if (currentIndex === stages.length - 1) return;
-      
-      const nextStage = stages[currentIndex + 1];
-      if (!nextStage) return;
-
-      try {
-        const { data: outputsById } = await supabase
-          .from("brief_outputs")
-          .select("*")
-          .eq("stage_id", nextStage.id)
-          .maybeSingle();
-
-        const { data: outputsByName } = await supabase
-          .from("brief_outputs")
-          .select("*")
-          .eq("stage", nextStage.name)
-          .maybeSingle();
-
-        const { data: conversations } = await supabase
-          .from("workflow_conversations")
-          .select("*")
-          .eq("stage_id", nextStage.id)
-          .maybeSingle();
-
-        setNextStageHasOutput(!!(outputsById || outputsByName || conversations));
-      } catch (error) {
-        console.error("Error checking next stage output:", error);
-      }
-    };
-
-    checkNextStageOutput();
-  }, [currentStage, stages, currentIndex]);
-
   // Query to check completed stages
-  const { data: completedStages = [] } = useQuery({
+  const { data: completedStages = [], refetch: refetchCompletedStages } = useQuery({
     queryKey: ["completed-stages", briefId],
     queryFn: async () => {
       if (!briefId) return [];
@@ -110,6 +75,35 @@ export const WorkflowDisplay = ({
     },
     enabled: !!briefId && !!currentStageData?.id
   });
+
+  // Subscribe to feedback changes
+  useEffect(() => {
+    if (!briefId || !currentStageData?.id) return;
+
+    const subscription = supabase
+      .channel('stage-feedback')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'stage_feedback',
+          filter: `brief_id=eq.${briefId} AND stage_id=eq.${currentStageData.id}`
+        },
+        async (payload) => {
+          console.log('Feedback change detected:', payload);
+          // Invalidate relevant queries
+          await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+          await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+          await refetchCompletedStages();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [briefId, currentStageData?.id, queryClient, refetchCompletedStages]);
 
   useEffect(() => {
     if (pendingClarifications.length > 0) {
