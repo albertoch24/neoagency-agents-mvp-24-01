@@ -25,7 +25,8 @@ serve(async (req) => {
       briefId,
       stageId,
       flowStepsCount: flowSteps?.length,
-      hasFeedback: !!feedback
+      hasFeedback: !!feedback,
+      timestamp: new Date().toISOString()
     });
 
     if (!briefId || !stageId) {
@@ -55,7 +56,8 @@ serve(async (req) => {
       console.log('Processing step:', {
         stepId: step.id,
         agentId: step.agent_id,
-        requirements: step.requirements?.substring(0, 100) + '...'
+        requirements: step.requirements?.substring(0, 100) + '...',
+        timestamp: new Date().toISOString()
       });
 
       const { data: agent } = await supabase
@@ -102,7 +104,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         error: error.message || 'An unexpected error occurred',
-        details: error.toString()
+        details: error.toString(),
+        timestamp: new Date().toISOString()
       }),
       { 
         status: 500,
