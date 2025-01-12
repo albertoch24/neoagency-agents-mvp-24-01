@@ -1,9 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { ChatOpenAI } from "https://esm.sh/langchain/chat_models/openai";
-import { SupabaseVectorStore } from "https://esm.sh/langchain/vectorstores/supabase";
-import { OpenAIEmbeddings } from "https://esm.sh/langchain/embeddings/openai";
+import { ChatOpenAI } from "https://esm.sh/langchain/dist/chat_models/openai";
+import { SupabaseVectorStore } from "https://esm.sh/langchain/dist/vectorstores/supabase";
+import { OpenAIEmbeddings } from "https://esm.sh/langchain/dist/embeddings/openai";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,7 +30,7 @@ serve(async (req) => {
     // Initialize vector store
     const vectorStore = new SupabaseVectorStore(embeddings, {
       client: supabase,
-      tableName: 'documents', // We'll create this table
+      tableName: 'documents',
       queryName: 'match_documents'
     });
 
@@ -39,7 +39,7 @@ serve(async (req) => {
 
     // Use ChatOpenAI to generate response
     const model = new ChatOpenAI({
-      modelName: "gpt-4o-mini",
+      modelName: "gpt-4",
       openAIApiKey,
       temperature: 0.7,
     });
