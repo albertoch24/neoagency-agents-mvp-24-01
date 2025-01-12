@@ -84,7 +84,12 @@ export const StageFeedbackDialog = ({
 
         console.log("📋 Retrieved stage data:", {
           stageName: stageData.name,
-          flowStepsCount: stageData?.flows?.flow_steps?.length || 0
+          flowStepsCount: stageData?.flows?.flow_steps?.length || 0,
+          flowSteps: stageData?.flows?.flow_steps?.map(step => ({
+            id: step.id,
+            agentName: step.agents?.name,
+            requirements: step.requirements?.substring(0, 100) + '...'
+          }))
         });
 
         const flowSteps = stageData?.flows?.flow_steps || [];
@@ -100,9 +105,12 @@ Key points to address from feedback:
 1. Update any specific parameters mentioned (e.g., target audience, timeline, etc.)
 2. Revise recommendations based on the new information
 3. Ensure alignment with the updated requirements
+
+Original feedback text for reference:
+"${content}"
 `;
         
-        console.log("🎯 Created feedback prompt:", feedbackPrompt.substring(0, 100) + "...");
+        console.log("🎯 Created feedback prompt:", feedbackPrompt);
 
         const transformedStageData = {
           ...stageData,
@@ -116,13 +124,21 @@ Key points to address from feedback:
           }
         };
         
+        console.log("🔄 Starting workflow stage processing with feedback:", {
+          briefId,
+          stageId,
+          flowStepsCount: flowSteps.length,
+          feedbackIncluded: transformedStageData.flows.flow_steps.every(step => 
+            step.requirements?.includes(feedbackPrompt)
+          )
+        });
+
         const toastId = toast.loading(
           "Starting revision process... This may take a few minutes. We're reprocessing the stage with your feedback.",
           { duration: 120000 }
         );
 
         try {
-          console.log("🚀 Starting workflow stage processing with feedback");
           await processWorkflowStage(briefId, transformedStageData, flowSteps);
           
           console.log("✅ Stage successfully reprocessed with feedback");
