@@ -59,6 +59,7 @@ export const StageFeedbackDialog = ({
                 agent_id,
                 requirements,
                 order_index,
+                outputs,
                 agents (
                   id,
                   name,
@@ -75,6 +76,18 @@ export const StageFeedbackDialog = ({
 
         const flowSteps = stageData?.flows?.flow_steps || [];
         
+        // Transform the data to match the Stage type
+        const transformedStageData = {
+          ...stageData,
+          flows: {
+            ...stageData.flows,
+            flow_steps: flowSteps.map(step => ({
+              ...step,
+              outputs: step.outputs || [], // Ensure outputs is always an array
+            }))
+          }
+        };
+        
         // Start reprocessing
         const toastId = toast.loading(
           "Starting revision process... This may take a few minutes. We're reprocessing the stage with your feedback.",
@@ -82,7 +95,7 @@ export const StageFeedbackDialog = ({
         );
 
         try {
-          await processWorkflowStage(briefId, stageData, flowSteps);
+          await processWorkflowStage(briefId, transformedStageData, flowSteps);
           
           toast.dismiss(toastId);
           toast.success("Stage has been reprocessed with your feedback!");

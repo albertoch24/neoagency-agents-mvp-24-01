@@ -30,7 +30,7 @@ export const StageDialogsContainer = ({
       )}
       {showFeedbackDialog && (
         <StageFeedbackDialog
-          isOpen={showFeedbackDialog}
+          open={showFeedbackDialog}
           onClose={onFeedbackClose}
           stageId={stageId}
           briefId={briefId}
