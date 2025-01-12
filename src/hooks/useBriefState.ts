@@ -11,9 +11,14 @@ export const useBriefState = () => {
   const [showOutputs, setShowOutputs] = useState(true);
 
   useEffect(() => {
-    const briefIdFromUrl = params.briefId || searchParams.get("briefId");
+    const briefIdFromUrl = params.briefId;
     
-    if (location.pathname === "/" && !briefIdFromUrl) {
+    if (briefIdFromUrl) {
+      setSelectedBriefId(briefIdFromUrl);
+      setShowNewBrief(false);
+      setIsEditing(false);
+      setShowOutputs(true);
+    } else if (location.pathname === "/") {
       setSelectedBriefId(null);
       setShowNewBrief(false);
       setIsEditing(false);
@@ -21,11 +26,6 @@ export const useBriefState = () => {
       if (searchParams.toString()) {
         setSearchParams({});
       }
-    } else if (briefIdFromUrl) {
-      setSelectedBriefId(briefIdFromUrl);
-      setShowNewBrief(false);
-      setIsEditing(false);
-      setShowOutputs(true);
     }
   }, [location.pathname, params.briefId, searchParams, setSearchParams]);
 
