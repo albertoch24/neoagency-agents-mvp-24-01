@@ -9,27 +9,31 @@ export const formatFeedback = (requirements?: string) => {
     feedbackPreview: feedbackSection?.substring(0, 100)
   });
 
-  // Extract target audience changes if present
-  const targetAudienceMatch = feedbackSection?.match(/target.*?(\d+)[:-](\d+)/i);
-  const targetLocation = feedbackSection?.match(/abitanti del ([^,\.]+)/i);
-
   let formattedFeedback = '';
   if (feedbackSection) {
     formattedFeedback = `
 Previous feedback received:
 ${feedbackSection}
 
-IMPORTANT CHANGES REQUESTED:
-${targetLocation ? `- Target Location: ${targetLocation[1]}` : ''}
-${targetAudienceMatch ? `- Age Range: ${targetAudienceMatch[1]}-${targetAudienceMatch[2]} years` : ''}
+FEEDBACK ANALYSIS AND IMPLEMENTATION REQUIRED:
 
-Please ensure your response specifically addresses:
-1. The updated target audience parameters
-2. How this changes your approach and recommendations
-3. Any specific cultural or demographic considerations for the new target
-4. Alignment with the original brief objectives while incorporating these changes
+1. Key Changes Requested:
+   - Analyze and identify all requested modifications
+   - Consider both explicit and implicit changes needed
+   - Map changes to specific aspects of the brief (audience, strategy, messaging, etc.)
 
-Original feedback text for reference:
+2. Implementation Guidelines:
+   - Address each identified change systematically
+   - Maintain consistency with unchanged brief elements
+   - Ensure all modifications align with overall objectives
+   - Consider downstream impacts of requested changes
+
+3. Quality Assurance Points:
+   - Verify all feedback points are addressed
+   - Confirm changes maintain brief coherence
+   - Validate alignment with project goals
+
+Original feedback for reference:
 "${feedbackSection.trim()}"
 `;
   }
