@@ -7,12 +7,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Star, StarHalf } from "lucide-react";
 import { processWorkflowStage } from "@/services/workflowService";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface StageFeedbackDialogProps {
   open: boolean;
   onClose: () => void;
   stageId: string;
   briefId: string;
+  embedded?: boolean;
 }
 
 export const StageFeedbackDialog = ({
@@ -20,6 +22,7 @@ export const StageFeedbackDialog = ({
   onClose,
   stageId,
   briefId,
+  embedded = false,
 }: StageFeedbackDialogProps) => {
   const [content, setContent] = useState("");
   const [rating, setRating] = useState(0);
@@ -84,6 +87,8 @@ export const StageFeedbackDialog = ({
             flow_steps: flowSteps.map(step => ({
               ...step,
               outputs: step.outputs || [], // Ensure outputs is always an array
+              // Add feedback to requirements for reprocessing
+              requirements: `${step.requirements || ''}\n\nRevision feedback: ${content}`
             }))
           }
         };
@@ -115,7 +120,14 @@ export const StageFeedbackDialog = ({
       }
 
       await queryClient.invalidateQueries({ queryKey: ["stage-feedback"] });
-      onClose();
+      if (!embedded) {
+        onClose();
+      } else {
+        // Clear the form for embedded mode
+        setContent("");
+        setRating(0);
+        setRequiresRevision(false);
+      }
     } catch (error) {
       console.error("Error submitting feedback:", error);
       toast.error("Failed to submit feedback");
@@ -124,56 +136,75 @@ export const StageFeedbackDialog = ({
     }
   };
 
+  const FeedbackContent = () => (
+    <div className="space-y-4 py-4">
+      <div className="flex justify-center space-x-2">
+        {[1, 2, 3, 4, 5].map((value) => (
+          <button
+            key={value}
+            onClick={() => setRating(value)}
+            className="focus:outline-none"
+          >
+            {value <= rating ? (
+              <Star className="h-6 w-6 fill-yellow-400 text-yellow-400" />
+            ) : (
+              <StarHalf className="h-6 w-6 text-gray-300" />
+            )}
+          </button>
+        ))}
+      </div>
+      <Textarea
+        placeholder="Enter your feedback..."
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        className="min-h-[100px]"
+      />
+      <div className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          id="requiresRevision"
+          checked={requiresRevision}
+          onChange={(e) => setRequiresRevision(e.target.checked)}
+          className="rounded border-gray-300"
+        />
+        <label htmlFor="requiresRevision">Requires revision</label>
+      </div>
+      <div className="flex justify-end space-x-2">
+        {!embedded && (
+          <Button variant="outline" onClick={onClose} disabled={isProcessing}>
+            Cancel
+          </Button>
+        )}
+        <Button 
+          onClick={handleSubmit} 
+          disabled={!content || rating === 0 || isProcessing}
+        >
+          {isProcessing ? "Processing..." : "Submit Feedback"}
+        </Button>
+      </div>
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Stage Feedback</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FeedbackContent />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Provide Stage Feedback</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="flex justify-center space-x-2">
-            {[1, 2, 3, 4, 5].map((value) => (
-              <button
-                key={value}
-                onClick={() => setRating(value)}
-                className="focus:outline-none"
-              >
-                {value <= rating ? (
-                  <Star className="h-6 w-6 fill-yellow-400 text-yellow-400" />
-                ) : (
-                  <StarHalf className="h-6 w-6 text-gray-300" />
-                )}
-              </button>
-            ))}
-          </div>
-          <Textarea
-            placeholder="Enter your feedback..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="min-h-[100px]"
-          />
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="requiresRevision"
-              checked={requiresRevision}
-              onChange={(e) => setRequiresRevision(e.target.checked)}
-              className="rounded border-gray-300"
-            />
-            <label htmlFor="requiresRevision">Requires revision</label>
-          </div>
-        </div>
-        <div className="flex justify-end space-x-2">
-          <Button variant="outline" onClick={onClose} disabled={isProcessing}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={!content || rating === 0 || isProcessing}
-          >
-            {isProcessing ? "Processing..." : "Submit Feedback"}
-          </Button>
-        </div>
+        <FeedbackContent />
       </DialogContent>
     </Dialog>
   );

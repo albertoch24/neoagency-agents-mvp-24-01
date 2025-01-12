@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { StageNavigation } from "./stage-navigation/StageNavigation";
 import { StageDialogsContainer } from "./stage-dialogs/StageDialogsContainer";
+import { StageFeedbackDialog } from "./StageFeedbackDialog";
 
 interface WorkflowDisplayProps {
   currentStage: string;
@@ -27,7 +28,6 @@ export const WorkflowDisplay = ({
   const { isProcessing, processStage } = useStageProcessing(briefId || "");
   const queryClient = useQueryClient();
   const [showClarificationDialog, setShowClarificationDialog] = useState(false);
-  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [nextStageHasOutput, setNextStageHasOutput] = useState(false);
 
   // Find the current stage object to get its UUID
@@ -134,7 +134,6 @@ export const WorkflowDisplay = ({
         await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
         await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
         await queryClient.invalidateQueries({ queryKey: ["stage-flow-steps"] });
-        setShowFeedbackDialog(true);
       }
     } catch (error) {
       console.error("Error processing next stage:", error);
@@ -160,18 +159,29 @@ export const WorkflowDisplay = ({
       />
       {briefId && (
         <>
-          {showOutputs ? (
-            <WorkflowOutput
-              briefId={briefId}
-              stageId={currentStage}
-            />
-          ) : (
-            <WorkflowConversation
-              briefId={briefId}
-              currentStage={currentStage}
-              showOutputs={showOutputs}
-            />
-          )}
+          <div className="space-y-4">
+            {showOutputs ? (
+              <WorkflowOutput
+                briefId={briefId}
+                stageId={currentStage}
+              />
+            ) : (
+              <WorkflowConversation
+                briefId={briefId}
+                currentStage={currentStage}
+                showOutputs={showOutputs}
+              />
+            )}
+            {currentStageData && (
+              <StageFeedbackDialog
+                open={true}
+                onClose={() => {}}
+                stageId={currentStageData.id}
+                briefId={briefId}
+                embedded={true}
+              />
+            )}
+          </div>
           <StageNavigation
             currentStage={currentStage}
             stages={stages}
@@ -183,9 +193,9 @@ export const WorkflowDisplay = ({
           {currentStageData && (
             <StageDialogsContainer
               showClarificationDialog={showClarificationDialog}
-              showFeedbackDialog={showFeedbackDialog}
+              showFeedbackDialog={false}
               onClarificationClose={() => setShowClarificationDialog(false)}
-              onFeedbackClose={() => setShowFeedbackDialog(false)}
+              onFeedbackClose={() => {}}
               stageId={currentStageData.id}
               briefId={briefId}
             />
