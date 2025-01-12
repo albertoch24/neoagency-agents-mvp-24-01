@@ -91,7 +91,7 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         onSubmitSuccess?.();
         
         // Force a small delay to ensure queries are invalidated
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Update URL parameters and navigate with state
         const searchParams = new URLSearchParams();
@@ -110,9 +110,6 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
             timestamp: Date.now() // Add timestamp to force refresh
           }
         });
-
-        // Force a refresh after navigation
-        window.location.reload();
 
       } catch (error) {
         console.error("Error starting workflow:", error);
