@@ -54,7 +54,7 @@ export const FeedbackForm = ({
         )}
         <Button 
           onClick={onSubmit} 
-          disabled={!content || rating === 0 || isProcessing}
+          disabled={isProcessing}
         >
           {isProcessing ? "Processing..." : "Submit Feedback"}
         </Button>
