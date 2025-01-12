@@ -54,27 +54,25 @@ export const WorkflowStageList = ({
       return dateB - dateA;
     })[0];
 
-    // Transform the relevantDocs structure if it exists
-    if (latestOutput.content.relevantDocs) {
-      return {
-        stage: latestOutput.stage,
-        stage_id: latestOutput.stage_id,
-        created_at: latestOutput.created_at,
-        content: {
-          ...latestOutput.content,
-          relevantDocs: latestOutput.content.relevantDocs.map(doc => ({
-            content: doc.pageContent,
-            metadata: {
-              title: doc.metadata?.title || 'Untitled',
-              source: doc.metadata?.source || ''
-            },
-            similarity: doc.metadata?.similarity || 0
-          }))
-        }
-      };
-    }
+    // Transform the output to match the expected structure
+    const transformedOutput = {
+      stage: latestOutput.stage,
+      stage_id: latestOutput.stage_id,
+      created_at: latestOutput.created_at,
+      content: {
+        ...latestOutput.content,
+        relevantDocs: latestOutput.content.relevantDocs?.map(doc => ({
+          content: doc.pageContent || '',
+          metadata: {
+            title: doc.metadata?.title || 'Untitled',
+            source: doc.metadata?.source || ''
+          },
+          similarity: doc.metadata?.similarity || 0
+        })) || []
+      }
+    };
 
-    return latestOutput;
+    return transformedOutput;
   };
 
   return (
