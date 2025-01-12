@@ -1,4 +1,11 @@
-import { RAGResponse } from "@/utils/ragUtils";
+// Define the RAGResponse type locally since we can't import it from the frontend
+interface RAGResponse {
+  response: string;
+  relevantDocs: Array<{
+    pageContent: string;
+    metadata: Record<string, any>;
+  }>;
+}
 
 export const buildPrompt = (
   agent: any,
