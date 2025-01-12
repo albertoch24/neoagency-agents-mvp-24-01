@@ -1,32 +1,12 @@
-export interface WorkflowRequest {
-  briefId: string;
-  stageId: string;
-  flowId: string;
-  flowSteps: any[];
+export interface RAGResponse {
+  response: string;
+  relevantDocs: Array<{
+    pageContent: string;
+    metadata: Record<string, any>;
+  }>;
 }
 
-export interface Stage {
-  id: string;
-  name: string;
-  flows: {
-    id: string;
-    flow_steps: {
-      id: string;
-      agent_id: string;
-      agents: {
-        id: string;
-        name: string;
-        skills: any[];
-      };
-    }[];
-  }[];
-}
-
-export interface Brief {
-  id: string;
+export interface PromptSection {
   title: string;
-  description: string;
-  objectives: string;
-  current_stage: string;
-  status: string;
+  content: string;
 }
