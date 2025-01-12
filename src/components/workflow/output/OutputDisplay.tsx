@@ -2,6 +2,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { AgentOutput } from "../AgentOutput";
+import { DocumentInfluence } from "./DocumentInfluence";
 
 interface OutputDisplayProps {
   output: {
@@ -16,6 +17,14 @@ interface OutputDisplayProps {
         orderIndex?: number;
         requirements?: string;
       }>;
+      relevantDocs?: Array<{
+        content: string;
+        metadata?: {
+          title?: string;
+          source?: string;
+        };
+        similarity?: number;
+      }>;
       [key: string]: any;
     };
   };
@@ -26,6 +35,7 @@ export const OutputDisplay = ({ output }: OutputDisplayProps) => {
     hasContent: !!output?.content,
     contentKeys: output?.content ? Object.keys(output.content) : [],
     outputsCount: output?.content?.outputs?.length || 0,
+    hasRelevantDocs: !!output?.content?.relevantDocs,
     outputs: output?.content?.outputs?.map(out => ({
       agent: out.agent || 'Unknown Agent',
       hasStepId: !!out.stepId,
@@ -35,6 +45,7 @@ export const OutputDisplay = ({ output }: OutputDisplayProps) => {
   });
 
   const outputs = output?.content?.outputs || [];
+  const relevantDocs = output?.content?.relevantDocs;
 
   // Ensure outputs have required properties and validate structure
   const validOutputs = outputs.map(out => {
@@ -66,6 +77,8 @@ export const OutputDisplay = ({ output }: OutputDisplayProps) => {
   console.log("✅ Rendering outputs:", {
     count: validOutputs.length,
     agents: validOutputs.map(o => o.agent),
+    hasRelevantDocs: !!relevantDocs,
+    docsCount: relevantDocs?.length || 0,
     outputDetails: validOutputs.map(o => ({
       agent: o.agent,
       outputsCount: o.outputs.length,
@@ -93,6 +106,7 @@ export const OutputDisplay = ({ output }: OutputDisplayProps) => {
                     requirements={agentOutput.requirements}
                   />
                 ))}
+                {relevantDocs && <DocumentInfluence relevantDocs={relevantDocs} />}
               </div>
             </ScrollArea>
           </AccordionContent>
