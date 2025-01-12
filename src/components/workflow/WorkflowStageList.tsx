@@ -65,21 +65,16 @@ export const WorkflowStageList = ({
           relevantDocs: latestOutput.content.relevantDocs.map(doc => ({
             content: doc.pageContent,
             metadata: {
-              title: doc.metadata.title || 'Untitled',
-              source: doc.metadata.source || ''
+              title: doc.metadata?.title || 'Untitled',
+              source: doc.metadata?.source || ''
             },
-            similarity: doc.metadata.similarity || 0
+            similarity: doc.metadata?.similarity || 0
           }))
         }
       };
     }
 
-    return {
-      stage: latestOutput.stage,
-      stage_id: latestOutput.stage_id,
-      created_at: latestOutput.created_at,
-      content: latestOutput.content
-    };
+    return latestOutput;
   };
 
   return (
