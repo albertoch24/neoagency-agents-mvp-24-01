@@ -18,6 +18,11 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting workflow stage processing:', {
+      timestamp: new Date().toISOString(),
+      method: req.method
+    });
+
     // Get request body
     const { briefId, stageId, flowSteps, feedback } = await req.json();
     
