@@ -236,6 +236,7 @@ export const BriefFormFields = ({ form }: BriefFormFieldsProps) => {
           </FormItem>
         )}
       />
+      
       <FormField
         control={form.control}
         name="description"
