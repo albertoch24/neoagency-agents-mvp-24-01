@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
 import { ChatOpenAI } from "@langchain/openai";
-import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
+import { SupabaseVectorStore } from "https://esm.sh/@langchain/community/vectorstores/supabase";
 import { OpenAIEmbeddings } from "@langchain/openai";
 
 const corsHeaders = {
