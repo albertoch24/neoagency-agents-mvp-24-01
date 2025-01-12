@@ -38,9 +38,17 @@ Please ensure your response specifically addresses:
 3. How your new response improves upon the previous version
 ` : ''}`;
 
-  const outputRequirements = agent.flow_steps?.[0]?.outputs
-    ?.map((output: any) => output.text)
-    .filter(Boolean) || [];
+  // Fix: Correctly access agent's outputs
+  let outputRequirements: string[] = [];
+  if (agent.skills?.length > 0) {
+    // If agent has skills, use them as requirements
+    outputRequirements = agent.skills.map((skill: any) => skill.content).filter(Boolean);
+  } else if (agent.flow_steps?.[0]?.outputs) {
+    // Fallback to flow steps if available
+    outputRequirements = agent.flow_steps[0].outputs
+      .map((output: any) => output.text)
+      .filter(Boolean);
+  }
 
   console.log("Output requirements prepared:", {
     requirementsCount: outputRequirements.length,
