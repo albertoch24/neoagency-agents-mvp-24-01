@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
 import { ChatOpenAI } from "@langchain/openai";
-import { SupabaseVectorStore } from "langchain/vectorstores/supabase";
-import { OpenAIEmbeddings } from "langchain/embeddings/openai";
+import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
+import { OpenAIEmbeddings } from "@langchain/openai";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,12 +10,13 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { brand, stage, content, type } = await req.json();
+    const { query, briefId, context } = await req.json();
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -24,36 +25,30 @@ serve(async (req) => {
 
     // Initialize OpenAI
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
+    const embeddings = new OpenAIEmbeddings({ openAIApiKey });
     const model = new ChatOpenAI({ openAIApiKey });
 
-    // Process content using RAG
-    const embeddings = new OpenAIEmbeddings({ openAIApiKey });
+    // Initialize vector store
     const vectorStore = new SupabaseVectorStore(embeddings, {
       client: supabase,
       tableName: 'documents',
     });
 
-    // Generate embeddings and store brand knowledge
-    const processedContent = await model.predict(
-      `Analyze the following content for brand ${brand} in stage ${stage}: ${content}`
+    // Search for relevant documents
+    const relevantDocs = await vectorStore.similaritySearch(query, 5);
+
+    // Generate response using the model
+    const response = await model.predict(
+      `Context: ${context || ''}\n\nRelevant information: ${
+        relevantDocs.map(doc => doc.pageContent).join('\n')
+      }\n\nQuery: ${query}`
     );
 
-    // Store the processed content
-    const { data, error } = await supabase
-      .from('brand_knowledge')
-      .insert({
-        brand,
-        content: {
-          original: content,
-          processed: processedContent,
-        },
-        type,
-      });
-
-    if (error) throw error;
-
     return new Response(
-      JSON.stringify({ success: true, data }),
+      JSON.stringify({
+        response,
+        relevantDocs,
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
