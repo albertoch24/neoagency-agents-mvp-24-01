@@ -6,16 +6,17 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Star, StarHalf } from "lucide-react";
+import { processWorkflowStage } from "@/services/workflowService";
 
 interface StageFeedbackDialogProps {
-  isOpen: boolean;
+  open: boolean;
   onClose: () => void;
   stageId: string;
   briefId: string;
 }
 
 export const StageFeedbackDialog = ({
-  isOpen,
+  open,
   onClose,
   stageId,
   briefId,
@@ -23,11 +24,15 @@ export const StageFeedbackDialog = ({
   const [content, setContent] = useState("");
   const [rating, setRating] = useState(0);
   const [requiresRevision, setRequiresRevision] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const queryClient = useQueryClient();
 
   const handleSubmit = async () => {
     try {
-      const { error } = await supabase.from("stage_feedback").insert({
+      setIsProcessing(true);
+
+      // First save the feedback
+      const { error: feedbackError } = await supabase.from("stage_feedback").insert({
         stage_id: stageId,
         brief_id: briefId,
         content,
@@ -35,19 +40,79 @@ export const StageFeedbackDialog = ({
         requires_revision: requiresRevision,
       });
 
-      if (error) throw error;
+      if (feedbackError) throw feedbackError;
+
+      // If revision is required, trigger reprocessing
+      if (requiresRevision) {
+        console.log("Revision requested, starting reprocessing for stage:", stageId);
+        
+        // Get the stage data including its flow
+        const { data: stageData, error: stageError } = await supabase
+          .from("stages")
+          .select(`
+            *,
+            flows (
+              id,
+              name,
+              flow_steps (
+                id,
+                agent_id,
+                requirements,
+                order_index,
+                agents (
+                  id,
+                  name,
+                  description,
+                  skills (*)
+                )
+              )
+            )
+          `)
+          .eq("id", stageId)
+          .single();
+
+        if (stageError) throw stageError;
+
+        const flowSteps = stageData?.flows?.flow_steps || [];
+        
+        // Start reprocessing
+        const toastId = toast.loading(
+          "Starting revision process... This may take a few minutes. We're reprocessing the stage with your feedback.",
+          { duration: 120000 }
+        );
+
+        try {
+          await processWorkflowStage(briefId, stageData, flowSteps);
+          
+          toast.dismiss(toastId);
+          toast.success("Stage has been reprocessed with your feedback!");
+          
+          // Invalidate queries to refresh data
+          await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+          await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+          await queryClient.invalidateQueries({ queryKey: ["stage-feedback"] });
+        } catch (error) {
+          console.error("Error reprocessing stage:", error);
+          toast.dismiss(toastId);
+          toast.error("Failed to reprocess the stage. Please try again or contact support.");
+          throw error;
+        }
+      } else {
+        toast.success("Feedback submitted successfully");
+      }
 
       await queryClient.invalidateQueries({ queryKey: ["stage-feedback"] });
-      toast.success("Feedback submitted successfully");
       onClose();
     } catch (error) {
       console.error("Error submitting feedback:", error);
       toast.error("Failed to submit feedback");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => onClose()}>
+    <Dialog open={open} onOpenChange={() => onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Provide Stage Feedback</DialogTitle>
@@ -86,11 +151,14 @@ export const StageFeedbackDialog = ({
           </div>
         </div>
         <div className="flex justify-end space-x-2">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={isProcessing}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!content || rating === 0}>
-            Submit Feedback
+          <Button 
+            onClick={handleSubmit} 
+            disabled={!content || rating === 0 || isProcessing}
+          >
+            {isProcessing ? "Processing..." : "Submit Feedback"}
           </Button>
         </div>
       </DialogContent>
