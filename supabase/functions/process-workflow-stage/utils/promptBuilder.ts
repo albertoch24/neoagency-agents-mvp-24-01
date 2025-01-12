@@ -35,7 +35,7 @@ export const buildPrompt = (
     buildAgentSkillsSection(agent),
     formatRequirements(outputRequirements),
     baseRequirements,
-    feedbackSection
+    feedbackSection ? `\nFEEDBACK INCORPORATION REQUIRED:\n${feedbackSection}` : ''
   ].filter(Boolean).join('\n\n');
 
   const conversationalPrompt = `
@@ -46,7 +46,7 @@ export const buildPrompt = (
     - Your initial impressions and insights
     - How your specific expertise applies to this brief
     - Any concerns or opportunities you see
-    ${feedbackSection ? '- How you are addressing the specific feedback provided' : ''}
+    ${feedbackSection ? '- How you are specifically addressing each point in the feedback' : ''}
     ${!isFirstStage ? '- References to previous discussions or outputs where relevant' : ''}
 
     2. STRUCTURED OUTPUT:
@@ -68,7 +68,7 @@ export const buildPrompt = (
     - Ensure each structured output is concrete and actionable
     - Keep the conversational part engaging and insightful
     - Connect your structured outputs to your conversational analysis
-    ${feedbackSection ? '- Explicitly address how you\'ve incorporated the feedback' : ''}
+    ${feedbackSection ? '- Explicitly address how you\'ve incorporated each feedback point' : ''}
 
     Here is the context for your analysis:
     ${sections}

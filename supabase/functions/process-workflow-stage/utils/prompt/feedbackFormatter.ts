@@ -9,16 +9,33 @@ export const formatFeedback = (requirements?: string) => {
     feedbackPreview: feedbackSection?.substring(0, 100)
   });
 
-  return {
-    baseRequirements: baseRequirements || '',
-    feedbackSection: feedbackSection ? `
+  // Extract target audience changes if present
+  const targetAudienceMatch = feedbackSection?.match(/target.*?(\d+)[:-](\d+)/i);
+  const targetLocation = feedbackSection?.match(/abitanti del ([^,\.]+)/i);
+
+  let formattedFeedback = '';
+  if (feedbackSection) {
+    formattedFeedback = `
 Previous feedback received:
 ${feedbackSection}
 
+IMPORTANT CHANGES REQUESTED:
+${targetLocation ? `- Target Location: ${targetLocation[1]}` : ''}
+${targetAudienceMatch ? `- Age Range: ${targetAudienceMatch[1]}-${targetAudienceMatch[2]} years` : ''}
+
 Please ensure your response specifically addresses:
-1. The feedback provided above
-2. Any requested changes to target audience, objectives, or other aspects
-3. How your new response improves upon the previous version
-` : ''
+1. The updated target audience parameters
+2. How this changes your approach and recommendations
+3. Any specific cultural or demographic considerations for the new target
+4. Alignment with the original brief objectives while incorporating these changes
+
+Original feedback text for reference:
+"${feedbackSection.trim()}"
+`;
+  }
+
+  return {
+    baseRequirements: baseRequirements?.trim() || '',
+    feedbackSection: formattedFeedback
   };
 };
