@@ -66,12 +66,25 @@ export const BriefFormFields = ({ form }: BriefFormFieldsProps) => {
       });
 
       if (response.success) {
+        // Transform the Firecrawl response into a compatible JSON format
+        const formattedContent = {
+          pages: response.data.map((doc: any) => ({
+            url: doc.url,
+            title: doc.title,
+            content: doc.content,
+            metadata: {
+              crawledAt: new Date().toISOString(),
+              format: doc.format
+            }
+          }))
+        };
+
         // Store crawled data in brand_knowledge
         const { error: insertError } = await supabase
           .from('brand_knowledge')
           .insert({
             brand: form.getValues("brand"),
-            content: response.data,
+            content: formattedContent,
             type: 'website_content'
           });
 
