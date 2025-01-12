@@ -31,6 +31,14 @@ export const StageFeedbackDialog = ({
   const handleSubmit = async () => {
     try {
       setIsProcessing(true);
+      console.log("🔄 Starting feedback submission process:", {
+        stageId,
+        briefId,
+        content,
+        rating,
+        requiresRevision,
+        timestamp: new Date().toISOString()
+      });
 
       const { error: feedbackError } = await supabase.from("stage_feedback").insert({
         stage_id: stageId,
@@ -42,8 +50,10 @@ export const StageFeedbackDialog = ({
 
       if (feedbackError) throw feedbackError;
 
+      console.log("✅ Feedback saved successfully to database");
+
       if (requiresRevision) {
-        console.log("Revision requested, starting reprocessing for stage:", stageId);
+        console.log("🔄 Revision requested, starting reprocessing for stage:", stageId);
         
         const { data: stageData, error: stageError } = await supabase
           .from("stages")
@@ -72,6 +82,11 @@ export const StageFeedbackDialog = ({
 
         if (stageError) throw stageError;
 
+        console.log("📋 Retrieved stage data:", {
+          stageName: stageData.name,
+          flowStepsCount: stageData?.flows?.flow_steps?.length || 0
+        });
+
         const flowSteps = stageData?.flows?.flow_steps || [];
         
         // Transform the feedback into a structured format for the prompt
@@ -87,6 +102,8 @@ Key points to address from feedback:
 3. Ensure alignment with the updated requirements
 `;
         
+        console.log("🎯 Created feedback prompt:", feedbackPrompt.substring(0, 100) + "...");
+
         const transformedStageData = {
           ...stageData,
           flows: {
@@ -105,8 +122,10 @@ Key points to address from feedback:
         );
 
         try {
+          console.log("🚀 Starting workflow stage processing with feedback");
           await processWorkflowStage(briefId, transformedStageData, flowSteps);
           
+          console.log("✅ Stage successfully reprocessed with feedback");
           toast.dismiss(toastId);
           toast.success("Stage has been reprocessed with your feedback!");
           
@@ -114,12 +133,13 @@ Key points to address from feedback:
           await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
           await queryClient.invalidateQueries({ queryKey: ["stage-feedback"] });
         } catch (error) {
-          console.error("Error reprocessing stage:", error);
+          console.error("❌ Error reprocessing stage:", error);
           toast.dismiss(toastId);
           toast.error("Failed to reprocess the stage. Please try again or contact support.");
           throw error;
         }
       } else {
+        console.log("✅ Feedback submitted without revision request");
         toast.success("Feedback submitted successfully");
       }
 
@@ -132,7 +152,7 @@ Key points to address from feedback:
         setRequiresRevision(false);
       }
     } catch (error) {
-      console.error("Error submitting feedback:", error);
+      console.error("❌ Error in feedback submission process:", error);
       toast.error("Failed to submit feedback");
     } finally {
       setIsProcessing(false);
