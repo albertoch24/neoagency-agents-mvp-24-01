@@ -42,18 +42,30 @@ export const WebsiteCrawler = ({ form }: WebsiteCrawlerProps) => {
     try {
       console.log("Starting website crawl for brief:", briefId);
       
-      // Fetch the brief data using maybeSingle() to handle the case where no brief is found
+      // First get the brief data
       const { data: briefData, error: briefError } = await supabase
         .from('briefs')
         .select('id, brand')
         .eq('id', briefId)
         .maybeSingle();
 
-      if (briefError || !briefData) {
+      if (briefError) {
+        console.error("Error fetching brief:", briefError);
         throw new Error('Failed to fetch brief data');
       }
 
-      const crawledContent = await crawlWebsite(websiteUrl, brand);
+      if (!briefData) {
+        throw new Error('Brief not found');
+      }
+
+      // Use either the form brand value or the one from the brief
+      const brandName = brand || briefData.brand;
+      
+      if (!brandName) {
+        throw new Error('Brand name is required');
+      }
+
+      const crawledContent = await crawlWebsite(websiteUrl, brandName);
       console.log("Crawled content:", crawledContent);
 
       // Store the crawled content
@@ -61,7 +73,7 @@ export const WebsiteCrawler = ({ form }: WebsiteCrawlerProps) => {
         .from('brand_knowledge')
         .insert({
           brief_id: briefId,
-          brand: brand,
+          brand: brandName,
           content: crawledContent,
           type: 'website_content'
         });
