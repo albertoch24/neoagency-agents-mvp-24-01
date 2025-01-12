@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
 import { FirecrawlLoader } from "https://esm.sh/@langchain/community/document_loaders/web/firecrawl";
-import { RecursiveCharacterTextSplitter } from "https://esm.sh/@langchain/text@0.1.3";
+import { RecursiveCharacterTextSplitter } from "https://esm.sh/@langchain/text-splitter@0.1.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
