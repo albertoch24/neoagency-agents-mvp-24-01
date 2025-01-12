@@ -1,74 +1,93 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { OpenAI } from "https://esm.sh/openai@4.26.0";
+import { createClient } from '@supabase/supabase-js';
+import OpenAI from 'openai';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface ProcessDocumentBody {
+  brand: string;
+  briefId: string;
+  content: string;
+  metadata?: Record<string, any>;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { filePaths, briefId, brand } = await req.json();
-
-    if (!filePaths || !briefId || !brand) {
-      throw new Error('Missing required parameters');
-    }
-
-    console.log('Processing documents for brief:', briefId);
-
-    const supabase = createClient(
+    const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     const openai = new OpenAI({
-      apiKey: Deno.env.get('OPENAI_API_KEY') ?? '',
+      apiKey: Deno.env.get('OPENAI_API_KEY'),
     });
 
-    const processedDocs = [];
+    const { brand, briefId, content, metadata } = await req.json() as ProcessDocumentBody;
 
-    for (const path of filePaths) {
-      console.log('Processing document:', path);
+    console.log("Processing document for brand:", brand, "briefId:", briefId);
 
-      const { data: fileData, error: downloadError } = await supabase.storage
-        .from('brand_documents')
-        .download(path);
+    // Split content into chunks (max 1000 tokens per chunk)
+    const chunks = splitIntoChunks(content, 1000);
+    console.log(`Split content into ${chunks.length} chunks`);
 
-      if (downloadError) {
-        console.error('Error downloading file:', downloadError);
-        continue;
-      }
+    for (const chunk of chunks) {
+      // Generate embedding for chunk
+      const embedding = await openai.embeddings.create({
+        model: "text-embedding-3-small",
+        input: chunk,
+        encoding_format: "float",
+      });
 
-      const text = await fileData.text();
+      console.log("Generated embedding for chunk");
 
-      const { error: insertError } = await supabase
-        .from('brand_knowledge')
+      // Store chunk and embedding
+      const { error: docError } = await supabaseClient
+        .from('documents')
         .insert({
-          brief_id: briefId,
-          brand: brand,
-          content: { text },
-          type: 'initial_upload'
+          content: chunk,
+          embedding: embedding.data[0].embedding,
+          metadata: {
+            ...metadata,
+            brand,
+            brief_id: briefId,
+            chunk_index: chunks.indexOf(chunk),
+            total_chunks: chunks.length
+          }
         });
 
-      if (insertError) {
-        console.error('Error inserting brand knowledge:', insertError);
-        continue;
+      if (docError) {
+        console.error("Error storing document:", docError);
+        throw docError;
       }
 
-      processedDocs.push(path);
+      // Store in brand_knowledge for quick access
+      const { error: knowledgeError } = await supabaseClient
+        .from('brand_knowledge')
+        .insert({
+          brand,
+          brief_id: briefId,
+          content: {
+            text: chunk,
+            metadata: metadata
+          },
+          type: 'document'
+        });
+
+      if (knowledgeError) {
+        console.error("Error storing brand knowledge:", knowledgeError);
+        throw knowledgeError;
+      }
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `Processed ${processedDocs.length} documents`,
-        processedDocs 
-      }),
+      JSON.stringify({ success: true, message: 'Document processed successfully' }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
@@ -76,16 +95,38 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error processing documents:', error);
+    console.error('Error:', error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message 
-      }),
+      JSON.stringify({ error: error.message }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
+        status: 400
       }
     );
   }
 });
+
+function splitIntoChunks(text: string, maxTokens: number): string[] {
+  // Simple splitting by sentences first
+  const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+  const chunks: string[] = [];
+  let currentChunk = '';
+
+  for (const sentence of sentences) {
+    // Rough estimation: 1 token ≈ 4 characters
+    if ((currentChunk.length + sentence.length) / 4 > maxTokens) {
+      if (currentChunk) {
+        chunks.push(currentChunk.trim());
+      }
+      currentChunk = sentence;
+    } else {
+      currentChunk += ' ' + sentence;
+    }
+  }
+
+  if (currentChunk) {
+    chunks.push(currentChunk.trim());
+  }
+
+  return chunks;
+}
