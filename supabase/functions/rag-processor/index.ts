@@ -1,9 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { ChatOpenAI } from "https://esm.sh/langchain/dist/chat_models/openai";
-import { SupabaseVectorStore } from "https://esm.sh/langchain/dist/vectorstores/supabase";
-import { OpenAIEmbeddings } from "https://esm.sh/langchain/dist/embeddings/openai";
+import { ChatOpenAI } from "https://esm.sh/@langchain/openai";
+import { SupabaseVectorStore } from "https://esm.sh/langchain/vectorstores/supabase";
+import { OpenAIEmbeddings } from "https://esm.sh/langchain/embeddings/openai";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +11,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
