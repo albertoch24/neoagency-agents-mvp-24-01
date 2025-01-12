@@ -25,31 +25,12 @@ export const saveBriefOutput = async (
       throw new Error('Invalid content structure');
     }
 
-    // Format content to maintain backward compatibility
-    const formattedContent = {
-      stage_name: stageName,
-      flow_name: content.flow_name || 'Default Flow',
-      agent_count: content.outputs?.length || 0,
-      outputs: content.outputs?.map((output: any) => ({
-        agent: output.agent,
-        requirements: output.requirements,
-        outputs: output.outputs,
-        stepId: output.stepId,
-        orderIndex: output.orderIndex
-      }))
-    };
-
-    // Add RAG data if available
-    if (content.relevantDocs) {
-      formattedContent.relevantDocs = content.relevantDocs;
-    }
-
     const { data, error } = await supabase
       .from('brief_outputs')
       .insert({
         brief_id: briefId,
         stage: stageName,
-        content: formattedContent,
+        content: content,
         stage_id: stageId
       })
       .select()

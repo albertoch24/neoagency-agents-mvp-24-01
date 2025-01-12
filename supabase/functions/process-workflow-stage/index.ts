@@ -26,15 +26,8 @@ serve(async (req) => {
     
     console.log('Processing workflow for:', { briefId, stageId, flowId, flowSteps });
     
-    // Process the workflow with timeout
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Request timeout after 50s')), 50000)
-    );
-    
-    const processPromise = processAgents(briefId, stageId);
-    
-    // Race between process and timeout
-    const outputs = await Promise.race([processPromise, timeoutPromise]);
+    // Process the workflow
+    const outputs = await processAgents(briefId, stageId);
     
     console.log('Workflow processed successfully:', outputs);
     

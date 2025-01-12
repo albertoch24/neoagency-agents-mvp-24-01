@@ -17,7 +17,14 @@ export async function processAgent(
       briefId: brief.id,
       stageId,
       requirements,
-      previousOutputsCount: previousOutputs.length
+      previousOutputsCount: previousOutputs.length,
+      previousOutputsSample: previousOutputs.map(output => ({
+        id: output.id,
+        type: output.output_type,
+        contentPreview: typeof output.content === 'string' 
+          ? output.content.substring(0, 100) 
+          : 'Complex content structure'
+      }))
     });
 
     // Get all agents involved in this stage
@@ -37,6 +44,11 @@ export async function processAgent(
       const executor = await createAgentChain(stageAgents, brief);
       const response = await processAgentInteractions(executor, brief, requirements, previousOutputs);
       
+      console.log('Multi-agent response received:', {
+        responseLength: response.outputs[0].content.length,
+        preview: response.outputs[0].content.substring(0, 100)
+      });
+
       return {
         agent: agent.name,
         requirements,
@@ -65,7 +77,22 @@ export async function processAgent(
       isFirstStage
     );
 
+    console.log('Generated prompt:', {
+      promptLength: conversationalPrompt.length,
+      preview: conversationalPrompt.substring(0, 100),
+      containsPreviousOutputs: conversationalPrompt.includes('Previous Stage Outputs'),
+      containsRequirements: conversationalPrompt.includes(requirements || '')
+    });
+
     const response = await generateAgentResponse(conversationalPrompt);
+
+    console.log('Agent response received:', {
+      responseLength: response.conversationalResponse?.length,
+      preview: response.conversationalResponse?.substring(0, 100),
+      containsReferences: response.conversationalResponse?.includes('previous') || 
+                         response.conversationalResponse?.includes('earlier') ||
+                         response.conversationalResponse?.includes('before')
+    });
 
     return {
       agent: agent.name,

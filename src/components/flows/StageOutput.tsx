@@ -16,14 +16,6 @@ interface StageOutputProps {
         orderIndex?: number;
         requirements?: string;
       }>;
-      relevantDocs?: Array<{
-        content: string;
-        metadata?: {
-          title?: string;
-          source?: string;
-        };
-        similarity?: number;
-      }>;
       [key: string]: any;
     };
     stage_id?: string;

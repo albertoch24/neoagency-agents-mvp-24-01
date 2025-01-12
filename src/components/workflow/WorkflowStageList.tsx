@@ -17,16 +17,10 @@ interface WorkflowStageListProps {
         orderIndex?: number;
         requirements?: string;
       }>;
-      stage_name?: string;
-      flow_name?: string;
-      agent_count?: number;
-      relevantDocs?: Array<{
-        pageContent: string;
-        metadata: Record<string, any>;
-      }>;
+      [key: string]: any;
     };
     created_at?: string;
-    stage_id?: string;
+    [key: string]: any;
   }>;
   showOutputs?: boolean;
 }
@@ -48,31 +42,11 @@ export const WorkflowStageList = ({
     if (!stageOutputs.length) return null;
     
     // Sort by created_at in descending order and take the first one
-    const latestOutput = stageOutputs.sort((a, b) => {
+    return stageOutputs.sort((a, b) => {
       const dateA = new Date(a.created_at || 0).getTime();
       const dateB = new Date(b.created_at || 0).getTime();
       return dateB - dateA;
     })[0];
-
-    // Transform the output to match the expected structure
-    const transformedOutput = {
-      stage: latestOutput.stage,
-      stage_id: latestOutput.stage_id,
-      created_at: latestOutput.created_at,
-      content: {
-        ...latestOutput.content,
-        relevantDocs: latestOutput.content.relevantDocs?.map(doc => ({
-          content: doc.pageContent || '',
-          metadata: {
-            title: doc.metadata?.title || 'Untitled',
-            source: doc.metadata?.source || ''
-          },
-          similarity: doc.metadata?.similarity || 0
-        })) || []
-      }
-    };
-
-    return transformedOutput;
   };
 
   return (

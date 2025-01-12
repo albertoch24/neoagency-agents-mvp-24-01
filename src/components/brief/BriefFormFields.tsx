@@ -2,8 +2,6 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/comp
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { UseFormReturn } from "react-hook-form";
-import { WebsiteCrawler } from "./WebsiteCrawler";
-import { DocumentUploader } from "./DocumentUploader";
 
 interface BriefFormFieldsProps {
   form: UseFormReturn<any>;
@@ -25,29 +23,6 @@ export const BriefFormFields = ({ form }: BriefFormFieldsProps) => {
           </FormItem>
         )}
       />
-      
-      <FormField
-        control={form.control}
-        name="brand"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Brand</FormLabel>
-            <FormControl>
-              <Input placeholder="Enter brand name" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <FormField
-        control={form.control}
-        name="website"
-        render={({ field }) => (
-          <WebsiteCrawler form={form} />
-        )}
-      />
-      
       <FormField
         control={form.control}
         name="description"
@@ -61,7 +36,6 @@ export const BriefFormFields = ({ form }: BriefFormFieldsProps) => {
           </FormItem>
         )}
       />
-      
       <FormField
         control={form.control}
         name="objectives"
@@ -75,7 +49,6 @@ export const BriefFormFields = ({ form }: BriefFormFieldsProps) => {
           </FormItem>
         )}
       />
-      
       <FormField
         control={form.control}
         name="target_audience"
@@ -89,7 +62,6 @@ export const BriefFormFields = ({ form }: BriefFormFieldsProps) => {
           </FormItem>
         )}
       />
-      
       <FormField
         control={form.control}
         name="budget"
@@ -103,7 +75,6 @@ export const BriefFormFields = ({ form }: BriefFormFieldsProps) => {
           </FormItem>
         )}
       />
-      
       <FormField
         control={form.control}
         name="timeline"
@@ -117,8 +88,6 @@ export const BriefFormFields = ({ form }: BriefFormFieldsProps) => {
           </FormItem>
         )}
       />
-
-      <DocumentUploader />
     </>
   );
 };
