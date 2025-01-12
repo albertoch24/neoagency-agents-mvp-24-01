@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.12";
 import { ChatOpenAI } from "https://esm.sh/@langchain/openai@0.0.14";
 import { SupabaseVectorStore } from "https://esm.sh/@langchain/community@0.3.24/vectorstores/supabase";
 import { OpenAIEmbeddings } from "https://esm.sh/@langchain/openai@0.0.14";
@@ -25,7 +25,7 @@ serve(async (req) => {
 
     // Initialize OpenAI
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
-    const embeddings = new OpenAIEmbeddings({ openAIApiKey });
+    const embeddings = new OpenAIEmbeddings({ openAIApiKey: openaiApiKey });
     const model = new ChatOpenAI({ openAIApiKey });
 
     // Initialize vector store
