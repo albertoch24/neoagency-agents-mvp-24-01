@@ -24,7 +24,14 @@ export const WorkflowDisplay = ({
   briefId,
   showOutputs = true
 }: WorkflowDisplayProps) => {
-  const { data: stages = [] } = useStagesData(briefId);
+  console.log("WorkflowDisplay rendering with:", {
+    currentStage,
+    briefId,
+    showOutputs,
+    timestamp: new Date().toISOString()
+  });
+
+  const { data: stages = [], isLoading: stagesLoading } = useStagesData(briefId);
   const { isProcessing, processStage } = useStageProcessing(briefId || "");
   const queryClient = useQueryClient();
   const [showClarificationDialog, setShowClarificationDialog] = useState(false);
@@ -34,11 +41,13 @@ export const WorkflowDisplay = ({
   const currentStageData = stages.find(stage => stage.id === currentStage);
   const currentIndex = stages.findIndex(stage => stage.id === currentStage);
 
-  // Query to check completed stages
+  // Query to check completed stages with enabled flag
   const { data: completedStages = [], refetch: refetchCompletedStages } = useQuery({
     queryKey: ["completed-stages", briefId],
     queryFn: async () => {
       if (!briefId) return [];
+      
+      console.log("Fetching completed stages for brief:", briefId);
       
       const { data, error } = await supabase
         .from("workflow_conversations")
@@ -52,16 +61,19 @@ export const WorkflowDisplay = ({
         return [];
       }
       
+      console.log("Completed stages data:", data);
       return data?.map(item => item.stage_id) || [];
     },
     enabled: !!briefId
   });
 
-  // Query to check for pending clarifications
+  // Query to check for pending clarifications with enabled flag
   const { data: pendingClarifications = [] } = useQuery({
     queryKey: ["stage-clarifications", briefId, currentStageData?.id],
     queryFn: async () => {
       if (!briefId || !currentStageData?.id) return [];
+      
+      console.log("Fetching clarifications for stage:", currentStageData.id);
       
       const { data, error } = await supabase
         .from("stage_clarifications")
@@ -71,51 +83,30 @@ export const WorkflowDisplay = ({
         .eq("status", "pending");
 
       if (error) throw error;
+      
+      console.log("Pending clarifications:", data);
       return data;
     },
     enabled: !!briefId && !!currentStageData?.id
   });
 
-  // Subscribe to feedback changes
-  useEffect(() => {
-    if (!briefId || !currentStageData?.id) return;
-
-    const subscription = supabase
-      .channel('stage-feedback')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'stage_feedback',
-          filter: `brief_id=eq.${briefId} AND stage_id=eq.${currentStageData.id}`
-        },
-        async (payload) => {
-          console.log('Feedback change detected:', payload);
-          
-          // Force immediate refetch of conversations and outputs
-          await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] }),
-            queryClient.invalidateQueries({ queryKey: ["brief-outputs"] }),
-            refetchCompletedStages()
-          ]);
-
-          // Refresh the page to show updated content
-          window.location.reload();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [briefId, currentStageData?.id, queryClient, refetchCompletedStages]);
-
+  // Effect to handle clarification dialog
   useEffect(() => {
     if (pendingClarifications.length > 0) {
+      console.log("Found pending clarifications, showing dialog");
       setShowClarificationDialog(true);
     }
   }, [pendingClarifications]);
+
+  // Effect to refetch data when briefId changes
+  useEffect(() => {
+    if (briefId) {
+      console.log("BriefId changed, refetching data:", briefId);
+      queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+      refetchCompletedStages();
+    }
+  }, [briefId, queryClient, refetchCompletedStages]);
 
   const handleNextStage = useCallback(async () => {
     if (!briefId || !stages.length) return;
@@ -126,14 +117,19 @@ export const WorkflowDisplay = ({
     const nextStage = stages[currentIndex + 1];
     if (!nextStage) return;
 
+    console.log("Processing next stage:", nextStage);
+
     try {
       const success = await processStage(nextStage);
       
       if (success) {
         onStageSelect(nextStage);
-        await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
-        await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
-        await queryClient.invalidateQueries({ queryKey: ["stage-flow-steps"] });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] }),
+          queryClient.invalidateQueries({ queryKey: ["brief-outputs"] }),
+          queryClient.invalidateQueries({ queryKey: ["stage-flow-steps"] })
+        ]);
+        console.log("Stage processing completed successfully");
       }
     } catch (error) {
       console.error("Error processing next stage:", error);
