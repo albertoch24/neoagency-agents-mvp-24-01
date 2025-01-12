@@ -16,17 +16,25 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting RAG processor');
+    
+    // Parse request body
+    const body = await req.json().catch(() => ({}));
+    console.log('Received request body:', body);
+
+    // Validate request body
+    if (!body || typeof body.query !== 'string' || !body.query.trim()) {
+      console.error('Invalid or missing query in request body');
+      throw new Error('A valid query string is required');
+    }
+
+    const query = body.query.trim();
+    console.log('Processing query:', query);
+
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
       console.error('OpenAI API key is not configured');
       throw new Error('OpenAI API key is not configured in environment variables');
-    }
-
-    console.log('Starting RAG processor with configured API key');
-
-    const { query } = await req.json();
-    if (!query) {
-      throw new Error('No query provided');
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -53,12 +61,13 @@ serve(async (req) => {
 
     console.log('Performing similarity search');
     const results = await vectorStore.similaritySearch(query, 5);
+    console.log(`Found ${results.length} relevant documents`);
 
     console.log('Processing results with OpenAI');
     const openai = new OpenAI({ apiKey: openAIApiKey });
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
@@ -94,7 +103,8 @@ serve(async (req) => {
     console.error('Error in RAG processor:', error);
     return new Response(
       JSON.stringify({
-        error: error.message
+        error: error.message,
+        details: error.toString()
       }),
       {
         status: 500,
