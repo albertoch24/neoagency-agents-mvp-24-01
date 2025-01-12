@@ -1,16 +1,20 @@
+import { RAGResponse } from "@/utils/ragUtils";
+
 export const buildPrompt = (
   agent: any,
   brief: any,
   previousOutputs: any[],
   requirements?: string,
-  isFirstStage: boolean = false
+  isFirstStage: boolean = false,
+  relevantDocs?: RAGResponse['relevantDocs']
 ) => {
   console.log("BuildPrompt called with:", {
     agentName: agent.name,
     briefTitle: brief.title,
     previousOutputsCount: previousOutputs?.length,
     requirements: requirements?.substring(0, 100) + "...",
-    isFirstStage
+    isFirstStage,
+    hasRelevantDocs: !!relevantDocs?.length
   });
 
   const formattedRequirements = requirements 
@@ -26,8 +30,18 @@ export const buildPrompt = (
     requirements: outputRequirements
   });
 
+  // Format relevant documents in a more natural way
+  const documentContext = relevantDocs?.length 
+    ? `Based on the available research and documentation:
+
+${relevantDocs.map(doc => doc.pageContent).join('\n\n')}
+
+Please incorporate these insights naturally into your analysis, referencing them as if they were part of your knowledge base rather than direct quotes.`
+    : '';
+
   const sections = [
     buildBriefDetails(brief),
+    documentContext,
     buildPreviousOutputsSection(previousOutputs, isFirstStage),
     buildAgentSkillsSection(agent),
     buildOutputRequirementsSection(outputRequirements),
@@ -35,34 +49,27 @@ export const buildPrompt = (
   ].filter(Boolean).join('\n\n');
 
   const conversationalPrompt = `
-    As ${agent.name}, I'd like you to analyze this creative brief in two complementary ways:
+    As ${agent.name}, I'd like you to analyze this creative brief while incorporating the provided research and documentation naturally into your response. Think of this as a collaborative discussion where you:
 
     1. CONVERSATIONAL ANALYSIS:
-    First, provide your thoughts in a natural, conversational way. Use first-person perspective, share your expertise, and explain your reasoning as if you're speaking in a meeting. Include:
-    - Your initial impressions and insights
-    - How your specific expertise applies to this brief
-    - Any concerns or opportunities you see
-    - References to previous discussions or outputs where relevant
+    Share your thoughts in a natural, conversational way that weaves in relevant insights from the documentation. Use first-person perspective and:
+    - Discuss your initial impressions and insights, referencing relevant research naturally
+    - Explain how your expertise applies to this brief
+    - Point out opportunities or concerns, supported by available documentation
+    - Build upon previous discussions and research findings organically
 
     2. STRUCTURED OUTPUT:
-    Then, provide a clear, structured analysis addressing each required output:
+    Then, provide a clear, structured analysis that incorporates all available information:
     ${outputRequirements.length > 0 
       ? outputRequirements.map((req: string, index: number) => `${index + 1}. ${req}`).join('\n')
       : '- Provide your expert analysis and recommendations'}
 
-    Format your response with:
-    ### Conversational Response
-    [Your natural, dialogue-style analysis]
-
-    ### Structured Outputs
-    [Your point-by-point structured responses]
-
-    Remember to:
-    - Maintain your unique voice and personality throughout
-    - Reference specific parts of the brief and previous outputs
-    - Ensure each structured output is concrete and actionable
-    - Keep the conversational part engaging and insightful
-    - Connect your structured outputs to your conversational analysis
+    Important Guidelines:
+    - Incorporate research findings naturally, as if they were part of your own knowledge
+    - Avoid direct quotes - rephrase and integrate information organically
+    - Connect insights from documentation to your practical experience
+    - Maintain a conversational, expert tone throughout
+    - Ensure recommendations are actionable and grounded in both expertise and research
 
     Here is the context for your analysis:
     ${sections}
@@ -74,8 +81,10 @@ export const buildPrompt = (
     requirementsCount: outputRequirements.length,
     previousOutputsCount: previousOutputs.length,
     promptLength: conversationalPrompt.length,
+    hasDocumentContext: !!documentContext,
     sectionsIncluded: {
       hasBriefDetails: !!buildBriefDetails(brief),
+      hasDocumentContext: !!documentContext,
       hasPreviousOutputs: !!buildPreviousOutputsSection(previousOutputs, isFirstStage),
       hasAgentSkills: !!buildAgentSkillsSection(agent),
       hasOutputRequirements: !!buildOutputRequirementsSection(outputRequirements),
