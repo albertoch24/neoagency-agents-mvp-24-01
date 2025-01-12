@@ -14,20 +14,17 @@ export const processWorkflowStage = async (briefId: string, stage: Stage, flowSt
 
     // Process each flow step
     for (const step of flowSteps) {
-      const response = await fetch('/api/process-workflow-stage', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { error } = await supabase.functions.invoke('process-workflow-stage', {
+        body: {
           briefId,
           stageId: stage.id,
           flowStepId: step.id,
           brand: brief.brand,
-        }),
+        },
       });
 
-      if (!response.ok) {
+      if (error) {
+        console.error("Error invoking workflow stage function:", error);
         throw new Error('Failed to process workflow stage');
       }
 
@@ -43,19 +40,18 @@ export const processWorkflowStage = async (briefId: string, stage: Stage, flowSt
 
       if (stageOutput) {
         // Store stage insights in brand knowledge
-        await fetch('http://localhost:54321/functions/v1/rag-processor', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
+        const { error: ragError } = await supabase.functions.invoke('rag-processor', {
+          body: {
             brand: brief.brand,
             stage: stage.name,
             content: stageOutput.content,
             type: 'stage_output',
-          }),
+          },
         });
+
+        if (ragError) {
+          console.error("Error processing RAG:", ragError);
+        }
       }
     }
 
