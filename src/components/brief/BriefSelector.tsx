@@ -6,6 +6,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface BriefSelectorProps {
   briefs: any[];
@@ -13,6 +15,22 @@ interface BriefSelectorProps {
 }
 
 export const BriefSelector = ({ briefs, onSelect }: BriefSelectorProps) => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const handleSelect = async (briefId: string) => {
+    // First invalidate the queries
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["brief"] }),
+      queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] }),
+      queryClient.invalidateQueries({ queryKey: ["brief-outputs"] })
+    ]);
+
+    // Then navigate and call onSelect
+    navigate(`/brief/${briefId}`);
+    onSelect(briefId);
+  };
+
   if (!briefs || briefs.length === 0) return null;
 
   return (
@@ -27,7 +45,7 @@ export const BriefSelector = ({ briefs, onSelect }: BriefSelectorProps) => {
         {briefs.map((brief) => (
           <DropdownMenuItem
             key={brief.id}
-            onClick={() => onSelect(brief.id)}
+            onClick={() => handleSelect(brief.id)}
           >
             {brief.title}
           </DropdownMenuItem>
