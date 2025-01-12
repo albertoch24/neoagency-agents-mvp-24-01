@@ -14,16 +14,22 @@ export const queryRAG = async (
   context?: string
 ): Promise<RAGResponse> => {
   try {
+    console.log('Sending RAG query:', { query, briefId, context });
+    
     const { data, error } = await supabase.functions.invoke('rag-processor', {
-      body: JSON.stringify({
+      body: {
         query,
         briefId,
         context
-      })
+      }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error querying RAG:', error);
+      throw error;
+    }
 
+    console.log('RAG response:', data);
     return data as RAGResponse;
   } catch (error) {
     console.error('Error querying RAG:', error);
