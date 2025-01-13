@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const processDocument = async (
   content: string,
   metadata: Record<string, any> = {},
-  dimensions: number = 1536
+  dimensions = 1536
 ) => {
   console.log('Processing document:', {
     contentLength: content?.length,
