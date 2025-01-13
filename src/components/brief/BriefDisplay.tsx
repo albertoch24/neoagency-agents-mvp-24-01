@@ -26,33 +26,50 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
   const [isOpen, setIsOpen] = useState<string | undefined>(undefined);
 
   const handleDelete = async () => {
-    const operationId = `rag_brief_deletion_${brief.id}_${Date.now()}`;
-    console.log('Starting RAG brief deletion process:', {
+    const operationId = `rag_api_call_${brief.id}_${Date.now()}`;
+    
+    // Log API call initialization
+    console.log('Initializing RAG API call:', {
       operationId,
       briefId: brief.id,
-      brand: brief.brand,
+      endpoint: 'briefs',
+      method: 'DELETE',
+      authStatus: supabase.auth.session() ? 'authenticated' : 'unauthenticated',
       timestamp: new Date().toISOString(),
-      processStage: 'rag_deletion_start'
+      processStage: 'api_call_init'
     });
 
     try {
-      // First, log the attempt to clean up RAG data
-      console.log('Initiating RAG data cleanup:', {
+      // Log API request details
+      console.log('Making RAG API request:', {
         operationId,
         briefId: brief.id,
-        brand: brief.brand,
+        headers: {
+          authorization: supabase.auth.session()?.access_token ? 'present' : 'missing',
+          apikey: supabase.auth.session()?.access_token ? 'present' : 'missing'
+        },
         timestamp: new Date().toISOString(),
-        processStage: 'rag_cleanup_start'
+        processStage: 'api_request_start'
       });
 
-      // Attempt the deletion
-      const { error } = await supabase
+      const { error, status, statusText } = await supabase
         .from('briefs')
         .delete()
         .eq('id', brief.id);
 
+      // Log API response
+      console.log('RAG API response received:', {
+        operationId,
+        briefId: brief.id,
+        status,
+        statusText,
+        hasError: !!error,
+        timestamp: new Date().toISOString(),
+        processStage: 'api_response_received'
+      });
+
       if (error) {
-        console.error('Error in RAG data cleanup:', {
+        console.error('RAG API error details:', {
           operationId,
           briefId: brief.id,
           error: {
@@ -61,36 +78,47 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
             hint: error.hint,
             code: error.code
           },
+          authDetails: {
+            session: !!supabase.auth.session(),
+            tokenExpiry: supabase.auth.session()?.expires_at,
+            role: supabase.auth.session()?.user?.role
+          },
           timestamp: new Date().toISOString(),
-          processStage: 'rag_cleanup_error'
+          processStage: 'api_error_details'
         });
         throw error;
       }
 
-      console.log('RAG data cleanup completed:', {
+      // Log successful API completion
+      console.log('RAG API call completed successfully:', {
         operationId,
         briefId: brief.id,
-        brand: brief.brand,
         timestamp: new Date().toISOString(),
-        processStage: 'rag_cleanup_success'
+        processStage: 'api_call_success'
       });
 
       await queryClient.invalidateQueries({ queryKey: ['briefs'] });
-      toast.success('Brief and associated RAG data deleted successfully');
+      toast.success('Brief deleted successfully');
     } catch (error: any) {
-      console.error('Unexpected error in RAG cleanup process:', {
+      // Log unexpected API errors
+      console.error('Unexpected RAG API error:', {
         operationId,
         briefId: brief.id,
         error: {
+          name: error.name,
           message: error.message,
           stack: error.stack,
-          name: error.name,
           cause: error.cause
         },
+        authContext: {
+          hasSession: !!supabase.auth.session(),
+          sessionStatus: supabase.auth.session()?.user?.aud,
+          lastError: error.error?.message
+        },
         timestamp: new Date().toISOString(),
-        processStage: 'rag_cleanup_unexpected_error'
+        processStage: 'api_unexpected_error'
       });
-      toast.error(`Error deleting brief and RAG data: ${error.message}`);
+      toast.error(`Error deleting brief: ${error.message}`);
     }
   };
 
