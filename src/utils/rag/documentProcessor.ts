@@ -9,8 +9,20 @@ export async function processDocument(content: string, metadata: DocumentMetadat
       metadata
     });
 
+    // Get the OpenAI API key from Supabase
+    const { data: secretData, error: secretError } = await supabase
+      .from('secrets')
+      .select('secret')
+      .eq('name', 'OPENAI_API_KEY')
+      .single();
+
+    if (secretError) {
+      console.error('Error fetching OpenAI API key:', secretError);
+      throw new Error('Failed to fetch OpenAI API key');
+    }
+
     const embeddings = new OpenAIEmbeddings({
-      openAIApiKey: process.env.OPENAI_API_KEY,
+      openAIApiKey: secretData.secret,
       modelName: "text-embedding-ada-002"
     });
 
@@ -53,8 +65,20 @@ export async function queryDocuments(query: string, threshold = 0.8, limit = 5):
   try {
     console.log('Querying documents:', { query, threshold, limit });
 
+    // Get the OpenAI API key from Supabase
+    const { data: secretData, error: secretError } = await supabase
+      .from('secrets')
+      .select('secret')
+      .eq('name', 'OPENAI_API_KEY')
+      .single();
+
+    if (secretError) {
+      console.error('Error fetching OpenAI API key:', secretError);
+      throw new Error('Failed to fetch OpenAI API key');
+    }
+
     const embeddings = new OpenAIEmbeddings({
-      openAIApiKey: process.env.OPENAI_API_KEY,
+      openAIApiKey: secretData.secret,
       modelName: "text-embedding-ada-002"
     });
 
