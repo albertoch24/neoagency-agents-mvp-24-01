@@ -34,7 +34,7 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
     const { data: { session } } = await supabase.auth.getSession();
     
     // Log API call initialization with auth details
-    console.log('RAG API Call - Initialization:', {
+    console.log('🚀 RAG API Call - Initialization:', {
       operationId,
       briefId: brief.id,
       endpoint: 'briefs',
@@ -51,7 +51,7 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
 
     try {
       // Log detailed API request configuration
-      console.log('RAG API Call - Request Configuration:', {
+      console.log('📝 RAG API Call - Request Configuration:', {
         operationId,
         briefId: brief.id,
         requestDetails: {
@@ -72,7 +72,7 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
         .eq('id', brief.id);
 
       // Log API response details
-      console.log('RAG API Call - Response:', {
+      console.log('📨 RAG API Call - Response:', {
         operationId,
         briefId: brief.id,
         responseDetails: {
@@ -93,7 +93,7 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
 
       if (error) {
         // Log detailed error information
-        console.error('RAG API Call - Error Details:', {
+        console.error('❌ RAG API Call - Error Details:', {
           operationId,
           briefId: brief.id,
           error: {
@@ -118,7 +118,7 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
       }
 
       // Log successful completion
-      console.log('RAG API Call - Success:', {
+      console.log('✅ RAG API Call - Success:', {
         operationId,
         briefId: brief.id,
         completionDetails: {
@@ -135,7 +135,7 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
       toast.success('Brief deleted successfully');
     } catch (error: any) {
       // Log unexpected errors with full context
-      console.error('RAG API Call - Unexpected Error:', {
+      console.error('💥 RAG API Call - Unexpected Error:', {
         operationId,
         briefId: brief.id,
         error: {
