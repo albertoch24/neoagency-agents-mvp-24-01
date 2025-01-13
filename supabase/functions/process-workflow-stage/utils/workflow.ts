@@ -8,7 +8,8 @@ export async function processAgent(
   brief: any,
   stageId: string,
   requirements: string,
-  previousOutputs: any[] = []
+  previousOutputs: any[] = [],
+  isReprocessing: boolean = false
 ) {
   try {
     console.log('Processing agent:', {
@@ -18,6 +19,7 @@ export async function processAgent(
       stageId,
       requirements,
       previousOutputsCount: previousOutputs.length,
+      isReprocessing,
       previousOutputsSample: previousOutputs.map(output => ({
         id: output.id,
         type: output.output_type,
@@ -26,6 +28,24 @@ export async function processAgent(
           : 'Complex content structure'
       }))
     });
+
+    // Get feedback if reprocessing
+    let feedback = '';
+    if (isReprocessing) {
+      const { data: feedbackData } = await supabase
+        .from('stage_feedback')
+        .select('content')
+        .eq('stage_id', stageId)
+        .eq('brief_id', brief.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      feedback = feedbackData?.[0]?.content || '';
+      console.log('Retrieved feedback for reprocessing:', {
+        hasFeedback: !!feedback,
+        feedbackPreview: feedback.substring(0, 100)
+      });
+    }
 
     // Get all agents involved in this stage
     const { data: stageAgents } = await supabase
@@ -42,7 +62,14 @@ export async function processAgent(
       });
 
       const executor = await createAgentChain(stageAgents, brief);
-      const response = await processAgentInteractions(executor, brief, requirements, previousOutputs);
+      const response = await processAgentInteractions(
+        executor, 
+        brief, 
+        requirements, 
+        previousOutputs,
+        isReprocessing,
+        feedback
+      );
       
       console.log('Multi-agent response received:', {
         responseLength: response.outputs[0].content.length,
@@ -66,7 +93,8 @@ export async function processAgent(
     console.log('Building prompt for single agent:', {
       agentName: agent.name,
       isFirstStage,
-      previousOutputsCount: previousOutputs.length
+      previousOutputsCount: previousOutputs.length,
+      isReprocessing
     });
 
     const { conversationalPrompt } = buildPrompt(
@@ -74,14 +102,18 @@ export async function processAgent(
       brief,
       previousOutputs,
       requirements,
-      isFirstStage
+      isFirstStage,
+      isReprocessing,
+      feedback
     );
 
     console.log('Generated prompt:', {
       promptLength: conversationalPrompt.length,
       preview: conversationalPrompt.substring(0, 100),
       containsPreviousOutputs: conversationalPrompt.includes('Previous Stage Outputs'),
-      containsRequirements: conversationalPrompt.includes(requirements || '')
+      containsRequirements: conversationalPrompt.includes(requirements || ''),
+      isReprocessing,
+      hasFeedback: !!feedback
     });
 
     const response = await generateAgentResponse(conversationalPrompt);

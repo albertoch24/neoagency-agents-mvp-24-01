@@ -1,16 +1,22 @@
+import { buildSystemInstructions } from "./systemInstructions";
+
 export const buildPrompt = (
   agent: any,
   brief: any,
   previousOutputs: any[],
   requirements?: string,
-  isFirstStage: boolean = false
+  isFirstStage: boolean = false,
+  isReprocessing: boolean = false,
+  feedback?: string
 ) => {
   console.log("BuildPrompt called with:", {
     agentName: agent.name,
     briefTitle: brief.title,
     previousOutputsCount: previousOutputs?.length,
     requirements: requirements?.substring(0, 100) + "...",
-    isFirstStage
+    isFirstStage,
+    isReprocessing,
+    hasFeedback: !!feedback
   });
 
   const formattedRequirements = requirements 
@@ -21,12 +27,16 @@ export const buildPrompt = (
     ?.map((output: any) => output.text)
     .filter(Boolean) || [];
 
-  console.log("Output requirements prepared:", {
-    requirementsCount: outputRequirements.length,
-    requirements: outputRequirements
-  });
+  const reprocessingContext = isReprocessing && feedback ? `
+    IMPORTANT - This is a reprocessing request based on the following feedback:
+    ${feedback}
+    
+    Please address this feedback specifically in your new response and provide a different perspective or approach.
+    Ensure your new response is substantially different from the previous one while still meeting the original requirements.
+  ` : '';
 
   const sections = [
+    reprocessingContext,
     buildBriefDetails(brief),
     buildPreviousOutputsSection(previousOutputs, isFirstStage),
     buildAgentSkillsSection(agent),
@@ -35,14 +45,15 @@ export const buildPrompt = (
   ].filter(Boolean).join('\n\n');
 
   const conversationalPrompt = `
-    As ${agent.name}, I'd like you to analyze this creative brief in two complementary ways:
+    As ${agent.name}, I'd like you to ${isReprocessing ? 're-analyze' : 'analyze'} this creative brief with a ${isReprocessing ? 'fresh perspective' : 'thorough approach'}:
 
     1. CONVERSATIONAL ANALYSIS:
     First, provide your thoughts in a natural, conversational way. Use first-person perspective, share your expertise, and explain your reasoning as if you're speaking in a meeting. Include:
-    - Your initial impressions and insights
+    - Your ${isReprocessing ? 'new' : 'initial'} impressions and insights
     - How your specific expertise applies to this brief
     - Any concerns or opportunities you see
     - References to previous discussions or outputs where relevant
+    ${isReprocessing ? '- Address the specific feedback provided and explain your new approach' : ''}
 
     2. STRUCTURED OUTPUT:
     Then, provide a clear, structured analysis addressing each required output:
@@ -63,6 +74,7 @@ export const buildPrompt = (
     - Ensure each structured output is concrete and actionable
     - Keep the conversational part engaging and insightful
     - Connect your structured outputs to your conversational analysis
+    ${isReprocessing ? '- Provide substantially different insights and approaches from your previous response' : ''}
 
     Here is the context for your analysis:
     ${sections}
@@ -74,7 +86,9 @@ export const buildPrompt = (
     requirementsCount: outputRequirements.length,
     previousOutputsCount: previousOutputs.length,
     promptLength: conversationalPrompt.length,
+    isReprocessing,
     sectionsIncluded: {
+      hasReprocessingContext: !!reprocessingContext,
       hasBriefDetails: !!buildBriefDetails(brief),
       hasPreviousOutputs: !!buildPreviousOutputsSection(previousOutputs, isFirstStage),
       hasAgentSkills: !!buildAgentSkillsSection(agent),

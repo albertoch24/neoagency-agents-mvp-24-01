@@ -17,24 +17,30 @@ serve(async (req) => {
     console.log('Processing workflow stage request');
     
     // Parse request body
-    const { briefId, stageId, flowId, flowSteps } = await req.json();
+    const { briefId, stageId, flowId, flowSteps, isReprocessing = false } = await req.json();
     
     // Validate required parameters
     if (!briefId || !stageId) {
       throw new Error('Missing required parameters: briefId and stageId are required');
     }
     
-    console.log('Processing workflow for:', { briefId, stageId, flowId, flowSteps });
+    console.log('Processing workflow for:', { 
+      briefId, 
+      stageId, 
+      flowId, 
+      flowSteps,
+      isReprocessing 
+    });
     
     // Process the workflow
-    const outputs = await processAgents(briefId, stageId);
+    const outputs = await processAgents(briefId, stageId, isReprocessing);
     
     console.log('Workflow processed successfully:', outputs);
     
     // Return success response with CORS headers
     return new Response(
       JSON.stringify({ 
-        message: "Stage processed successfully", 
+        message: `Stage ${isReprocessing ? 're-processed' : 'processed'} successfully`, 
         outputs 
       }),
       { 
