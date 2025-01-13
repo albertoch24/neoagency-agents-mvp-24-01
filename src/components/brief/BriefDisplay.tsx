@@ -5,6 +5,7 @@ import { Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 interface Brief {
   id: string;
@@ -23,6 +24,7 @@ interface BriefDisplayProps {
 
 const BriefDisplay = ({ brief }: BriefDisplayProps) => {
   const queryClient = useQueryClient();
+  const [isOpen, setIsOpen] = useState<string | undefined>(undefined);
 
   const handleDelete = async () => {
     try {
@@ -44,7 +46,7 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
 
   return (
     <Card className="mb-8">
-      <Accordion type="single" collapsible>
+      <Accordion type="single" collapsible value={isOpen} onValueChange={setIsOpen}>
         <AccordionItem value="brief-details">
           <AccordionTrigger className="px-6 py-4">
             <div className="flex justify-between items-center w-full">
