@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { TextChunk, DocumentMetadata, EmbeddingVector } from "@/types/rag";
+import { TextChunk, DocumentMetadata } from "@/types/rag";
 import { OpenAIEmbeddings } from "@langchain/openai";
 
 export async function processDocument(content: string, metadata: DocumentMetadata) {
@@ -70,7 +70,7 @@ export async function processDocument(content: string, metadata: DocumentMetadat
       });
 
       return data[0];
-    } catch (embeddingError) {
+    } catch (embeddingError: any) {
       console.error('Error in OpenAI embedding generation:', embeddingError);
       throw new Error(`Failed to generate embedding: ${embeddingError.message}`);
     }
@@ -156,7 +156,7 @@ export async function queryDocuments(query: string, threshold = 0.8, limit = 5):
       });
 
       return transformedChunks;
-    } catch (embeddingError) {
+    } catch (embeddingError: any) {
       console.error('Error generating query embedding:', embeddingError);
       throw new Error(`Failed to generate query embedding: ${embeddingError.message}`);
     }
