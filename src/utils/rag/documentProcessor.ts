@@ -21,6 +21,13 @@ export async function processDocument(content: string, metadata: DocumentMetadat
       throw new Error('Failed to fetch OpenAI API key');
     }
 
+    if (!secretData?.secret) {
+      console.error('OpenAI API key not found in secrets');
+      throw new Error('OpenAI API key not configured');
+    }
+
+    console.log('Successfully retrieved OpenAI API key');
+
     const embeddings = new OpenAIEmbeddings({
       openAIApiKey: secretData.secret,
       modelName: "text-embedding-ada-002"
@@ -76,6 +83,13 @@ export async function queryDocuments(query: string, threshold = 0.8, limit = 5):
       console.error('Error fetching OpenAI API key:', secretError);
       throw new Error('Failed to fetch OpenAI API key');
     }
+
+    if (!secretData?.secret) {
+      console.error('OpenAI API key not found in secrets');
+      throw new Error('OpenAI API key not configured');
+    }
+
+    console.log('Successfully retrieved OpenAI API key for query');
 
     const embeddings = new OpenAIEmbeddings({
       openAIApiKey: secretData.secret,
