@@ -48,12 +48,13 @@ export async function processDocument(content: string, metadata: any = {}) {
 
     console.log('Successfully generated embedding');
 
+    // Convert the embedding array to a string before inserting
     const { error: insertError } = await supabase
       .from('document_embeddings')
       .insert({
         content,
         metadata,
-        embedding
+        embedding: JSON.stringify(embedding) // Convert array to string
       });
 
     if (insertError) {
@@ -91,9 +92,10 @@ export async function queryDocuments(query: string, threshold = 0.8, limit = 5) 
 
     const queryEmbedding = await embeddings.embedQuery(query);
 
+    // Convert the query embedding to a string
     const { data: matches, error } = await supabase
       .rpc('match_documents', {
-        query_embedding: queryEmbedding,
+        query_embedding: JSON.stringify(queryEmbedding),
         match_threshold: threshold,
         match_count: limit
       });
