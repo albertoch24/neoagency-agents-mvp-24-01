@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.1.0";
+import OpenAI from "https://esm.sh/openai@4.26.0";
 
 export async function enhancePromptWithContext(prompt: string, briefId: string) {
   try {
@@ -10,9 +10,15 @@ export async function enhancePromptWithContext(prompt: string, briefId: string) 
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const openAIKey = Deno.env.get('OPENAI_API_KEY');
 
     if (!supabaseUrl || !supabaseKey) {
       throw new Error('Missing Supabase environment variables');
+    }
+
+    if (!openAIKey) {
+      console.error('OpenAI API key not found in environment variables');
+      return prompt;
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -65,14 +71,26 @@ Please consider the above context while responding to the prompt. Incorporate re
 }
 
 async function generateEmbedding(text: string): Promise<number[]> {
-  const openai = new OpenAIApi(new Configuration({
-    apiKey: Deno.env.get('OPENAI_API_KEY'),
-  }));
+  const openAIKey = Deno.env.get('OPENAI_API_KEY');
+  
+  if (!openAIKey) {
+    throw new Error('OpenAI API key not found in environment variables');
+  }
 
-  const response = await openai.createEmbedding({
-    model: "text-embedding-3-small",
-    input: text,
+  const openai = new OpenAI({
+    apiKey: openAIKey
   });
 
-  return response.data.data[0].embedding;
+  try {
+    const response = await openai.embeddings.create({
+      model: "text-embedding-3-small",
+      input: text,
+      encoding_format: "float"
+    });
+
+    return response.data[0].embedding;
+  } catch (error) {
+    console.error('Error generating embedding:', error);
+    throw error;
+  }
 }
