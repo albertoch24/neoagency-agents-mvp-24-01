@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const generateEmbedding = async (content: string): Promise<number[]> => {
-  console.log('Calling embeddings service:', {
+  console.log('Starting embeddings generation:', {
     contentLength: content.length,
     contentPreview: content.substring(0, 100),
     timestamp: new Date().toISOString()
@@ -15,6 +15,8 @@ export const generateEmbedding = async (content: string): Promise<number[]> => {
     if (error) {
       console.error('Error from embeddings function:', {
         error,
+        errorMessage: error.message,
+        errorDetails: error.details,
         timestamp: new Date().toISOString()
       });
       throw error;
@@ -30,11 +32,12 @@ export const generateEmbedding = async (content: string): Promise<number[]> => {
 
     console.log('Embedding generated successfully:', {
       dimensions: data.embedding.length,
+      embeddingPreview: data.embedding.slice(0, 5),
       timestamp: new Date().toISOString()
     });
 
     return data.embedding;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error generating embedding:', {
       error: error.message,
       stack: error.stack,
@@ -42,4 +45,4 @@ export const generateEmbedding = async (content: string): Promise<number[]> => {
     });
     throw error;
   }
-};
+}
