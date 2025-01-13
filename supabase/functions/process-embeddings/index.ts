@@ -1,8 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { OpenAI } from "https://esm.sh/openai@4.28.0";
-import { corsHeaders } from "../_shared/cors.ts";
+import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.1.0";
 
-console.log("Loading process-embeddings function");
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -10,43 +12,26 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Starting embeddings process:', {
-      method: req.method,
-      timestamp: new Date().toISOString()
-    });
-
-    const openAiKey = Deno.env.get('OPENAI_API_KEY');
-    
-    if (!openAiKey) {
-      console.error('OpenAI API key not found in environment');
-      throw new Error('OpenAI API key not configured');
-    }
-
-    console.log('API Key verification:', {
-      exists: !!openAiKey,
-      length: openAiKey.length,
-      startsWithSk: openAiKey.startsWith('sk-'),
-      timestamp: new Date().toISOString()
-    });
-
-    if (!openAiKey.startsWith('sk-')) {
-      console.error('Invalid OpenAI API key format:', {
-        keyLength: openAiKey.length,
-        timestamp: new Date().toISOString()
-      });
-      throw new Error('Invalid OpenAI API key format');
-    }
-
-    const openai = new OpenAI({
-      apiKey: openAiKey,
-    });
-
-    const { content } = await req.json();
+    const { content, dimensions = 1536 } = await req.json();
 
     if (!content) {
-      console.error('No content provided for embedding');
-      throw new Error('Content is required');
+      throw new Error('No content provided');
     }
+
+    const openAIKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIKey) {
+      throw new Error('OpenAI API key not found');
+    }
+
+    const configuration = new Configuration({
+      apiKey: openAIKey,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${openAIKey}`
+      }
+    });
+
+    const openai = new OpenAIApi(configuration);
 
     console.log('Generating embedding for content:', {
       contentLength: content.length,
@@ -55,47 +40,44 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     });
 
-    const embedding = await openai.embeddings.create({
+    const embeddingResponse = await openai.createEmbedding({
       model: "text-embedding-3-small",
       input: content,
-      encoding_format: "float",
+      dimensions: dimensions
     });
 
-    console.log('Embedding generated successfully:', {
-      dimensions: embedding.data[0].embedding.length,
+    const [{ embedding }] = embeddingResponse.data.data;
+
+    console.log('Successfully generated embedding:', {
+      dimensions: embedding.length,
       timestamp: new Date().toISOString()
     });
 
     return new Response(
-      JSON.stringify({
-        embedding: embedding.data[0].embedding,
-      }),
-      {
-        headers: {
+      JSON.stringify({ embedding }),
+      { 
+        headers: { 
           ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      },
+          'Content-Type': 'application/json'
+        } 
+      }
     );
-  } catch (error) {
-    console.error('Error in process-embeddings:', {
-      error: error.message,
-      stack: error.stack,
-      timestamp: new Date().toISOString()
-    });
 
+  } catch (error) {
+    console.error('Error in process-embeddings:', error);
     return new Response(
-      JSON.stringify({
+      JSON.stringify({ 
         error: error.message,
         details: error.toString(),
+        timestamp: new Date().toISOString()
       }),
-      {
+      { 
         status: 500,
         headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      },
+          'Content-Type': 'application/json'
+        }
+      }
     );
   }
 });
