@@ -2,7 +2,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const generateEmbeddings = async (text: string) => {
   try {
-    console.log('Requesting embeddings for text:', text);
+    console.log('Requesting embeddings for text:', {
+      textLength: text.length,
+      preview: text.substring(0, 100)
+    });
     
     const { data, error } = await supabase.functions.invoke('process-embeddings', {
       body: { text }
