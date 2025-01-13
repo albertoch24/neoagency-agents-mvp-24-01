@@ -14,11 +14,13 @@ export async function processDocument(content: string, metadata: DocumentMetadat
       modelName: "text-embedding-ada-002"
     });
 
+    console.log('Generating embedding for content');
     const embedding = await embeddings.embedQuery(content);
 
     // Convert embedding array to string for storage
     const embeddingString = JSON.stringify(embedding);
 
+    console.log('Storing document with embedding in Supabase');
     const { data, error } = await supabase
       .from('document_embeddings')
       .insert([
@@ -30,7 +32,10 @@ export async function processDocument(content: string, metadata: DocumentMetadat
       ])
       .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error storing document:', error);
+      throw error;
+    }
 
     console.log('Document processed successfully:', {
       documentId: data[0].id,
@@ -65,7 +70,10 @@ export async function queryDocuments(query: string, threshold = 0.8, limit = 5):
       }
     );
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error querying documents:', error);
+      throw error;
+    }
 
     // Transform the response to match TextChunk interface
     const transformedChunks: TextChunk[] = chunks.map(chunk => {
