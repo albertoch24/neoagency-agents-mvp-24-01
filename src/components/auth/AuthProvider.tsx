@@ -7,46 +7,49 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  refreshSession: () => Promise<void>; // Add refresh function to context
 }
 
 const AuthContext = createContext<AuthContextType>({
   session: null,
   user: null,
   loading: true,
+  refreshSession: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  console.log("AuthProvider rendering");
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Refresh session function that can be called from components
+  const refreshSession = async () => {
+    try {
+      const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error('Error refreshing session:', refreshError);
+        toast.error('Session refresh failed. Please log in again.');
+        // Clear stored session on refresh error
+        localStorage.removeItem('supabase.auth.session');
+        setSession(null);
+        setUser(null);
+        return;
+      }
+      
+      if (refreshedSession) {
+        console.log("Session refreshed successfully");
+        setSession(refreshedSession);
+        setUser(refreshedSession.user);
+        localStorage.setItem('supabase.auth.session', JSON.stringify(refreshedSession));
+      }
+    } catch (error) {
+      console.error('Error in refreshSession:', error);
+      toast.error('Session refresh failed. Please log in again.');
+    }
+  };
+
   useEffect(() => {
     console.log("AuthProvider effect running");
-
-    const refreshSession = async () => {
-      try {
-        const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
-        if (refreshError) {
-          console.error('Error refreshing session:', refreshError);
-          // Clear stored session on refresh error
-          localStorage.removeItem('supabase.auth.session');
-          setSession(null);
-          setUser(null);
-          return;
-        }
-        
-        if (refreshedSession) {
-          console.log("Session refreshed successfully");
-          setSession(refreshedSession);
-          setUser(refreshedSession.user);
-          localStorage.setItem('supabase.auth.session', JSON.stringify(refreshedSession));
-        }
-      } catch (error) {
-        console.error('Error in refreshSession:', error);
-        toast.error('Session refresh failed. Please log in again.');
-      }
-    };
 
     // Initialize session from local storage if available
     const storedSession = localStorage.getItem('supabase.auth.session');
@@ -59,8 +62,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         // Check if session needs refresh
         const expiresAt = parsedSession?.expires_at;
-        if (expiresAt && Date.now() >= expiresAt * 1000) {
-          console.log("Session expired, attempting refresh");
+        if (expiresAt && Date.now() >= (expiresAt * 1000) - (5 * 60 * 1000)) { // Refresh 5 minutes before expiration
+          console.log("Session near expiration, refreshing");
           refreshSession();
         }
       } catch (error) {
@@ -90,6 +93,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
       
+      if (event === 'TOKEN_REFRESHED') {
+        console.log('Token refreshed successfully');
+      }
+      
       if (session) {
         setSession(session);
         setUser(session.user);
@@ -114,7 +121,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ session, user, loading }}>
+    <AuthContext.Provider value={{ session, user, loading, refreshSession }}>
       {children}
     </AuthContext.Provider>
   );

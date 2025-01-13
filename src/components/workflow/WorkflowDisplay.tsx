@@ -9,6 +9,7 @@ import { useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 interface WorkflowDisplayProps {
   currentStage: string;
@@ -26,6 +27,7 @@ export const WorkflowDisplay = ({
   const { data: stages = [] } = useStagesData(briefId);
   const { isProcessing, processStage } = useStageProcessing(briefId || "");
   const queryClient = useQueryClient();
+  const { refreshSession } = useAuth();
 
   const { data: completedStages = [] } = useQuery({
     queryKey: ["completed-stages", briefId],
@@ -40,6 +42,25 @@ export const WorkflowDisplay = ({
           .order("created_at", { ascending: true });
 
         if (error) {
+          // Check for JWT expiration
+          if (error.message?.includes('JWT expired')) {
+            console.log("JWT expired, attempting to refresh session");
+            await refreshSession();
+            // Retry the query after refresh
+            const { data: retryData, error: retryError } = await supabase
+              .from("workflow_conversations")
+              .select("stage_id")
+              .eq("brief_id", briefId)
+              .order("created_at", { ascending: true });
+
+            if (retryError) {
+              console.error("Error after session refresh:", retryError);
+              toast.error("Failed to fetch workflow data. Please try again.");
+              return [];
+            }
+            return retryData?.map(item => item.stage_id) || [];
+          }
+          
           console.error("Error fetching completed stages:", error);
           toast.error("Failed to fetch completed stages");
           return [];
@@ -48,11 +69,13 @@ export const WorkflowDisplay = ({
         return data?.map(item => item.stage_id) || [];
       } catch (error) {
         console.error("Error in completedStages query:", error);
+        toast.error("An unexpected error occurred while fetching stages");
         return [];
       }
     },
     enabled: !!briefId,
-    retry: 3
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
   });
 
   const handleNextStage = useCallback(async () => {
@@ -102,7 +125,6 @@ export const WorkflowDisplay = ({
     }
   };
 
-  // Effect for handling automatic progression of first stage
   useEffect(() => {
     if (!briefId || !currentStage || isProcessing || !stages.length) {
       return;
