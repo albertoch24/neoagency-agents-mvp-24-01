@@ -23,7 +23,7 @@ const getOpenAIKey = async (): Promise<string> => {
 export const processDocument = async (
   content: string,
   metadata: Record<string, any> = {},
-  dimensions: number = 1536
+  dimensions = 1536
 ) => {
   console.log('Processing document:', {
     contentLength: content?.length,
@@ -48,7 +48,7 @@ export const processDocument = async (
     const embeddingResponse = await openai.createEmbedding({
       model: "text-embedding-3-small",
       input: content,
-      dimensions: dimensions
+      dimensions
     });
 
     const [{ embedding }] = embeddingResponse.data.data;
@@ -78,10 +78,10 @@ export const processDocument = async (
 
 export const queryDocuments = async (
   query: string,
-  threshold: number = 0.8,
-  limit: number = 5,
-  dimensions: number = 1536
-): Promise<any[]> {
+  threshold = 0.8,
+  limit = 5,
+  dimensions = 1536
+) => {
   console.log('Querying documents:', { 
     query, 
     threshold, 
@@ -106,7 +106,7 @@ export const queryDocuments = async (
     const embeddingResponse = await openai.createEmbedding({
       model: "text-embedding-3-small",
       input: query,
-      dimensions: dimensions
+      dimensions
     });
 
     const [{ embedding }] = embeddingResponse.data.data;
