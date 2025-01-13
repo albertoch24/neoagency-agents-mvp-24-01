@@ -36,11 +36,7 @@ export const processDocument = async (
     const apiKey = await getOpenAIKey();
     
     const openai = new OpenAI({
-      apiKey,
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      }
+      apiKey
     });
 
     const embeddingResponse = await openai.embeddings.create({
@@ -57,7 +53,7 @@ export const processDocument = async (
       .insert({
         content,
         metadata,
-        embedding
+        embedding: JSON.stringify(embedding) // Convert number[] to string for storage
       });
 
     if (insertError) {
@@ -79,7 +75,7 @@ export const queryDocuments = async (
   threshold = 0.8,
   limit = 5,
   dimensions = 1536
-) => {
+): Promise<any[]> => {
   console.log('Querying documents:', { 
     query, 
     threshold, 
@@ -92,11 +88,7 @@ export const queryDocuments = async (
     const apiKey = await getOpenAIKey();
     
     const openai = new OpenAI({
-      apiKey,
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      }
+      apiKey
     });
 
     const embeddingResponse = await openai.embeddings.create({
@@ -109,7 +101,7 @@ export const queryDocuments = async (
 
     const { data: matches, error } = await supabase
       .rpc('match_documents', {
-        query_embedding: embedding,
+        query_embedding: JSON.stringify(embedding), // Convert number[] to string for the RPC call
         match_threshold: threshold,
         match_count: limit
       });
