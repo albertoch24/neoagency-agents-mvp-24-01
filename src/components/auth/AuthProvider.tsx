@@ -23,6 +23,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     console.log("AuthProvider effect running");
+
+    const refreshSession = async () => {
+      try {
+        const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          console.error('Error refreshing session:', refreshError);
+          // Clear stored session on refresh error
+          localStorage.removeItem('supabase.auth.session');
+          setSession(null);
+          setUser(null);
+          return;
+        }
+        
+        if (refreshedSession) {
+          console.log("Session refreshed successfully");
+          setSession(refreshedSession);
+          setUser(refreshedSession.user);
+          localStorage.setItem('supabase.auth.session', JSON.stringify(refreshedSession));
+        }
+      } catch (error) {
+        console.error('Error in refreshSession:', error);
+        toast.error('Session refresh failed. Please log in again.');
+      }
+    };
+
     // Initialize session from local storage if available
     const storedSession = localStorage.getItem('supabase.auth.session');
     if (storedSession) {
@@ -31,6 +56,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log("Found stored session:", parsedSession);
         setSession(parsedSession);
         setUser(parsedSession?.user ?? null);
+        
+        // Check if session needs refresh
+        const expiresAt = parsedSession?.expires_at;
+        if (expiresAt && Date.now() >= expiresAt * 1000) {
+          console.log("Session expired, attempting refresh");
+          refreshSession();
+        }
       } catch (error) {
         console.error('Error parsing stored session:', error);
         localStorage.removeItem('supabase.auth.session');
@@ -71,9 +103,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     });
 
-    // Cleanup subscription
+    // Set up periodic session refresh (every 30 minutes)
+    const refreshInterval = setInterval(refreshSession, 30 * 60 * 1000);
+
+    // Cleanup subscription and interval
     return () => {
       subscription.unsubscribe();
+      clearInterval(refreshInterval);
     };
   }, []);
 
