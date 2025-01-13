@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, RefreshCw } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface StageFeedbackProps {
   briefId: string;
@@ -15,6 +16,7 @@ interface StageFeedbackProps {
 
 export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackProps) => {
   const [feedback, setFeedback] = useState("");
+  const [isPermanent, setIsPermanent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
@@ -32,13 +34,16 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
           brief_id: briefId,
           stage_id: stageId,
           content: feedback,
-          requires_revision: true
+          requires_revision: true,
+          is_permanent: isPermanent,
+          processed_for_rag: false // Will be processed by a background job if is_permanent is true
         });
 
       if (error) throw error;
 
       toast.success("Feedback submitted successfully");
       setFeedback("");
+      setIsPermanent(false);
       queryClient.invalidateQueries({ queryKey: ["stage-feedback"] });
     } catch (error) {
       console.error("Error submitting feedback:", error);
@@ -60,6 +65,19 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
           onChange={(e) => setFeedback(e.target.value)}
           className="min-h-[100px]"
         />
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="permanent"
+            checked={isPermanent}
+            onCheckedChange={(checked) => setIsPermanent(checked as boolean)}
+          />
+          <label
+            htmlFor="permanent"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Save as brand knowledge (will be used for future briefs)
+          </label>
+        </div>
         <div className="flex gap-2">
           <Button 
             onClick={handleSubmit} 

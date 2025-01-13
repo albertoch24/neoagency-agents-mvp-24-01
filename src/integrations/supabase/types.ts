@@ -512,6 +512,8 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          is_permanent: boolean | null
+          processed_for_rag: boolean | null
           rating: number | null
           requires_revision: boolean | null
           stage_id: string
@@ -522,6 +524,8 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          is_permanent?: boolean | null
+          processed_for_rag?: boolean | null
           rating?: number | null
           requires_revision?: boolean | null
           stage_id: string
@@ -532,6 +536,8 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          is_permanent?: boolean | null
+          processed_for_rag?: boolean | null
           rating?: number | null
           requires_revision?: boolean | null
           stage_id?: string
