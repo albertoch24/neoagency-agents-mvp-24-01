@@ -36,9 +36,12 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
         .eq("id", briefId)
         .single();
 
-      if (briefError) throw briefError;
+      if (briefError) {
+        console.error("Error fetching brief data:", briefError);
+        throw new Error("Failed to fetch brief details");
+      }
 
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from("stage_feedback")
         .insert({
           brief_id: briefId,
@@ -49,7 +52,10 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
           processed_for_rag: false
         });
 
-      if (error) throw error;
+      if (insertError) {
+        console.error("Error inserting feedback:", insertError);
+        throw new Error("Failed to save feedback");
+      }
 
       // If it's permanent feedback, process it for RAG
       if (isPermanent && briefData?.brand) {
@@ -58,22 +64,30 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
           brand: briefData.brand
         });
 
-        // Process the document for RAG with metadata
-        await processDocument(feedback, {
-          source: "stage_feedback",
-          brand: briefData.brand,
-          type: "feedback"
-        });
+        try {
+          // Process the document for RAG with metadata
+          await processDocument(feedback, {
+            source: "stage_feedback",
+            brand: briefData.brand,
+            type: "feedback"
+          });
 
-        // Update the feedback record to mark it as processed
-        const { error: updateError } = await supabase
-          .from("stage_feedback")
-          .update({ processed_for_rag: true })
-          .eq("brief_id", briefId)
-          .eq("stage_id", stageId);
+          // Update the feedback record to mark it as processed
+          const { error: updateError } = await supabase
+            .from("stage_feedback")
+            .update({ processed_for_rag: true })
+            .eq("brief_id", briefId)
+            .eq("stage_id", stageId);
 
-        if (updateError) {
-          console.error("Error updating RAG processing status:", updateError);
+          if (updateError) {
+            console.error("Error updating RAG processing status:", updateError);
+            // Don't throw here, as the feedback was still saved
+            toast.error("Feedback saved but failed to process for brand knowledge");
+          }
+        } catch (ragError) {
+          console.error("Error processing feedback for RAG:", ragError);
+          // Don't throw here, as the feedback was still saved
+          toast.error("Feedback saved but failed to process for brand knowledge");
         }
       }
 
@@ -82,8 +96,8 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
       setIsPermanent(false);
       queryClient.invalidateQueries({ queryKey: ["stage-feedback"] });
     } catch (error) {
-      console.error("Error submitting feedback:", error);
-      toast.error("Failed to submit feedback");
+      console.error("Error in handleSubmit:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to submit feedback");
     } finally {
       setIsSubmitting(false);
     }
