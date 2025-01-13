@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.1.0";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,6 +13,7 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Processing RAG request');
     const { query, limit = 5 } = await req.json();
 
     if (!query?.trim()) {
@@ -23,7 +24,11 @@ serve(async (req) => {
       apiKey: Deno.env.get('OPENAI_API_KEY'),
     }));
 
-    // Generate embedding for the query
+    console.log('Generating embedding for query:', {
+      queryLength: query.length,
+      limit
+    });
+
     const embeddingResponse = await openai.createEmbedding({
       model: "text-embedding-ada-002",
       input: query,
@@ -31,7 +36,8 @@ serve(async (req) => {
     
     const queryEmbedding = embeddingResponse.data.data[0].embedding;
 
-    // Query Supabase for similar documents
+    console.log('Generated embedding, querying similar documents');
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -43,14 +49,22 @@ serve(async (req) => {
       match_count: limit
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error matching documents:', error);
+      throw error;
+    }
+
+    console.log('Retrieved chunks:', {
+      count: chunks?.length,
+      firstChunkPreview: chunks?.[0]?.content.substring(0, 100)
+    });
 
     return new Response(
       JSON.stringify({ chunks }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in RAG processor:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

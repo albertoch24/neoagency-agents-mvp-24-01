@@ -1,6 +1,6 @@
-import { buildSystemInstructions } from "./systemInstructions";
+import { enhancePromptWithContext } from "../../../../src/utils/rag/contextEnhancer";
 
-export const buildPrompt = (
+export const buildPrompt = async (
   agent: any,
   brief: any,
   previousOutputs: any[],
@@ -19,6 +19,33 @@ export const buildPrompt = (
     hasFeedback: !!feedback
   });
 
+  // Build base prompt as before
+  const basePrompt = buildBasePrompt(
+    agent,
+    brief,
+    previousOutputs,
+    requirements,
+    isFirstStage,
+    isReprocessing,
+    feedback
+  );
+
+  // Enhance prompt with RAG context
+  const enhancedPrompt = await enhancePromptWithContext(basePrompt, brief.id);
+
+  return { conversationalPrompt: enhancedPrompt };
+};
+
+// Extract base prompt building logic to separate function
+const buildBasePrompt = (
+  agent: any,
+  brief: any,
+  previousOutputs: any[],
+  requirements?: string,
+  isFirstStage: boolean = false,
+  isReprocessing: boolean = false,
+  feedback?: string
+) => {
   const formattedRequirements = requirements 
     ? `\nSpecific Requirements for this Step:\n${requirements}`
     : '';
@@ -80,33 +107,10 @@ export const buildPrompt = (
     ${sections}
   `;
 
-  console.log('Generated prompt:', {
-    agentName: agent.name,
-    briefTitle: brief.title,
-    requirementsCount: outputRequirements.length,
-    previousOutputsCount: previousOutputs.length,
-    promptLength: conversationalPrompt.length,
-    isReprocessing,
-    sectionsIncluded: {
-      hasReprocessingContext: !!reprocessingContext,
-      hasBriefDetails: !!buildBriefDetails(brief),
-      hasPreviousOutputs: !!buildPreviousOutputsSection(previousOutputs, isFirstStage),
-      hasAgentSkills: !!buildAgentSkillsSection(agent),
-      hasOutputRequirements: !!buildOutputRequirementsSection(outputRequirements),
-      hasFormattedRequirements: !!formattedRequirements
-    }
-  });
-
   return { conversationalPrompt };
 };
 
 const buildBriefDetails = (brief: any) => {
-  console.log("Building brief details for:", {
-    briefTitle: brief.title,
-    hasDescription: !!brief.description,
-    hasObjectives: !!brief.objectives
-  });
-  
   return `
 Brief Details:
 Title: ${brief.title}
@@ -116,27 +120,11 @@ Objectives: ${brief.objectives}
 };
 
 const buildPreviousOutputsSection = (previousOutputs: any[], isFirstStage: boolean) => {
-  console.log("Building previous outputs section:", {
-    outputsCount: previousOutputs?.length,
-    isFirstStage,
-    outputTypes: previousOutputs?.map(o => o.output_type),
-    hasContent: previousOutputs?.every(o => o.content),
-    rawOutputs: previousOutputs?.map(o => ({
-      type: o.output_type,
-      contentType: typeof o.content,
-      contentSample: typeof o.content === 'string' 
-        ? o.content.substring(0, 100) 
-        : 'non-string content'
-    }))
-  });
-
   if (!Array.isArray(previousOutputs) || previousOutputs.length === 0) {
-    console.log("No valid previous outputs found");
     return '';
   }
 
   if (isFirstStage) {
-    console.log("Skipping previous outputs - first stage");
     return '';
   }
   
@@ -144,13 +132,6 @@ const buildPreviousOutputsSection = (previousOutputs: any[], isFirstStage: boole
     .filter((output: any) => {
       const hasValidContent = output?.content && 
         (typeof output.content === 'string' || typeof output.content === 'object');
-      
-      console.log("Validating output:", {
-        hasContent: !!output?.content,
-        contentType: typeof output?.content,
-        isValid: hasValidContent
-      });
-      
       return hasValidContent;
     })
     .map((output: any) => {
@@ -159,7 +140,6 @@ const buildPreviousOutputsSection = (previousOutputs: any[], isFirstStage: boole
         try {
           content = JSON.stringify(content, null, 2);
         } catch (e) {
-          console.error("Error stringifying content:", e);
           return null;
         }
       }
@@ -172,35 +152,10 @@ const buildPreviousOutputsSection = (previousOutputs: any[], isFirstStage: boole
     .filter(Boolean)
     .join('\n\n');
 
-  console.log("Processed previous outputs:", {
-    hasOutputs: !!outputs,
-    outputLength: outputs?.length,
-    outputPreview: outputs?.substring(0, 100)
-  });
-
   return outputs ? `\nPrevious Stage Outputs:\n${outputs}` : '';
 };
 
-const buildFlowStepOutputsSection = (flowStepOutputs?: { title: string; content: string }[]) => {
-  console.log("Building flow step outputs:", {
-    hasOutputs: !!flowStepOutputs?.length,
-    outputCount: flowStepOutputs?.length
-  });
-
-  if (!flowStepOutputs?.length) return '';
-  
-  return `\nFlow Step Outputs:\n${flowStepOutputs.map(output => 
-    `Title: ${output.title}\nContent: ${output.content}`
-  ).join('\n\n')}`;
-};
-
 const buildAgentSkillsSection = (agent: any) => {
-  console.log("Building agent skills section:", {
-    agentName: agent.name,
-    hasDescription: !!agent.description,
-    skillsCount: agent.skills?.length
-  });
-
   return `
 Your Role and Background:
 ${agent.description}
@@ -211,11 +166,6 @@ ${agent.skills?.map((skill: any) => `- ${skill.name}: ${skill.content}`).join('\
 };
 
 const buildOutputRequirementsSection = (outputRequirements: string[]) => {
-  console.log("Building output requirements section:", {
-    requirementsCount: outputRequirements.length,
-    requirements: outputRequirements
-  });
-
   return `
 Please provide a structured analysis that specifically addresses each of these required outputs:
 ${outputRequirements.map((req: string, index: number) => `${index + 1}. ${req}`).join('\n')}

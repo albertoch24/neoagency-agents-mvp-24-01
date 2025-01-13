@@ -804,8 +804,8 @@ export type Database = {
         | {
             Args: {
               query_embedding: string
-              match_threshold: number
-              match_count: number
+              match_threshold?: number
+              match_count?: number
             }
             Returns: {
               id: number
