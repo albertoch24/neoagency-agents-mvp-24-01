@@ -29,7 +29,7 @@ export async function processDocument(content: string, metadata: DocumentMetadat
     console.log('Successfully retrieved OpenAI API key');
 
     const embeddings = new OpenAIEmbeddings({
-      openAIApiKey: secretData.secret,
+      openAIApiKey: secretData.secret.trim(),
       modelName: "text-embedding-ada-002"
     });
 
@@ -92,7 +92,7 @@ export async function queryDocuments(query: string, threshold = 0.8, limit = 5):
     console.log('Successfully retrieved OpenAI API key for query');
 
     const embeddings = new OpenAIEmbeddings({
-      openAIApiKey: secretData.secret,
+      openAIApiKey: secretData.secret.trim(),
       modelName: "text-embedding-ada-002"
     });
 
