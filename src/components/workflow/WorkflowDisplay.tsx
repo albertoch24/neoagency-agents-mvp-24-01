@@ -83,6 +83,25 @@ export const WorkflowDisplay = ({
     }
   }, [briefId, currentStage, stages, processStage, onStageSelect, queryClient]);
 
+  const handleReprocess = async () => {
+    if (!briefId || !currentStage) return;
+    
+    const currentStageData = stages.find(stage => stage.id === currentStage);
+    if (!currentStageData) return;
+
+    try {
+      const success = await processStage(currentStageData);
+      if (success) {
+        toast.success("Stage reprocessed successfully");
+        await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+        await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+      }
+    } catch (error) {
+      console.error("Error reprocessing stage:", error);
+      toast.error("Failed to reprocess stage");
+    }
+  };
+
   // Effect for handling automatic progression of first stage
   useEffect(() => {
     if (!briefId || !currentStage || isProcessing || !stages.length) {
@@ -144,25 +163,6 @@ export const WorkflowDisplay = ({
 
     checkAndProgressFirstStage();
   }, [briefId, currentStage, stages, isProcessing]);
-
-  const handleReprocess = async () => {
-    if (!briefId || !currentStage) return;
-    
-    const currentStageData = stages.find(stage => stage.id === currentStage);
-    if (!currentStageData) return;
-
-    try {
-      const success = await processStage(currentStageData);
-      if (success) {
-        toast.success("Stage reprocessed successfully");
-        await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
-        await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
-      }
-    } catch (error) {
-      console.error("Error reprocessing stage:", error);
-      toast.error("Failed to reprocess stage");
-    }
-  };
 
   if (!stages.length) {
     return (
