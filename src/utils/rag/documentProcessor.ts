@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { TextChunk, DocumentMetadata, EmbeddingVector } from "@/types/rag";
 import { OpenAIEmbeddings } from "@langchain/openai";
 
-export async function processDocument(content: string, metadata: DocumentMetadata = {}) {
+export async function processDocument(content: string, metadata: DocumentMetadata) {
   try {
     console.log('Processing document:', {
       contentLength: content.length,
@@ -70,7 +70,10 @@ export async function queryDocuments(query: string, threshold = 0.8, limit = 5):
     // Transform the response to match TextChunk interface
     const transformedChunks: TextChunk[] = chunks.map(chunk => ({
       content: chunk.content,
-      metadata: chunk.metadata || {}
+      metadata: {
+        source: chunk.metadata?.source || 'unknown',
+        ...chunk.metadata
+      }
     }));
 
     console.log('Retrieved relevant chunks:', {

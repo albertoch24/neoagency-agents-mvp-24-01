@@ -1,9 +1,5 @@
 import { LoadedDocument } from "./documentLoader";
-
-export interface TextChunk {
-  content: string;
-  metadata: LoadedDocument['metadata'];
-}
+import { TextChunk, DocumentMetadata } from "@/types/rag";
 
 export function splitDocuments(
   documents: LoadedDocument[],
@@ -22,7 +18,11 @@ export function splitDocuments(
       const chunk = text.slice(index, index + chunkSize);
       chunks.push({
         content: chunk,
-        metadata: { ...doc.metadata }
+        metadata: { 
+          source: doc.metadata.source,
+          title: doc.metadata.title,
+          type: doc.metadata.type
+        }
       });
 
       // Move forward by chunkSize - overlap

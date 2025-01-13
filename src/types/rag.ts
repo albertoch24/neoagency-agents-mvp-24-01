@@ -4,7 +4,7 @@ export interface TextChunk {
 }
 
 export interface DocumentMetadata {
-  source?: string;
+  source: string;  // Making source required
   title?: string;
   type?: string;
   [key: string]: any;
