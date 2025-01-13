@@ -71,8 +71,12 @@ export async function queryDocuments(query: string, threshold = 0.8, limit = 5):
     const transformedChunks: TextChunk[] = chunks.map(chunk => ({
       content: chunk.content,
       metadata: {
-        source: chunk.metadata?.source || 'unknown',
-        ...chunk.metadata
+        source: typeof chunk.metadata === 'object' && chunk.metadata !== null ? 
+          (chunk.metadata.source as string || 'unknown') : 'unknown',
+        title: typeof chunk.metadata === 'object' && chunk.metadata !== null ? 
+          (chunk.metadata.title as string) : undefined,
+        type: typeof chunk.metadata === 'object' && chunk.metadata !== null ? 
+          (chunk.metadata.type as string) : undefined
       }
     }));
 

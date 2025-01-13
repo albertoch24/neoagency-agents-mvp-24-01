@@ -1,4 +1,4 @@
-import { TextChunk } from "./textSplitter";
+import { TextChunk } from "@/types/rag";
 import { supabase } from "@/integrations/supabase/client";
 
 export async function generateResponse(query: string, relevantChunks: TextChunk[]): Promise<string> {
