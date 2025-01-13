@@ -1,0 +1,7 @@
+project_id = "szufbafdhfwqclyixdpd"
+
+[functions.process-workflow-stage]
+verify_jwt = true
+
+[functions.process-embeddings]
+verify_jwt = true
