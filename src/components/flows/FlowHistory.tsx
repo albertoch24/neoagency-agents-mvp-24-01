@@ -15,6 +15,7 @@ interface HistoryEntry {
   started_at: string;
   completed_at: string | null;
   results: any;
+  created_at: string;
 }
 
 export const FlowHistory = ({ flowId, onClose }: FlowHistoryProps) => {

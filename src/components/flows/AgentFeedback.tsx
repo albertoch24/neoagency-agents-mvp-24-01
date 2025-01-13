@@ -9,6 +9,19 @@ interface AgentFeedbackProps {
   conversationId: string;
 }
 
+interface AgentFeedbackData {
+  id: string;
+  conversation_id: string;
+  reviewer_agent_id: string;
+  content: string;
+  rating: number | null;
+  created_at: string;
+  updated_at: string;
+  reviewer: {
+    name: string;
+  } | null;
+}
+
 export const AgentFeedback = ({ conversationId }: AgentFeedbackProps) => {
   const { data: feedback, isLoading } = useQuery({
     queryKey: ["agent-feedback", conversationId],
@@ -25,7 +38,7 @@ export const AgentFeedback = ({ conversationId }: AgentFeedbackProps) => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as AgentFeedbackData[];
     },
     enabled: !!conversationId,
   });

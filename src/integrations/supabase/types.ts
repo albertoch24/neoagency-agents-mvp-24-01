@@ -9,6 +9,44 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      agent_feedback: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          rating: number | null
+          reviewer_agent_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          rating?: number | null
+          reviewer_agent_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          rating?: number | null
+          reviewer_agent_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_feedback_reviewer_agent_id_fkey"
+            columns: ["reviewer_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agents: {
         Row: {
           created_at: string
@@ -193,6 +231,47 @@ export type Database = {
           metadata?: Json | null
         }
         Relationships: []
+      }
+      flow_history: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          flow_id: string
+          id: string
+          results: Json | null
+          started_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          flow_id: string
+          id?: string
+          results?: Json | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          flow_id?: string
+          id?: string
+          results?: Json | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_history_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flows"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       flow_steps: {
         Row: {
