@@ -51,6 +51,7 @@ serve(async (req) => {
     console.log('Generating embedding for content:', {
       contentLength: content.length,
       contentPreview: content.substring(0, 100),
+      model: 'text-embedding-3-small',
       timestamp: new Date().toISOString()
     });
 

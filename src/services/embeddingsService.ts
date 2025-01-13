@@ -4,12 +4,16 @@ export const generateEmbedding = async (content: string): Promise<number[]> => {
   console.log('Starting embeddings generation:', {
     contentLength: content.length,
     contentPreview: content.substring(0, 100),
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    model: 'text-embedding-3-small'
   });
 
   try {
     const { data, error } = await supabase.functions.invoke('process-embeddings', {
-      body: { content }
+      body: { 
+        content,
+        model: 'text-embedding-3-small'
+      }
     });
 
     if (error) {

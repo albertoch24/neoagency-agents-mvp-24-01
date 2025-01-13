@@ -24,7 +24,8 @@ export async function processDocument(content: string, metadata: any = {}, dimen
   console.log('Processing document:', {
     contentLength: content?.length,
     metadataKeys: Object.keys(metadata),
-    dimensions
+    dimensions,
+    model: 'text-embedding-3-small'
   });
 
   try {
@@ -50,7 +51,6 @@ export async function processDocument(content: string, metadata: any = {}, dimen
 
     console.log('Successfully generated embedding with dimensions:', embedding.length);
 
-    // Convert the embedding array to a string before inserting
     const { error: insertError } = await supabase
       .from('document_embeddings')
       .insert({
@@ -82,7 +82,13 @@ export async function queryDocuments(
   limit = 5,
   dimensions: number = 1536
 ): Promise<any[]> {
-  console.log('Querying documents:', { query, threshold, limit, dimensions });
+  console.log('Querying documents:', { 
+    query, 
+    threshold, 
+    limit, 
+    dimensions,
+    model: 'text-embedding-3-small'
+  });
 
   try {
     const apiKey = await getOpenAIKey();
@@ -100,7 +106,6 @@ export async function queryDocuments(
 
     const queryEmbedding = await embeddings.embedQuery(query);
 
-    // Convert the query embedding to a string
     const { data: matches, error } = await supabase
       .rpc('match_documents', {
         query_embedding: JSON.stringify(queryEmbedding),
