@@ -84,6 +84,21 @@ const Index = () => {
     );
   }
 
+  const handleDelete = async () => {
+    const { error } = await supabase
+      .from("briefs")
+      .delete()
+      .eq("id", currentBrief?.id);
+
+    if (error) {
+      toast.error(`Error deleting brief: ${error.message}`);
+      return;
+    }
+
+    await queryClient.invalidateQueries({ queryKey: ['briefs'] });
+    toast.success('Brief deleted successfully');
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       <div className="flex justify-between items-center">
@@ -93,6 +108,7 @@ const Index = () => {
           isEditing={isEditing}
           onNewBrief={handleNewBrief}
           onEdit={handleEdit}
+          onDelete={handleDelete}
         />
         <BriefSelector 
           briefs={briefs || []} 

@@ -28,13 +28,16 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
   const handleDelete = async () => {
     const operationId = `rag_api_call_${brief.id}_${Date.now()}`;
     
+    // Get current session state
+    const { data: { session } } = await supabase.auth.getSession();
+    
     // Log API call initialization
     console.log('Initializing RAG API call:', {
       operationId,
       briefId: brief.id,
       endpoint: 'briefs',
       method: 'DELETE',
-      authStatus: supabase.auth.session() ? 'authenticated' : 'unauthenticated',
+      authStatus: session ? 'authenticated' : 'unauthenticated',
       timestamp: new Date().toISOString(),
       processStage: 'api_call_init'
     });
@@ -45,8 +48,8 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
         operationId,
         briefId: brief.id,
         headers: {
-          authorization: supabase.auth.session()?.access_token ? 'present' : 'missing',
-          apikey: supabase.auth.session()?.access_token ? 'present' : 'missing'
+          authorization: session?.access_token ? 'present' : 'missing',
+          apikey: session?.access_token ? 'present' : 'missing'
         },
         timestamp: new Date().toISOString(),
         processStage: 'api_request_start'
@@ -79,9 +82,9 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
             code: error.code
           },
           authDetails: {
-            session: !!supabase.auth.session(),
-            tokenExpiry: supabase.auth.session()?.expires_at,
-            role: supabase.auth.session()?.user?.role
+            session: !!session,
+            tokenExpiry: session?.expires_at,
+            role: session?.user?.role
           },
           timestamp: new Date().toISOString(),
           processStage: 'api_error_details'
@@ -111,8 +114,8 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
           cause: error.cause
         },
         authContext: {
-          hasSession: !!supabase.auth.session(),
-          sessionStatus: supabase.auth.session()?.user?.aud,
+          hasSession: !!session,
+          sessionStatus: session?.user?.aud,
           lastError: error.error?.message
         },
         timestamp: new Date().toISOString(),
