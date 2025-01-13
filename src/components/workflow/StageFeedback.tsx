@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { processDocument } from "@/utils/rag/documentProcessor";
 
 interface StageFeedbackProps {
   briefId: string;
@@ -28,6 +29,15 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
 
     setIsSubmitting(true);
     try {
+      // First, get the brief details to access the brand
+      const { data: briefData, error: briefError } = await supabase
+        .from("briefs")
+        .select("brand")
+        .eq("id", briefId)
+        .single();
+
+      if (briefError) throw briefError;
+
       const { error } = await supabase
         .from("stage_feedback")
         .insert({
@@ -36,10 +46,36 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
           content: feedback,
           requires_revision: true,
           is_permanent: isPermanent,
-          processed_for_rag: false // Will be processed by a background job if is_permanent is true
+          processed_for_rag: false
         });
 
       if (error) throw error;
+
+      // If it's permanent feedback, process it for RAG
+      if (isPermanent && briefData?.brand) {
+        console.log("Processing permanent feedback for RAG:", {
+          content: feedback,
+          brand: briefData.brand
+        });
+
+        // Process the document for RAG with metadata
+        await processDocument(feedback, {
+          source: "stage_feedback",
+          brand: briefData.brand,
+          type: "feedback"
+        });
+
+        // Update the feedback record to mark it as processed
+        const { error: updateError } = await supabase
+          .from("stage_feedback")
+          .update({ processed_for_rag: true })
+          .eq("brief_id", briefId)
+          .eq("stage_id", stageId);
+
+        if (updateError) {
+          console.error("Error updating RAG processing status:", updateError);
+        }
+      }
 
       toast.success("Feedback submitted successfully");
       setFeedback("");
