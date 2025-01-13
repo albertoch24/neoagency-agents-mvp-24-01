@@ -144,22 +144,65 @@ export interface Tables {
       updated_at?: string;
     };
   };
-}
-
-export interface Database {
-  public: {
-    Tables: Tables;
-    Views: {
-      [_ in never]: never;
+  agent_feedback: {
+    Row: {
+      id: string;
+      conversation_id: string;
+      reviewer_agent_id: string;
+      content: string;
+      rating: number | null;
+      created_at: string;
+      updated_at: string;
     };
-    Functions: {
-      [_ in never]: never;
+    Insert: {
+      id?: string;
+      conversation_id: string;
+      reviewer_agent_id: string;
+      content: string;
+      rating?: number | null;
+      created_at?: string;
+      updated_at?: string;
     };
-    Enums: {
-      [_ in never]: never;
+    Update: {
+      id?: string;
+      conversation_id?: string;
+      reviewer_agent_id?: string;
+      content?: string;
+      rating?: number | null;
+      created_at?: string;
+      updated_at?: string;
     };
-    CompositeTypes: {
-      [_ in never]: never;
+  };
+  flow_history: {
+    Row: {
+      id: string;
+      flow_id: string;
+      status: string;
+      started_at: string;
+      completed_at: string | null;
+      results: any;
+      created_at: string;
+      updated_at: string;
+    };
+    Insert: {
+      id?: string;
+      flow_id: string;
+      status?: string;
+      started_at?: string;
+      completed_at?: string | null;
+      results?: any;
+      created_at?: string;
+      updated_at?: string;
+    };
+    Update: {
+      id?: string;
+      flow_id?: string;
+      status?: string;
+      started_at?: string;
+      completed_at?: string | null;
+      results?: any;
+      created_at?: string;
+      updated_at?: string;
     };
   };
 }

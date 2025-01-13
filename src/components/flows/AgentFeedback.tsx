@@ -45,7 +45,7 @@ export const AgentFeedback = ({ conversationId }: AgentFeedbackProps) => {
           <div key={item.id} className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Badge variant="outline">{item.reviewer.name}</Badge>
+                <Badge variant="outline">{item.reviewer?.name}</Badge>
                 <div className="flex items-center">
                   {Array.from({ length: item.rating || 0 }).map((_, i) => (
                     <Star key={i} className="h-3 w-3 fill-primary text-primary" />

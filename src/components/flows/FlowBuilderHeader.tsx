@@ -38,7 +38,6 @@ export const FlowBuilderHeader = ({ flow, onClose, handleSaveSteps, isSaving }: 
 
       if (error) throw error;
 
-      // Update the local flow data immediately
       queryClient.setQueryData(["flows"], (oldData: Flow[] | undefined) => {
         if (!oldData) return oldData;
         return oldData.map(f => f.id === flow.id ? { ...f, name: editedName, description: editedDescription } : f);
@@ -57,18 +56,7 @@ export const FlowBuilderHeader = ({ flow, onClose, handleSaveSteps, isSaving }: 
       setIsDeleting(true);
       console.log("Starting flow deletion process for flow:", flow.id);
 
-      // First delete all flow steps
-      const { error: flowStepsError } = await supabase
-        .from("flow_steps")
-        .delete()
-        .eq("flow_id", flow.id);
-
-      if (flowStepsError) {
-        console.error("Error deleting flow steps:", flowStepsError);
-        throw flowStepsError;
-      }
-
-      // Then delete all flow history
+      // First delete all flow history
       const { error: historyError } = await supabase
         .from("flow_history")
         .delete()
@@ -77,6 +65,17 @@ export const FlowBuilderHeader = ({ flow, onClose, handleSaveSteps, isSaving }: 
       if (historyError) {
         console.error("Error deleting flow history:", historyError);
         throw historyError;
+      }
+
+      // Then delete all flow steps
+      const { error: flowStepsError } = await supabase
+        .from("flow_steps")
+        .delete()
+        .eq("flow_id", flow.id);
+
+      if (flowStepsError) {
+        console.error("Error deleting flow steps:", flowStepsError);
+        throw flowStepsError;
       }
 
       // Update stages to remove reference to this flow instead of deleting them
