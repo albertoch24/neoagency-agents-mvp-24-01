@@ -19,7 +19,12 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    console.log('Initializing OpenAI client');
+    console.log('Initializing OpenAI client with API key:', {
+      keyLength: openAiKey.length,
+      keyStart: openAiKey.substring(0, 3),
+      keyEnd: openAiKey.substring(openAiKey.length - 4)
+    });
+
     const openai = new OpenAI({
       apiKey: openAiKey,
     });
@@ -27,7 +32,8 @@ serve(async (req) => {
     const { text } = await req.json();
     console.log('Processing embeddings for text:', {
       textLength: text.length,
-      preview: text.substring(0, 100)
+      preview: text.substring(0, 100),
+      timestamp: new Date().toISOString()
     });
 
     const embedding = await openai.embeddings.create({
@@ -38,7 +44,8 @@ serve(async (req) => {
 
     console.log('Embeddings generated successfully:', {
       dimensions: embedding.data[0].embedding.length,
-      usage: embedding.usage
+      usage: embedding.usage,
+      timestamp: new Date().toISOString()
     });
 
     return new Response(
@@ -53,11 +60,18 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error processing embeddings:', error);
+    console.error('Error processing embeddings:', {
+      error,
+      message: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
+    
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        details: error.toString()
+        details: error.toString(),
+        timestamp: new Date().toISOString()
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
