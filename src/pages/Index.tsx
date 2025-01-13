@@ -1,5 +1,5 @@
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import BriefForm from "@/components/brief/BriefForm";
 import BriefDisplay from "@/components/brief/BriefDisplay";
@@ -10,10 +10,12 @@ import { useStageHandling } from "@/hooks/useStageHandling";
 import { ProjectList } from "@/components/brief/ProjectList";
 import { useBriefState } from "@/hooks/useBriefState";
 import { useParams } from "react-router-dom";
+import { toast } from "@/hooks/use-toast";
 
 const Index = () => {
   const { user } = useAuth();
   const { briefId } = useParams();
+  const queryClient = useQueryClient();
   const {
     showNewBrief,
     isEditing,
