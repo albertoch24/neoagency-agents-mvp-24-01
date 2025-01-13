@@ -1,36 +1,42 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export const generateEmbeddings = async (text: string) => {
+export const generateEmbedding = async (content: string): Promise<number[]> => {
+  console.log('Calling embeddings service:', {
+    contentLength: content.length,
+    contentPreview: content.substring(0, 100),
+    timestamp: new Date().toISOString()
+  });
+
   try {
-    console.log('Requesting embeddings for text:', {
-      textLength: text.length,
-      preview: text.substring(0, 100),
-      timestamp: new Date().toISOString()
-    });
-    
     const { data, error } = await supabase.functions.invoke('process-embeddings', {
-      body: { text }
+      body: { content }
     });
 
     if (error) {
-      console.error('Error generating embeddings:', {
+      console.error('Error from embeddings function:', {
         error,
         timestamp: new Date().toISOString()
       });
       throw error;
     }
 
-    console.log('Embeddings generated successfully:', {
+    if (!data?.embedding) {
+      console.error('No embedding returned from function:', {
+        data,
+        timestamp: new Date().toISOString()
+      });
+      throw new Error('No embedding returned from function');
+    }
+
+    console.log('Embedding generated successfully:', {
       dimensions: data.embedding.length,
-      usage: data.usage,
       timestamp: new Date().toISOString()
     });
 
     return data.embedding;
   } catch (error) {
-    console.error('Failed to generate embeddings:', {
-      error,
-      message: error.message,
+    console.error('Error generating embedding:', {
+      error: error.message,
       stack: error.stack,
       timestamp: new Date().toISOString()
     });
