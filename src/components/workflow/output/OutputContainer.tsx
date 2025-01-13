@@ -117,9 +117,9 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
       };
     },
     enabled: !!briefId && !!stage,
-    staleTime: 0,
-    gcTime: 0,
-    refetchInterval: 5000
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 0, // Don't cache
+    refetchInterval: 5000 // Refetch every 5 seconds
   });
 
   if (isLoading) return <OutputLoading />;

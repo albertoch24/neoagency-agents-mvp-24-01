@@ -37,6 +37,9 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       // Clean up existing data if updating
       if (initialData?.id) {
         await cleanupExistingBriefData(initialData.id);
+        // Invalidate queries immediately after cleanup
+        await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+        await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
       }
 
       // Create/update the brief
@@ -79,11 +82,14 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
           { duration: 8000 }
         );
 
-        // Invalidate queries to refresh data
-        await queryClient.invalidateQueries({ queryKey: ["briefs"] });
-        await queryClient.invalidateQueries({ queryKey: ["brief"] });
-        await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
-        await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+        // Invalidate all relevant queries to refresh data
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["briefs"] }),
+          queryClient.invalidateQueries({ queryKey: ["brief"] }),
+          queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] }),
+          queryClient.invalidateQueries({ queryKey: ["brief-outputs"] }),
+          queryClient.invalidateQueries({ queryKey: ["stage-flow-steps"] })
+        ]);
 
         setIsProcessing(false);
         onSubmitSuccess?.();
