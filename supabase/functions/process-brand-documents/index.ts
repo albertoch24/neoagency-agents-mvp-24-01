@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { chunks } = await req.json();
+    const { chunks, dimensions = 1536 } = await req.json();
 
     if (!chunks?.length) {
       throw new Error('No chunks provided');
@@ -23,12 +23,13 @@ serve(async (req) => {
       apiKey: Deno.env.get('OPENAI_API_KEY'),
     }));
 
-    // Create embeddings for each chunk
+    // Create embeddings for each chunk with specified dimensions
     const embeddings = await Promise.all(
       chunks.map(async (chunk: any) => {
         const response = await openai.createEmbedding({
-          model: "text-embedding-ada-002",
+          model: "text-embedding-3-small",
           input: chunk.content,
+          dimensions: dimensions
         });
         return {
           ...chunk,

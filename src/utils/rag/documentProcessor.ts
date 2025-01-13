@@ -20,10 +20,11 @@ async function getOpenAIKey() {
   }
 }
 
-export async function processDocument(content: string, metadata: any = {}) {
+export async function processDocument(content: string, metadata: any = {}, dimensions: number = 1536) {
   console.log('Processing document:', {
     contentLength: content?.length,
-    metadataKeys: Object.keys(metadata)
+    metadataKeys: Object.keys(metadata),
+    dimensions
   });
 
   try {
@@ -31,7 +32,8 @@ export async function processDocument(content: string, metadata: any = {}) {
     
     const embeddings = new OpenAIEmbeddings({
       openAIApiKey: apiKey,
-      modelName: "text-embedding-ada-002",
+      modelName: "text-embedding-3-small",
+      dimensions: dimensions,
       configuration: {
         defaultHeaders: {
           "Content-Type": "application/json"
@@ -46,7 +48,7 @@ export async function processDocument(content: string, metadata: any = {}) {
       throw new Error('Failed to generate embedding');
     }
 
-    console.log('Successfully generated embedding');
+    console.log('Successfully generated embedding with dimensions:', embedding.length);
 
     // Convert the embedding array to a string before inserting
     const { error: insertError } = await supabase
@@ -54,7 +56,7 @@ export async function processDocument(content: string, metadata: any = {}) {
       .insert({
         content,
         metadata,
-        embedding: JSON.stringify(embedding) // Convert array to string
+        embedding: JSON.stringify(embedding)
       });
 
     if (insertError) {
@@ -74,15 +76,21 @@ export async function processDocument(content: string, metadata: any = {}) {
   }
 }
 
-export async function queryDocuments(query: string, threshold = 0.8, limit = 5) {
-  console.log('Querying documents:', { query, threshold, limit });
+export async function queryDocuments(
+  query: string, 
+  threshold = 0.8, 
+  limit = 5,
+  dimensions: number = 1536
+): Promise<any[]> {
+  console.log('Querying documents:', { query, threshold, limit, dimensions });
 
   try {
     const apiKey = await getOpenAIKey();
     
     const embeddings = new OpenAIEmbeddings({
       openAIApiKey: apiKey,
-      modelName: "text-embedding-ada-002",
+      modelName: "text-embedding-3-small",
+      dimensions: dimensions,
       configuration: {
         defaultHeaders: {
           "Content-Type": "application/json"
