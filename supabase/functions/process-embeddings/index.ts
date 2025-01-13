@@ -19,11 +19,20 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    console.log('Initializing OpenAI client with API key:', {
-      keyLength: openAiKey.length,
-      keyStart: openAiKey.substring(0, 3),
-      keyEnd: openAiKey.substring(openAiKey.length - 4)
+    console.log('API Key verification:', {
+      exists: !!openAiKey,
+      length: openAiKey.length,
+      startsWithSk: openAiKey.startsWith('sk-'),
+      timestamp: new Date().toISOString()
     });
+
+    if (!openAiKey.startsWith('sk-')) {
+      console.error('Invalid OpenAI API key format:', {
+        keyLength: openAiKey.length,
+        timestamp: new Date().toISOString()
+      });
+      throw new Error('Invalid OpenAI API key format');
+    }
 
     const openai = new OpenAI({
       apiKey: openAiKey,
