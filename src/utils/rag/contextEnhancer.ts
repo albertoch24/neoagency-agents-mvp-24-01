@@ -28,7 +28,7 @@ export async function enhanceContext(chunks: TextChunk[]): Promise<TextChunk[]> 
         .insert({
           content: chunk.content,
           metadata: chunk.metadata,
-          embedding
+          embedding: `[${embedding.join(',')}]` // Convert the number[] to a string
         });
 
       if (insertError) {
