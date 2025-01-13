@@ -68,17 +68,19 @@ export async function queryDocuments(query: string, threshold = 0.8, limit = 5):
     if (error) throw error;
 
     // Transform the response to match TextChunk interface
-    const transformedChunks: TextChunk[] = chunks.map(chunk => ({
-      content: chunk.content,
-      metadata: {
-        source: typeof chunk.metadata === 'object' && chunk.metadata !== null ? 
-          (chunk.metadata.source as string || 'unknown') : 'unknown',
-        title: typeof chunk.metadata === 'object' && chunk.metadata !== null ? 
-          (chunk.metadata.title as string) : undefined,
-        type: typeof chunk.metadata === 'object' && chunk.metadata !== null ? 
-          (chunk.metadata.type as string) : undefined
-      }
-    }));
+    const transformedChunks: TextChunk[] = chunks.map(chunk => {
+      // First ensure metadata is an object and not an array
+      const metadataObj = typeof chunk.metadata === 'object' && !Array.isArray(chunk.metadata) ? chunk.metadata : {};
+      
+      return {
+        content: chunk.content,
+        metadata: {
+          source: typeof metadataObj?.source === 'string' ? metadataObj.source : 'unknown',
+          title: typeof metadataObj?.title === 'string' ? metadataObj.title : undefined,
+          type: typeof metadataObj?.type === 'string' ? metadataObj.type : undefined
+        }
+      };
+    });
 
     console.log('Retrieved relevant chunks:', {
       count: transformedChunks.length,
