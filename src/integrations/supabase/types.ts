@@ -359,6 +359,27 @@ export type Database = {
           },
         ]
       }
+      logs: {
+        Row: {
+          id: number
+          log_message: string | null
+          log_timestamp: string | null
+          source: string | null
+        }
+        Insert: {
+          id?: never
+          log_message?: string | null
+          log_timestamp?: string | null
+          source?: string | null
+        }
+        Update: {
+          id?: never
+          log_message?: string | null
+          log_timestamp?: string | null
+          source?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
