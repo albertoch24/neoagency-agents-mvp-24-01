@@ -7,6 +7,7 @@ interface BriefActionsProps {
   isEditing: boolean;
   onNewBrief: () => void;
   onEdit: () => void;
+  onDelete: () => Promise<void>;
 }
 
 export const BriefActions = ({
@@ -15,6 +16,7 @@ export const BriefActions = ({
   isEditing,
   onNewBrief,
   onEdit,
+  onDelete
 }: BriefActionsProps) => {
   return (
     <div className="flex gap-2">

@@ -25,47 +25,72 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
   console.log('BriefDisplay rendering with brief:', {
     briefId: brief?.id,
     briefTitle: brief?.title,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    processStage: 'component_render'
   });
 
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState<string | undefined>(undefined);
 
   const handleDelete = async () => {
+    const operationId = `delete_brief_${brief.id}_${Date.now()}`;
     console.log('Starting brief deletion process:', {
+      operationId,
       briefId: brief.id,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      processStage: 'deletion_start'
     });
 
     try {
+      console.log('Initiating Supabase delete operation:', {
+        operationId,
+        briefId: brief.id,
+        timestamp: new Date().toISOString(),
+        processStage: 'supabase_delete_start'
+      });
+
       const { error } = await supabase
         .from('briefs')
         .delete()
         .eq('id', brief.id);
 
       if (error) {
-        console.error('Error deleting brief:', {
+        console.error('Error in Supabase delete operation:', {
+          operationId,
           briefId: brief.id,
-          error: error.message,
-          details: error,
-          timestamp: new Date().toISOString()
+          error: {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          },
+          timestamp: new Date().toISOString(),
+          processStage: 'supabase_delete_error'
         });
         throw error;
       }
 
       console.log('Brief deleted successfully:', {
+        operationId,
         briefId: brief.id,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        processStage: 'deletion_success'
       });
 
       await queryClient.invalidateQueries({ queryKey: ['briefs'] });
       toast.success('Brief deleted successfully');
     } catch (error: any) {
       console.error('Unexpected error in handleDelete:', {
+        operationId,
         briefId: brief.id,
-        error: error.message,
-        stack: error.stack,
-        timestamp: new Date().toISOString()
+        error: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+          cause: error.cause
+        },
+        timestamp: new Date().toISOString(),
+        processStage: 'deletion_error'
       });
       toast.error(`Error deleting brief: ${error.message}`);
     }
@@ -74,7 +99,8 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
   console.log('BriefDisplay accordion state:', {
     isOpen,
     briefId: brief.id,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    processStage: 'accordion_state_check'
   });
 
   return (
@@ -88,7 +114,8 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
             previousValue: isOpen,
             newValue: value,
             briefId: brief.id,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            processStage: 'accordion_state_change'
           });
           setIsOpen(value);
         }}
@@ -97,7 +124,26 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
           <AccordionTrigger className="px-6 py-4">
             <div className="flex justify-between items-center w-full">
               <h3 className="text-lg font-semibold">{brief.title}</h3>
-              <BriefActions brief={brief} onDelete={handleDelete} />
+              <BriefActions 
+                currentBrief={brief}
+                showNewBrief={false}
+                isEditing={false}
+                onNewBrief={() => {
+                  console.log('New brief action triggered', {
+                    briefId: brief.id,
+                    timestamp: new Date().toISOString(),
+                    processStage: 'new_brief_action'
+                  });
+                }}
+                onEdit={() => {
+                  console.log('Edit brief action triggered', {
+                    briefId: brief.id,
+                    timestamp: new Date().toISOString(),
+                    processStage: 'edit_brief_action'
+                  });
+                }}
+                onDelete={handleDelete}
+              />
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-6 py-4">
