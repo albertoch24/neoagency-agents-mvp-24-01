@@ -10,12 +10,13 @@ import { useStageHandling } from "@/hooks/useStageHandling";
 import { ProjectList } from "@/components/brief/ProjectList";
 import { useBriefState } from "@/hooks/useBriefState";
 import { useParams } from "react-router-dom";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const { user } = useAuth();
   const { briefId } = useParams();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const {
     showNewBrief,
     isEditing,
@@ -93,12 +94,19 @@ const Index = () => {
       .eq("id", currentBrief?.id);
 
     if (error) {
-      toast.error(`Error deleting brief: ${error.message}`);
+      toast({
+        title: "Error",
+        description: `Error deleting brief: ${error.message}`,
+        variant: "destructive",
+      });
       return;
     }
 
     await queryClient.invalidateQueries({ queryKey: ['briefs'] });
-    toast.success('Brief deleted successfully');
+    toast({
+      title: "Success",
+      description: 'Brief deleted successfully',
+    });
   };
 
   return (
