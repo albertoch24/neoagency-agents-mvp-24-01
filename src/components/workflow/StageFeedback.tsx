@@ -40,7 +40,7 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
       const { data: stageData, error: stageError } = await supabase
         .from("stages")
         .select("id")
-        .eq("name", stageId.toLowerCase())
+        .eq("id", stageId)
         .single();
 
       if (stageError) {
@@ -53,7 +53,7 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
       }
 
       console.log('📝 Found stage:', {
-        stageName: stageId,
+        stageId,
         stageUuid: stageData.id
       });
 
@@ -73,7 +73,7 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
         .from("stage_feedback")
         .insert({
           brief_id: briefId,
-          stage_id: stageData.id, // Use the actual UUID
+          stage_id: stageData.id,
           content: feedback,
           requires_revision: true,
           is_permanent: isPermanent,
