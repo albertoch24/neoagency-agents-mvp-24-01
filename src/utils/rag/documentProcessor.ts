@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Configuration, OpenAIApi } from "openai";
+import OpenAI from "openai";
 
 const getOpenAIKey = async (): Promise<string> => {
   const { data: { session } } = await supabase.auth.getSession();
@@ -35,7 +35,7 @@ export const processDocument = async (
   try {
     const apiKey = await getOpenAIKey();
     
-    const configuration = new Configuration({
+    const openai = new OpenAI({
       apiKey,
       headers: {
         "Content-Type": "application/json",
@@ -43,15 +43,13 @@ export const processDocument = async (
       }
     });
 
-    const openai = new OpenAIApi(configuration);
-
-    const embeddingResponse = await openai.createEmbedding({
+    const embeddingResponse = await openai.embeddings.create({
       model: "text-embedding-3-small",
       input: content,
       dimensions
     });
 
-    const [{ embedding }] = embeddingResponse.data.data;
+    const [{ embedding }] = embeddingResponse.data;
     console.log('Successfully generated embedding with dimensions:', embedding.length);
 
     const { error: insertError } = await supabase
@@ -93,7 +91,7 @@ export const queryDocuments = async (
   try {
     const apiKey = await getOpenAIKey();
     
-    const configuration = new Configuration({
+    const openai = new OpenAI({
       apiKey,
       headers: {
         "Content-Type": "application/json",
@@ -101,15 +99,13 @@ export const queryDocuments = async (
       }
     });
 
-    const openai = new OpenAIApi(configuration);
-
-    const embeddingResponse = await openai.createEmbedding({
+    const embeddingResponse = await openai.embeddings.create({
       model: "text-embedding-3-small",
       input: query,
       dimensions
     });
 
-    const [{ embedding }] = embeddingResponse.data.data;
+    const [{ embedding }] = embeddingResponse.data;
 
     const { data: matches, error } = await supabase
       .rpc('match_documents', {
