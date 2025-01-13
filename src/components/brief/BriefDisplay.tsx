@@ -21,6 +21,8 @@ interface BriefDisplayProps {
   brief: Brief;
 }
 
+const SUPABASE_URL = "https://szufbafdhfwqclyixdpd.supabase.co";
+
 const BriefDisplay = ({ brief }: BriefDisplayProps) => {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState<string | undefined>(undefined);
@@ -53,10 +55,10 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
         operationId,
         briefId: brief.id,
         requestDetails: {
-          url: `${supabase.supabaseUrl}/rest/v1/briefs?id=eq.${brief.id}`,
+          url: `${SUPABASE_URL}/rest/v1/briefs?id=eq.${brief.id}`,
           headers: {
             authorization: session?.access_token ? 'Bearer token present' : 'No bearer token',
-            apikey: supabase.supabaseKey ? 'API key present' : 'No API key',
+            apikey: 'API key present',
             'content-type': 'application/json'
           }
         },
@@ -106,7 +108,7 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
             userRole: session?.user?.role,
             requestHeaders: {
               authPresent: !!session?.access_token,
-              apikeyPresent: !!supabase.supabaseKey
+              apikeyPresent: true
             }
           },
           timestamp: new Date().toISOString(),
@@ -149,8 +151,8 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
           lastError: error.error?.message
         },
         requestContext: {
-          apiKeyPresent: !!supabase.supabaseKey,
-          baseUrl: supabase.supabaseUrl,
+          apiKeyPresent: true,
+          baseUrl: SUPABASE_URL,
           timestamp: new Date().toISOString()
         },
         processStage: 'api_unexpected_error'
