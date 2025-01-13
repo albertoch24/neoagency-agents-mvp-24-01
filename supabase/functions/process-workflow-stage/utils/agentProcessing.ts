@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { processAgent } from "./workflow.ts";
 import { saveBriefOutput } from "./database.ts";
 
-export async function processAgents(briefId: string, stageId: string) {
+export async function processAgents(briefId: string, stageId: string, flowSteps: any[] = []) {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -22,8 +22,13 @@ export async function processAgents(briefId: string, stageId: string) {
       .eq('id', briefId)
       .single();
 
-    if (briefError) throw briefError;
-    if (!brief) throw new Error('Brief not found');
+    if (briefError) {
+      console.error('Error fetching brief:', briefError);
+      throw briefError;
+    }
+    if (!brief) {
+      throw new Error('Brief not found');
+    }
 
     // Get stage data with flow and steps
     const { data: stage, error: stageError } = await supabase
@@ -50,19 +55,37 @@ export async function processAgents(briefId: string, stageId: string) {
       .eq('id', stageId)
       .single();
 
-    if (stageError) throw stageError;
-    if (!stage) throw new Error('Stage not found');
-    if (!stage.flows?.flow_steps?.length) throw new Error('No flow steps found for stage');
+    if (stageError) {
+      console.error('Error fetching stage:', stageError);
+      throw stageError;
+    }
+    if (!stage) {
+      throw new Error('Stage not found');
+    }
+    if (!stage.flows?.flow_steps?.length) {
+      throw new Error('No flow steps found for stage');
+    }
 
-    console.log('Processing stage:', stage.name);
+    console.log('Processing stage:', {
+      stageName: stage.name,
+      flowStepsCount: flowSteps.length
+    });
 
     // Sort flow steps by order_index
-    const flowSteps = stage.flows.flow_steps.sort((a, b) => a.order_index - b.order_index);
+    const sortedFlowSteps = flowSteps.sort((a, b) => a.order_index - b.order_index);
 
     // Process each agent in sequence
     const outputs = [];
-    for (const step of flowSteps) {
-      console.log('Processing step with agent:', step.agents?.name);
+    for (const step of sortedFlowSteps) {
+      if (!step.agents) {
+        console.warn('Missing agent data for step:', step);
+        continue;
+      }
+
+      console.log('Processing step with agent:', {
+        agentName: step.agents?.name,
+        stepId: step.id
+      });
       
       const result = await processAgent(
         supabase,
@@ -80,7 +103,7 @@ export async function processAgents(briefId: string, stageId: string) {
     const content = {
       stage_name: stage.name,
       flow_name: stage.flows.name,
-      agent_count: flowSteps.length,
+      agent_count: sortedFlowSteps.length,
       outputs: outputs.map(output => ({
         agent: output.agent,
         requirements: output.requirements,
@@ -94,8 +117,7 @@ export async function processAgents(briefId: string, stageId: string) {
       briefId,
       stageId,
       stageName: stage.name,
-      outputsCount: outputs.length,
-      contentSample: JSON.stringify(content).substring(0, 100)
+      outputsCount: outputs.length
     });
 
     await saveBriefOutput(
@@ -109,7 +131,11 @@ export async function processAgents(briefId: string, stageId: string) {
     return outputs;
 
   } catch (error) {
-    console.error('Error in processAgents:', error);
+    console.error('Error in processAgents:', {
+      error,
+      message: error.message,
+      stack: error.stack
+    });
     throw error;
   }
 }

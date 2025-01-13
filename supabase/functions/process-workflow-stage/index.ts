@@ -16,31 +16,42 @@ serve(async (req) => {
   try {
     console.log('Processing workflow stage request');
     
-    // Parse request body
-    const { briefId, stageId, flowId, flowSteps, isReprocessing = false } = await req.json();
+    // Parse and validate request body
+    const body = await req.json();
+    console.log('Request body:', body);
+
+    const { briefId, stageId, flowSteps } = body;
     
     // Validate required parameters
     if (!briefId || !stageId) {
+      console.error('Missing required parameters:', { briefId, stageId });
       throw new Error('Missing required parameters: briefId and stageId are required');
+    }
+
+    // Ensure flowSteps is an array
+    if (!Array.isArray(flowSteps)) {
+      console.error('Invalid flowSteps:', flowSteps);
+      throw new Error('flowSteps must be an array');
     }
     
     console.log('Processing workflow for:', { 
       briefId, 
       stageId, 
-      flowId, 
-      flowSteps,
-      isReprocessing 
+      flowStepsCount: flowSteps.length
     });
     
     // Process the workflow
-    const outputs = await processAgents(briefId, stageId, isReprocessing);
+    const outputs = await processAgents(briefId, stageId, flowSteps);
     
-    console.log('Workflow processed successfully:', outputs);
+    console.log('Workflow processed successfully:', {
+      outputsCount: outputs?.length,
+      firstOutput: outputs?.[0]
+    });
     
     // Return success response with CORS headers
     return new Response(
       JSON.stringify({ 
-        message: `Stage ${isReprocessing ? 're-processed' : 'processed'} successfully`, 
+        message: 'Stage processed successfully', 
         outputs 
       }),
       { 
@@ -52,7 +63,11 @@ serve(async (req) => {
     );
     
   } catch (error) {
-    console.error('Error processing workflow stage:', error);
+    console.error('Error processing workflow stage:', {
+      error,
+      message: error.message,
+      stack: error.stack
+    });
     
     // Return error response with CORS headers
     return new Response(
