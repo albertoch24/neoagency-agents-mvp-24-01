@@ -22,40 +22,37 @@ interface BriefDisplayProps {
 }
 
 const BriefDisplay = ({ brief }: BriefDisplayProps) => {
-  console.log('BriefDisplay rendering with brief:', {
-    briefId: brief?.id,
-    briefTitle: brief?.title,
-    timestamp: new Date().toISOString(),
-    processStage: 'component_render'
-  });
-
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState<string | undefined>(undefined);
 
   const handleDelete = async () => {
-    const operationId = `delete_brief_${brief.id}_${Date.now()}`;
-    console.log('Starting brief deletion process:', {
+    const operationId = `rag_brief_deletion_${brief.id}_${Date.now()}`;
+    console.log('Starting RAG brief deletion process:', {
       operationId,
       briefId: brief.id,
+      brand: brief.brand,
       timestamp: new Date().toISOString(),
-      processStage: 'deletion_start'
+      processStage: 'rag_deletion_start'
     });
 
     try {
-      console.log('Initiating Supabase delete operation:', {
+      // First, log the attempt to clean up RAG data
+      console.log('Initiating RAG data cleanup:', {
         operationId,
         briefId: brief.id,
+        brand: brief.brand,
         timestamp: new Date().toISOString(),
-        processStage: 'supabase_delete_start'
+        processStage: 'rag_cleanup_start'
       });
 
+      // Attempt the deletion
       const { error } = await supabase
         .from('briefs')
         .delete()
         .eq('id', brief.id);
 
       if (error) {
-        console.error('Error in Supabase delete operation:', {
+        console.error('Error in RAG data cleanup:', {
           operationId,
           briefId: brief.id,
           error: {
@@ -65,22 +62,23 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
             code: error.code
           },
           timestamp: new Date().toISOString(),
-          processStage: 'supabase_delete_error'
+          processStage: 'rag_cleanup_error'
         });
         throw error;
       }
 
-      console.log('Brief deleted successfully:', {
+      console.log('RAG data cleanup completed:', {
         operationId,
         briefId: brief.id,
+        brand: brief.brand,
         timestamp: new Date().toISOString(),
-        processStage: 'deletion_success'
+        processStage: 'rag_cleanup_success'
       });
 
       await queryClient.invalidateQueries({ queryKey: ['briefs'] });
-      toast.success('Brief deleted successfully');
+      toast.success('Brief and associated RAG data deleted successfully');
     } catch (error: any) {
-      console.error('Unexpected error in handleDelete:', {
+      console.error('Unexpected error in RAG cleanup process:', {
         operationId,
         briefId: brief.id,
         error: {
@@ -90,18 +88,11 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
           cause: error.cause
         },
         timestamp: new Date().toISOString(),
-        processStage: 'deletion_error'
+        processStage: 'rag_cleanup_unexpected_error'
       });
-      toast.error(`Error deleting brief: ${error.message}`);
+      toast.error(`Error deleting brief and RAG data: ${error.message}`);
     }
   };
-
-  console.log('BriefDisplay accordion state:', {
-    isOpen,
-    briefId: brief.id,
-    timestamp: new Date().toISOString(),
-    processStage: 'accordion_state_check'
-  });
 
   return (
     <Card className="mb-8">
@@ -109,16 +100,7 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
         type="single" 
         collapsible 
         value={isOpen} 
-        onValueChange={(value) => {
-          console.log('Accordion value changing:', {
-            previousValue: isOpen,
-            newValue: value,
-            briefId: brief.id,
-            timestamp: new Date().toISOString(),
-            processStage: 'accordion_state_change'
-          });
-          setIsOpen(value);
-        }}
+        onValueChange={setIsOpen}
       >
         <AccordionItem value="brief-details">
           <AccordionTrigger className="px-6 py-4">
@@ -128,20 +110,8 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
                 currentBrief={brief}
                 showNewBrief={false}
                 isEditing={false}
-                onNewBrief={() => {
-                  console.log('New brief action triggered', {
-                    briefId: brief.id,
-                    timestamp: new Date().toISOString(),
-                    processStage: 'new_brief_action'
-                  });
-                }}
-                onEdit={() => {
-                  console.log('Edit brief action triggered', {
-                    briefId: brief.id,
-                    timestamp: new Date().toISOString(),
-                    processStage: 'edit_brief_action'
-                  });
-                }}
+                onNewBrief={() => {}}
+                onEdit={() => {}}
                 onDelete={handleDelete}
               />
             </div>
