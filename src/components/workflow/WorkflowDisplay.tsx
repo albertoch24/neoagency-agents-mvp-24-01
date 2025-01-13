@@ -2,6 +2,7 @@ import { WorkflowStages } from "./WorkflowStages";
 import { WorkflowConversation } from "./WorkflowConversation";
 import { WorkflowDisplayActions } from "./WorkflowDisplayActions";
 import { WorkflowOutput } from "./WorkflowOutput";
+import { StageFeedback } from "./StageFeedback";
 import { useStagesData } from "@/hooks/useStagesData";
 import { useStageProcessing } from "@/hooks/useStageProcessing";
 import { useEffect, useCallback } from "react";
@@ -26,7 +27,6 @@ export const WorkflowDisplay = ({
   const { isProcessing, processStage } = useStageProcessing(briefId || "");
   const queryClient = useQueryClient();
 
-  // Query to check completed stages - always initialized
   const { data: completedStages = [] } = useQuery({
     queryKey: ["completed-stages", briefId],
     queryFn: async () => {
@@ -145,6 +145,25 @@ export const WorkflowDisplay = ({
     checkAndProgressFirstStage();
   }, [briefId, currentStage, stages, isProcessing]);
 
+  const handleReprocess = async () => {
+    if (!briefId || !currentStage) return;
+    
+    const currentStageData = stages.find(stage => stage.id === currentStage);
+    if (!currentStageData) return;
+
+    try {
+      const success = await processStage(currentStageData);
+      if (success) {
+        toast.success("Stage reprocessed successfully");
+        await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+        await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+      }
+    } catch (error) {
+      console.error("Error reprocessing stage:", error);
+      toast.error("Failed to reprocess stage");
+    }
+  };
+
   if (!stages.length) {
     return (
       <div className="text-center text-muted-foreground">
@@ -164,10 +183,17 @@ export const WorkflowDisplay = ({
       {briefId && (
         <>
           {showOutputs ? (
-            <WorkflowOutput
-              briefId={briefId}
-              stageId={currentStage}
-            />
+            <>
+              <WorkflowOutput
+                briefId={briefId}
+                stageId={currentStage}
+              />
+              <StageFeedback
+                briefId={briefId}
+                stageId={currentStage}
+                onReprocess={handleReprocess}
+              />
+            </>
           ) : (
             <WorkflowConversation
               briefId={briefId}

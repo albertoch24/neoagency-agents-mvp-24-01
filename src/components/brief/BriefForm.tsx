@@ -14,6 +14,7 @@ const BriefForm = ({ initialData, onSubmitSuccess }: BriefFormProps) => {
   const form = useForm({
     defaultValues: {
       title: initialData?.title || "",
+      brand: initialData?.brand || "",
       description: initialData?.description || "",
       objectives: initialData?.objectives || "",
       target_audience: initialData?.target_audience || "",
