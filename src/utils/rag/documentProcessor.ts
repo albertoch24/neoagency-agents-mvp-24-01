@@ -34,11 +34,9 @@ export async function processDocument(content: string, metadata: DocumentMetadat
         openAIApiKey: apiKey,
         modelName: "text-embedding-ada-002",
         configuration: {
-          baseOptions: {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`
-            }
+          defaultHeaders: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
           }
         }
       });
@@ -111,11 +109,9 @@ export async function queryDocuments(query: string, threshold = 0.8, limit = 5):
         openAIApiKey: apiKey,
         modelName: "text-embedding-ada-002",
         configuration: {
-          baseOptions: {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`
-            }
+          defaultHeaders: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
           }
         }
       });
