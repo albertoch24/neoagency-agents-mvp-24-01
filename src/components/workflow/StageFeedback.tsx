@@ -29,14 +29,16 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
 
     setIsSubmitting(true);
     try {
-      console.log('🚀 Submitting feedback:', {
+      console.log('🚀 Starting feedback submission:', {
         briefId,
         stageId,
         feedbackLength: feedback.length,
-        isPermanent
+        isPermanent,
+        timestamp: new Date().toISOString()
       });
 
       // First, get the actual stage UUID from the stages table
+      console.log('📝 Fetching stage data for ID:', stageId);
       const { data: stageData, error: stageError } = await supabase
         .from("stages")
         .select("id")
@@ -44,20 +46,23 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
         .single();
 
       if (stageError) {
-        console.error("Error fetching stage data:", stageError);
+        console.error("❌ Error fetching stage data:", stageError);
         throw new Error("Failed to find stage");
       }
 
       if (!stageData?.id) {
+        console.error("❌ Stage not found for ID:", stageId);
         throw new Error("Stage not found");
       }
 
-      console.log('📝 Found stage:', {
+      console.log('✅ Found stage:', {
         stageId,
-        stageUuid: stageData.id
+        stageUuid: stageData.id,
+        timestamp: new Date().toISOString()
       });
 
       // First, get the brief details to access the brand
+      console.log('📝 Fetching brief data for ID:', briefId);
       const { data: briefData, error: briefError } = await supabase
         .from("briefs")
         .select("brand")
@@ -65,9 +70,16 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
         .single();
 
       if (briefError) {
-        console.error("Error fetching brief data:", briefError);
+        console.error("❌ Error fetching brief data:", briefError);
         throw new Error("Failed to fetch brief details");
       }
+
+      console.log('📝 Inserting feedback:', {
+        briefId,
+        stageId: stageData.id,
+        isPermanent,
+        timestamp: new Date().toISOString()
+      });
 
       const { error: insertError } = await supabase
         .from("stage_feedback")
@@ -81,15 +93,18 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
         });
 
       if (insertError) {
-        console.error("Error inserting feedback:", insertError);
+        console.error("❌ Error inserting feedback:", insertError);
         throw new Error("Failed to save feedback");
       }
 
+      console.log('✅ Feedback inserted successfully');
+
       // If it's permanent feedback, process it for RAG
       if (isPermanent && briefData?.brand) {
-        console.log("Processing permanent feedback for RAG:", {
+        console.log("🔄 Processing permanent feedback for RAG:", {
           content: feedback,
-          brand: briefData.brand
+          brand: briefData.brand,
+          timestamp: new Date().toISOString()
         });
 
         try {
@@ -100,6 +115,7 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
             type: "feedback"
           });
 
+          console.log('📝 Updating RAG processing status');
           // Update the feedback record to mark it as processed
           const { error: updateError } = await supabase
             .from("stage_feedback")
@@ -108,23 +124,24 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
             .eq("stage_id", stageData.id);
 
           if (updateError) {
-            console.error("Error updating RAG processing status:", updateError);
+            console.error("❌ Error updating RAG processing status:", updateError);
             // Don't throw here, as the feedback was still saved
             toast.error("Feedback saved but failed to process for brand knowledge");
           }
         } catch (ragError) {
-          console.error("Error processing feedback for RAG:", ragError);
+          console.error("❌ Error processing feedback for RAG:", ragError);
           // Don't throw here, as the feedback was still saved
           toast.error("Feedback saved but failed to process for brand knowledge");
         }
       }
 
+      console.log('✅ Feedback submission completed successfully');
       toast.success("Feedback submitted successfully");
       setFeedback("");
       setIsPermanent(false);
       queryClient.invalidateQueries({ queryKey: ["stage-feedback"] });
     } catch (error) {
-      console.error("Error in handleSubmit:", error);
+      console.error("❌ Error in handleSubmit:", error);
       toast.error(error instanceof Error ? error.message : "Failed to submit feedback");
     } finally {
       setIsSubmitting(false);
