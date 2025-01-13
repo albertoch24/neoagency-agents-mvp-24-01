@@ -47,7 +47,7 @@ export const WorkflowDisplayActions = ({
           .from("brief_outputs")
           .select("*")
           .eq("stage_id", nextStage.id)
-          .maybeSingle();
+          .limit(1);
 
         if (outputsError) {
           console.error("Error checking outputs by ID:", outputsError);
@@ -58,7 +58,7 @@ export const WorkflowDisplayActions = ({
           .from("brief_outputs")
           .select("*")
           .eq("stage", nextStage.name)
-          .maybeSingle();
+          .limit(1);
 
         if (outputsNameError) {
           console.error("Error checking outputs by name:", outputsNameError);
@@ -69,13 +69,18 @@ export const WorkflowDisplayActions = ({
           .from("workflow_conversations")
           .select("*")
           .eq("stage_id", nextStage.id)
-          .maybeSingle();
+          .limit(1);
 
         if (convsError) {
           console.error("Error checking conversations:", convsError);
         }
 
-        const hasOutput = !!(outputsById || outputsByName || conversations);
+        const hasOutput = !!(
+          (outputsById && outputsById.length > 0) || 
+          (outputsByName && outputsByName.length > 0) || 
+          (conversations && conversations.length > 0)
+        );
+
         console.log("Next stage output check result:", {
           hasOutput,
           outputsById,
