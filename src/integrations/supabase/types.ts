@@ -9,51 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      agent_feedback: {
-        Row: {
-          content: string
-          conversation_id: string
-          created_at: string
-          id: string
-          rating: number | null
-          reviewer_agent_id: string
-          updated_at: string
-        }
-        Insert: {
-          content: string
-          conversation_id: string
-          created_at?: string
-          id?: string
-          rating?: number | null
-          reviewer_agent_id: string
-          updated_at?: string
-        }
-        Update: {
-          content?: string
-          conversation_id?: string
-          created_at?: string
-          id?: string
-          rating?: number | null
-          reviewer_agent_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "agent_feedback_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "workflow_conversations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agent_feedback_reviewer_agent_id_fkey"
-            columns: ["reviewer_agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       agents: {
         Row: {
           created_at: string
@@ -145,12 +100,14 @@ export type Database = {
       }
       briefs: {
         Row: {
+          brand: string | null
           budget: string | null
           created_at: string
           current_stage: string | null
           description: string | null
           flow_id: string | null
           id: string
+          language: string
           objectives: string | null
           status: string | null
           target_audience: string | null
@@ -158,14 +115,17 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          website: string | null
         }
         Insert: {
+          brand?: string | null
           budget?: string | null
           created_at?: string
           current_stage?: string | null
           description?: string | null
           flow_id?: string | null
           id?: string
+          language?: string
           objectives?: string | null
           status?: string | null
           target_audience?: string | null
@@ -173,14 +133,17 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
+          website?: string | null
         }
         Update: {
+          brand?: string | null
           budget?: string | null
           created_at?: string
           current_stage?: string | null
           description?: string | null
           flow_id?: string | null
           id?: string
+          language?: string
           objectives?: string | null
           status?: string | null
           target_audience?: string | null
@@ -188,6 +151,7 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          website?: string | null
         }
         Relationships: [
           {
@@ -202,51 +166,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      flow_history: {
-        Row: {
-          completed_at: string | null
-          flow_id: string
-          id: string
-          results: Json | null
-          started_at: string
-          status: string
-          step_id: string | null
-        }
-        Insert: {
-          completed_at?: string | null
-          flow_id: string
-          id?: string
-          results?: Json | null
-          started_at?: string
-          status: string
-          step_id?: string | null
-        }
-        Update: {
-          completed_at?: string | null
-          flow_id?: string
-          id?: string
-          results?: Json | null
-          started_at?: string
-          status?: string
-          step_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "flow_history_flow_id_fkey"
-            columns: ["flow_id"]
-            isOneToOne: false
-            referencedRelation: "flows"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "flow_history_step_id_fkey"
-            columns: ["step_id"]
-            isOneToOne: false
-            referencedRelation: "flow_steps"
             referencedColumns: ["id"]
           },
         ]
@@ -426,6 +345,112 @@ export type Database = {
           },
         ]
       }
+      stage_clarifications: {
+        Row: {
+          agent_id: string
+          answer: string | null
+          brief_id: string
+          created_at: string
+          id: string
+          question: string
+          stage_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          answer?: string | null
+          brief_id: string
+          created_at?: string
+          id?: string
+          question: string
+          stage_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          answer?: string | null
+          brief_id?: string
+          created_at?: string
+          id?: string
+          question?: string
+          stage_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_clarifications_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_clarifications_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_clarifications_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stage_feedback: {
+        Row: {
+          brief_id: string
+          content: string
+          created_at: string
+          id: string
+          rating: number | null
+          requires_revision: boolean | null
+          stage_id: string
+          updated_at: string
+        }
+        Insert: {
+          brief_id: string
+          content: string
+          created_at?: string
+          id?: string
+          rating?: number | null
+          requires_revision?: boolean | null
+          stage_id: string
+          updated_at?: string
+        }
+        Update: {
+          brief_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          rating?: number | null
+          requires_revision?: boolean | null
+          stage_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_feedback_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_feedback_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stages: {
         Row: {
           created_at: string
@@ -483,6 +508,8 @@ export type Database = {
           flow_step_id: string | null
           id: string
           output_type: string
+          reprocessed_at: string | null
+          reprocessing: boolean | null
           stage_id: string
           summary: string | null
         }
@@ -494,6 +521,8 @@ export type Database = {
           flow_step_id?: string | null
           id?: string
           output_type?: string
+          reprocessed_at?: string | null
+          reprocessing?: boolean | null
           stage_id: string
           summary?: string | null
         }
@@ -505,6 +534,8 @@ export type Database = {
           flow_step_id?: string | null
           id?: string
           output_type?: string
+          reprocessed_at?: string | null
+          reprocessing?: boolean | null
           stage_id?: string
           summary?: string | null
         }
@@ -537,11 +568,209 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      binary_quantize:
+        | {
+            Args: {
+              "": string
+            }
+            Returns: unknown
+          }
+        | {
+            Args: {
+              "": unknown
+            }
+            Returns: unknown
+          }
       delete_agent_with_relations: {
         Args: {
           agent_id_param: string
         }
         Returns: undefined
+      }
+      halfvec_avg: {
+        Args: {
+          "": number[]
+        }
+        Returns: unknown
+      }
+      halfvec_out: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      halfvec_send: {
+        Args: {
+          "": unknown
+        }
+        Returns: string
+      }
+      halfvec_typmod_in: {
+        Args: {
+          "": unknown[]
+        }
+        Returns: number
+      }
+      hnsw_bit_support: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      hnsw_halfvec_support: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      hnsw_sparsevec_support: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      hnswhandler: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      ivfflat_bit_support: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      ivfflat_halfvec_support: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      ivfflathandler: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      l2_norm:
+        | {
+            Args: {
+              "": unknown
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              "": unknown
+            }
+            Returns: number
+          }
+      l2_normalize:
+        | {
+            Args: {
+              "": string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              "": unknown
+            }
+            Returns: unknown
+          }
+        | {
+            Args: {
+              "": unknown
+            }
+            Returns: unknown
+          }
+      match_documents:
+        | {
+            Args: {
+              query_embedding: string
+              match_count?: number
+            }
+            Returns: {
+              id: number
+              content: string
+              metadata: Json
+              similarity: number
+            }[]
+          }
+        | {
+            Args: {
+              query_embedding: string
+              match_threshold: number
+              match_count: number
+            }
+            Returns: {
+              id: number
+              content: string
+              metadata: Json
+              similarity: number
+            }[]
+          }
+      sparsevec_out: {
+        Args: {
+          "": unknown
+        }
+        Returns: unknown
+      }
+      sparsevec_send: {
+        Args: {
+          "": unknown
+        }
+        Returns: string
+      }
+      sparsevec_typmod_in: {
+        Args: {
+          "": unknown[]
+        }
+        Returns: number
+      }
+      vector_avg: {
+        Args: {
+          "": number[]
+        }
+        Returns: string
+      }
+      vector_dims:
+        | {
+            Args: {
+              "": string
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              "": unknown
+            }
+            Returns: number
+          }
+      vector_norm: {
+        Args: {
+          "": string
+        }
+        Returns: number
+      }
+      vector_out: {
+        Args: {
+          "": string
+        }
+        Returns: unknown
+      }
+      vector_send: {
+        Args: {
+          "": string
+        }
+        Returns: string
+      }
+      vector_typmod_in: {
+        Args: {
+          "": unknown[]
+        }
+        Returns: number
       }
     }
     Enums: {
