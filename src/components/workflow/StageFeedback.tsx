@@ -29,6 +29,34 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
 
     setIsSubmitting(true);
     try {
+      console.log('🚀 Submitting feedback:', {
+        briefId,
+        stageId,
+        feedbackLength: feedback.length,
+        isPermanent
+      });
+
+      // First, get the actual stage UUID from the stages table
+      const { data: stageData, error: stageError } = await supabase
+        .from("stages")
+        .select("id")
+        .eq("name", stageId.toLowerCase())
+        .single();
+
+      if (stageError) {
+        console.error("Error fetching stage data:", stageError);
+        throw new Error("Failed to find stage");
+      }
+
+      if (!stageData?.id) {
+        throw new Error("Stage not found");
+      }
+
+      console.log('📝 Found stage:', {
+        stageName: stageId,
+        stageUuid: stageData.id
+      });
+
       // First, get the brief details to access the brand
       const { data: briefData, error: briefError } = await supabase
         .from("briefs")
@@ -45,7 +73,7 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
         .from("stage_feedback")
         .insert({
           brief_id: briefId,
-          stage_id: stageId,
+          stage_id: stageData.id, // Use the actual UUID
           content: feedback,
           requires_revision: true,
           is_permanent: isPermanent,
@@ -77,7 +105,7 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
             .from("stage_feedback")
             .update({ processed_for_rag: true })
             .eq("brief_id", briefId)
-            .eq("stage_id", stageId);
+            .eq("stage_id", stageData.id);
 
           if (updateError) {
             console.error("Error updating RAG processing status:", updateError);
