@@ -1,9 +1,5 @@
-import { TextChunk } from "./textSplitter";
+import { TextChunk, EmbeddingVector } from "@/types/rag";
 import { supabase } from "@/integrations/supabase/client";
-
-export interface VectorizedChunk extends TextChunk {
-  embedding: number[];
-}
 
 export async function storeChunks(chunks: TextChunk[]): Promise<void> {
   console.log('Storing chunks in vector store...');
@@ -11,7 +7,12 @@ export async function storeChunks(chunks: TextChunk[]): Promise<void> {
   try {
     // Call the edge function to process chunks and store them
     const { data, error } = await supabase.functions.invoke('process-brand-documents', {
-      body: { chunks }
+      body: { 
+        chunks: chunks.map(chunk => ({
+          ...chunk,
+          metadata: chunk.metadata || {}
+        }))
+      }
     });
 
     if (error) {
@@ -39,7 +40,13 @@ export async function retrieveRelevantChunks(query: string, limit: number = 5): 
       throw error;
     }
 
-    return data.chunks;
+    // Ensure the returned chunks match the TextChunk interface
+    const transformedChunks: TextChunk[] = data.chunks.map((chunk: any) => ({
+      content: chunk.content,
+      metadata: chunk.metadata || {}
+    }));
+
+    return transformedChunks;
   } catch (error) {
     console.error('Error in retrieveRelevantChunks:', error);
     throw error;

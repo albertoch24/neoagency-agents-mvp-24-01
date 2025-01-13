@@ -1,8 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
-import { TextChunk } from "./textSplitter";
+import { TextChunk, DocumentMetadata, EmbeddingVector } from "@/types/rag";
 import { OpenAIEmbeddings } from "@langchain/openai";
 
-export async function processDocument(content: string, metadata: any = {}) {
+export async function processDocument(content: string, metadata: DocumentMetadata = {}) {
   try {
     console.log('Processing document:', {
       contentLength: content.length,
@@ -16,13 +16,16 @@ export async function processDocument(content: string, metadata: any = {}) {
 
     const embedding = await embeddings.embedQuery(content);
 
+    // Convert embedding array to string for storage
+    const embeddingString = JSON.stringify(embedding);
+
     const { data, error } = await supabase
       .from('document_embeddings')
       .insert([
         {
           content,
           metadata,
-          embedding
+          embedding: embeddingString
         }
       ])
       .select();
@@ -51,11 +54,12 @@ export async function queryDocuments(query: string, threshold = 0.8, limit = 5):
     });
 
     const queryEmbedding = await embeddings.embedQuery(query);
+    const queryEmbeddingString = JSON.stringify(queryEmbedding);
 
     const { data: chunks, error } = await supabase.rpc(
       'match_documents',
       {
-        query_embedding: queryEmbedding,
+        query_embedding: queryEmbeddingString,
         match_threshold: threshold,
         match_count: limit
       }
@@ -63,18 +67,21 @@ export async function queryDocuments(query: string, threshold = 0.8, limit = 5):
 
     if (error) throw error;
 
+    // Transform the response to match TextChunk interface
+    const transformedChunks: TextChunk[] = chunks.map(chunk => ({
+      content: chunk.content,
+      metadata: chunk.metadata || {}
+    }));
+
     console.log('Retrieved relevant chunks:', {
-      count: chunks.length,
+      count: transformedChunks.length,
       similarityRange: chunks.length > 0 ? {
         min: Math.min(...chunks.map(c => c.similarity)),
         max: Math.max(...chunks.map(c => c.similarity))
       } : null
     });
 
-    return chunks.map(chunk => ({
-      content: chunk.content,
-      metadata: chunk.metadata
-    }));
+    return transformedChunks;
   } catch (error) {
     console.error('Error querying documents:', error);
     throw error;
