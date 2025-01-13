@@ -1,4 +1,4 @@
-import { enhancePromptWithContext } from "../../../../src/utils/rag/contextEnhancer";
+import { enhancePromptWithContext } from "./contextEnhancer.ts";
 
 export const buildPrompt = async (
   agent: any,
@@ -20,7 +20,7 @@ export const buildPrompt = async (
   });
 
   // Build base prompt as before
-  const basePrompt = buildBasePrompt(
+  const basePrompt = await buildBasePrompt(
     agent,
     brief,
     previousOutputs,
@@ -37,7 +37,7 @@ export const buildPrompt = async (
 };
 
 // Extract base prompt building logic to separate function
-const buildBasePrompt = (
+const buildBasePrompt = async (
   agent: any,
   brief: any,
   previousOutputs: any[],
@@ -71,7 +71,7 @@ const buildBasePrompt = (
     formattedRequirements
   ].filter(Boolean).join('\n\n');
 
-  const conversationalPrompt = `
+  const basePrompt = `
     As ${agent.name}, I'd like you to ${isReprocessing ? 're-analyze' : 'analyze'} this creative brief with a ${isReprocessing ? 'fresh perspective' : 'thorough approach'}:
 
     1. CONVERSATIONAL ANALYSIS:
@@ -107,7 +107,7 @@ const buildBasePrompt = (
     ${sections}
   `;
 
-  return { conversationalPrompt };
+  return basePrompt;
 };
 
 const buildBriefDetails = (brief: any) => {
