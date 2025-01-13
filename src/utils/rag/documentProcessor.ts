@@ -1,167 +1,114 @@
-import { supabase } from "@/integrations/supabase/client";
-import { TextChunk, DocumentMetadata } from "@/types/rag";
 import { OpenAIEmbeddings } from "@langchain/openai";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-export async function processDocument(content: string, metadata: DocumentMetadata) {
+async function getOpenAIKey() {
   try {
-    console.log('Processing document:', {
-      contentLength: content.length,
-      metadata
-    });
-
-    // Get the OpenAI API key from Supabase
-    const { data: secretData, error: secretError } = await supabase
+    const { data, error } = await supabase
       .from('secrets')
       .select('secret')
       .eq('name', 'OPENAI_API_KEY')
       .single();
 
-    if (secretError) {
-      console.error('Error fetching OpenAI API key:', secretError);
-      throw new Error('Failed to fetch OpenAI API key');
-    }
+    if (error) throw error;
+    if (!data?.secret) throw new Error('OpenAI API key not found');
 
-    if (!secretData?.secret) {
-      console.error('OpenAI API key not found in secrets');
-      throw new Error('OpenAI API key not configured');
-    }
-
-    const apiKey = secretData.secret.trim();
-    console.log('Successfully retrieved OpenAI API key, length:', apiKey.length);
-
-    try {
-      const embeddings = new OpenAIEmbeddings({
-        openAIApiKey: apiKey,
-        modelName: "text-embedding-ada-002",
-        configuration: {
-          defaultHeaders: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-          }
-        }
-      });
-
-      console.log('Generating embedding for content');
-      const embedding = await embeddings.embedQuery(content);
-
-      // Convert embedding array to string for storage
-      const embeddingString = JSON.stringify(embedding);
-
-      console.log('Storing document with embedding in Supabase');
-      const { data, error } = await supabase
-        .from('document_embeddings')
-        .insert([
-          {
-            content,
-            metadata,
-            embedding: embeddingString
-          }
-        ])
-        .select();
-
-      if (error) {
-        console.error('Error storing document:', error);
-        throw error;
-      }
-
-      console.log('Document processed successfully:', {
-        documentId: data[0].id,
-        metadata
-      });
-
-      return data[0];
-    } catch (embeddingError: any) {
-      console.error('Error in OpenAI embedding generation:', embeddingError);
-      throw new Error(`Failed to generate embedding: ${embeddingError.message}`);
-    }
+    return data.secret;
   } catch (error) {
-    console.error('Error processing document:', error);
-    throw error;
+    console.error('Error fetching OpenAI API key:', error);
+    throw new Error('Failed to retrieve OpenAI API key');
   }
 }
 
-export async function queryDocuments(query: string, threshold = 0.8, limit = 5): Promise<TextChunk[]> {
+export async function processDocument(content: string, metadata: any = {}) {
+  console.log('Processing document:', {
+    contentLength: content?.length,
+    metadataKeys: Object.keys(metadata)
+  });
+
   try {
-    console.log('Querying documents:', { query, threshold, limit });
-
-    // Get the OpenAI API key from Supabase
-    const { data: secretData, error: secretError } = await supabase
-      .from('secrets')
-      .select('secret')
-      .eq('name', 'OPENAI_API_KEY')
-      .single();
-
-    if (secretError) {
-      console.error('Error fetching OpenAI API key:', secretError);
-      throw new Error('Failed to fetch OpenAI API key');
-    }
-
-    if (!secretData?.secret) {
-      console.error('OpenAI API key not found in secrets');
-      throw new Error('OpenAI API key not configured');
-    }
-
-    const apiKey = secretData.secret.trim();
-    console.log('Successfully retrieved OpenAI API key for query, length:', apiKey.length);
-
-    try {
-      const embeddings = new OpenAIEmbeddings({
-        openAIApiKey: apiKey,
-        modelName: "text-embedding-ada-002",
-        configuration: {
-          defaultHeaders: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-          }
+    const apiKey = await getOpenAIKey();
+    
+    const embeddings = new OpenAIEmbeddings({
+      openAIApiKey: apiKey,
+      modelName: "text-embedding-ada-002",
+      configuration: {
+        defaultHeaders: {
+          "Content-Type": "application/json"
         }
-      });
-
-      const queryEmbedding = await embeddings.embedQuery(query);
-      const queryEmbeddingString = JSON.stringify(queryEmbedding);
-
-      const { data: chunks, error } = await supabase.rpc(
-        'match_documents',
-        {
-          query_embedding: queryEmbeddingString,
-          match_threshold: threshold,
-          match_count: limit
-        }
-      );
-
-      if (error) {
-        console.error('Error querying documents:', error);
-        throw error;
       }
+    });
 
-      // Transform the response to match TextChunk interface
-      const transformedChunks: TextChunk[] = chunks.map(chunk => {
-        const metadataObj = typeof chunk.metadata === 'object' && !Array.isArray(chunk.metadata) ? chunk.metadata : {};
-        
-        return {
-          content: chunk.content,
-          metadata: {
-            source: typeof metadataObj?.source === 'string' ? metadataObj.source : 'unknown',
-            title: typeof metadataObj?.title === 'string' ? metadataObj.title : undefined,
-            type: typeof metadataObj?.type === 'string' ? metadataObj.type : undefined
-          }
-        };
-      });
+    console.log('Generating embedding for content...');
+    const embedding = await embeddings.embedQuery(content);
 
-      console.log('Retrieved relevant chunks:', {
-        count: transformedChunks.length,
-        similarityRange: chunks.length > 0 ? {
-          min: Math.min(...chunks.map(c => c.similarity)),
-          max: Math.max(...chunks.map(c => c.similarity))
-        } : null
-      });
-
-      return transformedChunks;
-    } catch (embeddingError: any) {
-      console.error('Error generating query embedding:', embeddingError);
-      throw new Error(`Failed to generate query embedding: ${embeddingError.message}`);
+    if (!embedding) {
+      throw new Error('Failed to generate embedding');
     }
-  } catch (error) {
-    console.error('Error querying documents:', error);
-    throw error;
+
+    console.log('Successfully generated embedding');
+
+    const { error: insertError } = await supabase
+      .from('document_embeddings')
+      .insert({
+        content,
+        metadata,
+        embedding
+      });
+
+    if (insertError) {
+      console.error('Error inserting document embedding:', insertError);
+      throw insertError;
+    }
+
+    return { success: true };
+
+  } catch (error: any) {
+    console.error('Error processing document:', error);
+    
+    const errorMessage = error.message || 'Unknown error occurred';
+    toast.error(`Error processing document: ${errorMessage}`);
+    
+    throw new Error(`Failed to process document: ${errorMessage}`);
+  }
+}
+
+export async function queryDocuments(query: string, threshold = 0.8, limit = 5) {
+  console.log('Querying documents:', { query, threshold, limit });
+
+  try {
+    const apiKey = await getOpenAIKey();
+    
+    const embeddings = new OpenAIEmbeddings({
+      openAIApiKey: apiKey,
+      modelName: "text-embedding-ada-002",
+      configuration: {
+        defaultHeaders: {
+          "Content-Type": "application/json"
+        }
+      }
+    });
+
+    const queryEmbedding = await embeddings.embedQuery(query);
+
+    const { data: matches, error } = await supabase
+      .rpc('match_documents', {
+        query_embedding: queryEmbedding,
+        match_threshold: threshold,
+        match_count: limit
+      });
+
+    if (error) {
+      console.error('Error querying documents:', error);
+      throw error;
+    }
+
+    return matches;
+
+  } catch (error: any) {
+    console.error('Error in document query:', error);
+    const errorMessage = error.message || 'Unknown error occurred';
+    toast.error(`Error querying documents: ${errorMessage}`);
+    throw new Error(`Failed to query documents: ${errorMessage}`);
   }
 }
