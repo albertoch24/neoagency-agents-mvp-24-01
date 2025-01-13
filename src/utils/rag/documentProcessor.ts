@@ -26,42 +26,56 @@ export async function processDocument(content: string, metadata: DocumentMetadat
       throw new Error('OpenAI API key not configured');
     }
 
-    console.log('Successfully retrieved OpenAI API key');
+    const apiKey = secretData.secret.trim();
+    console.log('Successfully retrieved OpenAI API key, length:', apiKey.length);
 
-    const embeddings = new OpenAIEmbeddings({
-      openAIApiKey: secretData.secret.trim(),
-      modelName: "text-embedding-ada-002"
-    });
-
-    console.log('Generating embedding for content');
-    const embedding = await embeddings.embedQuery(content);
-
-    // Convert embedding array to string for storage
-    const embeddingString = JSON.stringify(embedding);
-
-    console.log('Storing document with embedding in Supabase');
-    const { data, error } = await supabase
-      .from('document_embeddings')
-      .insert([
-        {
-          content,
-          metadata,
-          embedding: embeddingString
+    try {
+      const embeddings = new OpenAIEmbeddings({
+        openAIApiKey: apiKey,
+        modelName: "text-embedding-ada-002",
+        configuration: {
+          baseOptions: {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            }
+          }
         }
-      ])
-      .select();
+      });
 
-    if (error) {
-      console.error('Error storing document:', error);
-      throw error;
+      console.log('Generating embedding for content');
+      const embedding = await embeddings.embedQuery(content);
+
+      // Convert embedding array to string for storage
+      const embeddingString = JSON.stringify(embedding);
+
+      console.log('Storing document with embedding in Supabase');
+      const { data, error } = await supabase
+        .from('document_embeddings')
+        .insert([
+          {
+            content,
+            metadata,
+            embedding: embeddingString
+          }
+        ])
+        .select();
+
+      if (error) {
+        console.error('Error storing document:', error);
+        throw error;
+      }
+
+      console.log('Document processed successfully:', {
+        documentId: data[0].id,
+        metadata
+      });
+
+      return data[0];
+    } catch (embeddingError) {
+      console.error('Error in OpenAI embedding generation:', embeddingError);
+      throw new Error(`Failed to generate embedding: ${embeddingError.message}`);
     }
-
-    console.log('Document processed successfully:', {
-      documentId: data[0].id,
-      metadata
-    });
-
-    return data[0];
   } catch (error) {
     console.error('Error processing document:', error);
     throw error;
@@ -89,54 +103,67 @@ export async function queryDocuments(query: string, threshold = 0.8, limit = 5):
       throw new Error('OpenAI API key not configured');
     }
 
-    console.log('Successfully retrieved OpenAI API key for query');
+    const apiKey = secretData.secret.trim();
+    console.log('Successfully retrieved OpenAI API key for query, length:', apiKey.length);
 
-    const embeddings = new OpenAIEmbeddings({
-      openAIApiKey: secretData.secret.trim(),
-      modelName: "text-embedding-ada-002"
-    });
-
-    const queryEmbedding = await embeddings.embedQuery(query);
-    const queryEmbeddingString = JSON.stringify(queryEmbedding);
-
-    const { data: chunks, error } = await supabase.rpc(
-      'match_documents',
-      {
-        query_embedding: queryEmbeddingString,
-        match_threshold: threshold,
-        match_count: limit
-      }
-    );
-
-    if (error) {
-      console.error('Error querying documents:', error);
-      throw error;
-    }
-
-    // Transform the response to match TextChunk interface
-    const transformedChunks: TextChunk[] = chunks.map(chunk => {
-      // First ensure metadata is an object and not an array
-      const metadataObj = typeof chunk.metadata === 'object' && !Array.isArray(chunk.metadata) ? chunk.metadata : {};
-      
-      return {
-        content: chunk.content,
-        metadata: {
-          source: typeof metadataObj?.source === 'string' ? metadataObj.source : 'unknown',
-          title: typeof metadataObj?.title === 'string' ? metadataObj.title : undefined,
-          type: typeof metadataObj?.type === 'string' ? metadataObj.type : undefined
+    try {
+      const embeddings = new OpenAIEmbeddings({
+        openAIApiKey: apiKey,
+        modelName: "text-embedding-ada-002",
+        configuration: {
+          baseOptions: {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            }
+          }
         }
-      };
-    });
+      });
 
-    console.log('Retrieved relevant chunks:', {
-      count: transformedChunks.length,
-      similarityRange: chunks.length > 0 ? {
-        min: Math.min(...chunks.map(c => c.similarity)),
-        max: Math.max(...chunks.map(c => c.similarity))
-      } : null
-    });
+      const queryEmbedding = await embeddings.embedQuery(query);
+      const queryEmbeddingString = JSON.stringify(queryEmbedding);
 
-    return transformedChunks;
+      const { data: chunks, error } = await supabase.rpc(
+        'match_documents',
+        {
+          query_embedding: queryEmbeddingString,
+          match_threshold: threshold,
+          match_count: limit
+        }
+      );
+
+      if (error) {
+        console.error('Error querying documents:', error);
+        throw error;
+      }
+
+      // Transform the response to match TextChunk interface
+      const transformedChunks: TextChunk[] = chunks.map(chunk => {
+        const metadataObj = typeof chunk.metadata === 'object' && !Array.isArray(chunk.metadata) ? chunk.metadata : {};
+        
+        return {
+          content: chunk.content,
+          metadata: {
+            source: typeof metadataObj?.source === 'string' ? metadataObj.source : 'unknown',
+            title: typeof metadataObj?.title === 'string' ? metadataObj.title : undefined,
+            type: typeof metadataObj?.type === 'string' ? metadataObj.type : undefined
+          }
+        };
+      });
+
+      console.log('Retrieved relevant chunks:', {
+        count: transformedChunks.length,
+        similarityRange: chunks.length > 0 ? {
+          min: Math.min(...chunks.map(c => c.similarity)),
+          max: Math.max(...chunks.map(c => c.similarity))
+        } : null
+      });
+
+      return transformedChunks;
+    } catch (embeddingError) {
+      console.error('Error generating query embedding:', embeddingError);
+      throw new Error(`Failed to generate query embedding: ${embeddingError.message}`);
+    }
   } catch (error) {
     console.error('Error querying documents:', error);
     throw error;
