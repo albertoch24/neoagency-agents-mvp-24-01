@@ -31,28 +31,37 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
     // Get current session state
     const { data: { session } } = await supabase.auth.getSession();
     
-    // Log API call initialization
-    console.log('Initializing RAG API call:', {
+    // Log API call initialization with auth details
+    console.log('RAG API Call - Initialization:', {
       operationId,
       briefId: brief.id,
       endpoint: 'briefs',
       method: 'DELETE',
-      authStatus: session ? 'authenticated' : 'unauthenticated',
+      authStatus: {
+        isAuthenticated: !!session,
+        tokenExpiry: session?.expires_at,
+        userId: session?.user?.id,
+        role: session?.user?.role
+      },
       timestamp: new Date().toISOString(),
       processStage: 'api_call_init'
     });
 
     try {
-      // Log API request details
-      console.log('Making RAG API request:', {
+      // Log detailed API request configuration
+      console.log('RAG API Call - Request Configuration:', {
         operationId,
         briefId: brief.id,
-        headers: {
-          authorization: session?.access_token ? 'present' : 'missing',
-          apikey: session?.access_token ? 'present' : 'missing'
+        requestDetails: {
+          url: `${supabase.supabaseUrl}/rest/v1/briefs?id=eq.${brief.id}`,
+          headers: {
+            authorization: session?.access_token ? 'Bearer token present' : 'No bearer token',
+            apikey: supabase.supabaseKey ? 'API key present' : 'No API key',
+            'content-type': 'application/json'
+          }
         },
         timestamp: new Date().toISOString(),
-        processStage: 'api_request_start'
+        processStage: 'api_request_config'
       });
 
       const { error, status, statusText } = await supabase
@@ -60,19 +69,29 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
         .delete()
         .eq('id', brief.id);
 
-      // Log API response
-      console.log('RAG API response received:', {
+      // Log API response details
+      console.log('RAG API Call - Response:', {
         operationId,
         briefId: brief.id,
-        status,
-        statusText,
-        hasError: !!error,
+        responseDetails: {
+          status,
+          statusText,
+          hasError: !!error,
+          errorMessage: error?.message,
+          errorCode: error?.code
+        },
+        authContext: {
+          tokenPresent: !!session?.access_token,
+          tokenExpiryTime: session?.expires_at,
+          timeTillExpiry: session?.expires_at ? new Date(session.expires_at).getTime() - Date.now() : 'N/A'
+        },
         timestamp: new Date().toISOString(),
         processStage: 'api_response_received'
       });
 
       if (error) {
-        console.error('RAG API error details:', {
+        // Log detailed error information
+        console.error('RAG API Call - Error Details:', {
           operationId,
           briefId: brief.id,
           error: {
@@ -81,10 +100,14 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
             hint: error.hint,
             code: error.code
           },
-          authDetails: {
-            session: !!session,
+          authenticationContext: {
+            sessionExists: !!session,
             tokenExpiry: session?.expires_at,
-            role: session?.user?.role
+            userRole: session?.user?.role,
+            requestHeaders: {
+              authPresent: !!session?.access_token,
+              apikeyPresent: !!supabase.supabaseKey
+            }
           },
           timestamp: new Date().toISOString(),
           processStage: 'api_error_details'
@@ -92,10 +115,16 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
         throw error;
       }
 
-      // Log successful API completion
-      console.log('RAG API call completed successfully:', {
+      // Log successful completion
+      console.log('RAG API Call - Success:', {
         operationId,
         briefId: brief.id,
+        completionDetails: {
+          status,
+          statusText,
+          sessionValid: !!session,
+          tokenExpiryTime: session?.expires_at
+        },
         timestamp: new Date().toISOString(),
         processStage: 'api_call_success'
       });
@@ -103,8 +132,8 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
       await queryClient.invalidateQueries({ queryKey: ['briefs'] });
       toast.success('Brief deleted successfully');
     } catch (error: any) {
-      // Log unexpected API errors
-      console.error('Unexpected RAG API error:', {
+      // Log unexpected errors with full context
+      console.error('RAG API Call - Unexpected Error:', {
         operationId,
         briefId: brief.id,
         error: {
@@ -113,12 +142,17 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
           stack: error.stack,
           cause: error.cause
         },
-        authContext: {
-          hasSession: !!session,
+        authenticationState: {
+          hasValidSession: !!session,
           sessionStatus: session?.user?.aud,
+          tokenExpiry: session?.expires_at,
           lastError: error.error?.message
         },
-        timestamp: new Date().toISOString(),
+        requestContext: {
+          apiKeyPresent: !!supabase.supabaseKey,
+          baseUrl: supabase.supabaseUrl,
+          timestamp: new Date().toISOString()
+        },
         processStage: 'api_unexpected_error'
       });
       toast.error(`Error deleting brief: ${error.message}`);
