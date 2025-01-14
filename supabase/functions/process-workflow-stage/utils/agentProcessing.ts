@@ -30,34 +30,14 @@ export async function processAgents(briefId: string, stageId: string, flowSteps:
       throw new Error('Brief not found');
     }
 
-    // Get stage data with flow and steps, including complete agent data
+    // Get stage data
     const { data: stage, error: stageError } = await supabase
       .from('stages')
       .select(`
         *,
         flows (
           id,
-          name,
-          flow_steps (
-            id,
-            agent_id,
-            requirements,
-            order_index,
-            outputs,
-            agents (
-              id,
-              name,
-              description,
-              temperature,
-              skills (
-                id,
-                name,
-                type,
-                content,
-                description
-              )
-            )
-          )
+          name
         )
       `)
       .eq('id', stageId)
@@ -69,9 +49,6 @@ export async function processAgents(briefId: string, stageId: string, flowSteps:
     }
     if (!stage) {
       throw new Error('Stage not found');
-    }
-    if (!stage.flows?.flow_steps?.length) {
-      throw new Error('No flow steps found for stage');
     }
 
     console.log('Processing stage:', {
@@ -85,32 +62,48 @@ export async function processAgents(briefId: string, stageId: string, flowSteps:
     // Process each agent in sequence
     const outputs = [];
     for (const step of sortedFlowSteps) {
-      // Get complete agent data for this step
+      // Get complete agent data for this step with a separate query
       const { data: agent, error: agentError } = await supabase
         .from('agents')
         .select(`
-          *,
-          skills (*)
+          id,
+          name,
+          description,
+          temperature,
+          skills (
+            id,
+            name,
+            type,
+            content,
+            description
+          )
         `)
         .eq('id', step.agent_id)
         .single();
 
       if (agentError) {
-        console.error('Error fetching agent data:', agentError);
+        console.error('Error fetching agent data:', {
+          error: agentError,
+          stepId: step.id,
+          agentId: step.agent_id
+        });
         continue;
       }
 
       if (!agent) {
-        console.warn('Missing agent data for step:', step);
+        console.error('Agent not found:', {
+          stepId: step.id,
+          agentId: step.agent_id
+        });
         continue;
       }
 
-      console.log('Processing step with agent:', {
+      console.log('Successfully retrieved agent data:', {
+        agentId: agent.id,
         agentName: agent.name,
-        stepId: step.id,
-        agentSkills: agent.skills?.length || 0
+        skillsCount: agent.skills?.length || 0
       });
-      
+
       const result = await processAgent(
         supabase,
         agent,
@@ -126,7 +119,7 @@ export async function processAgents(briefId: string, stageId: string, flowSteps:
     // Prepare the content object for saving
     const content = {
       stage_name: stage.name,
-      flow_name: stage.flows.name,
+      flow_name: stage.flows?.name,
       agent_count: sortedFlowSteps.length,
       outputs: outputs.map(output => ({
         agent: output.agent,
