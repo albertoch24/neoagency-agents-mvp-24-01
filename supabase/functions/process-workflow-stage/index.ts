@@ -22,22 +22,39 @@ serve(async (req) => {
 
     const { briefId, stageId, flowSteps } = body;
     
-    // Validate required parameters
-    if (!briefId || !stageId) {
-      console.error('Missing required parameters:', { briefId, stageId });
-      throw new Error('Missing required parameters: briefId and stageId are required');
+    // Enhanced validation
+    if (!briefId) {
+      throw new Error('Missing required parameter: briefId');
     }
-
-    // Ensure flowSteps is an array
+    if (!stageId) {
+      throw new Error('Missing required parameter: stageId');
+    }
     if (!Array.isArray(flowSteps)) {
-      console.error('Invalid flowSteps:', flowSteps);
       throw new Error('flowSteps must be an array');
     }
+    if (flowSteps.length === 0) {
+      throw new Error('flowSteps array cannot be empty');
+    }
+    
+    // Validate each flow step has required properties
+    flowSteps.forEach((step, index) => {
+      if (!step.agent_id) {
+        throw new Error(`Flow step at index ${index} is missing agent_id`);
+      }
+      if (typeof step.order_index !== 'number') {
+        throw new Error(`Flow step at index ${index} is missing order_index`);
+      }
+    });
     
     console.log('Processing workflow for:', { 
       briefId, 
       stageId, 
-      flowStepsCount: flowSteps.length
+      flowStepsCount: flowSteps.length,
+      flowSteps: flowSteps.map(step => ({
+        id: step.id,
+        agentId: step.agent_id,
+        orderIndex: step.order_index
+      }))
     });
     
     // Process the workflow

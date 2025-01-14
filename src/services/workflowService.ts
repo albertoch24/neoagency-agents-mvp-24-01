@@ -14,12 +14,39 @@ export const processWorkflowStage = async (
   });
 
   try {
-    // Call the edge function to process the workflow
-    const { error } = await supabase.functions.invoke("process-workflow-stage", {
+    // Validate inputs before making the request
+    if (!briefId) {
+      throw new Error("Brief ID is required");
+    }
+    if (!stage?.id) {
+      throw new Error("Stage ID is required");
+    }
+    if (!Array.isArray(flowSteps) || flowSteps.length === 0) {
+      throw new Error("Flow steps array cannot be empty");
+    }
+
+    // Validate each flow step
+    const validatedFlowSteps = flowSteps.map((step, index) => {
+      if (!step.agent_id) {
+        throw new Error(`Flow step ${index} is missing agent_id`);
+      }
+      if (typeof step.order_index !== 'number') {
+        throw new Error(`Flow step ${index} is missing order_index`);
+      }
+      return {
+        ...step,
+        id: step.id,
+        agent_id: step.agent_id,
+        order_index: step.order_index
+      };
+    });
+
+    // Call the edge function
+    const { error, data } = await supabase.functions.invoke("process-workflow-stage", {
       body: {
         briefId,
         stageId: stage.id,
-        flowSteps
+        flowSteps: validatedFlowSteps
       }
     });
 
@@ -29,7 +56,7 @@ export const processWorkflowStage = async (
     }
 
     // Create workflow conversations for each flow step
-    for (const step of flowSteps) {
+    for (const step of validatedFlowSteps) {
       console.log("Creating workflow conversation for step:", step);
       
       const { error: conversationError } = await supabase
