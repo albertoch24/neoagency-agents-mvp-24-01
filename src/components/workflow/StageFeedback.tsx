@@ -15,12 +15,13 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
     isPermanent,
     setIsPermanent,
     isSubmitting,
-    handleSubmit
+    handleSubmit,
+    feedbackId
   } = useStageFeedback({ 
     briefId, 
     stageId,
     onReprocess: async () => {
-      console.log('Triggering reprocessing with feedback');
+      console.log('Triggering reprocessing with feedback:', { feedbackId });
       if (onReprocess) {
         await onReprocess();
       }

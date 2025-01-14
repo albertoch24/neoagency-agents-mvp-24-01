@@ -26,7 +26,7 @@ serve(async (req) => {
       stageId,
       flowStepsCount: flowSteps?.length,
       hasFeedback: !!feedbackId,
-      feedbackId,
+      feedbackId: feedbackId || null,
       timestamp: new Date().toISOString()
     });
 
@@ -58,13 +58,18 @@ serve(async (req) => {
     });
     
     // Process the workflow and get outputs
-    const outputs = await processAgents(briefId, stageId, flowSteps, feedbackId || null);
+    const outputs = await processAgents(
+      briefId, 
+      stageId, 
+      flowSteps, 
+      typeof feedbackId === 'string' ? feedbackId : null
+    );
     
     console.log('✅ Workflow processed successfully:', {
       outputsCount: outputs?.length,
       firstOutput: outputs?.[0],
       hasFeedback: !!feedbackId,
-      feedbackId
+      feedbackId: feedbackId || null
     });
     
     // Return success response with outputs and CORS headers
@@ -75,7 +80,7 @@ serve(async (req) => {
         outputs,
         meta: {
           hasFeedback: !!feedbackId,
-          feedbackId,
+          feedbackId: feedbackId || null,
           timestamp: new Date().toISOString()
         }
       }),

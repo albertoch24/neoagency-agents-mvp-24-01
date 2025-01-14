@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const useStageProcessing = (briefId?: string, stageId?: string) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const queryClient = useQueryClient();
 
-  const processStage = async (feedbackId?: string) => {
+  const processStage = async (feedbackId?: string | null) => {
     if (!briefId || !stageId) {
       console.error("❌ Missing required parameters:", { briefId, stageId });
       toast.error("Missing brief or stage ID");
@@ -19,7 +19,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       briefId,
       stageId,
       hasFeedback: !!feedbackId,
-      feedbackId,
+      feedbackId: feedbackId || null,
       timestamp: new Date().toISOString()
     });
 
@@ -68,7 +68,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
           briefId,
           stageId,
           flowSteps: stage.flows?.flow_steps || [],
-          feedbackId: feedbackId || null  // Explicitly pass null if no feedbackId
+          feedbackId: typeof feedbackId === 'string' ? feedbackId : null
         }
       });
 
