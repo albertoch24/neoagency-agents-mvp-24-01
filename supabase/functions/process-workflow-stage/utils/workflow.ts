@@ -36,7 +36,7 @@ export async function processAgent(
         .from('stage_feedback')
         .select('content, rating')
         .eq('id', feedbackId)
-        .single();
+        .maybeSingle();
 
       if (feedbackError) {
         console.error('❌ Error fetching feedback:', feedbackError);
@@ -116,7 +116,8 @@ Please address this feedback specifically in your new response.`;
       agentName: agent.name,
       isFirstStage,
       previousOutputsCount: previousOutputs.length,
-      hasFeedback: !!feedback
+      hasFeedback: !!feedback,
+      isReprocessing: !!feedbackId
     });
 
     const { conversationalPrompt } = await buildPrompt(
@@ -134,7 +135,8 @@ Please address this feedback specifically in your new response.`;
       preview: conversationalPrompt.substring(0, 100),
       containsPreviousOutputs: conversationalPrompt.includes('Previous Stage Outputs'),
       containsRequirements: conversationalPrompt.includes(requirements || ''),
-      hasFeedback: !!feedback
+      hasFeedback: !!feedback,
+      isReprocessing: !!feedbackId
     });
 
     const response = await generateAgentResponse(conversationalPrompt);
@@ -153,7 +155,8 @@ Please address this feedback specifically in your new response.`;
       containsReferences: response.conversationalResponse?.includes('previous') || 
                          response.conversationalResponse?.includes('earlier') ||
                          response.conversationalResponse?.includes('before'),
-      hasFeedback: !!feedback
+      hasFeedback: !!feedback,
+      isReprocessing: !!feedbackId
     });
 
     return {
