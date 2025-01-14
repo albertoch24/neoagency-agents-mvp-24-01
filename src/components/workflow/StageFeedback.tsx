@@ -19,7 +19,12 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
   } = useStageFeedback({ 
     briefId, 
     stageId,
-    onReprocess 
+    onReprocess: async () => {
+      console.log('Triggering reprocessing with feedback');
+      if (onReprocess) {
+        await onReprocess();
+      }
+    }
   });
 
   return (
