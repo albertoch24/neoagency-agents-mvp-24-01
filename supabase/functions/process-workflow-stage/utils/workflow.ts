@@ -46,6 +46,8 @@ export async function processAgent(
         .eq('agent_id', agent.id)
         .is('feedback_id', null)
         .is('original_conversation_id', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single();
 
       if (convError) {
@@ -63,6 +65,8 @@ export async function processAgent(
         .eq('stage_id', stageId)
         .is('feedback_id', null)
         .is('original_output_id', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single();
 
       if (outputError) {
@@ -97,7 +101,7 @@ Please address this feedback specifically in your new response.`;
           isPermanent: feedbackData.is_permanent
         });
 
-        // Update feedback status
+        // Update feedback status if permanent
         if (feedbackData.is_permanent) {
           const { error: updateError } = await supabase
             .from('stage_feedback')
@@ -149,6 +153,8 @@ Please address this feedback specifically in your new response.`;
         feedback
       );
 
+      const now = new Date().toISOString();
+
       // Save the conversation with complete feedback information
       const { data: savedConversation, error: convError } = await supabase
         .from('workflow_conversations')
@@ -161,7 +167,7 @@ Please address this feedback specifically in your new response.`;
           feedback_id: feedbackId,
           original_conversation_id: originalConversationId,
           reprocessing: isReprocessing,
-          reprocessed_at: isReprocessing ? new Date().toISOString() : null
+          reprocessed_at: isReprocessing ? now : null
         })
         .select()
         .single();
@@ -171,7 +177,7 @@ Please address this feedback specifically in your new response.`;
         throw convError;
       }
 
-      // Save corresponding brief output
+      // Save corresponding brief output with feedback information
       const { error: outputError } = await supabase
         .from('brief_outputs')
         .insert({
@@ -185,7 +191,7 @@ Please address this feedback specifically in your new response.`;
           feedback_id: feedbackId,
           original_output_id: originalOutputId,
           is_reprocessed: isReprocessing,
-          reprocessed_at: isReprocessing ? new Date().toISOString() : null
+          reprocessed_at: isReprocessing ? now : null
         });
 
       if (outputError) {
@@ -241,6 +247,8 @@ Please address this feedback specifically in your new response.`;
       return null;
     }
 
+    const now = new Date().toISOString();
+
     // Save the conversation with complete feedback information
     const { data: savedConversation, error: convError } = await supabase
       .from('workflow_conversations')
@@ -253,7 +261,7 @@ Please address this feedback specifically in your new response.`;
         feedback_id: feedbackId,
         original_conversation_id: originalConversationId,
         reprocessing: isReprocessing,
-        reprocessed_at: isReprocessing ? new Date().toISOString() : null
+        reprocessed_at: isReprocessing ? now : null
       })
       .select()
       .single();
@@ -263,7 +271,7 @@ Please address this feedback specifically in your new response.`;
       throw convError;
     }
 
-    // Save corresponding brief output
+    // Save corresponding brief output with feedback information
     const { error: outputError } = await supabase
       .from('brief_outputs')
       .insert({
@@ -280,7 +288,7 @@ Please address this feedback specifically in your new response.`;
         feedback_id: feedbackId,
         original_output_id: originalOutputId,
         is_reprocessed: isReprocessing,
-        reprocessed_at: isReprocessing ? new Date().toISOString() : null
+        reprocessed_at: isReprocessing ? now : null
       });
 
     if (outputError) {
