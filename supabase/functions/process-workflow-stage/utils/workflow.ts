@@ -31,13 +31,15 @@ export async function processAgent(
     }
 
     // Process feedback if present
-    const feedbackContext = await processFeedback(
+    const feedbackContext = feedbackId ? await processFeedback(
       supabase,
       brief.id,
       stageId,
       agent.id,
       feedbackId
-    );
+    ) : null;
+
+    console.log('📝 Feedback context:', feedbackContext);
 
     // Get all agents involved in this stage
     const { data: stageAgents } = await supabase
@@ -70,7 +72,8 @@ export async function processAgent(
         executor,
         brief,
         requirements,
-        previousOutputs
+        previousOutputs,
+        feedbackContext
       );
 
       await saveConversation(
@@ -105,7 +108,10 @@ export async function processAgent(
       agentName: agent.name,
       isFirstStage,
       previousOutputsCount: previousOutputs.length,
-      hasFeedback: !!feedbackContext
+      hasFeedback: !!feedbackContext,
+      feedbackContent: feedbackContext?.feedbackContent ? 
+        feedbackContext.feedbackContent.substring(0, 100) + '...' : 
+        'none'
     });
 
     const { conversationalPrompt } = await buildPrompt(

@@ -20,7 +20,7 @@ export const buildPrompt = async (
     feedbackPreview: feedback ? feedback.substring(0, 100) + "..." : "none"
   });
 
-  // Build base prompt as before
+  // Build base prompt
   const basePrompt = await buildBasePrompt(
     agent,
     brief,
@@ -37,7 +37,6 @@ export const buildPrompt = async (
   return { conversationalPrompt: enhancedPrompt };
 };
 
-// Extract base prompt building logic to separate function
 const buildBasePrompt = async (
   agent: any,
   brief: any,
@@ -55,20 +54,27 @@ const buildBasePrompt = async (
     ?.map((output: any) => output.text)
     .filter(Boolean) || [];
 
-  const reprocessingContext = isReprocessing ? `
+  const reprocessingContext = isReprocessing && feedback ? `
     IMPORTANT - This is a reprocessing request based on the following feedback:
-    ${feedback || 'No specific feedback provided'}
+    ${feedback}
     
     Please address this feedback specifically in your new response and provide a different perspective or approach.
     Ensure your new response is substantially different from the previous one while still meeting the original requirements.
     
     Key instructions for reprocessing:
-    1. Carefully consider the feedback provided
+    1. Carefully consider the feedback provided above
     2. Address each point mentioned in the feedback
     3. Provide new insights or approaches
     4. Ensure your response is significantly different from before
     5. Maintain alignment with original requirements
   ` : '';
+
+  console.log("Building prompt sections with:", {
+    hasReprocessingContext: !!reprocessingContext,
+    feedbackLength: feedback?.length || 0,
+    requirementsLength: formattedRequirements.length,
+    outputRequirementsCount: outputRequirements.length
+  });
 
   const sections = [
     reprocessingContext,
@@ -114,6 +120,12 @@ const buildBasePrompt = async (
     Here is the context for your analysis:
     ${sections}
   `;
+
+  console.log("Final prompt structure:", {
+    promptLength: basePrompt.length,
+    hasReprocessingInstructions: basePrompt.includes('IMPORTANT - This is a reprocessing request'),
+    hasFeedbackContent: basePrompt.includes(feedback || '')
+  });
 
   return basePrompt;
 };

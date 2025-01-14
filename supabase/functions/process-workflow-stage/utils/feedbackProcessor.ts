@@ -1,8 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-
 export async function processFeedback(
   supabase: any,
   briefId: string,
@@ -41,6 +38,12 @@ export async function processFeedback(
       return null;
     }
 
+    console.log('✅ Retrieved feedback data:', {
+      feedbackId,
+      content: feedbackData.content.substring(0, 100) + '...',
+      isPermanent: feedbackData.is_permanent
+    });
+
     // Get original conversations that need to be reprocessed
     const { data: originalConversations, error: convsError } = await supabase
       .from('workflow_conversations')
@@ -70,39 +73,18 @@ export async function processFeedback(
       throw outputsError;
     }
 
-    console.log('✅ Retrieved original data for reprocessing:', {
-      conversationsCount: originalConversations?.length || 0,
-      outputsCount: originalOutputs?.length || 0
-    });
-
     // Update feedback processing status
     const startTime = new Date();
     const { error: statusError } = await supabase
       .from('feedback_processing_status')
-      .insert({
-        feedback_id: feedbackId,
-        brief_id: briefId,
-        stage_id: stageId,
-        feedback_content: feedbackData.content,
-        is_permanent: feedbackData.is_permanent,
-        requires_revision: feedbackData.requires_revision,
-        update_status: 'processing'
-      });
+      .update({
+        update_status: 'processing',
+        feedback_time: startTime.toISOString()
+      })
+      .eq('feedback_id', feedbackId);
 
     if (statusError) {
       console.error('❌ Error updating feedback status:', statusError);
-    }
-
-    // Update feedback status if permanent
-    if (feedbackData.is_permanent) {
-      const { error: updateError } = await supabase
-        .from('stage_feedback')
-        .update({ processed_for_rag: true })
-        .eq('id', feedbackId);
-
-      if (updateError) {
-        console.error('❌ Error updating feedback RAG status:', updateError);
-      }
     }
 
     // Mark original conversations for reprocessing
@@ -144,39 +126,19 @@ export async function processFeedback(
       }
     }
 
-    // Calculate processing time
-    const endTime = new Date();
-    const processingTimeSeconds = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
-
-    // Update processing status with results
-    const { error: finalStatusError } = await supabase
-      .from('feedback_processing_status')
-      .update({
-        update_status: 'completed',
-        processing_time_seconds: processingTimeSeconds,
-        conversation_updates: originalConversations?.length || 0,
-        output_updates: originalOutputs?.length || 0,
-        last_conversation_update: new Date().toISOString(),
-        last_output_update: new Date().toISOString()
-      })
-      .eq('feedback_id', feedbackId);
-
-    if (finalStatusError) {
-      console.error('❌ Error updating final processing status:', finalStatusError);
-    }
-
     console.log('✅ Feedback processing completed:', {
       feedbackId,
-      processingTimeSeconds,
       conversationsUpdated: originalConversations?.length || 0,
       outputsUpdated: originalOutputs?.length || 0
     });
 
+    // Return the processed feedback context
     return {
       feedbackContent: feedbackData.content,
       isReprocessing: true,
       isPermanent: feedbackData.is_permanent,
-      originalConversationId: originalConversations?.[0]?.id
+      originalConversationId: originalConversations?.[0]?.id,
+      requiresRevision: feedbackData.requires_revision
     };
 
   } catch (error) {
