@@ -120,22 +120,33 @@ Please address this feedback specifically in your new response.`;
         feedback
       );
 
-      // Save the conversation
+      // Save the conversation with feedback information
       const conversationContent = response.outputs[0].content;
-      await saveWorkflowConversation(
-        supabase,
-        brief.id,
-        stageId,
-        agent.id,
-        conversationContent,
+      const { data: savedConversation, error: convError } = await supabase
+        .from('workflow_conversations')
+        .insert({
+          brief_id: brief.id,
+          stage_id: stageId,
+          agent_id: agent.id,
+          content: conversationContent,
+          output_type: 'conversational',
+          feedback_id: feedbackId,
+          original_conversation_id: originalConversationId,
+          reprocessing: isReprocessing,
+          reprocessed_at: isReprocessing ? new Date().toISOString() : null
+        })
+        .select()
+        .single();
+
+      if (convError) {
+        console.error('❌ Error saving conversation:', convError);
+        throw convError;
+      }
+
+      console.log('✅ Multi-agent response saved:', {
+        conversationId: savedConversation.id,
+        originalConversationId,
         feedbackId,
-        originalConversationId
-      );
-      
-      console.log('✅ Multi-agent response received and saved:', {
-        responseLength: conversationContent.length,
-        preview: conversationContent.substring(0, 100),
-        hasFeedback: !!feedback,
         isReprocessing
       });
 
@@ -172,16 +183,6 @@ Please address this feedback specifically in your new response.`;
       feedback
     );
 
-    console.log('✅ Generated prompt:', {
-      promptLength: conversationalPrompt.length,
-      preview: conversationalPrompt.substring(0, 100),
-      containsPreviousOutputs: conversationalPrompt.includes('Previous Stage Outputs'),
-      containsRequirements: conversationalPrompt.includes(requirements || ''),
-      hasFeedback: !!feedback,
-      isReprocessing,
-      feedbackIncluded: conversationalPrompt.includes(feedback)
-    });
-
     const response = await generateAgentResponse(conversationalPrompt);
     
     if (!response || !response.conversationalResponse) {
@@ -192,26 +193,34 @@ Please address this feedback specifically in your new response.`;
       return null;
     }
 
-    // Save the conversation
-    await saveWorkflowConversation(
-      supabase,
-      brief.id,
-      stageId,
-      agent.id,
-      response.conversationalResponse,
-      feedbackId,
-      originalConversationId
-    );
+    // Save the conversation with complete feedback information
+    const { data: savedConversation, error: convError } = await supabase
+      .from('workflow_conversations')
+      .insert({
+        brief_id: brief.id,
+        stage_id: stageId,
+        agent_id: agent.id,
+        content: response.conversationalResponse,
+        output_type: 'conversational',
+        feedback_id: feedbackId,
+        original_conversation_id: originalConversationId,
+        reprocessing: isReprocessing,
+        reprocessed_at: isReprocessing ? new Date().toISOString() : null
+      })
+      .select()
+      .single();
 
-    console.log('✅ Agent response received and saved:', {
-      responseLength: response.conversationalResponse?.length,
-      preview: response.conversationalResponse?.substring(0, 100),
-      containsReferences: response.conversationalResponse?.includes('previous') || 
-                         response.conversationalResponse?.includes('earlier') ||
-                         response.conversationalResponse?.includes('before'),
-      hasFeedback: !!feedback,
+    if (convError) {
+      console.error('❌ Error saving conversation:', convError);
+      throw convError;
+    }
+
+    console.log('✅ Agent response saved:', {
+      conversationId: savedConversation.id,
+      originalConversationId,
+      feedbackId,
       isReprocessing,
-      feedbackAddressed: response.conversationalResponse?.includes('feedback')
+      responseLength: response.conversationalResponse?.length
     });
 
     return {
@@ -229,56 +238,5 @@ Please address this feedback specifically in your new response.`;
   } catch (error) {
     console.error('❌ Error in processAgent:', error);
     return null;
-  }
-}
-
-async function saveWorkflowConversation(
-  supabase: any,
-  briefId: string,
-  stageId: string,
-  agentId: string,
-  content: string,
-  feedbackId: string | null = null,
-  originalConversationId: string | null = null
-) {
-  try {
-    console.log('🔄 Saving workflow conversation:', {
-      briefId,
-      stageId,
-      agentId,
-      contentLength: content.length,
-      hasFeedback: !!feedbackId,
-      hasOriginalConversation: !!originalConversationId
-    });
-
-    const { data, error } = await supabase
-      .from('workflow_conversations')
-      .insert({
-        brief_id: briefId,
-        stage_id: stageId,
-        agent_id: agentId,
-        content,
-        output_type: 'conversational',
-        feedback_id: feedbackId,
-        original_conversation_id: originalConversationId,
-        reprocessing: !!feedbackId
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('❌ Error saving workflow conversation:', error);
-      throw error;
-    }
-
-    console.log('✅ Workflow conversation saved successfully:', {
-      conversationId: data.id,
-      timestamp: new Date().toISOString()
-    });
-
-    return data;
-  } catch (error) {
-    console.error('❌ Error in saveWorkflowConversation:', error);
-    throw error;
   }
 }
