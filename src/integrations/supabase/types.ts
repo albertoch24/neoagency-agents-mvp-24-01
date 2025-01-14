@@ -265,6 +265,95 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback_processing_status: {
+        Row: {
+          brief_id: string | null
+          conversation_updates: number | null
+          created_at: string
+          feedback_content: string | null
+          feedback_id: string | null
+          feedback_time: string | null
+          id: string
+          is_permanent: boolean | null
+          last_conversation_update: string | null
+          last_output_update: string | null
+          output_updates: number | null
+          processed_for_rag: boolean | null
+          processing_time_seconds: number | null
+          requires_revision: boolean | null
+          stage_id: string | null
+          update_status: string | null
+          updated_at: string
+        }
+        Insert: {
+          brief_id?: string | null
+          conversation_updates?: number | null
+          created_at?: string
+          feedback_content?: string | null
+          feedback_id?: string | null
+          feedback_time?: string | null
+          id?: string
+          is_permanent?: boolean | null
+          last_conversation_update?: string | null
+          last_output_update?: string | null
+          output_updates?: number | null
+          processed_for_rag?: boolean | null
+          processing_time_seconds?: number | null
+          requires_revision?: boolean | null
+          stage_id?: string | null
+          update_status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brief_id?: string | null
+          conversation_updates?: number | null
+          created_at?: string
+          feedback_content?: string | null
+          feedback_id?: string | null
+          feedback_time?: string | null
+          id?: string
+          is_permanent?: boolean | null
+          last_conversation_update?: string | null
+          last_output_update?: string | null
+          output_updates?: number | null
+          processed_for_rag?: boolean | null
+          processing_time_seconds?: number | null
+          requires_revision?: boolean | null
+          stage_id?: string | null
+          update_status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_processing_status_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_processing_status_feedback_id_fkey"
+            columns: ["feedback_id"]
+            isOneToOne: false
+            referencedRelation: "feedback_write_monitoring"
+            referencedColumns: ["feedback_id"]
+          },
+          {
+            foreignKeyName: "feedback_processing_status_feedback_id_fkey"
+            columns: ["feedback_id"]
+            isOneToOne: false
+            referencedRelation: "stage_feedback"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_processing_status_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flow_history: {
         Row: {
           completed_at: string | null

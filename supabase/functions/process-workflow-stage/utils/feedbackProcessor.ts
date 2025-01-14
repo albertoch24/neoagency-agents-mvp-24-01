@@ -83,6 +83,24 @@ Please address this feedback specifically in your new response.`;
       isPermanent: feedbackData.is_permanent
     });
 
+    // Update feedback processing status
+    const startTime = new Date();
+    const { error: statusError } = await supabase
+      .from('feedback_processing_status')
+      .insert({
+        feedback_id: feedbackId,
+        brief_id: briefId,
+        stage_id: stageId,
+        feedback_content: feedbackData.content,
+        is_permanent: feedbackData.is_permanent,
+        requires_revision: feedbackData.requires_revision,
+        update_status: 'processing'
+      });
+
+    if (statusError) {
+      console.error('❌ Error updating feedback status:', statusError);
+    }
+
     // Update feedback status if permanent
     if (feedbackData.is_permanent) {
       const { error: updateError } = await supabase
