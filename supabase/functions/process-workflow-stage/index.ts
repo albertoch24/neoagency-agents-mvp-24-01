@@ -1,11 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import { processAgents } from "./utils/agentProcessing.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
@@ -45,54 +44,6 @@ serve(async (req) => {
       throw new Error('flowSteps array cannot be empty');
     }
 
-    // Log feedback retrieval attempt if feedbackId exists
-    if (feedbackId) {
-      console.log('🔍 Attempting to retrieve feedback:', {
-        feedbackId,
-        timestamp: new Date().toISOString()
-      });
-
-      // Create Supabase client
-      const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      );
-
-      // Fetch feedback content
-      const { data: feedbackData, error: feedbackError } = await supabaseClient
-        .from('stage_feedback')
-        .select('content, is_permanent, requires_revision')
-        .eq('id', feedbackId)
-        .single();
-
-      if (feedbackError) {
-        console.error('❌ Error fetching feedback:', feedbackError);
-        throw new Error(`Failed to retrieve feedback: ${feedbackError.message}`);
-      }
-
-      if (feedbackData) {
-        console.log('✅ Retrieved feedback successfully:', {
-          feedbackId,
-          contentPreview: feedbackData.content.substring(0, 100) + '...',
-          isPermanent: feedbackData.is_permanent,
-          requiresRevision: feedbackData.requires_revision
-        });
-      }
-    }
-
-    // Validate each flow step has required properties
-    flowSteps.forEach((step, index) => {
-      if (!step) {
-        throw new Error(`Flow step at index ${index} is undefined`);
-      }
-      if (!step.agent_id) {
-        throw new Error(`Flow step at index ${index} is missing agent_id`);
-      }
-      if (typeof step.order_index !== 'number') {
-        throw new Error(`Flow step at index ${index} is missing order_index`);
-      }
-    });
-    
     // Process the workflow and get outputs
     const outputs = await processAgents(
       briefId, 
