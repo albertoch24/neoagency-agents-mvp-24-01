@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Stage } from "@/types/workflow";
 
 export const useStageProcessing = (briefId?: string, stageId?: string) => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -15,8 +14,33 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
     }
 
     setIsProcessing(true);
+    console.log("Starting stage processing:", {
+      briefId,
+      stageId,
+      hasFeedback: !!feedbackId,
+      timestamp: new Date().toISOString()
+    });
 
     try {
+      // If there's feedback, mark previous outputs as reprocessed
+      if (feedbackId) {
+        console.log("Marking previous outputs as reprocessed");
+        const { error: updateError } = await supabase
+          .from("brief_outputs")
+          .update({ 
+            is_reprocessed: true,
+            reprocessed_at: new Date().toISOString()
+          })
+          .eq("brief_id", briefId)
+          .eq("stage_id", stageId)
+          .is("feedback_id", null);
+
+        if (updateError) {
+          console.error("Error updating previous outputs:", updateError);
+          throw updateError;
+        }
+      }
+
       // Get the stage with its flow steps
       const { data: stage, error: stageError } = await supabase
         .from("stages")
@@ -47,22 +71,12 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         throw new Error("Stage not found");
       }
 
-      // Get flow steps from the stage
-      const flowSteps = stage.flows?.flow_steps || [];
-      
-      console.log('Retrieved flow steps for processing:', {
-        stageId,
-        flowStepsCount: flowSteps.length,
-        flowSteps,
-        feedbackId
-      });
-
       // Call the edge function with all necessary parameters
-      const { error } = await supabase.functions.invoke('process-workflow-stage', {
+      const { error } = await supabase.functions.invoke("process-workflow-stage", {
         body: { 
           briefId,
           stageId,
-          flowSteps,
+          flowSteps: stage.flows?.flow_steps || [],
           feedbackId
         }
       });
@@ -72,22 +86,19 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       // Invalidate queries to refresh data
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["brief-outputs"] }),
-        queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] })
+        queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] }),
+        queryClient.invalidateQueries({ queryKey: ["stage-feedback"] })
       ]);
 
       toast.success(
         feedbackId 
-          ? "Stage reprocessed successfully" 
+          ? "Stage reprocessed successfully with feedback" 
           : "Stage processed successfully"
       );
 
     } catch (error) {
-      console.error('Error processing stage:', error);
-      toast.error(
-        feedbackId 
-          ? "Failed to reprocess stage" 
-          : "Failed to process stage"
-      );
+      console.error("Error processing stage:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to process stage");
     } finally {
       setIsProcessing(false);
     }

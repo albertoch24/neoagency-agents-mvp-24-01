@@ -25,7 +25,8 @@ serve(async (req) => {
       briefId,
       stageId,
       flowStepsCount: flowSteps?.length,
-      hasFeedback: !!feedbackId
+      hasFeedback: !!feedbackId,
+      timestamp: new Date().toISOString()
     });
 
     // Enhanced validation with detailed error messages
@@ -71,7 +72,8 @@ serve(async (req) => {
         success: true,
         outputs,
         meta: {
-          hasFeedback: !!feedbackId
+          hasFeedback: !!feedbackId,
+          timestamp: new Date().toISOString()
         }
       }),
       { 
