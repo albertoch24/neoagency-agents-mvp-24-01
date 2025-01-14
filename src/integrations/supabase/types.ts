@@ -96,7 +96,11 @@ export type Database = {
           brief_id: string
           content: Json
           created_at: string
+          feedback_id: string | null
           id: string
+          is_reprocessed: boolean | null
+          original_output_id: string | null
+          reprocessed_at: string | null
           stage: string
           stage_id: string | null
           updated_at: string
@@ -105,7 +109,11 @@ export type Database = {
           brief_id: string
           content: Json
           created_at?: string
+          feedback_id?: string | null
           id?: string
+          is_reprocessed?: boolean | null
+          original_output_id?: string | null
+          reprocessed_at?: string | null
           stage: string
           stage_id?: string | null
           updated_at?: string
@@ -114,7 +122,11 @@ export type Database = {
           brief_id?: string
           content?: Json
           created_at?: string
+          feedback_id?: string | null
           id?: string
+          is_reprocessed?: boolean | null
+          original_output_id?: string | null
+          reprocessed_at?: string | null
           stage?: string
           stage_id?: string | null
           updated_at?: string
@@ -125,6 +137,20 @@ export type Database = {
             columns: ["brief_id"]
             isOneToOne: false
             referencedRelation: "briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brief_outputs_feedback_id_fkey"
+            columns: ["feedback_id"]
+            isOneToOne: false
+            referencedRelation: "stage_feedback"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brief_outputs_original_output_id_fkey"
+            columns: ["original_output_id"]
+            isOneToOne: false
+            referencedRelation: "brief_outputs"
             referencedColumns: ["id"]
           },
           {
@@ -635,8 +661,10 @@ export type Database = {
           brief_id: string
           content: string
           created_at: string
+          feedback_id: string | null
           flow_step_id: string | null
           id: string
+          original_conversation_id: string | null
           output_type: string
           reprocessed_at: string | null
           reprocessing: boolean | null
@@ -648,8 +676,10 @@ export type Database = {
           brief_id: string
           content: string
           created_at?: string
+          feedback_id?: string | null
           flow_step_id?: string | null
           id?: string
+          original_conversation_id?: string | null
           output_type?: string
           reprocessed_at?: string | null
           reprocessing?: boolean | null
@@ -661,8 +691,10 @@ export type Database = {
           brief_id?: string
           content?: string
           created_at?: string
+          feedback_id?: string | null
           flow_step_id?: string | null
           id?: string
+          original_conversation_id?: string | null
           output_type?: string
           reprocessed_at?: string | null
           reprocessing?: boolean | null
@@ -685,10 +717,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "workflow_conversations_feedback_id_fkey"
+            columns: ["feedback_id"]
+            isOneToOne: false
+            referencedRelation: "stage_feedback"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "workflow_conversations_flow_step_id_fkey"
             columns: ["flow_step_id"]
             isOneToOne: false
             referencedRelation: "flow_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_conversations_original_conversation_id_fkey"
+            columns: ["original_conversation_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_conversations"
             referencedColumns: ["id"]
           },
         ]

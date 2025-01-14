@@ -68,57 +68,90 @@ export interface Tables {
   };
   workflow_conversations: {
     Row: {
-      brief_id: string;
-      created_at: string;
       id: string;
+      brief_id: string;
       stage_id: string;
       agent_id: string;
       content: string;
+      created_at: string;
+      output_type: string;
+      summary: string | null;
       flow_step_id: string | null;
+      reprocessing: boolean;
+      reprocessed_at: string | null;
+      feedback_id: string | null;
+      original_conversation_id: string | null;
     };
     Insert: {
-      brief_id: string;
-      created_at?: string;
       id?: string;
+      brief_id: string;
       stage_id: string;
       agent_id: string;
       content: string;
+      created_at?: string;
+      output_type?: string;
+      summary?: string | null;
       flow_step_id?: string | null;
+      reprocessing?: boolean;
+      reprocessed_at?: string | null;
+      feedback_id?: string | null;
+      original_conversation_id?: string | null;
     };
     Update: {
-      brief_id?: string;
-      created_at?: string;
       id?: string;
+      brief_id?: string;
       stage_id?: string;
       agent_id?: string;
       content?: string;
+      created_at?: string;
+      output_type?: string;
+      summary?: string | null;
       flow_step_id?: string | null;
+      reprocessing?: boolean;
+      reprocessed_at?: string | null;
+      feedback_id?: string | null;
+      original_conversation_id?: string | null;
     };
   };
   brief_outputs: {
     Row: {
-      brief_id: string;
-      created_at: string;
       id: string;
+      brief_id: string;
       stage: string;
-      stage_id: string;
+      stage_id: string | null;
       content: any;
+      created_at: string;
+      updated_at: string;
+      feedback_id: string | null;
+      is_reprocessed: boolean;
+      original_output_id: string | null;
+      reprocessed_at: string | null;
     };
     Insert: {
-      brief_id: string;
-      created_at?: string;
       id?: string;
+      brief_id: string;
       stage: string;
-      stage_id: string;
+      stage_id?: string | null;
       content: any;
+      created_at?: string;
+      updated_at?: string;
+      feedback_id?: string | null;
+      is_reprocessed?: boolean;
+      original_output_id?: string | null;
+      reprocessed_at?: string | null;
     };
     Update: {
-      brief_id?: string;
-      created_at?: string;
       id?: string;
+      brief_id?: string;
       stage?: string;
-      stage_id?: string;
+      stage_id?: string | null;
       content?: any;
+      created_at?: string;
+      updated_at?: string;
+      feedback_id?: string | null;
+      is_reprocessed?: boolean;
+      original_output_id?: string | null;
+      reprocessed_at?: string | null;
     };
   };
   stages: {
@@ -140,35 +173,6 @@ export interface Tables {
       id?: string;
       name?: string;
       user_id?: string;
-      created_at?: string;
-      updated_at?: string;
-    };
-  };
-  agent_feedback: {
-    Row: {
-      id: string;
-      conversation_id: string;
-      reviewer_agent_id: string;
-      content: string;
-      rating: number | null;
-      created_at: string;
-      updated_at: string;
-    };
-    Insert: {
-      id?: string;
-      conversation_id: string;
-      reviewer_agent_id: string;
-      content: string;
-      rating?: number | null;
-      created_at?: string;
-      updated_at?: string;
-    };
-    Update: {
-      id?: string;
-      conversation_id?: string;
-      reviewer_agent_id?: string;
-      content?: string;
-      rating?: number | null;
       created_at?: string;
       updated_at?: string;
     };

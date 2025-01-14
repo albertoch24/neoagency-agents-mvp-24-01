@@ -4,7 +4,6 @@ export type WorkflowRole = {
   responsibilities: string[];
 };
 
-// Comprehensive Stage type that matches database schema
 export type Stage = {
   id: string;
   name: string;
@@ -59,4 +58,8 @@ export type BriefOutput = {
   content: WorkflowOutputContent;
   created_at: string;
   updated_at: string;
+  feedback_id: string | null;
+  is_reprocessed: boolean;
+  original_output_id: string | null;
+  reprocessed_at: string | null;
 };
