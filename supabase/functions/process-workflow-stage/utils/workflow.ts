@@ -19,7 +19,8 @@ export async function processAgent(
       agentName: agent.name,
       briefId: brief.id,
       stageId,
-      hasFeedback: !!feedbackId
+      hasFeedback: !!feedbackId,
+      timestamp: new Date().toISOString()
     });
 
     // Process feedback if present
@@ -43,7 +44,8 @@ export async function processAgent(
       
       console.log('✅ Feedback parsed successfully:', {
         pointsCount: feedbackPoints.length,
-        points: feedbackPoints
+        points: feedbackPoints,
+        timestamp: new Date().toISOString()
       });
     }
 
@@ -57,6 +59,10 @@ export async function processAgent(
         .single();
       
       originalOutput = originalConversation?.content;
+      console.log('Retrieved original output:', {
+        hasOutput: !!originalOutput,
+        timestamp: new Date().toISOString()
+      });
     }
 
     // Build prompt with feedback context
@@ -70,12 +76,28 @@ export async function processAgent(
       feedbackContext?.feedbackContent || ''
     );
 
+    console.log('Built prompts:', {
+      systemPromptLength: systemPrompt.length,
+      conversationalPromptLength: conversationalPrompt.length,
+      timestamp: new Date().toISOString()
+    });
+
     // Generate new response
     const response = await generateAgentResponse(conversationalPrompt, systemPrompt);
 
     if (!response || !response.conversationalResponse) {
+      console.error('❌ No response generated from agent:', {
+        agentId: agent.id,
+        agentName: agent.name,
+        timestamp: new Date().toISOString()
+      });
       throw new Error('No response generated from agent');
     }
+
+    console.log('✅ Generated response:', {
+      responseLength: response.conversationalResponse.length,
+      timestamp: new Date().toISOString()
+    });
 
     // If reprocessing, validate feedback incorporation
     if (feedbackContext?.isReprocessing && originalOutput) {
@@ -89,9 +111,11 @@ export async function processAgent(
         console.error('❌ Feedback not properly incorporated:', validationResult.reason);
         throw new Error('Generated response does not properly address feedback');
       }
+
+      console.log('✅ Feedback incorporation validated successfully');
     }
 
-    return {
+    const result = {
       agent: agent.name,
       requirements,
       outputs: [{
@@ -101,8 +125,21 @@ export async function processAgent(
       stepId: agent.id,
       orderIndex: 0
     };
+
+    console.log('✅ Successfully processed agent:', {
+      agentName: agent.name,
+      outputLength: result.outputs[0].content.length,
+      timestamp: new Date().toISOString()
+    });
+
+    return result;
   } catch (error) {
-    console.error('❌ Error in processAgent:', error);
+    console.error('❌ Error in processAgent:', {
+      error,
+      agentId: agent.id,
+      agentName: agent.name,
+      timestamp: new Date().toISOString()
+    });
     throw error;
   }
 }
