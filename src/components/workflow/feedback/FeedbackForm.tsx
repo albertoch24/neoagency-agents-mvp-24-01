@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { StructuredFeedback, FeedbackPriorityLevel } from "@/types/feedback";
+import { StructuredFeedback, FeedbackPriorityLevel, FeedbackChangeType } from "@/types/feedback";
 
 interface FeedbackFormProps {
   feedback: string;
@@ -43,11 +43,11 @@ export const FeedbackForm = ({
 
   const addSpecificChange = () => {
     setStructuredFeedback(prev => {
-      const updated = {
+      const updated: StructuredFeedback = {
         ...prev,
         specific_changes: [
           ...prev.specific_changes,
-          { section: '', type: 'modify', content: '' }
+          { section: '', type: 'modify' as FeedbackChangeType, content: '' }
         ]
       };
       onFeedbackChange(JSON.stringify(updated));
@@ -101,7 +101,7 @@ export const FeedbackForm = ({
             />
             <Select
               value={change.type}
-              onValueChange={(value: 'add' | 'modify' | 'remove') => {
+              onValueChange={(value: FeedbackChangeType) => {
                 const newChanges = [...structuredFeedback.specific_changes];
                 newChanges[index] = { ...change, type: value };
                 handleStructuredChange('specific_changes', newChanges);

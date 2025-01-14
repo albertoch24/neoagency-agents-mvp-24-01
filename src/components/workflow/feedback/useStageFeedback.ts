@@ -51,7 +51,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
           brief_id: briefId,
           stage_id: stageId,
           content: feedback,
-          structured_content: structuredContent,
+          structured_content: structuredContent as any, // Type assertion needed for Supabase
           requires_revision: true,
           is_permanent: isPermanent,
           processed_for_rag: false
@@ -72,7 +72,6 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         timestamp: new Date().toISOString()
       });
 
-      // Mark existing outputs as reprocessed
       console.log('🔄 Marking existing outputs as reprocessed');
       const { error: outputsError } = await supabase
         .from("brief_outputs")
@@ -108,7 +107,6 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         toast.error("Feedback saved but failed to update conversations");
       }
 
-      // Process permanent feedback for RAG if needed
       if (isPermanent && brand) {
         console.log("🔄 Processing permanent feedback for RAG:", {
           content: feedback,

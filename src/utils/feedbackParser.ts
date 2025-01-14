@@ -16,6 +16,9 @@ export const parseFeedbackContent = (content: string): StructuredFeedback => {
   return {
     general_feedback: content,
     specific_changes: [],
+    priority_level: 'medium',
+    target_improvements: [],
+    revision_notes: ''
   };
 };
 
