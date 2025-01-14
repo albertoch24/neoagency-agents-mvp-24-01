@@ -3,6 +3,7 @@ import { WorkflowStages } from "./WorkflowStages";
 import { WorkflowOutput } from "./WorkflowOutput";
 import { WorkflowDisplayActions } from "./WorkflowDisplayActions";
 import { Stage } from "@/types/workflow";
+import { useStagesData } from "@/hooks/useStagesData";
 
 interface WorkflowDisplayProps {
   briefId?: string;
@@ -18,10 +19,11 @@ export const WorkflowDisplay = ({
   showOutputs 
 }: WorkflowDisplayProps) => {
   const { isProcessing, processStage } = useStageProcessing(briefId, currentStage);
+  const { data: stages = [] } = useStagesData(briefId);
 
   const handleReprocess = async () => {
     if (briefId && currentStage) {
-      await processStage(true); // Pass true to indicate reprocessing
+      await processStage(true);
     }
   };
 
@@ -29,10 +31,8 @@ export const WorkflowDisplay = ({
     <div className="space-y-4">
       <WorkflowStages
         briefId={briefId}
-        currentStage={currentStage}
-        onStageSelect={onStageSelect}
-        onReprocess={handleReprocess}
-        isProcessing={isProcessing}
+        currentStage={currentStage || ''}
+        onStageSelect={onStageSelect || (() => {})}
       />
       {showOutputs && (
         <WorkflowOutput 
@@ -42,7 +42,7 @@ export const WorkflowDisplay = ({
       )}
       <WorkflowDisplayActions
         currentStage={currentStage || ''}
-        stages={[]} // We'll get stages from a query
+        stages={stages}
         onNextStage={handleReprocess}
         isProcessing={isProcessing}
         onStageSelect={onStageSelect}

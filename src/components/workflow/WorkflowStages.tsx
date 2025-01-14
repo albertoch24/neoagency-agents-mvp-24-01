@@ -1,23 +1,21 @@
 import { Stage } from "@/types/workflow";
 import { StageCard } from "@/components/stages/StageCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useStagesData } from "@/hooks/useStagesData";
 
 interface WorkflowStagesProps {
-  stages: Stage[];
   currentStage: string;
   onStageSelect: (stage: Stage) => void;
   briefId?: string;
-  onStageMove?: (stageId: string, direction: "up" | "down") => Promise<void>;
-  onStageDelete?: (stageId: string) => Promise<void>;
-  isTemplate?: boolean;
 }
 
 export function WorkflowStages({
-  stages,
   currentStage,
   onStageSelect,
   briefId,
 }: WorkflowStagesProps) {
+  const { data: stages = [] } = useStagesData(briefId);
+
   const handleStageClick = (stage: Stage) => {
     onStageSelect(stage);
   };
