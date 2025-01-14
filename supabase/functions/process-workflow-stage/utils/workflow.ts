@@ -1,8 +1,8 @@
-import { generateAgentResponse } from './openai';
-import { buildPrompt } from './promptBuilder';
-import { processFeedback } from './feedbackProcessor';
-import { validateFeedbackIncorporation } from './validators';
-import { parseFeedback, validateFeedbackPoints } from './feedbackParser';
+import { generateAgentResponse } from './openai.ts';
+import { buildPrompt } from './promptBuilder.ts';
+import { processFeedback } from './feedbackProcessor.ts';
+import { validateFeedbackIncorporation } from './validators.ts';
+import { parseFeedback, validateFeedbackPoints } from './feedbackParser.ts';
 
 export async function processAgent(
   supabase: any,
