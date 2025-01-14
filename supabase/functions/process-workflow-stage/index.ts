@@ -61,7 +61,7 @@ serve(async (req) => {
       }))
     });
     
-    // Process the workflow
+    // Process the workflow and get outputs
     const outputs = await processAgents(briefId, stageId, flowSteps);
     
     console.log('Workflow processed successfully:', {
@@ -69,10 +69,11 @@ serve(async (req) => {
       firstOutput: outputs?.[0]
     });
     
-    // Return success response with CORS headers
+    // Return success response with outputs and CORS headers
     return new Response(
       JSON.stringify({ 
-        message: 'Stage processed successfully', 
+        message: 'Stage processed successfully',
+        success: true,
         outputs 
       }),
       { 
