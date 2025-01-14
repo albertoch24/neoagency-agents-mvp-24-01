@@ -1,17 +1,12 @@
 export const buildFeedbackSection = (feedback: string, isReprocessing: boolean) => {
-  if (!isReprocessing || !feedback) {
+  if (!feedback || !isReprocessing) {
     return '';
   }
 
-  const feedbackPoints = feedback.split('\n')
-    .filter(point => point.trim())
-    .map(point => `- ${point.trim()}`);
-
   return `
-FEEDBACK TO ADDRESS:
-The previous response needs improvement based on the following points:
-${feedbackPoints.join('\n')}
+IMPORTANT - Previous Feedback to Address:
+${feedback}
 
-You MUST explicitly address each of these points in your new response.
+You must explicitly address each point in this feedback and explain how your new response incorporates these changes.
 `;
 };

@@ -1,6 +1,6 @@
-import { buildBasePrompt } from "./prompts/basePrompt";
-import { buildFeedbackSection } from "./prompts/feedbackSection";
-import { buildInstructionsSection } from "./prompts/instructionsSection";
+import { buildBasePrompt } from './prompts/basePrompt.ts';
+import { buildFeedbackSection } from './prompts/feedbackSection.ts';
+import { buildInstructionsSection } from './prompts/instructionsSection.ts';
 
 export const buildPrompt = async (
   agent: any,
