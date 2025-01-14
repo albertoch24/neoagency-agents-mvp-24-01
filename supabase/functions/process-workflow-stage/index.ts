@@ -27,8 +27,42 @@ serve(async (req) => {
 
     console.log('📝 Request parameters:', { briefId, stageId, feedbackId });
 
-    // Process feedback
-    const result = await processFeedbackWithLangChain(briefId, stageId, feedbackId);
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Get the original output first
+    const { data: originalOutput, error: outputError } = await supabase
+      .from('brief_outputs')
+      .select('*')
+      .eq('brief_id', briefId)
+      .eq('stage_id', stageId)
+      .eq('is_reprocessed', false)
+      .maybeSingle();
+
+    if (outputError) {
+      console.error('❌ Error fetching original output:', outputError);
+      throw new Error('Failed to fetch original output');
+    }
+
+    if (!originalOutput) {
+      console.error('❌ No original output found for:', { briefId, stageId });
+      throw new Error('No original output found to process feedback against');
+    }
+
+    console.log('✅ Found original output:', {
+      outputId: originalOutput.id,
+      hasContent: !!originalOutput.content
+    });
+
+    // Process feedback with the original output context
+    const result = await processFeedbackWithLangChain(briefId, stageId, feedbackId, originalOutput);
 
     return new Response(
       JSON.stringify({

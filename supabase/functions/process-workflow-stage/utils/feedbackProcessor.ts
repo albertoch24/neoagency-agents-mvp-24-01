@@ -9,13 +9,15 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export async function processFeedbackWithLangChain(
   briefId: string,
   stageId: string,
-  feedbackId: string
+  feedbackId: string,
+  originalOutput: any
 ) {
   try {
     console.log("🚀 Starting LangChain feedback processing:", {
       briefId,
       stageId,
       feedbackId,
+      hasOriginalOutput: !!originalOutput,
       timestamp: new Date().toISOString()
     });
 
@@ -36,32 +38,13 @@ export async function processFeedbackWithLangChain(
       timestamp: new Date().toISOString()
     });
 
-    // 2. Get original context
-    const { data: originalOutput, error: outputError } = await supabase
-      .from("brief_outputs")
-      .select("content")
-      .eq("brief_id", briefId)
-      .eq("stage_id", stageId)
-      .eq("is_reprocessed", false)
-      .maybeSingle();
-
-    if (outputError) {
-      console.error("❌ Error fetching original output:", outputError);
-      throw outputError;
-    }
-
-    console.log("✅ Original output fetched:", {
-      hasOutput: !!originalOutput,
-      timestamp: new Date().toISOString()
-    });
-
-    // 3. Process feedback
+    // 2. Process feedback with original output context
     const processor = new FeedbackProcessor();
     console.log("🔄 Processing feedback with LangChain...");
     
     const newResponse = await processor.processFeedback(
       feedback.content,
-      JSON.stringify(originalOutput?.content || {})
+      JSON.stringify(originalOutput.content || {})
     );
 
     console.log("✅ Feedback processed successfully:", {
@@ -69,7 +52,7 @@ export async function processFeedbackWithLangChain(
       timestamp: new Date().toISOString()
     });
 
-    // 4. Save new output
+    // 3. Save new output
     const { error: saveError } = await supabase
       .from("brief_outputs")
       .insert({
@@ -78,6 +61,7 @@ export async function processFeedbackWithLangChain(
         content: newResponse,
         feedback_id: feedbackId,
         is_reprocessed: true,
+        original_output_id: originalOutput.id,
         reprocessed_at: new Date().toISOString()
       });
 
