@@ -27,7 +27,8 @@ serve(async (req) => {
       flowStepsCount: flowSteps?.length,
       hasFeedback: !!feedbackId,
       feedbackId: feedbackId || null,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      headers: Object.fromEntries(req.headers.entries())
     });
 
     // Enhanced validation with detailed error messages
@@ -96,14 +97,16 @@ serve(async (req) => {
     console.error('❌ Error processing workflow stage:', {
       error,
       message: error.message,
-      stack: error.stack
+      stack: error.stack,
+      timestamp: new Date().toISOString()
     });
     
     // Return error response with CORS headers
     return new Response(
       JSON.stringify({ 
         error: error.message || 'An unexpected error occurred',
-        details: error.toString()
+        details: error.toString(),
+        timestamp: new Date().toISOString()
       }),
       { 
         status: 500,
