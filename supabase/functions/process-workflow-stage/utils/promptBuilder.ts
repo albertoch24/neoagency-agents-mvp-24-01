@@ -54,12 +54,19 @@ const buildBasePrompt = async (
     ?.map((output: any) => output.text)
     .filter(Boolean) || [];
 
-  const reprocessingContext = isReprocessing && feedback ? `
+  const reprocessingContext = isReprocessing ? `
     IMPORTANT - This is a reprocessing request based on the following feedback:
-    ${feedback}
+    ${feedback || 'No specific feedback provided'}
     
     Please address this feedback specifically in your new response and provide a different perspective or approach.
     Ensure your new response is substantially different from the previous one while still meeting the original requirements.
+    
+    Key instructions for reprocessing:
+    1. Carefully consider the feedback provided
+    2. Address each point mentioned in the feedback
+    3. Provide new insights or approaches
+    4. Ensure your response is significantly different from before
+    5. Maintain alignment with original requirements
   ` : '';
 
   const sections = [

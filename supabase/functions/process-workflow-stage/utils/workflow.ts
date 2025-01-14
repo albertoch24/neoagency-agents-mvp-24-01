@@ -19,14 +19,7 @@ export async function processAgent(
       stageId,
       requirements,
       previousOutputsCount: previousOutputs.length,
-      isReprocessing,
-      previousOutputsSample: previousOutputs.map(output => ({
-        id: output.id,
-        type: output.output_type,
-        contentPreview: typeof output.content === 'string' 
-          ? output.content.substring(0, 100) 
-          : 'Complex content structure'
-      }))
+      isReprocessing
     });
 
     if (!agent || !agent.id) {
@@ -39,17 +32,23 @@ export async function processAgent(
     if (isReprocessing) {
       const { data: feedbackData } = await supabase
         .from('stage_feedback')
-        .select('content')
+        .select('content, rating')
         .eq('stage_id', stageId)
         .eq('brief_id', brief.id)
         .order('created_at', { ascending: false })
         .limit(1);
 
-      feedback = feedbackData?.[0]?.content || '';
-      console.log('Retrieved feedback for reprocessing:', {
-        hasFeedback: !!feedback,
-        feedbackPreview: feedback.substring(0, 100)
-      });
+      if (feedbackData?.[0]) {
+        feedback = `Previous feedback: ${feedbackData[0].content}
+Rating: ${feedbackData[0].rating}/5
+Please address this feedback specifically in your new response.`;
+        
+        console.log('Retrieved feedback for reprocessing:', {
+          hasFeedback: !!feedback,
+          feedbackPreview: feedback.substring(0, 100),
+          rating: feedbackData[0].rating
+        });
+      }
     }
 
     // Get all agents involved in this stage
@@ -99,7 +98,8 @@ export async function processAgent(
       agentName: agent.name,
       isFirstStage,
       previousOutputsCount: previousOutputs.length,
-      isReprocessing
+      isReprocessing,
+      hasFeedback: !!feedback
     });
 
     const { conversationalPrompt } = await buildPrompt(
@@ -153,7 +153,6 @@ export async function processAgent(
     };
   } catch (error) {
     console.error('Error in processAgent:', error);
-    // Instead of throwing, return null to allow other agents to continue
     return null;
   }
 }
