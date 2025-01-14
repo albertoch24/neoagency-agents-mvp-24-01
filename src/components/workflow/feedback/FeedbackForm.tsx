@@ -31,6 +31,16 @@ export const FeedbackForm = ({
         onChange={(e) => onFeedbackChange(e.target.value)}
         className="min-h-[100px]"
       />
+      {onReprocess && (
+        <Button 
+          variant="outline" 
+          onClick={onReprocess}
+          className="gap-2 w-full"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Reprocess Stage
+        </Button>
+      )}
       <div className="flex items-center space-x-2">
         <Checkbox
           id="permanent"
@@ -44,31 +54,20 @@ export const FeedbackForm = ({
           Save as brand knowledge (will be used for future briefs)
         </label>
       </div>
-      <div className="flex gap-2">
-        {onReprocess && (
-          <Button 
-            variant="outline" 
-            onClick={onReprocess}
-            className="gap-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Reprocess Stage
-          </Button>
+      <Button 
+        onClick={onSubmit} 
+        disabled={isSubmitting}
+        className="w-full"
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Submitting...
+          </>
+        ) : (
+          "Submit Feedback"
         )}
-        <Button 
-          onClick={onSubmit} 
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Submitting...
-            </>
-          ) : (
-            "Submit Feedback"
-          )}
-        </Button>
-      </div>
+      </Button>
     </div>
   );
 };
