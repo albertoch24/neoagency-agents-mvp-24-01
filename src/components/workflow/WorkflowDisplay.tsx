@@ -4,6 +4,7 @@ import { WorkflowOutput } from "./WorkflowOutput";
 import { WorkflowDisplayActions } from "./WorkflowDisplayActions";
 import { Stage } from "@/types/workflow";
 import { useStagesData } from "@/hooks/useStagesData";
+import { StageOutputDisplay } from "./StageOutputDisplay";
 
 interface WorkflowDisplayProps {
   briefId?: string;
@@ -34,10 +35,12 @@ export const WorkflowDisplay = ({
         currentStage={currentStage || ''}
         onStageSelect={onStageSelect || (() => {})}
       />
-      {showOutputs && (
-        <WorkflowOutput 
+      {currentStage && briefId && (
+        <StageOutputDisplay
           briefId={briefId}
-          stageId={currentStage}
+          currentStage={currentStage}
+          showOutputs={showOutputs}
+          onReprocess={handleReprocess}
         />
       )}
       <WorkflowDisplayActions
