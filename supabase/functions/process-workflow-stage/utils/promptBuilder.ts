@@ -16,7 +16,8 @@ export const buildPrompt = async (
     requirements: requirements?.substring(0, 100) + "...",
     isFirstStage,
     isReprocessing,
-    hasFeedback: !!feedback
+    hasFeedback: !!feedback,
+    feedbackPreview: feedback ? feedback.substring(0, 100) + "..." : "none"
   });
 
   // Build base prompt as before

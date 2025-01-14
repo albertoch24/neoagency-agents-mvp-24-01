@@ -20,7 +20,7 @@ export async function processAgent(
       requirements,
       previousOutputsCount: previousOutputs.length,
       hasFeedback: !!feedbackId,
-      feedbackId
+      feedbackId: feedbackId || 'none'
     });
 
     if (!agent || !agent.id) {
@@ -94,7 +94,8 @@ Please address this feedback specifically in your new response.`;
       
       console.log('✅ Multi-agent response received:', {
         responseLength: response.outputs[0].content.length,
-        preview: response.outputs[0].content.substring(0, 100)
+        preview: response.outputs[0].content.substring(0, 100),
+        hasFeedback: !!feedback
       });
 
       return {
@@ -151,7 +152,8 @@ Please address this feedback specifically in your new response.`;
       preview: response.conversationalResponse?.substring(0, 100),
       containsReferences: response.conversationalResponse?.includes('previous') || 
                          response.conversationalResponse?.includes('earlier') ||
-                         response.conversationalResponse?.includes('before')
+                         response.conversationalResponse?.includes('before'),
+      hasFeedback: !!feedback
     });
 
     return {
