@@ -15,19 +15,28 @@ export async function processFeedbackWithLangChain(
     console.log("🚀 Starting LangChain feedback processing:", {
       briefId,
       stageId,
-      feedbackId
+      feedbackId,
+      timestamp: new Date().toISOString()
     });
 
-    // Get feedback content
+    // 1. Get feedback content
     const { data: feedback, error: feedbackError } = await supabase
       .from("stage_feedback")
       .select("*")
       .eq("id", feedbackId)
       .single();
 
-    if (feedbackError) throw feedbackError;
+    if (feedbackError) {
+      console.error("❌ Error fetching feedback:", feedbackError);
+      throw feedbackError;
+    }
 
-    // Get original context
+    console.log("✅ Feedback fetched successfully:", {
+      feedbackContent: feedback.content,
+      timestamp: new Date().toISOString()
+    });
+
+    // 2. Get original context
     const { data: originalOutput, error: outputError } = await supabase
       .from("brief_outputs")
       .select("content")
@@ -36,16 +45,31 @@ export async function processFeedbackWithLangChain(
       .eq("is_reprocessed", false)
       .maybeSingle();
 
-    if (outputError) throw outputError;
+    if (outputError) {
+      console.error("❌ Error fetching original output:", outputError);
+      throw outputError;
+    }
 
-    // Process feedback
+    console.log("✅ Original output fetched:", {
+      hasOutput: !!originalOutput,
+      timestamp: new Date().toISOString()
+    });
+
+    // 3. Process feedback
     const processor = new FeedbackProcessor();
+    console.log("🔄 Processing feedback with LangChain...");
+    
     const newResponse = await processor.processFeedback(
       feedback.content,
       JSON.stringify(originalOutput?.content || {})
     );
 
-    // Save new output
+    console.log("✅ Feedback processed successfully:", {
+      hasNewResponse: !!newResponse,
+      timestamp: new Date().toISOString()
+    });
+
+    // 4. Save new output
     const { error: saveError } = await supabase
       .from("brief_outputs")
       .insert({
@@ -57,13 +81,20 @@ export async function processFeedbackWithLangChain(
         reprocessed_at: new Date().toISOString()
       });
 
-    if (saveError) throw saveError;
+    if (saveError) {
+      console.error("❌ Error saving new output:", saveError);
+      throw saveError;
+    }
 
-    console.log("✅ LangChain feedback processing completed successfully");
+    console.log("✅ New output saved successfully");
     return newResponse;
 
   } catch (error) {
-    console.error("❌ Error in LangChain feedback processing:", error);
+    console.error("❌ Error in LangChain feedback processing:", {
+      error,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
     throw error;
   }
 }

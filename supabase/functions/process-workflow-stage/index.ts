@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { WorkflowStageProcessor } from "./utils/WorkflowStageProcessor.ts";
+import { processFeedbackWithLangChain } from "./utils/feedbackProcessor.ts";
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
@@ -17,65 +17,23 @@ serve(async (req) => {
   try {
     console.log('🚀 Processing workflow stage request');
     
-    const { briefId, stageId, flowSteps } = await req.json();
+    const { briefId, stageId, feedbackId } = await req.json();
     
     // Validate required parameters
-    if (!briefId || !stageId || !Array.isArray(flowSteps)) {
+    if (!briefId || !stageId || !feedbackId) {
+      console.error('❌ Missing required parameters:', { briefId, stageId, feedbackId });
       throw new Error('Missing required parameters');
     }
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    console.log('📝 Request parameters:', { briefId, stageId, feedbackId });
 
-    // Fetch required data
-    const { data: brief, error: briefError } = await supabase
-      .from('briefs')
-      .select('*')
-      .eq('id', briefId)
-      .single();
-
-    if (briefError || !brief) {
-      throw new Error('Failed to fetch brief data');
-    }
-
-    const { data: stage, error: stageError } = await supabase
-      .from('stages')
-      .select('*')
-      .eq('id', stageId)
-      .single();
-
-    if (stageError || !stage) {
-      throw new Error('Failed to fetch stage data');
-    }
-
-    // Process the stage using our new processor
-    const processor = new WorkflowStageProcessor();
-    const result = await processor.processStage(stage, brief);
-
-    if (result.error) {
-      throw new Error(result.message);
-    }
-
-    // Save the results
-    const { error: saveError } = await supabase
-      .from('workflow_conversations')
-      .insert({
-        brief_id: briefId,
-        stage_id: stageId,
-        content: result.result,
-        output_type: 'conversational',
-      });
-
-    if (saveError) {
-      throw saveError;
-    }
+    // Process feedback
+    const result = await processFeedbackWithLangChain(briefId, stageId, feedbackId);
 
     return new Response(
       JSON.stringify({
         success: true,
-        result: result.result,
+        result,
       }),
       { 
         headers: { 
@@ -86,7 +44,11 @@ serve(async (req) => {
     );
     
   } catch (error) {
-    console.error('❌ Error processing workflow stage:', error);
+    console.error('❌ Error processing workflow stage:', {
+      error,
+      message: error.message,
+      stack: error.stack
+    });
     
     return new Response(
       JSON.stringify({ 
