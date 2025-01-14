@@ -1,25 +1,16 @@
-export const buildInstructionsSection = (requirements: string, previousOutputs: any[] = []) => {
-  const previousOutputsText = previousOutputs.length > 0
-    ? `
-Previous Outputs:
-${previousOutputs.map(output => 
-  `From ${output.agent || 'Unknown Agent'}:
-   ${typeof output.content === 'string' 
-     ? output.content.substring(0, 200) + '...'
-     : JSON.stringify(output.content).substring(0, 200) + '...'
-   }`
-).join('\n\n')}
-`
+export const buildInstructionsSection = (requirements: string, previousOutputs: any[]): string => {
+  const previousOutputsSection = previousOutputs.length > 0
+    ? `\nPrevious outputs to consider:\n${previousOutputs.map(o => `- ${o}`).join('\n')}`
     : '';
 
   return `
-${requirements ? `Requirements:\n${requirements}\n` : ''}
-${previousOutputsText}
+INSTRUCTIONS:
+${requirements || 'Provide a detailed response based on the context and any feedback provided.'}
+${previousOutputsSection}
 
-Instructions:
-1. Analyze the brief and requirements carefully
-2. Consider any previous outputs when forming your response
-3. Provide specific, actionable insights
-4. Structure your response clearly
+Remember to:
+1. Follow all instructions carefully
+2. Provide clear, structured responses
+3. Address all requirements explicitly
 `;
 };

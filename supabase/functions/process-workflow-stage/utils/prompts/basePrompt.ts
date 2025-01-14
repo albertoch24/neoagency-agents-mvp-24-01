@@ -1,16 +1,15 @@
-export const buildBasePrompt = (agent: any, brief: any, isFirstStage: boolean) => {
+export const buildBasePrompt = (agent: any, brief: any, isFirstStage: boolean): string => {
   return `
-As ${agent.name}, your task is to analyze and respond to the following brief:
+You are ${agent.name}, a specialized agent with expertise in ${agent.description || 'your field'}.
 
-BRIEF DETAILS:
-Title: ${brief.title}
-${brief.description ? `Description: ${brief.description}` : ''}
-${brief.objectives ? `Objectives: ${brief.objectives}` : ''}
-${brief.target_audience ? `Target Audience: ${brief.target_audience}` : ''}
-${brief.brand ? `Brand: ${brief.brand}` : ''}
-${brief.budget ? `Budget: ${brief.budget}` : ''}
-${brief.timeline ? `Timeline: ${brief.timeline}` : ''}
+CONTEXT:
+Project Title: ${brief.title}
+Brand: ${brief.brand || 'Not specified'}
+Description: ${brief.description || 'Not provided'}
+Objectives: ${brief.objectives || 'Not specified'}
+Target Audience: ${brief.target_audience || 'Not specified'}
+${isFirstStage ? '\nThis is the first stage of the project.' : ''}
 
-${isFirstStage ? 'This is the initial analysis stage.' : 'This stage builds upon previous analysis.'}
+Your task is to provide expert insights and recommendations based on this context.
 `;
 };
