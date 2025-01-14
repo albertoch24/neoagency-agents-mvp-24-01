@@ -82,16 +82,34 @@ export async function processAgent(
       timestamp: new Date().toISOString()
     });
 
-    // Generate new response
-    const response = await generateAgentResponse(conversationalPrompt, systemPrompt);
+    // Generate new response with retries
+    let retryCount = 0;
+    const maxRetries = 3;
+    let response = null;
+
+    while (retryCount < maxRetries) {
+      try {
+        response = await generateAgentResponse(conversationalPrompt, systemPrompt);
+        if (response?.conversationalResponse) {
+          break;
+        }
+        retryCount++;
+        console.log(`Retry attempt ${retryCount} for agent response`);
+      } catch (retryError) {
+        console.error(`Error on retry ${retryCount}:`, retryError);
+        if (retryCount === maxRetries - 1) throw retryError;
+        retryCount++;
+      }
+    }
 
     if (!response || !response.conversationalResponse) {
       console.error('❌ No response generated from agent:', {
         agentId: agent.id,
         agentName: agent.name,
+        retryCount,
         timestamp: new Date().toISOString()
       });
-      throw new Error('No response generated from agent');
+      throw new Error('No response generated from agent after retries');
     }
 
     console.log('✅ Generated response:', {
