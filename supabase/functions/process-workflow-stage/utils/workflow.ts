@@ -44,7 +44,7 @@ export async function processAgent(
 
       if (feedbackData) {
         feedback = `Previous feedback: ${feedbackData.content}
-Rating: ${feedbackData.rating}/5
+Rating: ${feedbackData.rating || 'Not rated'}/5
 Please address this feedback specifically in your new response.`;
         
         console.log('✅ Retrieved feedback for processing:', {
