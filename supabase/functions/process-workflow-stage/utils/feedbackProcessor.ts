@@ -27,16 +27,27 @@ export async function processFeedbackWithLangChain(
       .single();
 
     if (feedbackError) {
-      console.error("❌ Error fetching feedback:", feedbackError);
+      console.error("❌ Error fetching feedback:", {
+        error: feedbackError,
+        feedbackId,
+        timestamp: new Date().toISOString()
+      });
       throw feedbackError;
     }
 
     console.log("✅ Feedback fetched successfully:", {
       feedbackContent: feedback.content,
+      feedbackId: feedback.id,
       timestamp: new Date().toISOString()
     });
 
-    // 2. Get original output content for specific stage - Removed is_reprocessed condition
+    // 2. Get original output content for specific stage - Debug query
+    console.log("🔍 Fetching original output with query params:", {
+      briefId,
+      stageId,
+      timestamp: new Date().toISOString()
+    });
+
     const { data: originalOutput, error: outputError } = await supabase
       .from("brief_outputs")
       .select("id, content")
@@ -46,12 +57,34 @@ export async function processFeedbackWithLangChain(
       .maybeSingle();
 
     if (outputError) {
-      console.error("❌ Error fetching original output:", outputError);
+      console.error("❌ Error fetching original output:", {
+        error: outputError,
+        briefId,
+        stageId,
+        timestamp: new Date().toISOString()
+      });
       throw outputError;
     }
 
     if (!originalOutput) {
-      console.error("❌ No original output found for stage:", stageId);
+      console.error("❌ No original output found:", {
+        briefId,
+        stageId,
+        timestamp: new Date().toISOString()
+      });
+
+      // Debug query to check all outputs for this brief
+      const { data: allOutputs } = await supabase
+        .from("brief_outputs")
+        .select("id, stage_id, created_at, is_reprocessed")
+        .eq("brief_id", briefId);
+
+      console.log("📊 All outputs for this brief:", {
+        outputsCount: allOutputs?.length || 0,
+        outputs: allOutputs,
+        timestamp: new Date().toISOString()
+      });
+
       throw new Error(`No original output found for stage ${stageId}`);
     }
 
@@ -90,7 +123,10 @@ export async function processFeedbackWithLangChain(
       });
 
     if (saveError) {
-      console.error("❌ Error saving new output:", saveError);
+      console.error("❌ Error saving new output:", {
+        error: saveError,
+        timestamp: new Date().toISOString()
+      });
       throw saveError;
     }
 
