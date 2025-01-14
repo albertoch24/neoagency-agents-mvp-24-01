@@ -8,7 +8,7 @@ interface UseStageFeedbackProps {
   briefId: string;
   stageId: string;
   brand?: string;
-  onReprocess?: () => Promise<void>;
+  onReprocess?: (feedbackId: string) => Promise<void>;
 }
 
 export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseStageFeedbackProps) => {
@@ -145,7 +145,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
           feedbackId: newFeedbackId,
           timestamp: new Date().toISOString()
         });
-        await onReprocess();
+        await onReprocess(newFeedbackId);
         console.log('✅ Stage reprocessing completed');
       }
     } catch (error) {
