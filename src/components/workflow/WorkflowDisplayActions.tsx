@@ -9,7 +9,7 @@ import { useLocation } from "react-router-dom";
 interface WorkflowDisplayActionsProps {
   currentStage: string;
   stages: any[];
-  onNextStage: () => void;
+  onNextStage: (feedbackId?: string) => void;
   isProcessing: boolean;
   completedStages?: string[];
   onStageSelect?: (stage: any) => void;
@@ -121,7 +121,7 @@ export const WorkflowDisplayActions = ({
     } else {
       // Avvia nuovo processo
       console.log("Starting process for next stage:", nextStage.id);
-      onNextStage();
+      onNextStage(); // Remove the "true" string, let the process handle normally
     }
   };
 
