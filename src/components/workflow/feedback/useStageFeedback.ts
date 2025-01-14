@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { processDocument } from "@/utils/rag/documentProcessor";
 import { useQueryClient } from "@tanstack/react-query";
+import { parseFeedbackContent } from "@/utils/feedbackParser";
+import type { StructuredFeedback } from "@/types/feedback";
 
 interface UseStageFeedbackProps {
   briefId: string;
@@ -34,13 +35,23 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         timestamp: new Date().toISOString()
       });
 
-      // 1. Insert feedback with the stage UUID
+      // Parse the feedback content
+      let structuredContent: StructuredFeedback;
+      try {
+        structuredContent = parseFeedbackContent(feedback);
+      } catch (error) {
+        console.error('Error parsing feedback content:', error);
+        throw new Error('Invalid feedback format');
+      }
+
+      // Insert feedback with structured content
       const { data: feedbackData, error: insertError } = await supabase
         .from("stage_feedback")
         .insert({
           brief_id: briefId,
           stage_id: stageId,
           content: feedback,
+          structured_content: structuredContent,
           requires_revision: true,
           is_permanent: isPermanent,
           processed_for_rag: false
@@ -61,7 +72,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         timestamp: new Date().toISOString()
       });
 
-      // 2. Mark existing outputs as reprocessed
+      // Mark existing outputs as reprocessed
       console.log('🔄 Marking existing outputs as reprocessed');
       const { error: outputsError } = await supabase
         .from("brief_outputs")
@@ -79,7 +90,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         toast.error("Feedback saved but failed to update outputs");
       }
 
-      // 3. Mark existing conversations as reprocessing
+      // Mark existing conversations as reprocessing
       console.log('🔄 Marking existing conversations as reprocessing');
       const { error: convsError } = await supabase
         .from("workflow_conversations")
@@ -97,6 +108,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         toast.error("Feedback saved but failed to update conversations");
       }
 
+      // Process permanent feedback for RAG if needed
       if (isPermanent && brand) {
         console.log("🔄 Processing permanent feedback for RAG:", {
           content: feedback,
@@ -105,13 +117,6 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         });
 
         try {
-          await processDocument(feedback, {
-            source: "stage_feedback",
-            brand,
-            type: "feedback"
-          });
-
-          console.log('📝 Updating RAG processing status');
           const { error: updateError } = await supabase
             .from("stage_feedback")
             .update({ processed_for_rag: true })
