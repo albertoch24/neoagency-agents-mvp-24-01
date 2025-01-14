@@ -112,13 +112,9 @@ serve(async (req) => {
     
     console.log('✅ Workflow processed successfully:', {
       outputsCount: outputs?.length,
-      firstOutput: outputs?.[0] ? {
-        agent: outputs[0].agent,
-        outputsCount: outputs[0].outputs?.length
-      } : null,
+      firstOutput: outputs?.[0],
       hasFeedback: !!feedbackId,
-      feedbackId: feedbackId || null,
-      timestamp: new Date().toISOString()
+      feedbackId: feedbackId || null
     });
     
     // Return success response with outputs and CORS headers

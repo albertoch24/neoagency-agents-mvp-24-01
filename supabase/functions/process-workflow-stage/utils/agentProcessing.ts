@@ -71,25 +71,14 @@ export async function processAgents(
 
     // Process each agent in sequence
     const outputs = [];
-    let processedAgents = 0;
-    let failedAgents = 0;
-
     for (const step of sortedFlowSteps) {
       try {
-        console.log('Processing step:', {
-          stepId: step.id,
-          agentId: step.agent_id,
-          orderIndex: step.order_index,
-          requirements: step.requirements?.substring(0, 100) + '...'
-        });
-
         if (!step.agent_id) {
           console.error('Missing agent_id in step:', step);
-          failedAgents++;
           continue;
         }
 
-        // Get complete agent data with skills
+        // Get complete agent data for this step with a separate query
         const { data: agent, error: agentError } = await supabase
           .from('agents')
           .select(`
@@ -114,7 +103,6 @@ export async function processAgents(
             stepId: step.id,
             agentId: step.agent_id
           });
-          failedAgents++;
           continue;
         }
 
@@ -123,7 +111,6 @@ export async function processAgents(
             stepId: step.id,
             agentId: step.agent_id
           });
-          failedAgents++;
           continue;
         }
 
@@ -145,22 +132,7 @@ export async function processAgents(
         );
 
         if (result) {
-          // Validate result structure
-          if (!result.agent || !result.outputs || !Array.isArray(result.outputs)) {
-            console.error('Invalid result structure from agent:', {
-              agentName: agent.name,
-              result
-            });
-            failedAgents++;
-            continue;
-          }
-
           outputs.push(result);
-          processedAgents++;
-          console.log(`Successfully processed agent ${agent.name}, total outputs: ${outputs.length}`);
-        } else {
-          console.error(`No result from agent ${agent.name}`);
-          failedAgents++;
         }
       } catch (stepError) {
         console.error('Error processing step:', {
@@ -168,22 +140,12 @@ export async function processAgents(
           stepId: step.id,
           agentId: step.agent_id
         });
-        failedAgents++;
+        // Continue with next step instead of failing the entire process
         continue;
       }
     }
 
-    // Log processing summary
-    console.log('Agent processing summary:', {
-      totalAgents: sortedFlowSteps.length,
-      processedAgents,
-      failedAgents,
-      outputsGenerated: outputs.length
-    });
-
-    // Only throw error if no outputs were generated AND all agents failed
-    if (outputs.length === 0 && failedAgents === sortedFlowSteps.length) {
-      console.error('Critical failure: No outputs generated and all agents failed');
+    if (outputs.length === 0) {
       throw new Error('No outputs were generated from any agent');
     }
 
