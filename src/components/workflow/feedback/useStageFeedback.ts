@@ -34,12 +34,35 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         timestamp: new Date().toISOString()
       });
 
+      // First, if stageId is not a UUID, fetch the actual stage UUID
+      let actualStageId = stageId;
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(stageId)) {
+        console.log('Fetching actual stage ID for:', stageId);
+        const { data: stageData, error: stageError } = await supabase
+          .from('stages')
+          .select('id')
+          .eq('name', stageId)
+          .single();
+
+        if (stageError) {
+          console.error("❌ Error fetching stage:", stageError);
+          throw new Error("Failed to find stage");
+        }
+
+        if (!stageData) {
+          throw new Error(`Stage not found: ${stageId}`);
+        }
+
+        actualStageId = stageData.id;
+        console.log('Found actual stage ID:', actualStageId);
+      }
+
       // 1. Insert feedback with the stage UUID
       const { data: feedbackData, error: insertError } = await supabase
         .from("stage_feedback")
         .insert({
           brief_id: briefId,
-          stage_id: stageId,
+          stage_id: actualStageId,
           content: feedback,
           requires_revision: true,
           is_permanent: isPermanent,
@@ -71,7 +94,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
           feedback_id: newFeedbackId
         })
         .eq("brief_id", briefId)
-        .eq("stage_id", stageId)
+        .eq("stage_id", actualStageId)
         .is("feedback_id", null);
 
       if (outputsError) {
@@ -89,7 +112,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
           feedback_id: newFeedbackId
         })
         .eq("brief_id", briefId)
-        .eq("stage_id", stageId)
+        .eq("stage_id", actualStageId)
         .is("feedback_id", null);
 
       if (convsError) {
