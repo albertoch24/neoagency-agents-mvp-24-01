@@ -17,11 +17,13 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
     }
 
     setIsProcessing(true);
-    console.log('Processing stage:', {
-      briefId,
-      stageId,
-      isReprocessing,
-      timestamp: new Date().toISOString()
+    
+    // Set URL params first to ensure they're available
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      newParams.set('isReprocessing', isReprocessing.toString());
+      // We'll set hasFeedback after fetching feedback
+      return newParams;
     });
 
     try {
@@ -89,14 +91,23 @@ Please address this feedback specifically in your new response.`;
             rating: feedbackData[0].rating
           });
 
-          // Update URL params to indicate reprocessing with feedback
+          // Update URL params to indicate feedback presence
           setSearchParams(prev => {
-            prev.set('isReprocessing', 'true');
-            prev.set('hasFeedback', 'true');
-            return prev;
+            const newParams = new URLSearchParams(prev);
+            newParams.set('hasFeedback', 'true');
+            return newParams;
           });
         }
       }
+
+      // Log the state before making the edge function call
+      console.log('Processing stage with flags:', {
+        isReprocessing,
+        hasFeedback: !!feedback,
+        stageId,
+        briefId,
+        flowStepsCount: flowSteps.length
+      });
 
       // Call the edge function with all necessary parameters
       const { error } = await supabase.functions.invoke('process-workflow-stage', {
@@ -107,8 +118,8 @@ Please address this feedback specifically in your new response.`;
           isReprocessing,
           feedback,
           queryParams: {
-            isReprocessing: searchParams.get('isReprocessing') === 'true',
-            hasFeedback: searchParams.get('hasFeedback') === 'true'
+            isReprocessing,
+            hasFeedback: !!feedback
           }
         }
       });
@@ -136,11 +147,12 @@ Please address this feedback specifically in your new response.`;
       );
     } finally {
       setIsProcessing(false);
-      // Clear reprocessing params after completion
+      // Clear processing params after completion
       setSearchParams(prev => {
-        prev.delete('isReprocessing');
-        prev.delete('hasFeedback');
-        return prev;
+        const newParams = new URLSearchParams(prev);
+        newParams.delete('isReprocessing');
+        newParams.delete('hasFeedback');
+        return newParams;
       });
     }
   };
