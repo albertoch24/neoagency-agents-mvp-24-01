@@ -34,15 +34,17 @@ export async function processAgent(
     // Parse feedback into structured points if available
     let feedbackPoints = [];
     if (feedbackContext?.feedbackContent) {
-      feedbackPoints = parseFeedback(feedbackContext.feedbackContent);
+      const { generalFeedback, specificChanges, priorityLevel, targetImprovements, revisionNotes } = feedbackContext.feedbackContent;
       
-      if (!validateFeedbackPoints(feedbackPoints)) {
-        console.error('❌ Invalid feedback structure detected');
-        throw new Error('Invalid feedback structure');
-      }
+      feedbackPoints = [
+        ...specificChanges.map(change => `${change.type.toUpperCase()} in ${change.section}: ${change.content}`),
+        ...targetImprovements.map(improvement => `Improvement needed: ${improvement}`),
+        revisionNotes ? `Additional notes: ${revisionNotes}` : null
+      ].filter(Boolean);
       
       console.log('✅ Feedback parsed successfully:', {
         pointsCount: feedbackPoints.length,
+        priorityLevel,
         points: feedbackPoints
       });
     }
@@ -67,7 +69,7 @@ export async function processAgent(
       requirements,
       previousOutputs.length === 0,
       feedbackContext?.isReprocessing || false,
-      feedbackContext?.feedbackContent || ''
+      feedbackPoints.join('\n\n')
     );
 
     // Generate new response
@@ -82,7 +84,7 @@ export async function processAgent(
       const validationResult = await validateFeedbackIncorporation(
         originalOutput,
         response.conversationalResponse,
-        feedbackContext.feedbackContent
+        feedbackPoints.join('\n\n')
       );
 
       if (!validationResult.isValid) {
