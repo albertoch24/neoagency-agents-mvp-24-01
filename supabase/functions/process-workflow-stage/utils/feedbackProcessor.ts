@@ -9,15 +9,13 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export async function processFeedbackWithLangChain(
   briefId: string,
   stageId: string,
-  feedbackId: string,
-  originalOutput: any
+  feedbackId: string
 ) {
   try {
     console.log("🚀 Starting LangChain feedback processing:", {
       briefId,
       stageId,
       feedbackId,
-      hasOriginalOutput: !!originalOutput,
       timestamp: new Date().toISOString()
     });
 
@@ -38,13 +36,40 @@ export async function processFeedbackWithLangChain(
       timestamp: new Date().toISOString()
     });
 
-    // 2. Process feedback with original output context
+    // 2. Get original output content for specific stage
+    const { data: originalOutput, error: outputError } = await supabase
+      .from("brief_outputs")
+      .select("id, content")
+      .eq("brief_id", briefId)
+      .eq("stage_id", stageId)
+      .eq("is_reprocessed", false)
+      .order('created_at', { ascending: false })
+      .maybeSingle();
+
+    if (outputError) {
+      console.error("❌ Error fetching original output:", outputError);
+      throw outputError;
+    }
+
+    if (!originalOutput) {
+      console.error("❌ No original output found for stage:", stageId);
+      throw new Error(`No original output found for stage ${stageId}`);
+    }
+
+    console.log("✅ Original output fetched:", {
+      outputId: originalOutput.id,
+      hasContent: !!originalOutput.content,
+      contentSample: JSON.stringify(originalOutput.content).substring(0, 100),
+      timestamp: new Date().toISOString()
+    });
+
+    // 3. Process feedback with original content
     const processor = new FeedbackProcessor();
     console.log("🔄 Processing feedback with LangChain...");
     
     const newResponse = await processor.processFeedback(
       feedback.content,
-      JSON.stringify(originalOutput.content || {})
+      JSON.stringify(originalOutput.content)
     );
 
     console.log("✅ Feedback processed successfully:", {
@@ -52,7 +77,7 @@ export async function processFeedbackWithLangChain(
       timestamp: new Date().toISOString()
     });
 
-    // 3. Save new output
+    // 4. Save new output
     const { error: saveError } = await supabase
       .from("brief_outputs")
       .insert({
