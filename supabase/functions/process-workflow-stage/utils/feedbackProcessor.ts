@@ -1,5 +1,5 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { FeedbackProcessor } from "../../../../src/utils/langchain/FeedbackProcessor.ts";
+import { createClient } from "@supabase/supabase-js";
+import { FeedbackProcessor } from "./FeedbackProcessor.ts";
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';

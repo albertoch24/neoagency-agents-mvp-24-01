@@ -1,5 +1,6 @@
 {
   "imports": {
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.47.13",
     "@langchain/openai": "https://esm.sh/@langchain/openai@0.0.14",
     "@langchain/core/prompts": "https://esm.sh/@langchain/core@0.1.17/prompts",
     "@langchain/core/output_parsers": "https://esm.sh/@langchain/core@0.1.17/output_parsers",
