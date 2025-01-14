@@ -22,7 +22,7 @@ serve(async (req) => {
 
     const { briefId, stageId, flowSteps } = body;
     
-    // Enhanced validation
+    // Enhanced validation with detailed error messages
     if (!briefId) {
       throw new Error('Missing required parameter: briefId');
     }
@@ -38,6 +38,9 @@ serve(async (req) => {
     
     // Validate each flow step has required properties
     flowSteps.forEach((step, index) => {
+      if (!step) {
+        throw new Error(`Flow step at index ${index} is undefined`);
+      }
       if (!step.agent_id) {
         throw new Error(`Flow step at index ${index} is missing agent_id`);
       }
@@ -53,7 +56,8 @@ serve(async (req) => {
       flowSteps: flowSteps.map(step => ({
         id: step.id,
         agentId: step.agent_id,
-        orderIndex: step.order_index
+        orderIndex: step.order_index,
+        requirements: step.requirements
       }))
     });
     
