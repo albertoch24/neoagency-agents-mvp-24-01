@@ -27,8 +27,7 @@ serve(async (req) => {
       flowStepsCount: flowSteps?.length,
       hasFeedback: !!feedbackId,
       feedbackId: feedbackId || null,
-      timestamp: new Date().toISOString(),
-      headers: Object.fromEntries(req.headers.entries())
+      timestamp: new Date().toISOString()
     });
 
     // Enhanced validation with detailed error messages

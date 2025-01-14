@@ -15,16 +15,13 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
     }
 
     setIsProcessing(true);
-    console.log("🚀 Starting stage processing:", {
-      briefId,
-      stageId,
-      hasFeedback: !!feedbackId,
-      feedbackId: feedbackId || null,
-      timestamp: new Date().toISOString()
-    });
+    const toastId = toast.loading(
+      "Processing stage... This may take a few minutes.",
+      { duration: 120000 }
+    );
 
     try {
-      // Get the stage with its flow steps
+      // 1. First get the stage data
       console.log("🔍 Fetching stage data");
       const { data: stage, error: stageError } = await supabase
         .from("stages")
@@ -48,7 +45,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
 
       if (stageError) {
         console.error("❌ Error fetching stage:", stageError);
-        throw stageError;
+        throw new Error("Failed to fetch stage data");
       }
 
       if (!stage) {
@@ -61,25 +58,30 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         flowStepsCount: stage.flows?.flow_steps?.length || 0
       });
 
-      // Call the edge function with all necessary parameters
+      // 2. Validate flow steps
+      if (!stage.flows?.flow_steps?.length) {
+        throw new Error("No flow steps found for this stage");
+      }
+
+      // 3. Call the edge function
       console.log("🔄 Invoking edge function");
-      const { error } = await supabase.functions.invoke("process-workflow-stage", {
+      const { error: functionError } = await supabase.functions.invoke("process-workflow-stage", {
         body: { 
           briefId,
           stageId,
-          flowSteps: stage.flows?.flow_steps || [],
+          flowSteps: stage.flows.flow_steps,
           feedbackId: typeof feedbackId === 'string' ? feedbackId : null
         }
       });
 
-      if (error) {
-        console.error("❌ Edge function error:", error);
-        throw error;
+      if (functionError) {
+        console.error("❌ Edge function error:", functionError);
+        throw functionError;
       }
 
       console.log("✅ Edge function completed successfully");
 
-      // Invalidate queries to refresh data
+      // 4. Refresh data
       console.log("🔄 Refreshing data");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["brief-outputs"] }),
@@ -87,6 +89,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         queryClient.invalidateQueries({ queryKey: ["stage-feedback"] })
       ]);
 
+      toast.dismiss(toastId);
       toast.success(
         feedbackId 
           ? "Stage reprocessed successfully with feedback" 
@@ -95,6 +98,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
 
     } catch (error) {
       console.error("❌ Error processing stage:", error);
+      toast.dismiss(toastId);
       toast.error(error instanceof Error ? error.message : "Failed to process stage");
     } finally {
       setIsProcessing(false);
