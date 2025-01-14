@@ -35,7 +35,7 @@ export const FeedbackForm = ({
 
   const handleStructuredChange = (field: keyof StructuredFeedback, value: any) => {
     setStructuredFeedback(prev => {
-      const updated = { ...prev, [field]: value };
+      const updated: StructuredFeedback = { ...prev, [field]: value };
       onFeedbackChange(JSON.stringify(updated));
       return updated;
     });
