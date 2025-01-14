@@ -58,7 +58,7 @@ serve(async (req) => {
     });
     
     // Process the workflow and get outputs
-    const outputs = await processAgents(briefId, stageId, flowSteps, feedbackId);
+    const outputs = await processAgents(briefId, stageId, flowSteps, feedbackId || null);
     
     console.log('✅ Workflow processed successfully:', {
       outputsCount: outputs?.length,

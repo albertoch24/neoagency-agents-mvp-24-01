@@ -19,30 +19,11 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       briefId,
       stageId,
       hasFeedback: !!feedbackId,
+      feedbackId,
       timestamp: new Date().toISOString()
     });
 
     try {
-      // If there's feedback, mark previous outputs as reprocessed
-      if (feedbackId) {
-        console.log("📝 Marking previous outputs as reprocessed");
-        const { error: updateError } = await supabase
-          .from("brief_outputs")
-          .update({ 
-            is_reprocessed: true,
-            reprocessed_at: new Date().toISOString()
-          })
-          .eq("brief_id", briefId)
-          .eq("stage_id", stageId)
-          .is("feedback_id", null);
-
-        if (updateError) {
-          console.error("❌ Error updating previous outputs:", updateError);
-          throw updateError;
-        }
-        console.log("✅ Previous outputs marked as reprocessed");
-      }
-
       // Get the stage with its flow steps
       console.log("🔍 Fetching stage data");
       const { data: stage, error: stageError } = await supabase
@@ -87,7 +68,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
           briefId,
           stageId,
           flowSteps: stage.flows?.flow_steps || [],
-          feedbackId
+          feedbackId: feedbackId || null  // Explicitly pass null if no feedbackId
         }
       });
 

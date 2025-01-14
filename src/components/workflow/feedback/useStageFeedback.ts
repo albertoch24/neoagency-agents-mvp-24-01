@@ -52,8 +52,9 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         throw new Error("Failed to save feedback");
       }
 
+      const feedbackId = feedbackData.id;
       console.log('✅ Feedback inserted successfully:', {
-        feedbackId: feedbackData.id,
+        feedbackId,
         timestamp: new Date().toISOString()
       });
 
@@ -64,7 +65,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         .update({
           is_reprocessed: true,
           reprocessed_at: new Date().toISOString(),
-          feedback_id: feedbackData.id
+          feedback_id: feedbackId
         })
         .eq("brief_id", briefId)
         .eq("stage_id", stageId)
@@ -82,7 +83,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         .update({
           reprocessing: true,
           reprocessed_at: new Date().toISOString(),
-          feedback_id: feedbackData.id
+          feedback_id: feedbackId
         })
         .eq("brief_id", briefId)
         .eq("stage_id", stageId)
@@ -111,7 +112,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
           const { error: updateError } = await supabase
             .from("stage_feedback")
             .update({ processed_for_rag: true })
-            .eq("id", feedbackData.id);
+            .eq("id", feedbackId);
 
           if (updateError) {
             console.error("❌ Error updating RAG processing status:", updateError);
@@ -136,12 +137,12 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
       queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
       
       // Trigger reprocessing if provided
-      if (onReprocess && feedbackData) {
+      if (onReprocess) {
         console.log('🔄 Triggering stage reprocessing with feedback:', {
-          feedbackId: feedbackData.id,
+          feedbackId,
           timestamp: new Date().toISOString()
         });
-        await onReprocess(feedbackData.id);
+        await onReprocess(feedbackId);
         console.log('✅ Stage reprocessing completed');
       }
     } catch (error) {
