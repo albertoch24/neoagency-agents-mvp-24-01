@@ -29,6 +29,11 @@ export async function processAgent(
       }))
     });
 
+    if (!agent || !agent.id) {
+      console.error('Invalid agent data:', agent);
+      return null;
+    }
+
     // Get feedback if reprocessing
     let feedback = '';
     if (isReprocessing) {
@@ -97,7 +102,7 @@ export async function processAgent(
       isReprocessing
     });
 
-    const { conversationalPrompt } = buildPrompt(
+    const { conversationalPrompt } = await buildPrompt(
       agent,
       brief,
       previousOutputs,
@@ -117,6 +122,14 @@ export async function processAgent(
     });
 
     const response = await generateAgentResponse(conversationalPrompt);
+    
+    if (!response || !response.conversationalResponse) {
+      console.error('No response generated from agent:', {
+        agentId: agent.id,
+        agentName: agent.name
+      });
+      return null;
+    }
 
     console.log('Agent response received:', {
       responseLength: response.conversationalResponse?.length,
@@ -140,6 +153,7 @@ export async function processAgent(
     };
   } catch (error) {
     console.error('Error in processAgent:', error);
-    throw error;
+    // Instead of throwing, return null to allow other agents to continue
+    return null;
   }
 }
