@@ -12,19 +12,27 @@ export async function processFeedback(
     return null;
   }
 
+  const startTime = new Date();
+
   try {
-    console.log('🔄 Processing feedback:', {
+    console.log('🔄 Starting feedback processing:', {
       briefId,
       stageId,
       agentId,
       feedbackId,
-      timestamp: new Date().toISOString()
+      timestamp: startTime.toISOString()
     });
 
-    // Get feedback data
+    // Get feedback data with explicit field selection
     const { data: feedbackData, error: feedbackError } = await supabase
       .from('stage_feedback')
-      .select('*')
+      .select(`
+        id,
+        content,
+        is_permanent,
+        requires_revision,
+        processed_for_rag
+      `)
       .eq('id', feedbackId)
       .single();
 
@@ -40,11 +48,25 @@ export async function processFeedback(
 
     console.log('✅ Retrieved feedback data:', {
       feedbackId,
-      content: feedbackData.content.substring(0, 100) + '...',
-      isPermanent: feedbackData.is_permanent
+      contentPreview: feedbackData.content.substring(0, 100) + '...',
+      isPermanent: feedbackData.is_permanent,
+      requiresRevision: feedbackData.requires_revision
     });
 
-    // Get original conversations that need to be reprocessed
+    // Update processing status to started
+    const { error: statusError } = await supabase
+      .from('feedback_processing_status')
+      .update({
+        update_status: 'processing',
+        feedback_time: startTime.toISOString()
+      })
+      .eq('feedback_id', feedbackId);
+
+    if (statusError) {
+      console.error('❌ Error updating processing status:', statusError);
+    }
+
+    // Get original conversations for reference
     const { data: originalConversations, error: convsError } = await supabase
       .from('workflow_conversations')
       .select('*')
@@ -59,41 +81,13 @@ export async function processFeedback(
       throw convsError;
     }
 
-    // Get original outputs that need to be reprocessed
-    const { data: originalOutputs, error: outputsError } = await supabase
-      .from('brief_outputs')
-      .select('*')
-      .eq('brief_id', briefId)
-      .eq('stage_id', stageId)
-      .is('feedback_id', null)
-      .order('created_at', { ascending: true });
-
-    if (outputsError) {
-      console.error('❌ Error fetching original outputs:', outputsError);
-      throw outputsError;
-    }
-
-    // Update feedback processing status
-    const startTime = new Date();
-    const { error: statusError } = await supabase
-      .from('feedback_processing_status')
-      .update({
-        update_status: 'processing',
-        feedback_time: startTime.toISOString()
-      })
-      .eq('feedback_id', feedbackId);
-
-    if (statusError) {
-      console.error('❌ Error updating feedback status:', statusError);
-    }
-
-    // Mark original conversations for reprocessing
+    // Mark conversations for reprocessing
     if (originalConversations?.length > 0) {
       const { error: updateConvsError } = await supabase
         .from('workflow_conversations')
         .update({
           reprocessing: true,
-          reprocessed_at: new Date().toISOString(),
+          reprocessed_at: startTime.toISOString(),
           feedback_id: feedbackId
         })
         .eq('brief_id', briefId)
@@ -107,49 +101,53 @@ export async function processFeedback(
       }
     }
 
-    // Mark original outputs for reprocessing
-    if (originalOutputs?.length > 0) {
-      const { error: updateOutputsError } = await supabase
-        .from('brief_outputs')
-        .update({
-          is_reprocessed: true,
-          reprocessed_at: new Date().toISOString(),
-          feedback_id: feedbackId
-        })
-        .eq('brief_id', briefId)
-        .eq('stage_id', stageId)
-        .is('feedback_id', null);
+    // Calculate processing time
+    const endTime = new Date();
+    const processingTimeSeconds = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
 
-      if (updateOutputsError) {
-        console.error('❌ Error marking outputs for reprocessing:', updateOutputsError);
-        throw updateOutputsError;
-      }
+    // Update final status
+    const { error: finalStatusError } = await supabase
+      .from('feedback_processing_status')
+      .update({
+        update_status: 'processed',
+        processing_time_seconds: processingTimeSeconds,
+        conversation_updates: originalConversations?.length || 0,
+        last_conversation_update: endTime.toISOString()
+      })
+      .eq('feedback_id', feedbackId);
+
+    if (finalStatusError) {
+      console.error('❌ Error updating final status:', finalStatusError);
     }
 
     console.log('✅ Feedback processing completed:', {
       feedbackId,
-      conversationsUpdated: originalConversations?.length || 0,
-      outputsUpdated: originalOutputs?.length || 0
+      processingTimeSeconds,
+      conversationsUpdated: originalConversations?.length || 0
     });
 
-    // Return the processed feedback context
+    // Return complete feedback context
     return {
       feedbackContent: feedbackData.content,
       isReprocessing: true,
       isPermanent: feedbackData.is_permanent,
+      requiresRevision: feedbackData.requires_revision,
       originalConversationId: originalConversations?.[0]?.id,
-      requiresRevision: feedbackData.requires_revision
+      processingTimeSeconds
     };
 
   } catch (error) {
     console.error('❌ Error in processFeedback:', error);
     
-    // Update status to error
+    // Update error status
+    const endTime = new Date();
+    const processingTimeSeconds = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
+    
     const { error: statusError } = await supabase
       .from('feedback_processing_status')
       .update({
         update_status: 'error',
-        processing_time_seconds: 0
+        processing_time_seconds: processingTimeSeconds
       })
       .eq('feedback_id', feedbackId);
 

@@ -67,6 +67,8 @@ const buildBasePrompt = async (
     3. Provide new insights or approaches
     4. Ensure your response is significantly different from before
     5. Maintain alignment with original requirements
+    6. Explicitly reference how you're addressing the feedback
+    7. Highlight what you're changing based on the feedback
   ` : '';
 
   console.log("Building prompt sections with:", {
@@ -94,7 +96,8 @@ const buildBasePrompt = async (
     - How your specific expertise applies to this brief
     - Any concerns or opportunities you see
     - References to previous discussions or outputs where relevant
-    ${isReprocessing ? '- Address the specific feedback provided and explain your new approach' : ''}
+    ${isReprocessing ? '- Explicit explanation of how you\'re addressing the feedback' : ''}
+    ${isReprocessing ? '- Clear indication of what you\'re changing based on the feedback' : ''}
 
     2. STRUCTURED OUTPUT:
     Then, provide a clear, structured analysis addressing each required output:
@@ -116,6 +119,7 @@ const buildBasePrompt = async (
     - Keep the conversational part engaging and insightful
     - Connect your structured outputs to your conversational analysis
     ${isReprocessing ? '- Provide substantially different insights and approaches from your previous response' : ''}
+    ${isReprocessing ? '- Clearly explain how your new response addresses the feedback' : ''}
 
     Here is the context for your analysis:
     ${sections}
@@ -192,15 +196,16 @@ ${outputRequirements.map((req: string, index: number) => `${index + 1}. ${req}`)
 
 Format your response with clear headings and bullet points for each required output.
 Ensure each response is:
-1. Concrete and actionable, directly addressing the specific output requirements.
-2. Based on insights from the brief and outputs of previous steps or stages, with clear references to how they influence your recommendations.
-3. Structured, using concise bullet points or subheadings to organize information logically.
-4. Thorough and exhaustive, covering all relevant aspects to provide a complete response.
-5. Professional and direct in tone, avoiding unnecessary elaboration or discussion of the process or future steps.
-6. Focused solely on the outputs, ensuring practical and useful recommendations for each point.
+1. Concrete and actionable, directly addressing the specific output requirements
+2. Based on insights from the brief and outputs of previous steps or stages
+3. Structured, using concise bullet points or subheadings to organize information
+4. Thorough and exhaustive, covering all relevant aspects
+5. Professional and direct in tone
+6. Focused on practical and useful recommendations
 
-When referencing previous outputs or flow step outputs:
-- Explicitly indicate their relevance and how they inform your recommendations.
-- Tie your answers back to the brief's goals to ensure alignment.
+When referencing previous outputs or feedback:
+- Explicitly indicate their relevance and how they inform your recommendations
+- Tie your answers back to the brief's goals to ensure alignment
+- Clearly explain how you're addressing any feedback provided
 `;
 };

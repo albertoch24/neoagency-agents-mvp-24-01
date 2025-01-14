@@ -15,14 +15,13 @@ export async function processAgent(
   feedbackId: string | null = null
 ) {
   try {
-    console.log('🚀 Processing agent:', {
+    console.log('🚀 Starting agent processing:', {
       agentId: agent.id,
       agentName: agent.name,
       briefId: brief.id,
       stageId,
-      requirements,
-      previousOutputsCount: previousOutputs.length,
-      hasFeedback: !!feedbackId
+      hasFeedback: !!feedbackId,
+      feedbackId: feedbackId || 'none'
     });
 
     if (!agent || !agent.id) {
@@ -39,9 +38,16 @@ export async function processAgent(
       feedbackId
     ) : null;
 
-    console.log('📝 Feedback context:', feedbackContext);
+    console.log('📝 Feedback context:', {
+      hasFeedback: !!feedbackContext,
+      feedbackContent: feedbackContext?.feedbackContent ? 
+        `${feedbackContext.feedbackContent.substring(0, 100)}...` : 
+        'none',
+      isReprocessing: feedbackContext?.isReprocessing || false,
+      isPermanent: feedbackContext?.isPermanent || false
+    });
 
-    // Get all agents involved in this stage
+    // Get stage agents
     const { data: stageAgents } = await supabase
       .from('agents')
       .select(`
@@ -59,9 +65,9 @@ export async function processAgent(
       `)
       .eq('stage_id', stageId);
 
-    // Create LangChain agent chain if multiple agents are involved
+    // Create LangChain agent chain if multiple agents
     if (stageAgents && stageAgents.length > 1) {
-      console.log('🔄 Creating multi-agent chain for stage:', {
+      console.log('🔄 Creating multi-agent chain:', {
         stageId,
         agentCount: stageAgents.length,
         agents: stageAgents.map(a => a.name)
@@ -76,6 +82,7 @@ export async function processAgent(
         feedbackContext
       );
 
+      // Save conversation and output
       await saveConversation(
         supabase,
         brief.id,
@@ -110,7 +117,7 @@ export async function processAgent(
       previousOutputsCount: previousOutputs.length,
       hasFeedback: !!feedbackContext,
       feedbackContent: feedbackContext?.feedbackContent ? 
-        feedbackContext.feedbackContent.substring(0, 100) + '...' : 
+        `${feedbackContext.feedbackContent.substring(0, 100)}...` : 
         'none'
     });
 
@@ -134,6 +141,7 @@ export async function processAgent(
       return null;
     }
 
+    // Save results
     await saveConversation(
       supabase,
       brief.id,
