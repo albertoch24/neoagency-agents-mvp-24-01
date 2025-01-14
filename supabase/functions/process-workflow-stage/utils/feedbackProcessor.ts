@@ -36,13 +36,12 @@ export async function processFeedbackWithLangChain(
       timestamp: new Date().toISOString()
     });
 
-    // 2. Get original output content for specific stage
+    // 2. Get original output content for specific stage - Removed is_reprocessed condition
     const { data: originalOutput, error: outputError } = await supabase
       .from("brief_outputs")
       .select("id, content")
       .eq("brief_id", briefId)
       .eq("stage_id", stageId)
-      .eq("is_reprocessed", false)
       .order('created_at', { ascending: false })
       .maybeSingle();
 
