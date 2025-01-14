@@ -660,6 +660,7 @@ export type Database = {
           rating: number | null
           requires_revision: boolean | null
           stage_id: string
+          structured_content: Json | null
           updated_at: string
         }
         Insert: {
@@ -672,6 +673,7 @@ export type Database = {
           rating?: number | null
           requires_revision?: boolean | null
           stage_id: string
+          structured_content?: Json | null
           updated_at?: string
         }
         Update: {
@@ -684,6 +686,7 @@ export type Database = {
           rating?: number | null
           requires_revision?: boolean | null
           stage_id?: string
+          structured_content?: Json | null
           updated_at?: string
         }
         Relationships: [
