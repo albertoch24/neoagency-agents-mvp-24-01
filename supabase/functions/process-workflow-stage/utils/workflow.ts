@@ -2,6 +2,7 @@ import { generateAgentResponse } from './openai.ts';
 import { buildPrompt } from './promptBuilder.ts';
 import { processFeedback } from './feedbackProcessor.ts';
 import { validateFeedbackIncorporation } from './validators.ts';
+import { parseFeedback, validateFeedbackPoints } from './feedbackParser.ts';
 
 export async function processAgent(
   supabase: any,
@@ -29,6 +30,22 @@ export async function processAgent(
       agent.id,
       feedbackId
     ) : null;
+
+    // Parse feedback into structured points if available
+    let feedbackPoints = [];
+    if (feedbackContext?.feedbackContent) {
+      feedbackPoints = parseFeedback(feedbackContext.feedbackContent);
+      
+      if (!validateFeedbackPoints(feedbackPoints)) {
+        console.error('❌ Invalid feedback structure detected');
+        throw new Error('Invalid feedback structure');
+      }
+      
+      console.log('✅ Feedback parsed successfully:', {
+        pointsCount: feedbackPoints.length,
+        points: feedbackPoints
+      });
+    }
 
     // Get original output if reprocessing
     let originalOutput = null;
