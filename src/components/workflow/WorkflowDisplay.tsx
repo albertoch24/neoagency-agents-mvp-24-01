@@ -2,11 +2,12 @@ import { useStageProcessing } from "@/hooks/useStageProcessing";
 import { WorkflowStages } from "./WorkflowStages";
 import { WorkflowOutput } from "./WorkflowOutput";
 import { WorkflowDisplayActions } from "./WorkflowDisplayActions";
+import { Stage } from "@/types/workflow";
 
 interface WorkflowDisplayProps {
   briefId?: string;
   currentStage?: string;
-  onStageSelect?: (stageId: string) => void;
+  onStageSelect?: (stage: Stage) => void;
   showOutputs?: boolean;
 }
 
@@ -37,14 +38,14 @@ export const WorkflowDisplay = ({
         <WorkflowOutput 
           briefId={briefId}
           stageId={currentStage}
-          onReprocess={handleReprocess}
         />
       )}
       <WorkflowDisplayActions
-        briefId={briefId}
-        stageId={currentStage}
+        currentStage={currentStage || ''}
+        stages={[]} // We'll get stages from a query
+        onNextStage={handleReprocess}
         isProcessing={isProcessing}
-        onProcess={() => processStage(false)}
+        onStageSelect={onStageSelect}
       />
     </div>
   );
