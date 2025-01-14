@@ -13,7 +13,11 @@ export async function processAgents(briefId: string, stageId: string, flowSteps:
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    console.log('Fetching brief and stage data');
+    console.log('Starting processAgents with:', { briefId, stageId, flowStepsCount: flowSteps?.length });
+
+    if (!briefId || !stageId || !Array.isArray(flowSteps)) {
+      throw new Error('Invalid input parameters');
+    }
 
     // Get brief data
     const { data: brief, error: briefError } = await supabase
@@ -33,13 +37,7 @@ export async function processAgents(briefId: string, stageId: string, flowSteps:
     // Get stage data
     const { data: stage, error: stageError } = await supabase
       .from('stages')
-      .select(`
-        *,
-        flows (
-          id,
-          name
-        )
-      `)
+      .select('*, flows!inner(id, name)')
       .eq('id', stageId)
       .single();
 
@@ -62,58 +60,79 @@ export async function processAgents(briefId: string, stageId: string, flowSteps:
     // Process each agent in sequence
     const outputs = [];
     for (const step of sortedFlowSteps) {
-      // Get complete agent data for this step with a separate query
-      const { data: agent, error: agentError } = await supabase
-        .from('agents')
-        .select(`
-          id,
-          name,
-          description,
-          temperature,
-          skills (
+      try {
+        if (!step.agent_id) {
+          console.error('Missing agent_id in step:', step);
+          continue;
+        }
+
+        // Get complete agent data for this step with a separate query
+        const { data: agent, error: agentError } = await supabase
+          .from('agents')
+          .select(`
             id,
             name,
-            type,
-            content,
-            description
-          )
-        `)
-        .eq('id', step.agent_id)
-        .single();
+            description,
+            temperature,
+            skills (
+              id,
+              name,
+              type,
+              content,
+              description
+            )
+          `)
+          .eq('id', step.agent_id)
+          .single();
 
-      if (agentError) {
-        console.error('Error fetching agent data:', {
-          error: agentError,
+        if (agentError) {
+          console.error('Error fetching agent data:', {
+            error: agentError,
+            stepId: step.id,
+            agentId: step.agent_id
+          });
+          continue;
+        }
+
+        if (!agent) {
+          console.error('Agent not found:', {
+            stepId: step.id,
+            agentId: step.agent_id
+          });
+          continue;
+        }
+
+        console.log('Successfully retrieved agent data:', {
+          agentId: agent.id,
+          agentName: agent.name,
+          skillsCount: agent.skills?.length || 0
+        });
+
+        const result = await processAgent(
+          supabase,
+          agent,
+          brief,
+          stageId,
+          step.requirements,
+          outputs
+        );
+
+        if (result) {
+          outputs.push(result);
+        }
+      } catch (stepError) {
+        console.error('Error processing step:', {
+          error: stepError,
           stepId: step.id,
           agentId: step.agent_id
         });
+        // Continue with next step instead of failing the entire process
         continue;
       }
+    }
 
-      if (!agent) {
-        console.error('Agent not found:', {
-          stepId: step.id,
-          agentId: step.agent_id
-        });
-        continue;
-      }
-
-      console.log('Successfully retrieved agent data:', {
-        agentId: agent.id,
-        agentName: agent.name,
-        skillsCount: agent.skills?.length || 0
-      });
-
-      const result = await processAgent(
-        supabase,
-        agent,
-        brief,
-        stageId,
-        step.requirements,
-        outputs
-      );
-
-      outputs.push(result);
+    if (outputs.length === 0) {
+      throw new Error('No outputs were generated from any agent');
     }
 
     // Prepare the content object for saving
