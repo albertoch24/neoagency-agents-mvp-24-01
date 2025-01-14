@@ -30,7 +30,7 @@ export async function processAgents(briefId: string, stageId: string, flowSteps:
       throw new Error('Brief not found');
     }
 
-    // Get stage data with flow and steps
+    // Get stage data with flow and steps, including complete agent data
     const { data: stage, error: stageError } = await supabase
       .from('stages')
       .select(`
@@ -43,11 +43,19 @@ export async function processAgents(briefId: string, stageId: string, flowSteps:
             agent_id,
             requirements,
             order_index,
+            outputs,
             agents (
               id,
               name,
               description,
-              skills (*)
+              temperature,
+              skills (
+                id,
+                name,
+                type,
+                content,
+                description
+              )
             )
           )
         )
@@ -77,19 +85,35 @@ export async function processAgents(briefId: string, stageId: string, flowSteps:
     // Process each agent in sequence
     const outputs = [];
     for (const step of sortedFlowSteps) {
-      if (!step.agents) {
+      // Get complete agent data for this step
+      const { data: agent, error: agentError } = await supabase
+        .from('agents')
+        .select(`
+          *,
+          skills (*)
+        `)
+        .eq('id', step.agent_id)
+        .single();
+
+      if (agentError) {
+        console.error('Error fetching agent data:', agentError);
+        continue;
+      }
+
+      if (!agent) {
         console.warn('Missing agent data for step:', step);
         continue;
       }
 
       console.log('Processing step with agent:', {
-        agentName: step.agents?.name,
-        stepId: step.id
+        agentName: agent.name,
+        stepId: step.id,
+        agentSkills: agent.skills?.length || 0
       });
       
       const result = await processAgent(
         supabase,
-        step.agents,
+        agent,
         brief,
         stageId,
         step.requirements,
