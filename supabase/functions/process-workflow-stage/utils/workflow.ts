@@ -59,7 +59,19 @@ Please address this feedback specifically in your new response.`;
     console.log('🔍 Fetching stage agents');
     const { data: stageAgents } = await supabase
       .from('agents')
-      .select('*')
+      .select(`
+        id,
+        name,
+        description,
+        temperature,
+        skills (
+          id,
+          name,
+          type,
+          content,
+          description
+        )
+      `)
       .eq('stage_id', stageId);
 
     // Create LangChain agent chain if multiple agents are involved
