@@ -28,15 +28,16 @@ export async function processAgent(
       return null;
     }
 
-    // Get feedback if present
+    // Get feedback and original conversation data if present
     let feedback = '';
     let isReprocessing = false;
     let originalConversationId = null;
+    let originalOutputId = null;
 
     if (feedbackId) {
-      console.log('🔍 Fetching feedback for processing:', { feedbackId });
+      console.log('🔍 Processing feedback:', { feedbackId });
       
-      // First get the original conversation to link to
+      // Get the original conversation to link to
       const { data: originalConv, error: convError } = await supabase
         .from('workflow_conversations')
         .select('id')
@@ -44,6 +45,7 @@ export async function processAgent(
         .eq('stage_id', stageId)
         .eq('agent_id', agent.id)
         .is('feedback_id', null)
+        .is('original_conversation_id', null)
         .single();
 
       if (convError) {
@@ -53,12 +55,29 @@ export async function processAgent(
         console.log('✅ Found original conversation:', originalConversationId);
       }
 
-      // Then get the feedback content
+      // Get the original output to link to
+      const { data: originalOutput, error: outputError } = await supabase
+        .from('brief_outputs')
+        .select('id')
+        .eq('brief_id', brief.id)
+        .eq('stage_id', stageId)
+        .is('feedback_id', null)
+        .is('original_output_id', null)
+        .single();
+
+      if (outputError) {
+        console.error('❌ Error fetching original output:', outputError);
+      } else if (originalOutput) {
+        originalOutputId = originalOutput.id;
+        console.log('✅ Found original output:', originalOutputId);
+      }
+
+      // Get the feedback content
       const { data: feedbackData, error: feedbackError } = await supabase
         .from('stage_feedback')
-        .select('content, rating')
+        .select('content, rating, requires_revision, is_permanent')
         .eq('id', feedbackId)
-        .maybeSingle();
+        .single();
 
       if (feedbackError) {
         console.error('❌ Error fetching feedback:', feedbackError);
@@ -74,15 +93,25 @@ Please address this feedback specifically in your new response.`;
           hasFeedback: !!feedback,
           feedbackPreview: feedback.substring(0, 100),
           rating: feedbackData.rating,
-          isReprocessing
+          isReprocessing,
+          isPermanent: feedbackData.is_permanent
         });
-      } else {
-        console.error('❌ No feedback data found for ID:', feedbackId);
+
+        // Update feedback status
+        if (feedbackData.is_permanent) {
+          const { error: updateError } = await supabase
+            .from('stage_feedback')
+            .update({ processed_for_rag: true })
+            .eq('id', feedbackId);
+
+          if (updateError) {
+            console.error('❌ Error updating feedback status:', updateError);
+          }
+        }
       }
     }
 
     // Get all agents involved in this stage
-    console.log('🔍 Fetching stage agents');
     const { data: stageAgents } = await supabase
       .from('agents')
       .select(`
@@ -120,15 +149,14 @@ Please address this feedback specifically in your new response.`;
         feedback
       );
 
-      // Save the conversation with feedback information
-      const conversationContent = response.outputs[0].content;
+      // Save the conversation with complete feedback information
       const { data: savedConversation, error: convError } = await supabase
         .from('workflow_conversations')
         .insert({
           brief_id: brief.id,
           stage_id: stageId,
           agent_id: agent.id,
-          content: conversationContent,
+          content: response.outputs[0].content,
           output_type: 'conversational',
           feedback_id: feedbackId,
           original_conversation_id: originalConversationId,
@@ -143,9 +171,32 @@ Please address this feedback specifically in your new response.`;
         throw convError;
       }
 
+      // Save corresponding brief output
+      const { error: outputError } = await supabase
+        .from('brief_outputs')
+        .insert({
+          brief_id: brief.id,
+          stage_id: stageId,
+          stage: stageId,
+          content: {
+            outputs: response.outputs,
+            feedback_used: feedback || null
+          },
+          feedback_id: feedbackId,
+          original_output_id: originalOutputId,
+          is_reprocessed: isReprocessing,
+          reprocessed_at: isReprocessing ? new Date().toISOString() : null
+        });
+
+      if (outputError) {
+        console.error('❌ Error saving brief output:', outputError);
+        throw outputError;
+      }
+
       console.log('✅ Multi-agent response saved:', {
         conversationId: savedConversation.id,
         originalConversationId,
+        originalOutputId,
         feedbackId,
         isReprocessing
       });
@@ -153,10 +204,7 @@ Please address this feedback specifically in your new response.`;
       return {
         agent: agent.name,
         requirements,
-        outputs: [{
-          content: conversationContent,
-          type: 'conversational'
-        }],
+        outputs: response.outputs,
         stepId: agent.id,
         orderIndex: 0
       };
@@ -215,9 +263,35 @@ Please address this feedback specifically in your new response.`;
       throw convError;
     }
 
+    // Save corresponding brief output
+    const { error: outputError } = await supabase
+      .from('brief_outputs')
+      .insert({
+        brief_id: brief.id,
+        stage_id: stageId,
+        stage: stageId,
+        content: {
+          outputs: [{
+            content: response.conversationalResponse,
+            type: 'conversational'
+          }],
+          feedback_used: feedback || null
+        },
+        feedback_id: feedbackId,
+        original_output_id: originalOutputId,
+        is_reprocessed: isReprocessing,
+        reprocessed_at: isReprocessing ? new Date().toISOString() : null
+      });
+
+    if (outputError) {
+      console.error('❌ Error saving brief output:', outputError);
+      throw outputError;
+    }
+
     console.log('✅ Agent response saved:', {
       conversationId: savedConversation.id,
       originalConversationId,
+      originalOutputId,
       feedbackId,
       isReprocessing,
       responseLength: response.conversationalResponse?.length
