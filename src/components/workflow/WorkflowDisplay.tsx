@@ -34,6 +34,7 @@ export const WorkflowDisplay = ({
         briefId={briefId}
         currentStage={currentStage || ''}
         onStageSelect={onStageSelect || (() => {})}
+        stages={stages}
       />
       {currentStage && briefId && (
         <StageOutputDisplay
