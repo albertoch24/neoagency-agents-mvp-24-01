@@ -12,7 +12,7 @@ export async function processAgent(
   isReprocessing: boolean = false
 ) {
   try {
-    console.log('Processing agent:', {
+    console.log('🚀 Processing agent:', {
       agentId: agent.id,
       agentName: agent.name,
       briefId: brief.id,
@@ -23,13 +23,14 @@ export async function processAgent(
     });
 
     if (!agent || !agent.id) {
-      console.error('Invalid agent data:', agent);
+      console.error('❌ Invalid agent data:', agent);
       return null;
     }
 
     // Get feedback if reprocessing
     let feedback = '';
     if (isReprocessing) {
+      console.log('🔍 Fetching feedback for reprocessing');
       const { data: feedbackData } = await supabase
         .from('stage_feedback')
         .select('content, rating')
@@ -43,7 +44,7 @@ export async function processAgent(
 Rating: ${feedbackData[0].rating}/5
 Please address this feedback specifically in your new response.`;
         
-        console.log('Retrieved feedback for reprocessing:', {
+        console.log('✅ Retrieved feedback for reprocessing:', {
           hasFeedback: !!feedback,
           feedbackPreview: feedback.substring(0, 100),
           rating: feedbackData[0].rating
@@ -52,6 +53,7 @@ Please address this feedback specifically in your new response.`;
     }
 
     // Get all agents involved in this stage
+    console.log('🔍 Fetching stage agents');
     const { data: stageAgents } = await supabase
       .from('agents')
       .select('*')
@@ -59,7 +61,7 @@ Please address this feedback specifically in your new response.`;
 
     // Create LangChain agent chain if multiple agents are involved
     if (stageAgents && stageAgents.length > 1) {
-      console.log('Creating multi-agent chain for stage:', {
+      console.log('🔄 Creating multi-agent chain for stage:', {
         stageId,
         agentCount: stageAgents.length,
         agents: stageAgents.map(a => a.name)
@@ -75,7 +77,7 @@ Please address this feedback specifically in your new response.`;
         feedback
       );
       
-      console.log('Multi-agent response received:', {
+      console.log('✅ Multi-agent response received:', {
         responseLength: response.outputs[0].content.length,
         preview: response.outputs[0].content.substring(0, 100)
       });
@@ -94,7 +96,7 @@ Please address this feedback specifically in your new response.`;
 
     // Single agent processing
     const isFirstStage = previousOutputs.length === 0;
-    console.log('Building prompt for single agent:', {
+    console.log('🔄 Building prompt for single agent:', {
       agentName: agent.name,
       isFirstStage,
       previousOutputsCount: previousOutputs.length,
@@ -112,7 +114,7 @@ Please address this feedback specifically in your new response.`;
       feedback
     );
 
-    console.log('Generated prompt:', {
+    console.log('✅ Generated prompt:', {
       promptLength: conversationalPrompt.length,
       preview: conversationalPrompt.substring(0, 100),
       containsPreviousOutputs: conversationalPrompt.includes('Previous Stage Outputs'),
@@ -124,14 +126,14 @@ Please address this feedback specifically in your new response.`;
     const response = await generateAgentResponse(conversationalPrompt);
     
     if (!response || !response.conversationalResponse) {
-      console.error('No response generated from agent:', {
+      console.error('❌ No response generated from agent:', {
         agentId: agent.id,
         agentName: agent.name
       });
       return null;
     }
 
-    console.log('Agent response received:', {
+    console.log('✅ Agent response received:', {
       responseLength: response.conversationalResponse?.length,
       preview: response.conversationalResponse?.substring(0, 100),
       containsReferences: response.conversationalResponse?.includes('previous') || 
@@ -152,7 +154,7 @@ Please address this feedback specifically in your new response.`;
       orderIndex: 0
     };
   } catch (error) {
-    console.error('Error in processAgent:', error);
+    console.error('❌ Error in processAgent:', error);
     return null;
   }
 }

@@ -9,12 +9,13 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
 
   const processStage = async (feedbackId?: string) => {
     if (!briefId || !stageId) {
+      console.error("❌ Missing required parameters:", { briefId, stageId });
       toast.error("Missing brief or stage ID");
       return;
     }
 
     setIsProcessing(true);
-    console.log("Starting stage processing:", {
+    console.log("🚀 Starting stage processing:", {
       briefId,
       stageId,
       hasFeedback: !!feedbackId,
@@ -24,7 +25,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
     try {
       // If there's feedback, mark previous outputs as reprocessed
       if (feedbackId) {
-        console.log("Marking previous outputs as reprocessed");
+        console.log("📝 Marking previous outputs as reprocessed");
         const { error: updateError } = await supabase
           .from("brief_outputs")
           .update({ 
@@ -36,12 +37,14 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
           .is("feedback_id", null);
 
         if (updateError) {
-          console.error("Error updating previous outputs:", updateError);
+          console.error("❌ Error updating previous outputs:", updateError);
           throw updateError;
         }
+        console.log("✅ Previous outputs marked as reprocessed");
       }
 
       // Get the stage with its flow steps
+      console.log("🔍 Fetching stage data");
       const { data: stage, error: stageError } = await supabase
         .from("stages")
         .select(`
@@ -63,15 +66,22 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         .single();
 
       if (stageError) {
-        console.error("Error fetching stage:", stageError);
+        console.error("❌ Error fetching stage:", stageError);
         throw stageError;
       }
 
       if (!stage) {
+        console.error("❌ Stage not found");
         throw new Error("Stage not found");
       }
 
+      console.log("✅ Stage data retrieved:", {
+        stageId: stage.id,
+        flowStepsCount: stage.flows?.flow_steps?.length || 0
+      });
+
       // Call the edge function with all necessary parameters
+      console.log("🔄 Invoking edge function");
       const { error } = await supabase.functions.invoke("process-workflow-stage", {
         body: { 
           briefId,
@@ -81,9 +91,15 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ Edge function error:", error);
+        throw error;
+      }
+
+      console.log("✅ Edge function completed successfully");
 
       // Invalidate queries to refresh data
+      console.log("🔄 Refreshing data");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["brief-outputs"] }),
         queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] }),
@@ -97,7 +113,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       );
 
     } catch (error) {
-      console.error("Error processing stage:", error);
+      console.error("❌ Error processing stage:", error);
       toast.error(error instanceof Error ? error.message : "Failed to process stage");
     } finally {
       setIsProcessing(false);

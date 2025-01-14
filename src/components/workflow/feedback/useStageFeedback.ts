@@ -52,7 +52,10 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         throw new Error("Failed to save feedback");
       }
 
-      console.log('✅ Feedback inserted successfully');
+      console.log('✅ Feedback inserted successfully:', {
+        feedbackId: feedbackData.id,
+        timestamp: new Date().toISOString()
+      });
 
       if (isPermanent && brand) {
         console.log("🔄 Processing permanent feedback for RAG:", {
@@ -96,7 +99,10 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
       
       // Trigger reprocessing if provided
       if (onReprocess && feedbackData) {
-        console.log('🔄 Triggering stage reprocessing');
+        console.log('🔄 Triggering stage reprocessing with feedback:', {
+          feedbackId: feedbackData.id,
+          timestamp: new Date().toISOString()
+        });
         await onReprocess(feedbackData.id);
         console.log('✅ Stage reprocessing completed');
       }
