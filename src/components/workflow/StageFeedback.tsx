@@ -174,6 +174,16 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
           </label>
         </div>
         <div className="flex gap-2">
+          {onReprocess && (
+            <Button 
+              variant="outline" 
+              onClick={onReprocess}
+              className="gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Reprocess Stage
+            </Button>
+          )}
           <Button 
             onClick={handleSubmit} 
             disabled={isSubmitting}
@@ -187,16 +197,6 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
               "Submit Feedback"
             )}
           </Button>
-          {onReprocess && (
-            <Button 
-              variant="outline" 
-              onClick={onReprocess}
-              className="gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Reprocess Stage
-            </Button>
-          )}
         </div>
       </CardContent>
     </Card>
