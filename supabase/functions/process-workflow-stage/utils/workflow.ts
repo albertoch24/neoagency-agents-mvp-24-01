@@ -9,7 +9,7 @@ export async function processAgent(
   stageId: string,
   requirements: string,
   previousOutputs: any[] = [],
-  isReprocessing: boolean = false
+  feedbackId: string | null = null
 ) {
   try {
     console.log('🚀 Processing agent:', {
@@ -19,7 +19,8 @@ export async function processAgent(
       stageId,
       requirements,
       previousOutputsCount: previousOutputs.length,
-      isReprocessing
+      hasFeedback: !!feedbackId,
+      feedbackId
     });
 
     if (!agent || !agent.id) {
@@ -27,27 +28,29 @@ export async function processAgent(
       return null;
     }
 
-    // Get feedback if reprocessing
+    // Get feedback if present
     let feedback = '';
-    if (isReprocessing) {
-      console.log('🔍 Fetching feedback for reprocessing');
-      const { data: feedbackData } = await supabase
+    if (feedbackId) {
+      console.log('🔍 Fetching feedback for processing:', { feedbackId });
+      const { data: feedbackData, error: feedbackError } = await supabase
         .from('stage_feedback')
         .select('content, rating')
-        .eq('stage_id', stageId)
-        .eq('brief_id', brief.id)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .eq('id', feedbackId)
+        .single();
 
-      if (feedbackData?.[0]) {
-        feedback = `Previous feedback: ${feedbackData[0].content}
-Rating: ${feedbackData[0].rating}/5
+      if (feedbackError) {
+        console.error('❌ Error fetching feedback:', feedbackError);
+      }
+
+      if (feedbackData) {
+        feedback = `Previous feedback: ${feedbackData.content}
+Rating: ${feedbackData.rating}/5
 Please address this feedback specifically in your new response.`;
         
-        console.log('✅ Retrieved feedback for reprocessing:', {
+        console.log('✅ Retrieved feedback for processing:', {
           hasFeedback: !!feedback,
           feedbackPreview: feedback.substring(0, 100),
-          rating: feedbackData[0].rating
+          rating: feedbackData.rating
         });
       }
     }
@@ -73,7 +76,7 @@ Please address this feedback specifically in your new response.`;
         brief, 
         requirements, 
         previousOutputs,
-        isReprocessing,
+        !!feedbackId,
         feedback
       );
       
@@ -100,7 +103,6 @@ Please address this feedback specifically in your new response.`;
       agentName: agent.name,
       isFirstStage,
       previousOutputsCount: previousOutputs.length,
-      isReprocessing,
       hasFeedback: !!feedback
     });
 
@@ -110,7 +112,7 @@ Please address this feedback specifically in your new response.`;
       previousOutputs,
       requirements,
       isFirstStage,
-      isReprocessing,
+      !!feedbackId,
       feedback
     );
 
@@ -119,7 +121,6 @@ Please address this feedback specifically in your new response.`;
       preview: conversationalPrompt.substring(0, 100),
       containsPreviousOutputs: conversationalPrompt.includes('Previous Stage Outputs'),
       containsRequirements: conversationalPrompt.includes(requirements || ''),
-      isReprocessing,
       hasFeedback: !!feedback
     });
 

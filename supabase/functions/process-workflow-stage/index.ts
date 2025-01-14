@@ -14,18 +14,19 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Processing workflow stage request');
+    console.log('🚀 Processing workflow stage request');
     
     // Parse and validate request body
     const body = await req.json();
     const { briefId, stageId, flowSteps, feedbackId } = body;
     
     // Log the complete request details
-    console.log('Request details:', {
+    console.log('📝 Request details:', {
       briefId,
       stageId,
       flowStepsCount: flowSteps?.length,
       hasFeedback: !!feedbackId,
+      feedbackId,
       timestamp: new Date().toISOString()
     });
 
@@ -59,10 +60,11 @@ serve(async (req) => {
     // Process the workflow and get outputs
     const outputs = await processAgents(briefId, stageId, flowSteps, feedbackId);
     
-    console.log('Workflow processed successfully:', {
+    console.log('✅ Workflow processed successfully:', {
       outputsCount: outputs?.length,
       firstOutput: outputs?.[0],
-      hasFeedback: !!feedbackId
+      hasFeedback: !!feedbackId,
+      feedbackId
     });
     
     // Return success response with outputs and CORS headers
@@ -73,6 +75,7 @@ serve(async (req) => {
         outputs,
         meta: {
           hasFeedback: !!feedbackId,
+          feedbackId,
           timestamp: new Date().toISOString()
         }
       }),
@@ -85,7 +88,7 @@ serve(async (req) => {
     );
     
   } catch (error) {
-    console.error('Error processing workflow stage:', {
+    console.error('❌ Error processing workflow stage:', {
       error,
       message: error.message,
       stack: error.stack

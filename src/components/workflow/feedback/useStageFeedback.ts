@@ -33,7 +33,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         timestamp: new Date().toISOString()
       });
 
-      // Insert feedback
+      // 1. Insert feedback
       const { data: feedbackData, error: insertError } = await supabase
         .from("stage_feedback")
         .insert({
@@ -56,6 +56,42 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         feedbackId: feedbackData.id,
         timestamp: new Date().toISOString()
       });
+
+      // 2. Mark existing outputs as reprocessed
+      console.log('🔄 Marking existing outputs as reprocessed');
+      const { error: outputsError } = await supabase
+        .from("brief_outputs")
+        .update({
+          is_reprocessed: true,
+          reprocessed_at: new Date().toISOString(),
+          feedback_id: feedbackData.id
+        })
+        .eq("brief_id", briefId)
+        .eq("stage_id", stageId)
+        .is("feedback_id", null);
+
+      if (outputsError) {
+        console.error("❌ Error updating outputs:", outputsError);
+        toast.error("Feedback saved but failed to update outputs");
+      }
+
+      // 3. Mark existing conversations as reprocessing
+      console.log('🔄 Marking existing conversations as reprocessing');
+      const { error: convsError } = await supabase
+        .from("workflow_conversations")
+        .update({
+          reprocessing: true,
+          reprocessed_at: new Date().toISOString(),
+          feedback_id: feedbackData.id
+        })
+        .eq("brief_id", briefId)
+        .eq("stage_id", stageId)
+        .is("feedback_id", null);
+
+      if (convsError) {
+        console.error("❌ Error updating conversations:", convsError);
+        toast.error("Feedback saved but failed to update conversations");
+      }
 
       if (isPermanent && brand) {
         console.log("🔄 Processing permanent feedback for RAG:", {
@@ -96,6 +132,8 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
       
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["stage-feedback"] });
+      queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+      queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
       
       // Trigger reprocessing if provided
       if (onReprocess && feedbackData) {
