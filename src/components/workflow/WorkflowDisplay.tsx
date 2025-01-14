@@ -24,7 +24,7 @@ export const WorkflowDisplay = ({
 
   const handleReprocess = async () => {
     if (briefId && currentStage) {
-      await processStage(true);
+      await processStage("true"); // Changed from boolean to string
     }
   };
 

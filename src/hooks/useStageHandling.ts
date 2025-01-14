@@ -93,7 +93,7 @@ export const useStageHandling = (selectedBriefId: string | null) => {
 
     // Only process if moving to the next stage AND no outputs exist
     if (selectedIndex === currentIndex + 1 && (!existingOutputs || existingOutputs.length === 0)) {
-      await processStage(true); // Pass true to indicate reprocessing
+      await processStage("true"); // Changed from boolean to string
       
       // Invalidate queries to refresh the data
       await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
