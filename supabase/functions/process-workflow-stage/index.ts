@@ -20,7 +20,7 @@ serve(async (req) => {
     const body = await req.json();
     console.log('Request body:', body);
 
-    const { briefId, stageId, flowSteps } = body;
+    const { briefId, stageId, flowSteps, isReprocessing, feedback } = body;
     
     // Enhanced validation with detailed error messages
     if (!briefId) {
@@ -53,6 +53,8 @@ serve(async (req) => {
       briefId, 
       stageId, 
       flowStepsCount: flowSteps.length,
+      isReprocessing,
+      hasFeedback: !!feedback,
       flowSteps: flowSteps.map(step => ({
         id: step.id,
         agentId: step.agent_id,
@@ -62,7 +64,7 @@ serve(async (req) => {
     });
     
     // Process the workflow and get outputs
-    const outputs = await processAgents(briefId, stageId, flowSteps);
+    const outputs = await processAgents(briefId, stageId, flowSteps, isReprocessing, feedback);
     
     console.log('Workflow processed successfully:', {
       outputsCount: outputs?.length,

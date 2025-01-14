@@ -23,6 +23,30 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
     });
 
     try {
+      // Get feedback if reprocessing
+      let feedback = '';
+      if (isReprocessing) {
+        const { data: feedbackData } = await supabase
+          .from('stage_feedback')
+          .select('content, rating')
+          .eq('stage_id', stageId)
+          .eq('brief_id', briefId)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (feedbackData?.[0]) {
+          feedback = `Previous feedback: ${feedbackData[0].content}
+Rating: ${feedbackData[0].rating}/5
+Please address this feedback specifically in your new response.`;
+          
+          console.log('Retrieved feedback for reprocessing:', {
+            hasFeedback: !!feedback,
+            feedbackPreview: feedback.substring(0, 100),
+            rating: feedbackData[0].rating
+          });
+        }
+      }
+
       // Fetch the stage with its flow steps
       const { data: stage, error: stageError } = await supabase
         .from("stages")
@@ -67,7 +91,8 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
           briefId,
           stageId,
           flowSteps,
-          isReprocessing
+          isReprocessing,
+          feedback // Pass the feedback to the edge function
         }
       });
 
