@@ -27,8 +27,7 @@ serve(async (req) => {
       flowStepsCount: flowSteps?.length,
       hasFeedback: !!feedbackId,
       feedbackId: feedbackId || null,
-      timestamp: new Date().toISOString(),
-      headers: Object.fromEntries(req.headers.entries())
+      timestamp: new Date().toISOString()
     });
 
     // Enhanced validation with detailed error messages
@@ -43,6 +42,41 @@ serve(async (req) => {
     }
     if (flowSteps.length === 0) {
       throw new Error('flowSteps array cannot be empty');
+    }
+
+    // Log feedback retrieval attempt if feedbackId exists
+    if (feedbackId) {
+      console.log('🔍 Attempting to retrieve feedback:', {
+        feedbackId,
+        timestamp: new Date().toISOString()
+      });
+
+      // Create Supabase client
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      );
+
+      // Fetch feedback content
+      const { data: feedbackData, error: feedbackError } = await supabaseClient
+        .from('stage_feedback')
+        .select('content, is_permanent, requires_revision')
+        .eq('id', feedbackId)
+        .single();
+
+      if (feedbackError) {
+        console.error('❌ Error fetching feedback:', feedbackError);
+        throw new Error(`Failed to retrieve feedback: ${feedbackError.message}`);
+      }
+
+      if (feedbackData) {
+        console.log('✅ Retrieved feedback successfully:', {
+          feedbackId,
+          contentPreview: feedbackData.content.substring(0, 100) + '...',
+          isPermanent: feedbackData.is_permanent,
+          requiresRevision: feedbackData.requires_revision
+        });
+      }
     }
 
     // Validate each flow step has required properties
