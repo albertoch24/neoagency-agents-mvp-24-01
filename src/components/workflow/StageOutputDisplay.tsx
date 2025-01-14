@@ -15,6 +15,13 @@ export const StageOutputDisplay = ({
   showOutputs = true,
   onReprocess
 }: StageOutputDisplayProps) => {
+  console.log('🔄 StageOutputDisplay - Rendering with props:', {
+    briefId,
+    currentStage,
+    showOutputs,
+    hasOnReprocess: !!onReprocess
+  });
+
   if (!briefId) return null;
 
   return showOutputs ? (
