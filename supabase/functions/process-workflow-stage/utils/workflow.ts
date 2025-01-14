@@ -31,8 +31,29 @@ export async function processAgent(
     // Get feedback if present
     let feedback = '';
     let isReprocessing = false;
+    let originalConversationId = null;
+
     if (feedbackId) {
       console.log('🔍 Fetching feedback for processing:', { feedbackId });
+      
+      // First get the original conversation to link to
+      const { data: originalConv, error: convError } = await supabase
+        .from('workflow_conversations')
+        .select('id')
+        .eq('brief_id', brief.id)
+        .eq('stage_id', stageId)
+        .eq('agent_id', agent.id)
+        .is('feedback_id', null)
+        .single();
+
+      if (convError) {
+        console.error('❌ Error fetching original conversation:', convError);
+      } else if (originalConv) {
+        originalConversationId = originalConv.id;
+        console.log('✅ Found original conversation:', originalConversationId);
+      }
+
+      // Then get the feedback content
       const { data: feedbackData, error: feedbackError } = await supabase
         .from('stage_feedback')
         .select('content, rating')
@@ -98,10 +119,22 @@ Please address this feedback specifically in your new response.`;
         isReprocessing,
         feedback
       );
+
+      // Save the conversation
+      const conversationContent = response.outputs[0].content;
+      await saveWorkflowConversation(
+        supabase,
+        brief.id,
+        stageId,
+        agent.id,
+        conversationContent,
+        feedbackId,
+        originalConversationId
+      );
       
-      console.log('✅ Multi-agent response received:', {
-        responseLength: response.outputs[0].content.length,
-        preview: response.outputs[0].content.substring(0, 100),
+      console.log('✅ Multi-agent response received and saved:', {
+        responseLength: conversationContent.length,
+        preview: conversationContent.substring(0, 100),
         hasFeedback: !!feedback,
         isReprocessing
       });
@@ -110,7 +143,7 @@ Please address this feedback specifically in your new response.`;
         agent: agent.name,
         requirements,
         outputs: [{
-          content: response.outputs[0].content,
+          content: conversationContent,
           type: 'conversational'
         }],
         stepId: agent.id,
@@ -159,7 +192,18 @@ Please address this feedback specifically in your new response.`;
       return null;
     }
 
-    console.log('✅ Agent response received:', {
+    // Save the conversation
+    await saveWorkflowConversation(
+      supabase,
+      brief.id,
+      stageId,
+      agent.id,
+      response.conversationalResponse,
+      feedbackId,
+      originalConversationId
+    );
+
+    console.log('✅ Agent response received and saved:', {
       responseLength: response.conversationalResponse?.length,
       preview: response.conversationalResponse?.substring(0, 100),
       containsReferences: response.conversationalResponse?.includes('previous') || 
@@ -185,5 +229,56 @@ Please address this feedback specifically in your new response.`;
   } catch (error) {
     console.error('❌ Error in processAgent:', error);
     return null;
+  }
+}
+
+async function saveWorkflowConversation(
+  supabase: any,
+  briefId: string,
+  stageId: string,
+  agentId: string,
+  content: string,
+  feedbackId: string | null = null,
+  originalConversationId: string | null = null
+) {
+  try {
+    console.log('🔄 Saving workflow conversation:', {
+      briefId,
+      stageId,
+      agentId,
+      contentLength: content.length,
+      hasFeedback: !!feedbackId,
+      hasOriginalConversation: !!originalConversationId
+    });
+
+    const { data, error } = await supabase
+      .from('workflow_conversations')
+      .insert({
+        brief_id: briefId,
+        stage_id: stageId,
+        agent_id: agentId,
+        content,
+        output_type: 'conversational',
+        feedback_id: feedbackId,
+        original_conversation_id: originalConversationId,
+        reprocessing: !!feedbackId
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Error saving workflow conversation:', error);
+      throw error;
+    }
+
+    console.log('✅ Workflow conversation saved successfully:', {
+      conversationId: data.id,
+      timestamp: new Date().toISOString()
+    });
+
+    return data;
+  } catch (error) {
+    console.error('❌ Error in saveWorkflowConversation:', error);
+    throw error;
   }
 }
