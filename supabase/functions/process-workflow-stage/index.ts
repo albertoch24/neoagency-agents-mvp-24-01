@@ -1,10 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import { processAgents } from "./utils/agentProcessing.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
@@ -27,7 +27,8 @@ serve(async (req) => {
       flowStepsCount: flowSteps?.length,
       hasFeedback: !!feedbackId,
       feedbackId: feedbackId || null,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      headers: Object.fromEntries(req.headers.entries())
     });
 
     // Enhanced validation with detailed error messages
@@ -44,6 +45,19 @@ serve(async (req) => {
       throw new Error('flowSteps array cannot be empty');
     }
 
+    // Validate each flow step has required properties
+    flowSteps.forEach((step, index) => {
+      if (!step) {
+        throw new Error(`Flow step at index ${index} is undefined`);
+      }
+      if (!step.agent_id) {
+        throw new Error(`Flow step at index ${index} is missing agent_id`);
+      }
+      if (typeof step.order_index !== 'number') {
+        throw new Error(`Flow step at index ${index} is missing order_index`);
+      }
+    });
+    
     // Process the workflow and get outputs
     const outputs = await processAgents(
       briefId, 
