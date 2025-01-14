@@ -8,7 +8,7 @@ interface UseStageFeedbackProps {
   briefId: string;
   stageId: string;
   brand?: string;
-  onReprocess?: () => Promise<void>;
+  onReprocess?: (feedbackId: string) => Promise<void>;
 }
 
 export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseStageFeedbackProps) => {
@@ -33,14 +33,8 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         timestamp: new Date().toISOString()
       });
 
-      console.log('📝 Inserting feedback:', {
-        briefId,
-        stageId,
-        isPermanent,
-        timestamp: new Date().toISOString()
-      });
-
-      const { error: insertError } = await supabase
+      // Insert feedback
+      const { data: feedbackData, error: insertError } = await supabase
         .from("stage_feedback")
         .insert({
           brief_id: briefId,
@@ -49,7 +43,9 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
           requires_revision: true,
           is_permanent: isPermanent,
           processed_for_rag: false
-        });
+        })
+        .select()
+        .single();
 
       if (insertError) {
         console.error("❌ Error inserting feedback:", insertError);
@@ -76,8 +72,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
           const { error: updateError } = await supabase
             .from("stage_feedback")
             .update({ processed_for_rag: true })
-            .eq("brief_id", briefId)
-            .eq("stage_id", stageId);
+            .eq("id", feedbackData.id);
 
           if (updateError) {
             console.error("❌ Error updating RAG processing status:", updateError);
@@ -100,9 +95,9 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
       queryClient.invalidateQueries({ queryKey: ["stage-feedback"] });
       
       // Trigger reprocessing if provided
-      if (onReprocess) {
+      if (onReprocess && feedbackData) {
         console.log('🔄 Triggering stage reprocessing');
-        await onReprocess();
+        await onReprocess(feedbackData.id);
         console.log('✅ Stage reprocessing completed');
       }
     } catch (error) {

@@ -18,16 +18,14 @@ serve(async (req) => {
     
     // Parse and validate request body
     const body = await req.json();
-    const { briefId, stageId, flowSteps, isReprocessing, feedback, queryParams } = body;
+    const { briefId, stageId, flowSteps, feedbackId } = body;
     
     // Log the complete request details
     console.log('Request details:', {
       briefId,
       stageId,
       flowStepsCount: flowSteps?.length,
-      isReprocessing,
-      hasFeedback: !!feedback,
-      queryParams
+      hasFeedback: !!feedbackId
     });
 
     // Enhanced validation with detailed error messages
@@ -44,17 +42,6 @@ serve(async (req) => {
       throw new Error('flowSteps array cannot be empty');
     }
 
-    // Validate query parameters
-    const finalIsReprocessing = isReprocessing || (queryParams?.isReprocessing === true);
-    const hasFeedback = !!feedback || (queryParams?.hasFeedback === true);
-    
-    console.log('Validated processing flags:', {
-      finalIsReprocessing,
-      hasFeedback,
-      originalIsReprocessing: isReprocessing,
-      queryParamsReprocessing: queryParams?.isReprocessing
-    });
-    
     // Validate each flow step has required properties
     flowSteps.forEach((step, index) => {
       if (!step) {
@@ -69,13 +56,12 @@ serve(async (req) => {
     });
     
     // Process the workflow and get outputs
-    const outputs = await processAgents(briefId, stageId, flowSteps, finalIsReprocessing, feedback);
+    const outputs = await processAgents(briefId, stageId, flowSteps, feedbackId);
     
     console.log('Workflow processed successfully:', {
       outputsCount: outputs?.length,
       firstOutput: outputs?.[0],
-      isReprocessing: finalIsReprocessing,
-      hasFeedback
+      hasFeedback: !!feedbackId
     });
     
     // Return success response with outputs and CORS headers
@@ -85,8 +71,7 @@ serve(async (req) => {
         success: true,
         outputs,
         meta: {
-          isReprocessing: finalIsReprocessing,
-          hasFeedback
+          hasFeedback: !!feedbackId
         }
       }),
       { 
