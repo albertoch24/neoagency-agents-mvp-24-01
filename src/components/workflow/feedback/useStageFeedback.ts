@@ -38,11 +38,32 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
       let actualStageId = stageId;
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(stageId)) {
         console.log('Fetching actual stage ID for:', stageId);
-        const { data: stageData, error: stageError } = await supabase
+        
+        // Try exact match first
+        let { data: stageData, error: stageError } = await supabase
           .from('stages')
           .select('id')
           .eq('name', stageId)
-          .single();
+          .maybeSingle();
+
+        // If no exact match, try with capitalized first letters
+        if (!stageData) {
+          const capitalizedName = stageId
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+            
+          console.log('Trying with capitalized name:', capitalizedName);
+          
+          const result = await supabase
+            .from('stages')
+            .select('id')
+            .eq('name', capitalizedName)
+            .maybeSingle();
+            
+          stageData = result.data;
+          stageError = result.error;
+        }
 
         if (stageError) {
           console.error("❌ Error fetching stage:", stageError);
@@ -50,7 +71,8 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         }
 
         if (!stageData) {
-          throw new Error(`Stage not found: ${stageId}`);
+          console.error("❌ Stage not found:", stageId);
+          throw new Error(`Stage not found: ${stageId}. Please check the stage name.`);
         }
 
         actualStageId = stageData.id;
