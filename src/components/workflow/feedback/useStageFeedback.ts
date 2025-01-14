@@ -8,13 +8,14 @@ interface UseStageFeedbackProps {
   briefId: string;
   stageId: string;
   brand?: string;
-  onReprocess?: (feedbackId: string) => Promise<void>;
+  onReprocess?: () => Promise<void>;
 }
 
 export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseStageFeedbackProps) => {
   const [feedback, setFeedback] = useState("");
   const [isPermanent, setIsPermanent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedbackId, setFeedbackId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const handleSubmit = async () => {
@@ -52,9 +53,11 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         throw new Error("Failed to save feedback");
       }
 
-      const feedbackId = feedbackData.id;
+      const newFeedbackId = feedbackData.id;
+      setFeedbackId(newFeedbackId);
+      
       console.log('✅ Feedback inserted successfully:', {
-        feedbackId,
+        feedbackId: newFeedbackId,
         timestamp: new Date().toISOString()
       });
 
@@ -65,7 +68,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         .update({
           is_reprocessed: true,
           reprocessed_at: new Date().toISOString(),
-          feedback_id: feedbackId
+          feedback_id: newFeedbackId
         })
         .eq("brief_id", briefId)
         .eq("stage_id", stageId)
@@ -83,7 +86,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         .update({
           reprocessing: true,
           reprocessed_at: new Date().toISOString(),
-          feedback_id: feedbackId
+          feedback_id: newFeedbackId
         })
         .eq("brief_id", briefId)
         .eq("stage_id", stageId)
@@ -112,7 +115,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
           const { error: updateError } = await supabase
             .from("stage_feedback")
             .update({ processed_for_rag: true })
-            .eq("id", feedbackId);
+            .eq("id", newFeedbackId);
 
           if (updateError) {
             console.error("❌ Error updating RAG processing status:", updateError);
@@ -139,10 +142,10 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
       // Trigger reprocessing if provided
       if (onReprocess) {
         console.log('🔄 Triggering stage reprocessing with feedback:', {
-          feedbackId,
+          feedbackId: newFeedbackId,
           timestamp: new Date().toISOString()
         });
-        await onReprocess(feedbackId);
+        await onReprocess();
         console.log('✅ Stage reprocessing completed');
       }
     } catch (error) {
@@ -159,6 +162,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
     isPermanent,
     setIsPermanent,
     isSubmitting,
-    handleSubmit
+    handleSubmit,
+    feedbackId
   };
 };
