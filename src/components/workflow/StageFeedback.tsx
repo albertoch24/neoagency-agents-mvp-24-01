@@ -5,7 +5,7 @@ import { useStageFeedback } from "./feedback/useStageFeedback";
 interface StageFeedbackProps {
   briefId: string;
   stageId: string;
-  onReprocess?: () => void;
+  onReprocess?: () => Promise<void>;
 }
 
 export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackProps) => {
@@ -16,7 +16,11 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
     setIsPermanent,
     isSubmitting,
     handleSubmit
-  } = useStageFeedback({ briefId, stageId });
+  } = useStageFeedback({ 
+    briefId, 
+    stageId,
+    onReprocess 
+  });
 
   return (
     <Card className="mt-4">
@@ -31,7 +35,6 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
           onFeedbackChange={setFeedback}
           onPermanentChange={setIsPermanent}
           onSubmit={handleSubmit}
-          onReprocess={onReprocess}
         />
       </CardContent>
     </Card>

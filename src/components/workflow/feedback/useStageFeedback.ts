@@ -8,9 +8,10 @@ interface UseStageFeedbackProps {
   briefId: string;
   stageId: string;
   brand?: string;
+  onReprocess?: () => Promise<void>;
 }
 
-export const useStageFeedback = ({ briefId, stageId, brand }: UseStageFeedbackProps) => {
+export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseStageFeedbackProps) => {
   const [feedback, setFeedback] = useState("");
   const [isPermanent, setIsPermanent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,9 +91,20 @@ export const useStageFeedback = ({ briefId, stageId, brand }: UseStageFeedbackPr
 
       console.log('✅ Feedback submission completed successfully');
       toast.success("Feedback submitted successfully");
+      
+      // Clear the form
       setFeedback("");
       setIsPermanent(false);
+      
+      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["stage-feedback"] });
+      
+      // Trigger reprocessing if provided
+      if (onReprocess) {
+        console.log('🔄 Triggering stage reprocessing');
+        await onReprocess();
+        console.log('✅ Stage reprocessing completed');
+      }
     } catch (error) {
       console.error("❌ Error in handleSubmit:", error);
       toast.error(error instanceof Error ? error.message : "Failed to submit feedback");

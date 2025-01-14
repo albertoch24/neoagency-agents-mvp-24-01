@@ -1,8 +1,7 @@
-import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 interface FeedbackFormProps {
   feedback: string;
@@ -11,7 +10,6 @@ interface FeedbackFormProps {
   onFeedbackChange: (value: string) => void;
   onPermanentChange: (checked: boolean) => void;
   onSubmit: () => void;
-  onReprocess?: () => void;
 }
 
 export const FeedbackForm = ({
@@ -21,7 +19,6 @@ export const FeedbackForm = ({
   onFeedbackChange,
   onPermanentChange,
   onSubmit,
-  onReprocess,
 }: FeedbackFormProps) => {
   return (
     <div className="space-y-4">
@@ -31,16 +28,6 @@ export const FeedbackForm = ({
         onChange={(e) => onFeedbackChange(e.target.value)}
         className="min-h-[100px]"
       />
-      {onReprocess && (
-        <Button 
-          variant="outline" 
-          onClick={onReprocess}
-          className="gap-2 w-full"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Reprocess Stage
-        </Button>
-      )}
       <div className="flex items-center space-x-2">
         <Checkbox
           id="permanent"
@@ -62,10 +49,10 @@ export const FeedbackForm = ({
         {isSubmitting ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Submitting...
+            Submitting and Reprocessing...
           </>
         ) : (
-          "Submit Feedback"
+          "Submit Feedback & Reprocess"
         )}
       </Button>
     </div>
