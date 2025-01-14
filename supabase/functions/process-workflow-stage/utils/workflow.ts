@@ -30,6 +30,7 @@ export async function processAgent(
 
     // Get feedback if present
     let feedback = '';
+    let isReprocessing = false;
     if (feedbackId) {
       console.log('🔍 Fetching feedback for processing:', { feedbackId });
       const { data: feedbackData, error: feedbackError } = await supabase
@@ -46,12 +47,16 @@ export async function processAgent(
         feedback = `Previous feedback: ${feedbackData.content}
 Rating: ${feedbackData.rating || 'Not rated'}/5
 Please address this feedback specifically in your new response.`;
+        isReprocessing = true;
         
         console.log('✅ Retrieved feedback for processing:', {
           hasFeedback: !!feedback,
           feedbackPreview: feedback.substring(0, 100),
-          rating: feedbackData.rating
+          rating: feedbackData.rating,
+          isReprocessing
         });
+      } else {
+        console.error('❌ No feedback data found for ID:', feedbackId);
       }
     }
 
@@ -79,7 +84,9 @@ Please address this feedback specifically in your new response.`;
       console.log('🔄 Creating multi-agent chain for stage:', {
         stageId,
         agentCount: stageAgents.length,
-        agents: stageAgents.map(a => a.name)
+        agents: stageAgents.map(a => a.name),
+        isReprocessing,
+        hasFeedback: !!feedback
       });
 
       const executor = await createAgentChain(stageAgents, brief);
@@ -88,14 +95,15 @@ Please address this feedback specifically in your new response.`;
         brief, 
         requirements, 
         previousOutputs,
-        !!feedbackId,
+        isReprocessing,
         feedback
       );
       
       console.log('✅ Multi-agent response received:', {
         responseLength: response.outputs[0].content.length,
         preview: response.outputs[0].content.substring(0, 100),
-        hasFeedback: !!feedback
+        hasFeedback: !!feedback,
+        isReprocessing
       });
 
       return {
@@ -117,7 +125,8 @@ Please address this feedback specifically in your new response.`;
       isFirstStage,
       previousOutputsCount: previousOutputs.length,
       hasFeedback: !!feedback,
-      isReprocessing: !!feedbackId
+      isReprocessing,
+      feedbackPreview: feedback ? feedback.substring(0, 100) : 'none'
     });
 
     const { conversationalPrompt } = await buildPrompt(
@@ -126,7 +135,7 @@ Please address this feedback specifically in your new response.`;
       previousOutputs,
       requirements,
       isFirstStage,
-      !!feedbackId,
+      isReprocessing,
       feedback
     );
 
@@ -136,7 +145,8 @@ Please address this feedback specifically in your new response.`;
       containsPreviousOutputs: conversationalPrompt.includes('Previous Stage Outputs'),
       containsRequirements: conversationalPrompt.includes(requirements || ''),
       hasFeedback: !!feedback,
-      isReprocessing: !!feedbackId
+      isReprocessing,
+      feedbackIncluded: conversationalPrompt.includes(feedback)
     });
 
     const response = await generateAgentResponse(conversationalPrompt);
@@ -156,7 +166,8 @@ Please address this feedback specifically in your new response.`;
                          response.conversationalResponse?.includes('earlier') ||
                          response.conversationalResponse?.includes('before'),
       hasFeedback: !!feedback,
-      isReprocessing: !!feedbackId
+      isReprocessing,
+      feedbackAddressed: response.conversationalResponse?.includes('feedback')
     });
 
     return {
