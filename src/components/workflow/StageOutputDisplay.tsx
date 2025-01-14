@@ -6,7 +6,7 @@ interface StageOutputDisplayProps {
   briefId?: string;
   currentStage: string;
   showOutputs?: boolean;
-  onReprocess: () => Promise<void>;
+  onReprocess: (feedbackId: string) => Promise<void>;
 }
 
 export const StageOutputDisplay = ({

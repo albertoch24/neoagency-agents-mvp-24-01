@@ -5,7 +5,7 @@ import { useStageFeedback } from "./feedback/useStageFeedback";
 interface StageFeedbackProps {
   briefId: string;
   stageId: string;
-  onReprocess?: () => Promise<void>;
+  onReprocess?: (feedbackId: string) => Promise<void>;
 }
 
 export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackProps) => {
@@ -20,10 +20,14 @@ export const StageFeedback = ({ briefId, stageId, onReprocess }: StageFeedbackPr
   } = useStageFeedback({ 
     briefId, 
     stageId,
-    onReprocess: async () => {
-      console.log('Triggering reprocessing with feedback:', { feedbackId });
+    onReprocess: async (newFeedbackId: string) => {
+      console.log('🔄 Triggering reprocessing with feedback:', { 
+        feedbackId: newFeedbackId,
+        briefId,
+        stageId 
+      });
       if (onReprocess) {
-        await onReprocess();
+        await onReprocess(newFeedbackId);
       }
     }
   });
