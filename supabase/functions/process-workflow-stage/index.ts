@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { processAgents } from "./utils/agentProcessing.ts";
+import { WorkflowStageProcessor } from "./utils/WorkflowStageProcessor.ts";
+import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,73 +17,65 @@ serve(async (req) => {
   try {
     console.log('🚀 Processing workflow stage request');
     
-    // Parse and validate request body
-    const body = await req.json();
-    const { briefId, stageId, flowSteps, feedbackId } = body;
+    const { briefId, stageId, flowSteps } = await req.json();
     
-    // Log the complete request details
-    console.log('📝 Request details:', {
-      briefId,
-      stageId,
-      flowStepsCount: flowSteps?.length,
-      hasFeedback: !!feedbackId,
-      feedbackId: feedbackId || null,
-      timestamp: new Date().toISOString()
-    });
-
-    // Enhanced validation with detailed error messages
-    if (!briefId) {
-      throw new Error('Missing required parameter: briefId');
-    }
-    if (!stageId) {
-      throw new Error('Missing required parameter: stageId');
-    }
-    if (!Array.isArray(flowSteps)) {
-      throw new Error('flowSteps must be an array');
-    }
-    if (flowSteps.length === 0) {
-      throw new Error('flowSteps array cannot be empty');
+    // Validate required parameters
+    if (!briefId || !stageId || !Array.isArray(flowSteps)) {
+      throw new Error('Missing required parameters');
     }
 
-    // Validate each flow step has required properties
-    flowSteps.forEach((step, index) => {
-      if (!step) {
-        throw new Error(`Flow step at index ${index} is undefined`);
-      }
-      if (!step.agent_id) {
-        throw new Error(`Flow step at index ${index} is missing agent_id`);
-      }
-      if (typeof step.order_index !== 'number') {
-        throw new Error(`Flow step at index ${index} is missing order_index`);
-      }
-    });
-    
-    // Process the workflow and get outputs
-    const outputs = await processAgents(
-      briefId, 
-      stageId, 
-      flowSteps, 
-      typeof feedbackId === 'string' ? feedbackId : null
-    );
-    
-    console.log('✅ Workflow processed successfully:', {
-      outputsCount: outputs?.length,
-      firstOutput: outputs?.[0],
-      hasFeedback: !!feedbackId,
-      feedbackId: feedbackId || null
-    });
-    
-    // Return success response with outputs and CORS headers
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Fetch required data
+    const { data: brief, error: briefError } = await supabase
+      .from('briefs')
+      .select('*')
+      .eq('id', briefId)
+      .single();
+
+    if (briefError || !brief) {
+      throw new Error('Failed to fetch brief data');
+    }
+
+    const { data: stage, error: stageError } = await supabase
+      .from('stages')
+      .select('*')
+      .eq('id', stageId)
+      .single();
+
+    if (stageError || !stage) {
+      throw new Error('Failed to fetch stage data');
+    }
+
+    // Process the stage using our new processor
+    const processor = new WorkflowStageProcessor();
+    const result = await processor.processStage(stage, brief);
+
+    if (result.error) {
+      throw new Error(result.message);
+    }
+
+    // Save the results
+    const { error: saveError } = await supabase
+      .from('workflow_conversations')
+      .insert({
+        brief_id: briefId,
+        stage_id: stageId,
+        content: result.result,
+        output_type: 'conversational',
+      });
+
+    if (saveError) {
+      throw saveError;
+    }
+
     return new Response(
-      JSON.stringify({ 
-        message: 'Stage processed successfully',
+      JSON.stringify({
         success: true,
-        outputs,
-        meta: {
-          hasFeedback: !!feedbackId,
-          feedbackId: feedbackId || null,
-          timestamp: new Date().toISOString()
-        }
+        result: result.result,
       }),
       { 
         headers: { 
@@ -93,19 +86,12 @@ serve(async (req) => {
     );
     
   } catch (error) {
-    console.error('❌ Error processing workflow stage:', {
-      error,
-      message: error.message,
-      stack: error.stack,
-      timestamp: new Date().toISOString()
-    });
+    console.error('❌ Error processing workflow stage:', error);
     
-    // Return error response with CORS headers
     return new Response(
       JSON.stringify({ 
         error: error.message || 'An unexpected error occurred',
         details: error.toString(),
-        timestamp: new Date().toISOString()
       }),
       { 
         status: 500,
