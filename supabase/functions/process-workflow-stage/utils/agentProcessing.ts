@@ -2,12 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { processAgent } from "./workflow.ts";
 import { saveBriefOutput } from "./database.ts";
 
-export async function processAgents(
-  briefId: string, 
-  stageId: string, 
-  flowSteps: any[] = [], 
-  feedbackContext: any = null
-) {
+export async function processAgents(briefId: string, stageId: string, flowSteps: any[] = []) {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -18,13 +13,7 @@ export async function processAgents(
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    console.log('Starting processAgents with:', { 
-      briefId, 
-      stageId, 
-      flowStepsCount: flowSteps?.length,
-      hasFeedback: !!feedbackContext,
-      feedbackId: feedbackContext?.feedbackId || null
-    });
+    console.log('Starting processAgents with:', { briefId, stageId, flowStepsCount: flowSteps?.length });
 
     if (!briefId || !stageId || !Array.isArray(flowSteps)) {
       throw new Error('Invalid input parameters');
@@ -62,8 +51,7 @@ export async function processAgents(
 
     console.log('Processing stage:', {
       stageName: stage.name,
-      flowStepsCount: flowSteps.length,
-      hasFeedback: !!feedbackContext
+      flowStepsCount: flowSteps.length
     });
 
     // Sort flow steps by order_index
@@ -117,8 +105,7 @@ export async function processAgents(
         console.log('Successfully retrieved agent data:', {
           agentId: agent.id,
           agentName: agent.name,
-          skillsCount: agent.skills?.length || 0,
-          hasFeedback: !!feedbackContext
+          skillsCount: agent.skills?.length || 0
         });
 
         const result = await processAgent(
@@ -127,8 +114,7 @@ export async function processAgents(
           brief,
           stageId,
           step.requirements,
-          outputs,
-          feedbackContext
+          outputs
         );
 
         if (result) {
@@ -167,8 +153,7 @@ export async function processAgents(
       briefId,
       stageId,
       stageName: stage.name,
-      outputsCount: outputs.length,
-      hasFeedback: !!feedbackContext
+      outputsCount: outputs.length
     });
 
     await saveBriefOutput(

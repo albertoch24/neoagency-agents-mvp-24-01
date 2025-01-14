@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { processAgents } from "./utils/agentProcessing.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,8 +44,6 @@ serve(async (req) => {
       throw new Error('flowSteps array cannot be empty');
     }
 
-    let feedbackContext = null;
-
     // Log feedback retrieval attempt if feedbackId exists
     if (feedbackId) {
       console.log('🔍 Attempting to retrieve feedback:', {
@@ -79,13 +76,6 @@ serve(async (req) => {
           isPermanent: feedbackData.is_permanent,
           requiresRevision: feedbackData.requires_revision
         });
-
-        feedbackContext = {
-          feedbackId,
-          feedbackContent: feedbackData.content,
-          isPermanent: feedbackData.is_permanent,
-          requiresRevision: feedbackData.requires_revision
-        };
       }
     }
 
@@ -107,7 +97,7 @@ serve(async (req) => {
       briefId, 
       stageId, 
       flowSteps, 
-      feedbackContext
+      typeof feedbackId === 'string' ? feedbackId : null
     );
     
     console.log('✅ Workflow processed successfully:', {
