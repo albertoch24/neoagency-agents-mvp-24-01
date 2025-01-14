@@ -18,7 +18,12 @@ serve(async (req) => {
     
     // Parse and validate request body
     const body = await req.json();
-    console.log('Request body:', body);
+    console.log('Request body:', {
+      ...body,
+      flowStepsCount: body.flowSteps?.length,
+      hasFeedback: !!body.feedback,
+      isReprocessing: !!body.isReprocessing
+    });
 
     const { briefId, stageId, flowSteps, isReprocessing, feedback } = body;
     
