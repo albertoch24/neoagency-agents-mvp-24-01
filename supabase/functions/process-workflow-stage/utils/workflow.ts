@@ -1,8 +1,8 @@
-import { generateAgentResponse } from './openai.ts';
-import { buildPrompt } from './promptBuilder.ts';
-import { processFeedback } from './feedbackProcessor.ts';
-import { validateFeedbackIncorporation } from './validators.ts';
-import { parseFeedback, validateFeedbackPoints } from './feedbackParser.ts';
+import { generateAgentResponse } from './openai';
+import { buildPrompt } from './promptBuilder';
+import { processFeedback } from './feedbackProcessor';
+import { validateFeedbackIncorporation } from './validators';
+import { parseFeedback, validateFeedbackPoints } from './feedbackParser';
 
 export async function processAgent(
   supabase: any,
@@ -82,34 +82,16 @@ export async function processAgent(
       timestamp: new Date().toISOString()
     });
 
-    // Generate new response with retries
-    let retryCount = 0;
-    const maxRetries = 3;
-    let response = null;
-
-    while (retryCount < maxRetries) {
-      try {
-        response = await generateAgentResponse(conversationalPrompt, systemPrompt);
-        if (response?.conversationalResponse) {
-          break;
-        }
-        retryCount++;
-        console.log(`Retry attempt ${retryCount} for agent response`);
-      } catch (retryError) {
-        console.error(`Error on retry ${retryCount}:`, retryError);
-        if (retryCount === maxRetries - 1) throw retryError;
-        retryCount++;
-      }
-    }
-
-    if (!response || !response.conversationalResponse) {
-      console.error('❌ No response generated from agent:', {
+    // Generate response
+    const response = await generateAgentResponse(conversationalPrompt, systemPrompt);
+    
+    if (!response?.conversationalResponse) {
+      console.log('No response generated from agent:', {
         agentId: agent.id,
         agentName: agent.name,
-        retryCount,
         timestamp: new Date().toISOString()
       });
-      throw new Error('No response generated from agent after retries');
+      return null;
     }
 
     console.log('✅ Generated response:', {
