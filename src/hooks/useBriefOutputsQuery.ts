@@ -13,6 +13,15 @@ export const useBriefOutputsQuery = (briefId: string, currentStage: string) => {
         timestamp: new Date().toISOString()
       });
 
+      // First check if we have a valid session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error("Authentication error:", sessionError);
+        toast.error("Authentication error. Please try logging in again.");
+        throw new Error("Authentication required");
+      }
+
       try {
         const { data, error } = await supabase
           .from("brief_outputs")
