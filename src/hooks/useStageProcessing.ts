@@ -3,10 +3,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Stage } from "@/types/workflow";
+import { useSearchParams } from "react-router-dom";
 
 export const useStageProcessing = (briefId?: string, stageId?: string) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const processStage = async (isReprocessing: boolean = false) => {
     if (!briefId || !stageId) {
@@ -86,6 +88,13 @@ Please address this feedback specifically in your new response.`;
             feedbackPreview: feedback.substring(0, 100),
             rating: feedbackData[0].rating
           });
+
+          // Update URL params to indicate reprocessing with feedback
+          setSearchParams(prev => {
+            prev.set('isReprocessing', 'true');
+            prev.set('hasFeedback', 'true');
+            return prev;
+          });
         }
       }
 
@@ -96,7 +105,11 @@ Please address this feedback specifically in your new response.`;
           stageId,
           flowSteps,
           isReprocessing,
-          feedback
+          feedback,
+          queryParams: {
+            isReprocessing: searchParams.get('isReprocessing') === 'true',
+            hasFeedback: searchParams.get('hasFeedback') === 'true'
+          }
         }
       });
 
@@ -123,6 +136,12 @@ Please address this feedback specifically in your new response.`;
       );
     } finally {
       setIsProcessing(false);
+      // Clear reprocessing params after completion
+      setSearchParams(prev => {
+        prev.delete('isReprocessing');
+        prev.delete('hasFeedback');
+        return prev;
+      });
     }
   };
 

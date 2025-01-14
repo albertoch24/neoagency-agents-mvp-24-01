@@ -18,15 +18,18 @@ serve(async (req) => {
     
     // Parse and validate request body
     const body = await req.json();
-    console.log('Request body:', {
-      ...body,
-      flowStepsCount: body.flowSteps?.length,
-      hasFeedback: !!body.feedback,
-      isReprocessing: !!body.isReprocessing
+    const { briefId, stageId, flowSteps, isReprocessing, feedback, queryParams } = body;
+    
+    // Log the complete request details
+    console.log('Request details:', {
+      briefId,
+      stageId,
+      flowStepsCount: flowSteps?.length,
+      isReprocessing,
+      hasFeedback: !!feedback,
+      queryParams
     });
 
-    const { briefId, stageId, flowSteps, isReprocessing, feedback } = body;
-    
     // Enhanced validation with detailed error messages
     if (!briefId) {
       throw new Error('Missing required parameter: briefId');
@@ -40,6 +43,17 @@ serve(async (req) => {
     if (flowSteps.length === 0) {
       throw new Error('flowSteps array cannot be empty');
     }
+
+    // Validate query parameters
+    const finalIsReprocessing = isReprocessing || (queryParams?.isReprocessing === true);
+    const hasFeedback = !!feedback || (queryParams?.hasFeedback === true);
+    
+    console.log('Validated processing flags:', {
+      finalIsReprocessing,
+      hasFeedback,
+      originalIsReprocessing: isReprocessing,
+      queryParamsReprocessing: queryParams?.isReprocessing
+    });
     
     // Validate each flow step has required properties
     flowSteps.forEach((step, index) => {
@@ -54,26 +68,14 @@ serve(async (req) => {
       }
     });
     
-    console.log('Processing workflow for:', { 
-      briefId, 
-      stageId, 
-      flowStepsCount: flowSteps.length,
-      isReprocessing,
-      hasFeedback: !!feedback,
-      flowSteps: flowSteps.map(step => ({
-        id: step.id,
-        agentId: step.agent_id,
-        orderIndex: step.order_index,
-        requirements: step.requirements
-      }))
-    });
-    
     // Process the workflow and get outputs
-    const outputs = await processAgents(briefId, stageId, flowSteps, isReprocessing, feedback);
+    const outputs = await processAgents(briefId, stageId, flowSteps, finalIsReprocessing, feedback);
     
     console.log('Workflow processed successfully:', {
       outputsCount: outputs?.length,
-      firstOutput: outputs?.[0]
+      firstOutput: outputs?.[0],
+      isReprocessing: finalIsReprocessing,
+      hasFeedback
     });
     
     // Return success response with outputs and CORS headers
@@ -81,7 +83,11 @@ serve(async (req) => {
       JSON.stringify({ 
         message: 'Stage processed successfully',
         success: true,
-        outputs 
+        outputs,
+        meta: {
+          isReprocessing: finalIsReprocessing,
+          hasFeedback
+        }
       }),
       { 
         headers: { 
