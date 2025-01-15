@@ -3,15 +3,22 @@ import { processFeedbackWithLangChain } from "./utils/feedbackProcessor.ts";
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Origin': 'https://ccacac1a-1fad-41e2-8926-5a348f46ea42.lovableproject.com',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Max-Age': '86400',
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    console.log('🔄 Handling OPTIONS request');
+    return new Response(null, { 
+      headers: {
+        ...corsHeaders,
+        'Vary': 'Origin' // Important for caching with specific origins
+      }
+    });
   }
 
   try {
@@ -70,6 +77,7 @@ serve(async (req) => {
     // Process feedback with the original output context
     const result = await processFeedbackWithLangChain(briefId, stageId, feedbackId, originalOutput);
 
+    // Return success response with CORS headers
     return new Response(
       JSON.stringify({
         success: true,
@@ -78,7 +86,8 @@ serve(async (req) => {
       { 
         headers: { 
           ...corsHeaders,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Vary': 'Origin'
         } 
       }
     );
@@ -90,6 +99,7 @@ serve(async (req) => {
       stack: error.stack
     });
     
+    // Return error response with CORS headers
     return new Response(
       JSON.stringify({ 
         error: error.message || 'An unexpected error occurred',
@@ -99,7 +109,8 @@ serve(async (req) => {
         status: 500,
         headers: { 
           ...corsHeaders,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Vary': 'Origin'
         }
       }
     );
