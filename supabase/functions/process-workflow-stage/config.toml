@@ -1,1 +1,6 @@
 project_id = "szufbafdhfwqclyixdpd"
+[build]
+command = ""
+
+[deploy]
+allowed_imports = ["https://deno.land/std@0.168.0/http/server.ts", "https://esm.sh/@langchain/openai@0.0.14", "https://esm.sh/@langchain/core/prompts@0.0.8"]

@@ -41,11 +41,25 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Get the original output first
+    const { data: originalOutput, error: outputError } = await supabase
+      .from('brief_outputs')
+      .select('*')
+      .eq('brief_id', briefId)
+      .eq('stage_id', stageId)
+      .eq('is_reprocessed', false)
+      .maybeSingle();
+
+    if (outputError) {
+      console.error('❌ Error fetching original output:', outputError);
+      throw new Error('Failed to fetch original output');
+    }
+
     let result;
     if (feedbackId) {
       console.log('🔄 Processing feedback:', { feedbackId });
       const feedbackProcessor = new FeedbackProcessor(supabase);
-      result = await feedbackProcessor.processFeedback(briefId, stageId, feedbackId);
+      result = await feedbackProcessor.processFeedback(briefId, stageId, feedbackId, originalOutput);
       console.log('✅ Feedback processed:', result);
     }
 
