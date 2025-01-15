@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { processDocument } from "@/utils/rag/documentProcessor";
 import { useQueryClient } from "@tanstack/react-query";
+import { validateHeaders } from "@/utils/headers/validateHeaders";
+import { resolveStageId } from "@/services/stage/resolveStageId";
+import { submitFeedback } from "@/services/feedback/submitFeedback";
+import { processRAG } from "@/services/feedback/processRAG";
 
 interface UseStageFeedbackProps {
   briefId: string;
@@ -10,32 +13,6 @@ interface UseStageFeedbackProps {
   brand?: string;
   onReprocess?: (feedbackId: string) => Promise<void>;
 }
-
-const validateHeaders = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  const headers = {
-    authorization: session?.access_token,
-    apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    clientInfo: window.navigator.userAgent
-  };
-
-  console.log('🔍 Validating request headers:', {
-    hasAuthorization: !!headers.authorization,
-    hasApiKey: !!headers.apikey,
-    clientInfo: headers.clientInfo,
-    timestamp: new Date().toISOString()
-  });
-
-  if (!headers.authorization) {
-    throw new Error("Missing authorization header - user not authenticated");
-  }
-
-  if (!headers.apikey) {
-    throw new Error("Missing API key - check Supabase configuration");
-  }
-
-  return headers;
-};
 
 export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseStageFeedbackProps) => {
   const [feedback, setFeedback] = useState("");
@@ -52,102 +29,24 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
 
     setIsSubmitting(true);
     try {
-      // Validate headers before proceeding
+      // Validate headers
       const headers = await validateHeaders();
       
-      console.log('🚀 Starting feedback submission:', {
+      // Resolve stage ID
+      const actualStageId = await resolveStageId(stageId);
+
+      // Submit feedback
+      const newFeedbackId = await submitFeedback({
         briefId,
-        stageId,
-        feedbackLength: feedback.length,
+        stageId: actualStageId,
+        feedback,
         isPermanent,
-        headers: {
-          hasAuthorization: !!headers.authorization,
-          hasApiKey: !!headers.apikey,
-          clientInfo: headers.clientInfo
-        },
-        timestamp: new Date().toISOString()
+        headers
       });
 
-      // First, if stageId is not a UUID, fetch the actual stage UUID
-      let actualStageId = stageId;
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(stageId)) {
-        console.log('Fetching actual stage ID for:', stageId);
-        
-        // Try exact match first
-        let { data: stageData, error: stageError } = await supabase
-          .from('stages')
-          .select('id')
-          .eq('name', stageId)
-          .maybeSingle();
-
-        // If no exact match, try with capitalized first letters
-        if (!stageData) {
-          const capitalizedName = stageId
-            .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join(' ');
-            
-          console.log('Trying with capitalized name:', capitalizedName);
-          
-          const result = await supabase
-            .from('stages')
-            .select('id')
-            .eq('name', capitalizedName)
-            .maybeSingle();
-            
-          stageData = result.data;
-          stageError = result.error;
-        }
-
-        if (stageError) {
-          console.error("❌ Error fetching stage:", stageError);
-          throw new Error("Failed to find stage");
-        }
-
-        if (!stageData) {
-          console.error("❌ Stage not found:", stageId);
-          throw new Error(`Stage not found: ${stageId}. Please check the stage name.`);
-        }
-
-        actualStageId = stageData.id;
-        console.log('Found actual stage ID:', actualStageId);
-      }
-
-      // 1. Insert feedback with the stage UUID
-      const { data: feedbackData, error: insertError } = await supabase
-        .from("stage_feedback")
-        .insert({
-          brief_id: briefId,
-          stage_id: actualStageId,
-          content: feedback,
-          requires_revision: true,
-          is_permanent: isPermanent,
-          processed_for_rag: false
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error("❌ Error inserting feedback:", {
-          error: insertError,
-          headers: {
-            hasAuthorization: !!headers.authorization,
-            hasApiKey: !!headers.apikey
-          }
-        });
-        throw new Error("Failed to save feedback");
-      }
-
-      const newFeedbackId = feedbackData.id;
       setFeedbackId(newFeedbackId);
-      
-      console.log('✅ Feedback inserted successfully:', {
-        feedbackId: newFeedbackId,
-        timestamp: new Date().toISOString()
-      });
 
-      // 2. Mark existing outputs as reprocessed
-      console.log('🔄 Marking existing outputs as reprocessed');
+      // Update existing outputs
       const { error: outputsError } = await supabase
         .from("brief_outputs")
         .update({
@@ -160,18 +59,11 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         .is("feedback_id", null);
 
       if (outputsError) {
-        console.error("❌ Error updating outputs:", {
-          error: outputsError,
-          headers: {
-            hasAuthorization: !!headers.authorization,
-            hasApiKey: !!headers.apikey
-          }
-        });
+        console.error("❌ Error updating outputs:", { error: outputsError });
         toast.error("Feedback saved but failed to update outputs");
       }
 
-      // 3. Mark existing conversations as reprocessing
-      console.log('🔄 Marking existing conversations as reprocessing');
+      // Update existing conversations
       const { error: convsError } = await supabase
         .from("workflow_conversations")
         .update({
@@ -184,56 +76,18 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         .is("feedback_id", null);
 
       if (convsError) {
-        console.error("❌ Error updating conversations:", {
-          error: convsError,
-          headers: {
-            hasAuthorization: !!headers.authorization,
-            hasApiKey: !!headers.apikey
-          }
-        });
+        console.error("❌ Error updating conversations:", { error: convsError });
         toast.error("Feedback saved but failed to update conversations");
       }
 
+      // Process RAG if permanent feedback
       if (isPermanent && brand) {
-        console.log("🔄 Processing permanent feedback for RAG:", {
-          content: feedback,
+        await processRAG({
+          feedbackId: newFeedbackId,
+          feedback,
           brand,
-          timestamp: new Date().toISOString()
+          headers
         });
-
-        try {
-          await processDocument(feedback, {
-            source: "stage_feedback",
-            brand,
-            type: "feedback"
-          });
-
-          console.log('📝 Updating RAG processing status');
-          const { error: updateError } = await supabase
-            .from("stage_feedback")
-            .update({ processed_for_rag: true })
-            .eq("id", newFeedbackId);
-
-          if (updateError) {
-            console.error("❌ Error updating RAG processing status:", {
-              error: updateError,
-              headers: {
-                hasAuthorization: !!headers.authorization,
-                hasApiKey: !!headers.apikey
-              }
-            });
-            toast.error("Feedback saved but failed to process for brand knowledge");
-          }
-        } catch (ragError) {
-          console.error("❌ Error processing feedback for RAG:", {
-            error: ragError,
-            headers: {
-              hasAuthorization: !!headers.authorization,
-              hasApiKey: !!headers.apikey
-            }
-          });
-          toast.error("Feedback saved but failed to process for brand knowledge");
-        }
       }
 
       console.log('✅ Feedback submission completed successfully');
@@ -243,7 +97,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
       setFeedback("");
       setIsPermanent(false);
       
-      // Invalidate queries to refresh data
+      // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ["stage-feedback"] });
       queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
       queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
