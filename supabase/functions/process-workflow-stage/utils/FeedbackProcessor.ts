@@ -1,158 +1,97 @@
-import { ChatOpenAI } from "@langchain/openai";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { StringOutputParser } from "@langchain/core/output_parsers";
-import { RunnableSequence } from "@langchain/core/runnables";
-import { BufferWindowMemory } from "langchain/memory";
-
-// Analyzer Chain
-const analyzerPrompt = PromptTemplate.fromTemplate(`
-Analizza il seguente feedback per un output di workflow:
-{feedback}
-
-Considera e struttura la tua risposta secondo questi punti:
-1. Punti principali di feedback
-2. Priorità delle modifiche
-3. Tipo di modifiche richieste
-4. Sentiment generale
-5. Aree specifiche da migliorare
-
-Output richiesto in formato JSON strutturato.
-`);
-
-const model = new ChatOpenAI({
-  modelName: "gpt-4",
-  temperature: 0.7,
-});
-
-const analyzerChain = RunnableSequence.from([
-  analyzerPrompt,
-  model,
-  new StringOutputParser(),
-]);
-
-// Validator Chain
-const validatorPrompt = PromptTemplate.fromTemplate(`
-Valida il seguente feedback analizzato:
-{analyzedFeedback}
-
-Contesto originale:
-{originalContext}
-
-Verifica:
-1. Coerenza con il contesto originale
-2. Fattibilità delle modifiche richieste
-3. Potenziali conflitti o contraddizioni
-4. Completezza delle informazioni
-
-Output richiesto in formato JSON con validazione dettagliata.
-`);
-
-const validatorChain = RunnableSequence.from([
-  validatorPrompt,
-  model,
-  new StringOutputParser(),
-]);
-
-// Integrator Chain
-const integratorPrompt = PromptTemplate.fromTemplate(`
-Integra il feedback validato nel contesto:
-{validatedFeedback}
-
-Contesto corrente:
-{currentContext}
-
-Requisiti:
-1. Mantieni la coerenza del contesto
-2. Risolvi eventuali conflitti
-3. Integra le modifiche richieste
-4. Mantieni traccia delle modifiche
-
-Output richiesto in formato JSON con contesto aggiornato e modifiche tracciate.
-`);
-
-const integratorChain = RunnableSequence.from([
-  integratorPrompt,
-  model,
-  new StringOutputParser(),
-]);
-
-// Generator Chain
-const generatorPrompt = PromptTemplate.fromTemplate(`
-Genera una nuova risposta basata sul contesto integrato:
-{integratedContext}
-
-Requisiti:
-1. Incorpora tutti i punti di feedback
-2. Mantieni lo stile e il tono appropriati
-3. Verifica la completezza della risposta
-4. Evidenzia le modifiche apportate
-
-La risposta deve essere dettagliata e strutturata.
-`);
-
-const generatorChain = RunnableSequence.from([
-  generatorPrompt,
-  model,
-  new StringOutputParser(),
-]);
+import { SupabaseClient } from "@supabase/supabase-js";
+import { ChatOpenAI } from "https://esm.sh/@langchain/openai@0.0.14";
+import { PromptTemplate } from "https://esm.sh/@langchain/core/prompts@0.0.8";
 
 export class FeedbackProcessor {
-  private memory: BufferWindowMemory;
+  private supabase: SupabaseClient;
+  private model: ChatOpenAI;
 
-  constructor() {
-    this.memory = new BufferWindowMemory({
-      returnMessages: true,
-      memoryKey: "chat_history",
-      inputKey: "feedback",
-      outputKey: "response",
-      k: 5
+  constructor(supabase: SupabaseClient) {
+    this.supabase = supabase;
+    this.model = new ChatOpenAI({
+      modelName: "gpt-4",
+      temperature: 0.7,
+      openAIApiKey: Deno.env.get("OPENAI_API_KEY"),
     });
   }
 
-  async processFeedback(feedback: string, originalContext: string) {
+  async processFeedback(briefId: string, stageId: string, feedbackId: string, originalOutput: any) {
     try {
-      console.log("🚀 Starting feedback processing");
+      console.log('🔄 Starting feedback processing:', { briefId, stageId, feedbackId });
 
-      // Step 1: Analyze feedback
-      const analyzedFeedback = await analyzerChain.invoke({
+      // 1. Get feedback content
+      const { data: feedback, error: feedbackError } = await this.supabase
+        .from('stage_feedback')
+        .select('*')
+        .eq('id', feedbackId)
+        .single();
+
+      if (feedbackError) {
+        throw new Error(`Failed to fetch feedback: ${feedbackError.message}`);
+      }
+
+      // 2. Process the feedback with LangChain
+      const prompt = PromptTemplate.fromTemplate(`
+        Original output:
+        {originalOutput}
+
+        Feedback received:
+        {feedback}
+
+        Please analyze this feedback and generate an improved version of the output that:
+        1. Addresses all points in the feedback
+        2. Maintains the original structure and format
+        3. Preserves any valid aspects of the original output
+        4. Improves areas mentioned in the feedback
+
+        Provide the complete revised output:
+      `);
+
+      const chain = prompt.pipe(this.model);
+      const response = await chain.invoke({
+        originalOutput: JSON.stringify(originalOutput.content),
+        feedback: feedback.content
+      });
+
+      // 3. Create new output with feedback incorporated
+      const { data: newOutput, error: insertError } = await this.supabase
+        .from('brief_outputs')
+        .insert({
+          brief_id: briefId,
+          stage_id: stageId,
+          content: JSON.parse(response.content),
+          feedback_id: feedbackId,
+          is_reprocessed: true,
+          original_output_id: originalOutput.id
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        throw new Error(`Failed to create new output: ${insertError.message}`);
+      }
+
+      // 4. Update feedback processing status
+      await this.supabase
+        .from('feedback_processing_status')
+        .update({
+          update_status: 'completed',
+          output_updates: 1,
+          last_output_update: new Date().toISOString()
+        })
+        .eq('feedback_id', feedbackId);
+
+      console.log('✅ Feedback processing completed successfully');
+      
+      return {
+        originalOutput,
         feedback,
-      });
-      console.log("📊 Feedback analyzed:", analyzedFeedback);
+        newOutput
+      };
 
-      // Step 2: Validate feedback
-      const validatedFeedback = await validatorChain.invoke({
-        analyzedFeedback: analyzedFeedback,
-        originalContext,
-      });
-      console.log("✅ Feedback validated:", validatedFeedback);
-
-      // Step 3: Integrate feedback
-      const integratedContext = await integratorChain.invoke({
-        validatedFeedback: validatedFeedback,
-        currentContext: originalContext,
-      });
-      console.log("🔄 Feedback integrated:", integratedContext);
-
-      // Step 4: Generate new response
-      const newResponse = await generatorChain.invoke({
-        integratedContext: integratedContext,
-      });
-      console.log("📝 New response generated:", newResponse);
-
-      // Store in memory
-      await this.memory.saveContext(
-        { feedback: feedback },
-        { response: JSON.stringify(newResponse) }
-      );
-
-      return JSON.parse(newResponse);
     } catch (error) {
-      console.error("❌ Error in feedback processing:", error);
+      console.error('❌ Error in feedback processing:', error);
       throw error;
     }
-  }
-
-  async getMemoryContents() {
-    return await this.memory.loadMemoryVariables({});
   }
 }
