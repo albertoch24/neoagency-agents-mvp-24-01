@@ -17,7 +17,13 @@ serve(async (req) => {
   try {
     console.log('🚀 Processing workflow stage request');
     
-    const { briefId, stageId, feedbackId } = await req.json();
+    // Parse request body
+    const body = await req.json().catch((e) => {
+      console.error('Error parsing request body:', e);
+      throw new Error('Invalid request body');
+    });
+    
+    const { briefId, stageId, feedbackId } = body;
     
     // Validate required parameters
     if (!briefId || !stageId || !feedbackId) {
