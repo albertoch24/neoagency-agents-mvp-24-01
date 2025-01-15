@@ -11,11 +11,11 @@ interface UseStageFeedbackProps {
   onReprocess?: (feedbackId: string) => Promise<void>;
 }
 
-const validateHeaders = () => {
-  const session = supabase.auth.session();
+const validateHeaders = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
   const headers = {
     authorization: session?.access_token,
-    apikey: supabase.supabaseKey,
+    apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     clientInfo: window.navigator.userAgent
   };
 
