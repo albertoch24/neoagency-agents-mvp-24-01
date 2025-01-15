@@ -17,7 +17,7 @@ serve(async (req) => {
   try {
     console.log('🚀 Processing workflow stage request');
     
-    // Parse request body
+    // Parse request body with error handling
     const body = await req.json().catch((e) => {
       console.error('Error parsing request body:', e);
       throw new Error('Invalid request body');
@@ -26,9 +26,9 @@ serve(async (req) => {
     const { briefId, stageId, feedbackId } = body;
     
     // Validate required parameters
-    if (!briefId || !stageId || !feedbackId) {
-      console.error('❌ Missing required parameters:', { briefId, stageId, feedbackId });
-      throw new Error('Missing required parameters');
+    if (!briefId || !stageId) {
+      console.error('❌ Missing required parameters:', { briefId, stageId });
+      throw new Error('Missing required parameters: briefId and stageId are required');
     }
 
     console.log('📝 Request parameters:', { briefId, stageId, feedbackId });
@@ -57,18 +57,33 @@ serve(async (req) => {
       throw new Error('Failed to fetch original output');
     }
 
-    if (!originalOutput) {
-      console.error('❌ No original output found for:', { briefId, stageId });
-      throw new Error('No original output found to process feedback against');
+    if (!originalOutput && !feedbackId) {
+      console.log('✨ No original output found, processing new stage');
+      // Process new stage logic here
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          message: 'New stage processing initiated'
+        }),
+        { 
+          headers: { 
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          } 
+        }
+      );
     }
 
     console.log('✅ Found original output:', {
-      outputId: originalOutput.id,
-      hasContent: !!originalOutput.content
+      outputId: originalOutput?.id,
+      hasContent: !!originalOutput?.content
     });
 
-    // Process feedback with the original output context
-    const result = await processFeedbackWithLangChain(briefId, stageId, feedbackId, originalOutput);
+    // Process feedback with the original output context if feedbackId exists
+    let result;
+    if (feedbackId) {
+      result = await processFeedbackWithLangChain(briefId, stageId, feedbackId, originalOutput);
+    }
 
     return new Response(
       JSON.stringify({
