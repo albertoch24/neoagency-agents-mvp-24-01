@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { processFeedbackWithLangChain } from "./utils/feedbackProcessor.ts";
 import { createClient } from "@supabase/supabase-js";
-import { FeedbackProcessor } from "./utils/FeedbackProcessor.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,16 +17,12 @@ serve(async (req) => {
   try {
     console.log('🚀 Processing workflow stage request');
     
-    const body = await req.json().catch((e) => {
-      console.error('Error parsing request body:', e);
-      throw new Error('Invalid request body');
-    });
+    const { briefId, stageId, feedbackId } = await req.json();
     
-    const { briefId, stageId, feedbackId } = body;
-    
-    if (!briefId || !stageId) {
-      console.error('❌ Missing required parameters:', { briefId, stageId });
-      throw new Error('Missing required parameters: briefId and stageId are required');
+    // Validate required parameters
+    if (!briefId || !stageId || !feedbackId) {
+      console.error('❌ Missing required parameters:', { briefId, stageId, feedbackId });
+      throw new Error('Missing required parameters');
     }
 
     console.log('📝 Request parameters:', { briefId, stageId, feedbackId });
@@ -55,13 +51,18 @@ serve(async (req) => {
       throw new Error('Failed to fetch original output');
     }
 
-    let result;
-    if (feedbackId) {
-      console.log('🔄 Processing feedback:', { feedbackId });
-      const feedbackProcessor = new FeedbackProcessor(supabase);
-      result = await feedbackProcessor.processFeedback(briefId, stageId, feedbackId, originalOutput);
-      console.log('✅ Feedback processed:', result);
+    if (!originalOutput) {
+      console.error('❌ No original output found for:', { briefId, stageId });
+      throw new Error('No original output found to process feedback against');
     }
+
+    console.log('✅ Found original output:', {
+      outputId: originalOutput.id,
+      hasContent: !!originalOutput.content
+    });
+
+    // Process feedback with the original output context
+    const result = await processFeedbackWithLangChain(briefId, stageId, feedbackId, originalOutput);
 
     return new Response(
       JSON.stringify({
