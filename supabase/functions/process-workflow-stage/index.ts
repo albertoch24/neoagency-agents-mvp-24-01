@@ -7,6 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Max-Age': '86400',
+  'Vary': 'Origin'
 };
 
 serve(async (req) => {
@@ -16,7 +17,7 @@ serve(async (req) => {
     return new Response(null, { 
       headers: {
         ...corsHeaders,
-        'Vary': 'Origin' // Important for caching with specific origins
+        'Content-Type': 'application/json'
       }
     });
   }
@@ -45,6 +46,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!supabaseUrl || !supabaseKey) {
+      console.error('❌ Missing environment variables');
       throw new Error('Missing Supabase environment variables');
     }
 
@@ -86,8 +88,7 @@ serve(async (req) => {
       { 
         headers: { 
           ...corsHeaders,
-          'Content-Type': 'application/json',
-          'Vary': 'Origin'
+          'Content-Type': 'application/json'
         } 
       }
     );
@@ -109,8 +110,7 @@ serve(async (req) => {
         status: 500,
         headers: { 
           ...corsHeaders,
-          'Content-Type': 'application/json',
-          'Vary': 'Origin'
+          'Content-Type': 'application/json'
         }
       }
     );
