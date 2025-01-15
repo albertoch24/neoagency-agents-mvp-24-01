@@ -1,6 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { ChatOpenAI } from "https://esm.sh/@langchain/openai@0.0.14";
-import { PromptTemplate } from "https://esm.sh/@langchain/core/prompts@0.0.8";
+import { ChatOpenAI } from "@langchain/openai";
+import { PromptTemplate } from "@langchain/core/prompts";
 
 export class FeedbackProcessor {
   private supabase: SupabaseClient;
