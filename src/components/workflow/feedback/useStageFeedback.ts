@@ -11,6 +11,32 @@ interface UseStageFeedbackProps {
   onReprocess?: (feedbackId: string) => Promise<void>;
 }
 
+const validateHeaders = () => {
+  const session = supabase.auth.session();
+  const headers = {
+    authorization: session?.access_token,
+    apikey: supabase.supabaseKey,
+    clientInfo: window.navigator.userAgent
+  };
+
+  console.log('🔍 Validating request headers:', {
+    hasAuthorization: !!headers.authorization,
+    hasApiKey: !!headers.apikey,
+    clientInfo: headers.clientInfo,
+    timestamp: new Date().toISOString()
+  });
+
+  if (!headers.authorization) {
+    throw new Error("Missing authorization header - user not authenticated");
+  }
+
+  if (!headers.apikey) {
+    throw new Error("Missing API key - check Supabase configuration");
+  }
+
+  return headers;
+};
+
 export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseStageFeedbackProps) => {
   const [feedback, setFeedback] = useState("");
   const [isPermanent, setIsPermanent] = useState(false);
@@ -26,11 +52,19 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
 
     setIsSubmitting(true);
     try {
+      // Validate headers before proceeding
+      const headers = validateHeaders();
+      
       console.log('🚀 Starting feedback submission:', {
         briefId,
         stageId,
         feedbackLength: feedback.length,
         isPermanent,
+        headers: {
+          hasAuthorization: !!headers.authorization,
+          hasApiKey: !!headers.apikey,
+          clientInfo: headers.clientInfo
+        },
         timestamp: new Date().toISOString()
       });
 
@@ -94,7 +128,13 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         .single();
 
       if (insertError) {
-        console.error("❌ Error inserting feedback:", insertError);
+        console.error("❌ Error inserting feedback:", {
+          error: insertError,
+          headers: {
+            hasAuthorization: !!headers.authorization,
+            hasApiKey: !!headers.apikey
+          }
+        });
         throw new Error("Failed to save feedback");
       }
 
@@ -120,7 +160,13 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         .is("feedback_id", null);
 
       if (outputsError) {
-        console.error("❌ Error updating outputs:", outputsError);
+        console.error("❌ Error updating outputs:", {
+          error: outputsError,
+          headers: {
+            hasAuthorization: !!headers.authorization,
+            hasApiKey: !!headers.apikey
+          }
+        });
         toast.error("Feedback saved but failed to update outputs");
       }
 
@@ -138,7 +184,13 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         .is("feedback_id", null);
 
       if (convsError) {
-        console.error("❌ Error updating conversations:", convsError);
+        console.error("❌ Error updating conversations:", {
+          error: convsError,
+          headers: {
+            hasAuthorization: !!headers.authorization,
+            hasApiKey: !!headers.apikey
+          }
+        });
         toast.error("Feedback saved but failed to update conversations");
       }
 
@@ -163,11 +215,23 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
             .eq("id", newFeedbackId);
 
           if (updateError) {
-            console.error("❌ Error updating RAG processing status:", updateError);
+            console.error("❌ Error updating RAG processing status:", {
+              error: updateError,
+              headers: {
+                hasAuthorization: !!headers.authorization,
+                hasApiKey: !!headers.apikey
+              }
+            });
             toast.error("Feedback saved but failed to process for brand knowledge");
           }
         } catch (ragError) {
-          console.error("❌ Error processing feedback for RAG:", ragError);
+          console.error("❌ Error processing feedback for RAG:", {
+            error: ragError,
+            headers: {
+              hasAuthorization: !!headers.authorization,
+              hasApiKey: !!headers.apikey
+            }
+          });
           toast.error("Feedback saved but failed to process for brand knowledge");
         }
       }
@@ -194,7 +258,12 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
         console.log('✅ Stage reprocessing completed');
       }
     } catch (error) {
-      console.error("❌ Error in handleSubmit:", error);
+      console.error("❌ Error in handleSubmit:", {
+        error,
+        type: error instanceof Error ? 'Error' : 'Unknown',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
       toast.error(error instanceof Error ? error.message : "Failed to submit feedback");
     } finally {
       setIsSubmitting(false);
