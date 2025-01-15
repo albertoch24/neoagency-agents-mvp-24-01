@@ -53,7 +53,7 @@ export const useStageFeedback = ({ briefId, stageId, brand, onReprocess }: UseSt
     setIsSubmitting(true);
     try {
       // Validate headers before proceeding
-      const headers = validateHeaders();
+      const headers = await validateHeaders();
       
       console.log('🚀 Starting feedback submission:', {
         briefId,
