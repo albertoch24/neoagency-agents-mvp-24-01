@@ -33,7 +33,6 @@ serve(async (req) => {
       hasFeedback: !!feedbackId
     });
 
-    // Validate required parameters
     if (!briefId || !stageId) {
       console.error('❌ Missing required parameters:', { briefId, stageId });
       throw new Error('Missing required parameters: briefId and stageId are required');
@@ -54,12 +53,6 @@ serve(async (req) => {
       });
       throw briefError;
     }
-
-    console.log('✅ Brief data retrieved:', {
-      operationId,
-      briefId: brief.id,
-      title: brief.title
-    });
 
     // Get stage data
     const { data: stage, error: stageError } = await supabase
@@ -91,13 +84,6 @@ serve(async (req) => {
       throw stageError;
     }
 
-    console.log('✅ Stage data retrieved:', {
-      operationId,
-      stageId: stage.id,
-      stageName: stage.name,
-      flowStepsCount: stage.flows?.flow_steps?.length || 0
-    });
-
     // Process each flow step
     const outputs = [];
     for (const step of flowSteps) {
@@ -125,25 +111,31 @@ serve(async (req) => {
           throw agentError;
         }
 
-        console.log('✅ Agent data retrieved:', {
-          operationId,
-          agentId: agent.id,
-          agentName: agent.name
-        });
+        // Format the output in the expected structure
+        const formattedOutput = {
+          agent: agent.name,
+          stepId: step.id,
+          outputs: [{
+            type: "conversational",
+            content: formatContent(step.outputs)
+          }],
+          orderIndex: step.order_index,
+          requirements: step.requirements
+        };
 
-        // Create workflow conversation
-        const { data: conversation, error: conversationError } = await supabase
+        outputs.push(formattedOutput);
+
+        // Create workflow conversation with the formatted content
+        const { error: conversationError } = await supabase
           .from('workflow_conversations')
           .insert({
             brief_id: briefId,
             stage_id: stageId,
             agent_id: step.agent_id,
-            content: JSON.stringify(step.outputs || []),
+            content: JSON.stringify(formattedOutput.outputs),
             output_type: 'conversational',
             flow_step_id: step.id
-          })
-          .select()
-          .single();
+          });
 
         if (conversationError) {
           console.error('❌ Error creating workflow conversation:', {
@@ -153,20 +145,6 @@ serve(async (req) => {
           });
           throw conversationError;
         }
-
-        console.log('✅ Workflow conversation created:', {
-          operationId,
-          conversationId: conversation.id,
-          stepId: step.id
-        });
-
-        outputs.push({
-          agent: agent.name,
-          stepId: step.id,
-          outputs: step.outputs || [],
-          orderIndex: step.order_index,
-          requirements: step.requirements
-        });
 
       } catch (stepError) {
         console.error('❌ Error processing flow step:', {
@@ -178,6 +156,15 @@ serve(async (req) => {
       }
     }
 
+    // Prepare the content object with the correct structure
+    const content = {
+      outputs,
+      flow_name: stage.flows?.name || '',
+      stage_name: stage.name,
+      agent_count: flowSteps.length,
+      feedback_used: feedbackId ? 'Feedback incorporated' : null
+    };
+
     // Save brief output
     const { data: briefOutput, error: outputError } = await supabase
       .from('brief_outputs')
@@ -185,10 +172,7 @@ serve(async (req) => {
         brief_id: briefId,
         stage: stage.name,
         stage_id: stageId,
-        content: {
-          outputs,
-          feedback_used: feedbackId ? 'Feedback incorporated' : null
-        },
+        content,
         feedback_id: feedbackId || null
       })
       .select()
@@ -246,3 +230,17 @@ serve(async (req) => {
     );
   }
 });
+
+// Helper function to format the content
+function formatContent(outputs: any[]): string {
+  if (!Array.isArray(outputs)) return '';
+  
+  // Convert the array of text items into a markdown formatted string
+  const sections = outputs.map(output => {
+    if (typeof output === 'string') return output;
+    if (output.text) return output.text;
+    return '';
+  });
+
+  return sections.join('\n\n');
+}
