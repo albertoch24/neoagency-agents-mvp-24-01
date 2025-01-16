@@ -23,22 +23,21 @@ serve(async (req) => {
     });
 
     const { briefId, stageId, flowSteps, feedbackId } = await req.json();
+    
+    console.log('📝 Received request parameters:', {
+      operationId,
+      briefId,
+      stageId,
+      hasFlowSteps: !!flowSteps?.length,
+      flowStepsCount: flowSteps?.length,
+      hasFeedback: !!feedbackId
+    });
 
     // Validate required parameters
     if (!briefId || !stageId) {
       console.error('❌ Missing required parameters:', { briefId, stageId });
       throw new Error('Missing required parameters: briefId and stageId are required');
     }
-
-    console.log('📝 Processing request with params:', {
-      operationId,
-      briefId,
-      stageId,
-      hasFlowSteps: !!flowSteps?.length,
-      flowStepsCount: flowSteps?.length,
-      hasFeedback: !!feedbackId,
-      timestamp: new Date().toISOString()
-    });
 
     // Get brief data
     const { data: brief, error: briefError } = await supabase
@@ -59,8 +58,7 @@ serve(async (req) => {
     console.log('✅ Brief data retrieved:', {
       operationId,
       briefId: brief.id,
-      title: brief.title,
-      timestamp: new Date().toISOString()
+      title: brief.title
     });
 
     // Get stage data
@@ -97,8 +95,7 @@ serve(async (req) => {
       operationId,
       stageId: stage.id,
       stageName: stage.name,
-      flowStepsCount: stage.flows?.flow_steps?.length || 0,
-      timestamp: new Date().toISOString()
+      flowStepsCount: stage.flows?.flow_steps?.length || 0
     });
 
     // Process each flow step
@@ -108,8 +105,7 @@ serve(async (req) => {
         operationId,
         stepId: step.id,
         agentId: step.agent_id,
-        orderIndex: step.order_index,
-        timestamp: new Date().toISOString()
+        orderIndex: step.order_index
       });
 
       try {
@@ -129,8 +125,14 @@ serve(async (req) => {
           throw agentError;
         }
 
+        console.log('✅ Agent data retrieved:', {
+          operationId,
+          agentId: agent.id,
+          agentName: agent.name
+        });
+
         // Create workflow conversation
-        const { error: conversationError } = await supabase
+        const { data: conversation, error: conversationError } = await supabase
           .from('workflow_conversations')
           .insert({
             brief_id: briefId,
@@ -139,7 +141,9 @@ serve(async (req) => {
             content: JSON.stringify(step.outputs || []),
             output_type: 'conversational',
             flow_step_id: step.id
-          });
+          })
+          .select()
+          .single();
 
         if (conversationError) {
           console.error('❌ Error creating workflow conversation:', {
@@ -150,6 +154,12 @@ serve(async (req) => {
           throw conversationError;
         }
 
+        console.log('✅ Workflow conversation created:', {
+          operationId,
+          conversationId: conversation.id,
+          stepId: step.id
+        });
+
         outputs.push({
           agent: agent.name,
           stepId: step.id,
@@ -158,12 +168,6 @@ serve(async (req) => {
           requirements: step.requirements
         });
 
-        console.log('✅ Flow step processed successfully:', {
-          operationId,
-          stepId: step.id,
-          agentName: agent.name,
-          timestamp: new Date().toISOString()
-        });
       } catch (stepError) {
         console.error('❌ Error processing flow step:', {
           operationId,
@@ -175,7 +179,7 @@ serve(async (req) => {
     }
 
     // Save brief output
-    const { error: outputError } = await supabase
+    const { data: briefOutput, error: outputError } = await supabase
       .from('brief_outputs')
       .insert({
         brief_id: briefId,
@@ -186,7 +190,9 @@ serve(async (req) => {
           feedback_used: feedbackId ? 'Feedback incorporated' : null
         },
         feedback_id: feedbackId || null
-      });
+      })
+      .select()
+      .single();
 
     if (outputError) {
       console.error('❌ Error saving brief output:', {
@@ -198,16 +204,18 @@ serve(async (req) => {
       throw outputError;
     }
 
-    console.log('✅ Workflow stage processing completed:', {
+    console.log('✅ Brief output saved successfully:', {
       operationId,
-      briefId,
-      stageId,
-      outputsCount: outputs.length,
-      timestamp: new Date().toISOString()
+      outputId: briefOutput.id,
+      outputsCount: outputs.length
     });
 
     return new Response(
-      JSON.stringify({ success: true, outputs }),
+      JSON.stringify({ 
+        success: true, 
+        outputs,
+        briefOutputId: briefOutput.id
+      }),
       { 
         headers: {
           ...corsHeaders,
@@ -220,8 +228,7 @@ serve(async (req) => {
     console.error('💥 Unexpected error in workflow stage processing:', {
       operationId,
       error: error.message,
-      stack: error.stack,
-      timestamp: new Date().toISOString()
+      stack: error.stack
     });
 
     return new Response(
