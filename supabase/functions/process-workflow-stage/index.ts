@@ -3,7 +3,7 @@ import { processFeedbackWithLangChain } from "./utils/feedbackProcessor.ts";
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://ccacac1a-1fad-41e2-8926-5a348f46ea42.lovableproject.com',
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Max-Age': '86400',
@@ -31,15 +31,15 @@ serve(async (req) => {
       throw new Error('Invalid request body');
     });
     
-    const { briefId, stageId, feedbackId } = body;
+    const { briefId, stageId, flowSteps } = body;
     
     // Validate required parameters
-    if (!briefId || !stageId || !feedbackId) {
-      console.error('❌ Missing required parameters:', { briefId, stageId, feedbackId });
+    if (!briefId || !stageId || !flowSteps) {
+      console.error('❌ Missing required parameters:', { briefId, stageId, flowSteps });
       throw new Error('Missing required parameters');
     }
 
-    console.log('📝 Request parameters:', { briefId, stageId, feedbackId });
+    console.log('📝 Request parameters:', { briefId, stageId, flowStepsCount: flowSteps?.length });
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -52,32 +52,8 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get the original output first
-    const { data: originalOutput, error: outputError } = await supabase
-      .from('brief_outputs')
-      .select('*')
-      .eq('brief_id', briefId)
-      .eq('stage_id', stageId)
-      .eq('is_reprocessed', false)
-      .maybeSingle();
-
-    if (outputError) {
-      console.error('❌ Error fetching original output:', outputError);
-      throw new Error('Failed to fetch original output');
-    }
-
-    if (!originalOutput) {
-      console.error('❌ No original output found for:', { briefId, stageId });
-      throw new Error('No original output found to process feedback against');
-    }
-
-    console.log('✅ Found original output:', {
-      outputId: originalOutput.id,
-      hasContent: !!originalOutput.content
-    });
-
-    // Process feedback with the original output context
-    const result = await processFeedbackWithLangChain(briefId, stageId, feedbackId, originalOutput);
+    // Process the workflow stage
+    const result = await processFeedbackWithLangChain(briefId, stageId, null, null);
 
     // Return success response with CORS headers
     return new Response(
