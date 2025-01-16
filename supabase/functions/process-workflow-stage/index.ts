@@ -13,7 +13,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -30,15 +29,6 @@ serve(async (req) => {
 
     const { briefId, stageId, flowSteps, feedbackId } = await req.json();
     
-    console.log('📝 Received request parameters:', {
-      operationId,
-      briefId,
-      stageId,
-      hasFlowSteps: !!flowSteps?.length,
-      flowStepsCount: flowSteps?.length,
-      hasFeedback: !!feedbackId
-    });
-
     if (!briefId || !stageId) {
       console.error('❌ Missing required parameters:', { briefId, stageId });
       throw new Error('Missing required parameters: briefId and stageId are required');
@@ -206,9 +196,7 @@ serve(async (req) => {
         outputs,
         briefOutputId: briefOutput.id
       }),
-      { 
-        headers: corsHeaders
-      }
+      { headers: corsHeaders }
     );
 
   } catch (error) {
