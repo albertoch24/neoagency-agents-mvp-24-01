@@ -23,12 +23,15 @@ export const WorkflowDisplay = ({
   const { data: stages = [] } = useStagesData(briefId);
 
   const handleReprocess = async (feedbackId: string) => {
-    console.log('🔄 WorkflowDisplay - Starting reprocess:', {
+    console.log('🚀 WorkflowDisplay - Starting reprocess:', {
       briefId,
       currentStage,
       stageName: stages.find(s => s.id === currentStage)?.name,
       feedbackId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      isProcessing,
+      hasProcessStage: !!processStage,
+      stagesCount: stages.length
     });
 
     if (briefId && currentStage) {
@@ -39,11 +42,18 @@ export const WorkflowDisplay = ({
         briefId,
         hasFlow: !!currentStageData?.flow_id,
         flowId: currentStageData?.flow_id,
+        flowSteps: currentStageData?.flows?.flow_steps?.length,
         timestamp: new Date().toISOString()
       });
 
       try {
+        console.log('⚡ Calling processStage with:', {
+          feedbackId,
+          timestamp: new Date().toISOString()
+        });
+        
         await processStage(feedbackId);
+        
         console.log('✅ WorkflowDisplay - Reprocess completed:', {
           briefId,
           currentStage,
@@ -57,9 +67,16 @@ export const WorkflowDisplay = ({
           briefId,
           currentStage,
           stageName: currentStageData?.name,
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
           timestamp: new Date().toISOString()
         });
       }
+    } else {
+      console.error('❌ WorkflowDisplay - Missing required parameters:', {
+        briefId,
+        currentStage,
+        timestamp: new Date().toISOString()
+      });
     }
   };
 
