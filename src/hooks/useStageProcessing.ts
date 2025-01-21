@@ -7,7 +7,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const queryClient = useQueryClient();
 
-  const processStage = async (feedbackId?: string | null) => {
+  const processStage = async (feedbackId: string | null = null) => {
     if (!briefId || !stageId) {
       console.error("❌ Missing required parameters:", { briefId, stageId });
       toast.error("Missing brief or stage ID");
@@ -55,7 +55,8 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
 
       console.log("✅ Stage data retrieved:", {
         stageId: stage.id,
-        flowStepsCount: stage.flows?.flow_steps?.length || 0
+        flowStepsCount: stage.flows?.flow_steps?.length || 0,
+        feedbackId: feedbackId || 'none'
       });
 
       // 2. Validate flow steps
@@ -76,7 +77,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
           briefId,
           stageId,
           flowSteps: stage.flows.flow_steps,
-          feedbackId: feedbackId || null // Ensure null is passed when undefined
+          feedbackId: feedbackId || null
         }
       });
 

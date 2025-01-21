@@ -26,18 +26,17 @@ export const WorkflowDisplay = ({
     console.log('🔄 WorkflowDisplay - Starting reprocess:', {
       briefId,
       currentStage,
-      feedbackId,
+      feedbackId: feedbackId || null,
       timestamp: new Date().toISOString()
     });
 
     if (briefId && currentStage) {
-      // Pass null instead of "true" when no feedback ID is provided
       await processStage(feedbackId || null);
       
       console.log('✅ WorkflowDisplay - Reprocess completed:', {
         briefId,
         currentStage,
-        feedbackId,
+        feedbackId: feedbackId || null,
         timestamp: new Date().toISOString()
       });
     }
