@@ -13,12 +13,13 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  const operationId = `workflow_stage_${Date.now()}`;
+  
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const operationId = `workflow_stage_${Date.now()}`;
-  
   try {
     console.log('🚀 Starting workflow stage processing:', {
       operationId,
@@ -107,13 +108,13 @@ serve(async (req) => {
           throw agentError;
         }
 
-        // Format the output in the expected structure
+        // Format the output with the correct structure
         const formattedOutput = {
           agent: agent.name,
           stepId: step.id,
           outputs: [{
             type: "conversational",
-            content: formatContent(step.outputs)
+            content: formatContent(step.requirements, brief)
           }],
           orderIndex: step.order_index,
           requirements: step.requirements
@@ -121,7 +122,7 @@ serve(async (req) => {
 
         outputs.push(formattedOutput);
 
-        // Create workflow conversation with the formatted content
+        // Create workflow conversation
         const { error: conversationError } = await supabase
           .from('workflow_conversations')
           .insert({
@@ -219,16 +220,39 @@ serve(async (req) => {
   }
 });
 
-// Helper function to format the content
-function formatContent(outputs: any[]): string {
-  if (!Array.isArray(outputs)) return '';
+// Helper function to format the content based on requirements and brief data
+function formatContent(requirements: string, brief: any): string {
+  // Create a structured markdown response based on the requirements
+  let content = `### Refined Creative Brief\n\n`;
   
-  // Convert the array of text items into a markdown formatted string
-  const sections = outputs.map(output => {
-    if (typeof output === 'string') return output;
-    if (output.text) return output.text;
-    return '';
-  });
+  // Add project objectives section
+  content += `**Project Objectives:**\n`;
+  if (brief.objectives) {
+    const objectives = brief.objectives.split('\n').filter(Boolean);
+    objectives.forEach(obj => content += `- ${obj.trim()}\n`);
+  }
 
-  return sections.join('\n\n');
+  // Add target audience section
+  content += `\n**Target Audience:**\n`;
+  if (brief.target_audience) {
+    const audience = brief.target_audience.split('\n').filter(Boolean);
+    audience.forEach(aud => content += `- ${aud.trim()}\n`);
+  }
+
+  // Add timeline section if available
+  if (brief.timeline) {
+    content += `\n**Timeline:**\n${brief.timeline}\n`;
+  }
+
+  // Add budget information if available
+  if (brief.budget) {
+    content += `\n**Budget Considerations:**\n${brief.budget}\n`;
+  }
+
+  // Add requirements section
+  if (requirements) {
+    content += `\n**Requirements:**\n${requirements}\n`;
+  }
+
+  return content;
 }
