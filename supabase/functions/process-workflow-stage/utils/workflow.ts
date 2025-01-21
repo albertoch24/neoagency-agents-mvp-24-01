@@ -57,23 +57,65 @@ export async function processAgent(
       skillsCount: agentData.skills?.length || 0
     });
 
-    // Parse requirements into sections
-    const requirementSections = requirements.split('\n\n').filter(Boolean);
-    
-    // Process each requirement section
-    const processedRequirements = requirementSections.map(section => {
-      const [title, ...points] = section.split('\n');
-      return {
-        title: title.replace(':', '').trim(),
-        points: points.filter(p => p.trim()).map(p => p.trim().replace(/^[•-]\s*/, ''))
-      };
-    });
+    // Safely parse requirements
+    let processedRequirements = [];
+    try {
+      if (requirements) {
+        const sections = requirements.split('\n\n').filter(Boolean);
+        processedRequirements = sections.map(section => {
+          const lines = section.split('\n').filter(line => line.trim());
+          const title = lines[0]?.replace(':', '').trim() || 'General';
+          const points = lines.slice(1).map(p => p.trim().replace(/^[•-]\s*/, ''));
+          return { title, points };
+        });
+      }
+    } catch (parseError) {
+      console.error("Error parsing requirements:", parseError);
+      processedRequirements = [{
+        title: 'General',
+        points: [requirements || 'No specific requirements provided']
+      }];
+    }
 
-    // Generate structured response based on requirements
+    // Build system prompt
+    const systemPrompt = `You are ${agentData.name}, a specialized creative agency professional with the following skills:
+${agentData.skills?.map((skill: any) => `
+- ${skill.name}: ${skill.description || ''}
+  ${skill.content || ''}
+`).join('\n')}
+
+Your task is to analyze and respond to this brief based on your expertise.
+Consider the project context:
+- Title: ${brief.title || ''}
+- Description: ${brief.description || ''}
+- Objectives: ${brief.objectives || ''}
+${brief.target_audience ? `- Target Audience: ${brief.target_audience}` : ''}
+${brief.budget ? `- Budget: ${brief.budget}` : ''}
+${brief.timeline ? `- Timeline: ${brief.timeline}` : ''}
+
+Requirements for this stage:
+${processedRequirements.map(section => 
+  `${section.title}:\n${section.points.map(point => `- ${point}`).join('\n')}`
+).join('\n\n')}
+
+${previousOutputs.length > 0 ? `
+Consider previous outputs from team members:
+${previousOutputs.map(output => `
+${output.agent}: ${output.content}
+`).join('\n')}
+` : ''}
+
+Provide a detailed, actionable response that:
+1. Analyzes the brief through your professional lens
+2. Offers specific recommendations based on your skills
+3. Addresses the stage requirements directly
+4. Proposes next steps and action items`;
+
+    // Generate response
     const response = {
       conversationalResponse: `As ${agentData.name}, I have analyzed the brief and requirements. Here is my detailed response:\n\n${
         processedRequirements.map(section => 
-          `${section.title}:\n${section.points.map(point => `- ${point}`).join('\n')}`
+          `${section.title}:\n${section.points.map(point => `• ${point}`).join('\n')}`
         ).join('\n\n')
       }`,
       structuredOutput: {
