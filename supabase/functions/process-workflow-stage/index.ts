@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { ContextManager } from "./utils/contextManager.ts";
 import { ParallelProcessor } from "./utils/parallelProcessor.ts";
+import { ErrorHandler } from "./utils/errorHandler.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,6 +16,7 @@ serve(async (req) => {
   }
 
   const operationId = `workflow_stage_${Date.now()}`;
+  const startTime = performance.now();
   
   try {
     console.log('🚀 Starting workflow stage processing:', {
@@ -35,10 +37,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Initialize context manager
+    // Initialize context manager and parallel processor
     const contextManager = new ContextManager(briefId, stageId);
-    
-    // Initialize parallel processor
     const processor = new ParallelProcessor(contextManager);
 
     // Set up processing nodes with dependencies
@@ -47,62 +47,82 @@ serve(async (req) => {
       contextManager.initializeAgentContext(step.agent_id, step.requirements || '');
     }
 
-    // Process agents in parallel while maintaining context
+    // Process agents with error handling and recovery
     const processAgent = async (agentId: string, context: ContextManager) => {
-      const step = flowSteps.find((s: any) => s.agent_id === agentId);
-      const agentContext = context.getAgentContext(agentId);
-
-      if (!step || !agentContext) {
-        throw new Error(`Invalid step or context for agent ${agentId}`);
-      }
-
-      // Get agent data
-      const { data: agent, error: agentError } = await supabase
-        .from('agents')
-        .select('*, skills(*)')
-        .eq('id', agentId)
-        .single();
-
-      if (agentError) {
-        throw agentError;
-      }
-
-      // Format the output
-      const formattedOutput = {
-        agent: agent.name,
-        stepId: step.id,
-        outputs: [{
-          type: "conversational",
-          content: `Processed output for ${agent.name}`
-        }],
-        orderIndex: step.order_index,
-        requirements: step.requirements
+      const processingContext = {
+        resource: 'agent-processing',
+        agentId,
+        briefId,
+        stageId,
+        startTime,
+        retryCount: 0
       };
 
-      // Update context with new output
-      context.addOutput(agentId, formattedOutput);
-      
-      // Create workflow conversation
-      const { error: conversationError } = await supabase
-        .from('workflow_conversations')
-        .insert({
-          brief_id: briefId,
-          stage_id: stageId,
-          agent_id: agentId,
-          content: JSON.stringify(formattedOutput.outputs),
-          output_type: 'conversational',
-          flow_step_id: step.id
+      try {
+        const step = flowSteps.find((s: any) => s.agent_id === agentId);
+        const agentContext = context.getAgentContext(agentId);
+
+        if (!step || !agentContext) {
+          throw new Error(`Invalid step or context for agent ${agentId}`);
+        }
+
+        // Get agent data with error handling
+        const { data: agent, error: agentError } = await supabase
+          .from('agents')
+          .select('*, skills(*)')
+          .eq('id', agentId)
+          .single();
+
+        if (agentError) {
+          throw agentError;
+        }
+
+        // Format and return output
+        return {
+          agent: agent.name,
+          stepId: step.id,
+          outputs: [{
+            type: "conversational",
+            content: `Processed output for ${agent.name}`
+          }],
+          orderIndex: step.order_index,
+          requirements: step.requirements
+        };
+      } catch (error) {
+        return await ErrorHandler.handleError(error, processingContext, async () => {
+          // Fallback processing logic
+          const { data: agent } = await supabase
+            .from('agents')
+            .select('name')
+            .eq('id', agentId)
+            .single();
+
+          return {
+            agent: agent?.name || 'Unknown Agent',
+            stepId: flowSteps.find((s: any) => s.agent_id === agentId)?.id,
+            outputs: [{
+              type: "conversational",
+              content: "Fallback output due to processing error"
+            }],
+            orderIndex: 0,
+            requirements: "Error recovery output"
+          };
         });
-
-      if (conversationError) {
-        throw conversationError;
       }
-
-      return formattedOutput;
     };
 
     // Process all agents
     const outputs = await processor.processNodes(processAgent);
+
+    // Save processing metrics
+    const endTime = performance.now();
+    const processingMetrics = {
+      duration: endTime - startTime,
+      agentCount: flowSteps.length,
+      successfulOutputs: outputs.size,
+      memoryUsage: process.memoryUsage().heapUsed,
+      timestamp: new Date().toISOString()
+    };
 
     // Prepare the content object
     const content = {
@@ -113,7 +133,7 @@ serve(async (req) => {
       feedback_used: feedbackId ? 'Feedback incorporated' : null
     };
 
-    // Save brief output
+    // Save brief output with metrics
     const { data: briefOutput, error: outputError } = await supabase
       .from('brief_outputs')
       .insert({
@@ -121,7 +141,8 @@ serve(async (req) => {
         stage: stageId,
         stage_id: stageId,
         content,
-        feedback_id: feedbackId || null
+        feedback_id: feedbackId || null,
+        processing_metrics: processingMetrics
       })
       .select()
       .single();
@@ -133,29 +154,33 @@ serve(async (req) => {
     console.log('✅ Processing completed successfully:', {
       operationId,
       outputId: briefOutput.id,
-      outputsCount: outputs.size
+      outputsCount: outputs.size,
+      metrics: processingMetrics
     });
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         outputs: Array.from(outputs.values()),
-        briefOutputId: briefOutput.id
+        briefOutputId: briefOutput.id,
+        metrics: processingMetrics
       }),
       { headers: corsHeaders }
     );
 
   } catch (error) {
-    console.error('💥 Error in workflow stage processing:', {
+    const structuredError = await ErrorHandler.handleError(error, {
+      resource: 'workflow-stage',
       operationId,
-      error: error.message,
-      stack: error.stack
+      duration: performance.now() - startTime
     });
 
     return new Response(
       JSON.stringify({
-        error: error.message,
-        details: error.stack
+        error: structuredError.message,
+        code: structuredError.code,
+        category: structuredError.category,
+        metrics: structuredError.metrics
       }),
       { 
         status: 500,

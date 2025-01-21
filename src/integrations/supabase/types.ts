@@ -95,11 +95,14 @@ export type Database = {
         Row: {
           brief_id: string
           content: Json
+          content_format: string | null
           created_at: string
           feedback_id: string | null
           id: string
           is_reprocessed: boolean | null
+          metadata: Json | null
           original_output_id: string | null
+          processing_metrics: Json | null
           reprocessed_at: string | null
           stage: string
           stage_id: string | null
@@ -108,11 +111,14 @@ export type Database = {
         Insert: {
           brief_id: string
           content: Json
+          content_format?: string | null
           created_at?: string
           feedback_id?: string | null
           id?: string
           is_reprocessed?: boolean | null
+          metadata?: Json | null
           original_output_id?: string | null
+          processing_metrics?: Json | null
           reprocessed_at?: string | null
           stage: string
           stage_id?: string | null
@@ -121,11 +127,14 @@ export type Database = {
         Update: {
           brief_id?: string
           content?: Json
+          content_format?: string | null
           created_at?: string
           feedback_id?: string | null
           id?: string
           is_reprocessed?: boolean | null
+          metadata?: Json | null
           original_output_id?: string | null
+          processing_metrics?: Json | null
           reprocessed_at?: string | null
           stage?: string
           stage_id?: string | null
@@ -488,6 +497,70 @@ export type Database = {
         }
         Relationships: []
       }
+      processing_progress: {
+        Row: {
+          brief_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          current_agent: string | null
+          id: string
+          metrics: Json | null
+          progress: number | null
+          stage_id: string | null
+          started_at: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          brief_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          current_agent?: string | null
+          id?: string
+          metrics?: Json | null
+          progress?: number | null
+          stage_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          brief_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          current_agent?: string | null
+          id?: string
+          metrics?: Json | null
+          progress?: number | null
+          stage_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_progress_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_progress_current_agent_fkey"
+            columns: ["current_agent"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_progress_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -747,6 +820,7 @@ export type Database = {
           content: string
           created_at: string
           feedback_id: string | null
+          feedback_metrics: Json | null
           flow_step_id: string | null
           id: string
           original_conversation_id: string | null
@@ -754,7 +828,9 @@ export type Database = {
           reprocessed_at: string | null
           reprocessing: boolean | null
           stage_id: string
+          streaming_status: string | null
           summary: string | null
+          version: number | null
         }
         Insert: {
           agent_id: string
@@ -762,6 +838,7 @@ export type Database = {
           content: string
           created_at?: string
           feedback_id?: string | null
+          feedback_metrics?: Json | null
           flow_step_id?: string | null
           id?: string
           original_conversation_id?: string | null
@@ -769,7 +846,9 @@ export type Database = {
           reprocessed_at?: string | null
           reprocessing?: boolean | null
           stage_id: string
+          streaming_status?: string | null
           summary?: string | null
+          version?: number | null
         }
         Update: {
           agent_id?: string
@@ -777,6 +856,7 @@ export type Database = {
           content?: string
           created_at?: string
           feedback_id?: string | null
+          feedback_metrics?: Json | null
           flow_step_id?: string | null
           id?: string
           original_conversation_id?: string | null
@@ -784,7 +864,9 @@ export type Database = {
           reprocessed_at?: string | null
           reprocessing?: boolean | null
           stage_id?: string
+          streaming_status?: string | null
           summary?: string | null
+          version?: number | null
         }
         Relationships: [
           {
