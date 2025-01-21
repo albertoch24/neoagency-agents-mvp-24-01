@@ -1,136 +1,57 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Stage } from "@/types/workflow";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useStageProcessing } from "@/hooks/useStageProcessing";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Stage } from "@/types/workflow";
 import { toast } from "sonner";
 
-export const useStageHandling = (selectedBriefId: string | null) => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [currentStage, setCurrentStage] = useState("kickoff");
-  const { processStage, isProcessing } = useStageProcessing(selectedBriefId || "", currentStage);
-  const queryClient = useQueryClient();
+export const useStageHandling = (briefId?: string) => {
+  const [currentStage, setCurrentStage] = useState<string>("kickoff");
 
-  // Query to check if stage has outputs
-  const { data: stageOutputs } = useQuery({
-    queryKey: ["workflow-conversations", selectedBriefId, currentStage],
+  const { data: stages = [] } = useQuery({
+    queryKey: ["stages", briefId],
     queryFn: async () => {
-      if (!selectedBriefId) return null;
+      console.log("🔍 Fetching stages for brief:", briefId);
       
-      console.log("Fetching conversations for stage:", currentStage);
+      const { data: brief } = await supabase
+        .from("briefs")
+        .select("current_stage")
+        .eq("id", briefId)
+        .maybeSingle();
+
+      if (brief?.current_stage) {
+        setCurrentStage(brief.current_stage);
+      }
+
       const { data, error } = await supabase
-        .from("workflow_conversations")
-        .select(`
-          *,
-          agents (
-            id,
-            name,
-            description,
-            skills (*)
-          )
-        `)
-        .eq("brief_id", selectedBriefId)
-        .eq("stage_id", currentStage)
-        .order("created_at", { ascending: true });
+        .from("stages")
+        .select("*")
+        .order("order_index", { ascending: true });
 
       if (error) {
-        console.error("Error fetching conversations:", error);
-        return null;
+        console.error("❌ Error fetching stages:", error);
+        toast.error("Failed to load stages");
+        throw error;
       }
 
-      console.log("Found conversations:", data);
-      return data;
+      console.log("✅ Stages fetched successfully:", data);
+      return data || [];
     },
-    enabled: !!selectedBriefId && !!currentStage,
-    staleTime: 0,
-    gcTime: 0,
-    refetchInterval: 5000
+    enabled: !!briefId
   });
 
-  // Initialize state from URL parameters and handle stage completion
-  useEffect(() => {
-    const stageFromUrl = searchParams.get("stage");
-    if (stageFromUrl) {
-      console.log("Setting stage from URL:", stageFromUrl);
-      setCurrentStage(stageFromUrl);
-      
-      // Ensure showOutputs is maintained in URL
-      const newParams = new URLSearchParams(searchParams);
-      newParams.set("stage", stageFromUrl);
-      newParams.set("showOutputs", "true");
-      if (selectedBriefId) {
-        newParams.set("briefId", selectedBriefId);
-      }
-      setSearchParams(newParams, { replace: true });
-    }
-  }, [searchParams.get("stage"), selectedBriefId]);
-
-  const handleStageSelect = async (stage: Stage) => {
-    if (!selectedBriefId) return;
-
-    console.log("Handling stage selection:", stage.id);
-
-    // Get the current stage index and selected stage index
-    const { data: stages } = await supabase
-      .from("stages")
-      .select("*")
-      .order("order_index", { ascending: true });
-
-    if (!stages) return;
-
-    const currentIndex = stages.findIndex(s => s.id === currentStage);
-    const selectedIndex = stages.findIndex(s => s.id === stage.id);
-
-    // Check if stage already has outputs
-    const { data: existingOutputs } = await supabase
-      .from("workflow_conversations")
-      .select("*")
-      .eq("brief_id", selectedBriefId)
-      .eq("stage_id", stage.id);
-
-    console.log("Checking existing outputs for stage:", stage.id, existingOutputs);
-
-    // Only process if moving to the next stage AND no outputs exist
-    if (selectedIndex === currentIndex + 1 && (!existingOutputs || existingOutputs.length === 0)) {
-      await processStage("true"); // Changed from boolean to string
-      
-      // Invalidate queries to refresh the data
-      await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
-      await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
-      
-      // Show success message and automatically transition to the processed stage
-      toast.success(`${stage.name} stage processed successfully!`);
-      setCurrentStage(stage.id);
-      
-      // Update URL parameters to show outputs
-      const newParams = new URLSearchParams(searchParams);
-      newParams.set("stage", stage.id);
-      newParams.set("showOutputs", "true");
-      if (selectedBriefId) {
-        newParams.set("briefId", selectedBriefId);
-      }
-      setSearchParams(newParams);
-    } else {
-      // If stage already has outputs or is a previous stage, just switch to it
-      setCurrentStage(stage.id);
-      
-      // Update URL parameters
-      const newParams = new URLSearchParams(searchParams);
-      newParams.set("stage", stage.id);
-      newParams.set("showOutputs", "true");
-      if (selectedBriefId) {
-        newParams.set("briefId", selectedBriefId);
-      }
-      setSearchParams(newParams);
-    }
+  const handleStageSelect = (stage: Stage) => {
+    console.log("🔄 Selecting stage:", stage);
+    setCurrentStage(stage.id);
   };
+
+  useEffect(() => {
+    if (stages.length > 0 && !currentStage) {
+      setCurrentStage(stages[0].id);
+    }
+  }, [stages, currentStage]);
 
   return {
     currentStage,
-    setCurrentStage,
-    handleStageSelect,
-    stageOutputs,
-    isProcessing
+    handleStageSelect
   };
 };

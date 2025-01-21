@@ -14,8 +14,11 @@ export const useStageProcessing = (briefId: string, stageId: string) => {
       return;
     }
 
+    const operationId = `workflow_stage_${Date.now()}`;
     setIsProcessing(true);
+    
     console.log("🚀 Starting stage processing:", {
+      operationId,
       briefId,
       stageId,
       feedbackId: feedbackId || 'none',
@@ -23,7 +26,7 @@ export const useStageProcessing = (briefId: string, stageId: string) => {
     });
 
     try {
-      // 1. Get stage data
+      // Get stage data with flow steps
       const { data: stage, error: stageError } = await supabase
         .from("stages")
         .select(`
@@ -49,23 +52,22 @@ export const useStageProcessing = (briefId: string, stageId: string) => {
       }
 
       console.log("✅ Stage data retrieved:", {
+        operationId,
         stageId: stage.id,
-        flowStepsCount: stage.flows?.flow_steps?.length || 0,
-        feedbackId: feedbackId || 'none'
+        flowStepsCount: stage.flows?.flow_steps?.length || 0
       });
 
-      // 2. Validate flow steps
       if (!stage.flows?.flow_steps?.length) {
         throw new Error("No flow steps found for stage");
       }
 
-      // 3. Call edge function
+      // Call edge function with validated parameters
       const { data, error } = await supabase.functions.invoke('process-workflow-stage', {
         body: {
           briefId,
           stageId,
           flowSteps: stage.flows.flow_steps,
-          feedbackId
+          feedbackId: feedbackId || null // Ensure null is passed when no feedbackId
         }
       });
 
@@ -75,22 +77,25 @@ export const useStageProcessing = (briefId: string, stageId: string) => {
       }
 
       console.log("✅ Stage processing completed:", {
+        operationId,
         briefId,
         stageId,
         feedbackId: feedbackId || 'none',
         timestamp: new Date().toISOString()
       });
 
-      // 4. Invalidate queries
+      // Invalidate queries to refresh data
       await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
       await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+      await queryClient.invalidateQueries({ queryKey: ["brief"] });
 
       toast.success("Stage processed successfully");
     } catch (error: any) {
       console.error("❌ Stage processing failed:", {
-        error,
+        operationId,
         briefId,
         stageId,
+        error,
         feedbackId: feedbackId || 'none'
       });
       toast.error(error.message || "Failed to process stage");
