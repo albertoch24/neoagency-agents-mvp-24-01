@@ -64,13 +64,19 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       }
 
       // 3. Call the edge function
-      console.log("🔄 Invoking edge function");
+      console.log("🔄 Invoking edge function with params:", {
+        briefId,
+        stageId,
+        flowStepsCount: stage.flows.flow_steps.length,
+        hasFeedback: !!feedbackId
+      });
+
       const { error: functionError } = await supabase.functions.invoke("process-workflow-stage", {
         body: { 
           briefId,
           stageId,
           flowSteps: stage.flows.flow_steps,
-          feedbackId: typeof feedbackId === 'string' ? feedbackId : null
+          feedbackId: feedbackId || null // Ensure null if no feedback
         }
       });
 
