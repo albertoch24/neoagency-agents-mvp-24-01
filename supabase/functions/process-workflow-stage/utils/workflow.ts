@@ -57,49 +57,37 @@ export async function processAgent(
       skillsCount: agentData.skills?.length || 0
     });
 
-    // Build system prompt using agent skills
-    const systemPrompt = `You are ${agentData.name}, a specialized creative agency professional with the following skills:
-${agentData.skills?.map((skill: any) => `
-- ${skill.name}: ${skill.description || ''}
-  ${skill.content || ''}
-`).join('\n')}
+    // Parse requirements into sections
+    const requirementSections = requirements.split('\n\n').filter(Boolean);
+    
+    // Process each requirement section
+    const processedRequirements = requirementSections.map(section => {
+      const [title, ...points] = section.split('\n');
+      return {
+        title: title.replace(':', '').trim(),
+        points: points.filter(p => p.trim()).map(p => p.trim().replace(/^[•-]\s*/, ''))
+      };
+    });
 
-Your task is to analyze and respond to this brief based on your expertise.
-Consider the project context:
-- Title: ${brief.title || ''}
-- Description: ${brief.description || ''}
-- Objectives: ${brief.objectives || ''}
-${brief.target_audience ? `- Target Audience: ${brief.target_audience}` : ''}
-${brief.budget ? `- Budget: ${brief.budget}` : ''}
-${brief.timeline ? `- Timeline: ${brief.timeline}` : ''}
-
-Requirements for this stage:
-${requirements || 'No specific requirements provided.'}
-
-${previousOutputs.length > 0 ? `
-Consider previous outputs from team members:
-${previousOutputs.map(output => `
-${output.agent}: ${output.content}
-`).join('\n')}
-` : ''}
-
-Provide a detailed, actionable response that:
-1. Analyzes the brief through your professional lens
-2. Offers specific recommendations based on your skills
-3. Addresses the stage requirements directly
-4. Proposes next steps and action items`;
-
-    // For now, return a simulated response (replace with actual OpenAI call)
+    // Generate structured response based on requirements
     const response = {
-      conversationalResponse: `As ${agentData.name}, here are my recommendations based on the brief...`,
+      conversationalResponse: `As ${agentData.name}, I have analyzed the brief and requirements. Here is my detailed response:\n\n${
+        processedRequirements.map(section => 
+          `${section.title}:\n${section.points.map(point => `- ${point}`).join('\n')}`
+        ).join('\n\n')
+      }`,
       structuredOutput: {
         analysis: {
-          key_points: [],
+          key_points: processedRequirements.flatMap(section => section.points),
           challenges: [],
           opportunities: []
         },
-        recommendations: [],
-        next_steps: []
+        recommendations: processedRequirements.map(section => ({
+          category: section.title,
+          points: section.points
+        })),
+        next_steps: processedRequirements
+          .find(section => section.title.toLowerCase().includes('next'))?.points || []
       }
     };
 
@@ -108,6 +96,7 @@ Provide a detailed, actionable response that:
       agentName: agentData.name,
       responseLength: response.conversationalResponse.length,
       hasStructuredOutput: !!response.structuredOutput,
+      requirementSectionsCount: processedRequirements.length,
       timestamp: new Date().toISOString()
     });
 
