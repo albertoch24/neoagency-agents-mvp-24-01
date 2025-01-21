@@ -1,11 +1,14 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { withRetry } from "./utils/retry.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const CHUNK_SIZE = 3; // Processa 3 step alla volta
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -34,25 +37,33 @@ serve(async (req) => {
 
     if (briefError) throw briefError;
 
-    // Process each flow step sequentially
+    // Process flow steps in chunks
     const outputs = [];
-    for (const step of flowSteps) {
-      console.log('Processing step:', { agentId: step.agent_id, requirements: step.requirements });
+    for (let i = 0; i < flowSteps.length; i += CHUNK_SIZE) {
+      const chunk = flowSteps.slice(i, i + CHUNK_SIZE);
+      console.log(`Processing chunk ${i / CHUNK_SIZE + 1}:`, {
+        start: i,
+        end: Math.min(i + CHUNK_SIZE, flowSteps.length)
+      });
 
-      // Get agent data
-      const { data: agent } = await supabase
-        .from('agents')
-        .select('*, skills(*)')
-        .eq('id', step.agent_id)
-        .single();
+      const chunkOutputs = await Promise.all(chunk.map(async (step) => {
+        return await withRetry(async () => {
+          console.log('Processing step:', { agentId: step.agent_id, requirements: step.requirements });
 
-      if (!agent) {
-        console.error('Agent not found:', step.agent_id);
-        continue;
-      }
+          // Get agent data
+          const { data: agent } = await supabase
+            .from('agents')
+            .select('*, skills(*)')
+            .eq('id', step.agent_id)
+            .single();
 
-      // Build system prompt using agent skills
-      const systemPrompt = `You are ${agent.name}, a specialized creative agency professional with the following skills:
+          if (!agent) {
+            console.error('Agent not found:', step.agent_id);
+            return null;
+          }
+
+          // Build system prompt
+          const systemPrompt = `You are ${agent.name}, a specialized creative agency professional with the following skills:
 ${agent.skills?.map((skill: any) => `
 - ${skill.name}: ${skill.description}
   ${skill.content}
@@ -68,73 +79,92 @@ Consider the project context:
 - Timeline: ${brief.timeline}
 
 Requirements for this stage:
-${step.requirements}
+${step.requirements}`;
 
-Provide a detailed, actionable response that:
-1. Analyzes the brief through your professional lens
-2. Offers specific recommendations based on your skills
-3. Addresses the stage requirements directly
-4. Proposes next steps and action items`;
+          // Generate response using OpenAI with retry
+          const openAIResponse = await withRetry(
+            async () => {
+              const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: 'gpt-4o-mini',
+                  messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: 'Please analyze this brief and provide your professional insights and recommendations.' }
+                  ],
+                  temperature: agent.temperature || 0.7,
+                }),
+              });
 
-      // Generate response using OpenAI
-      const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: 'Please analyze this brief and provide your professional insights and recommendations.' }
-          ],
-          temperature: agent.temperature || 0.7,
-        }),
-      });
+              if (!response.ok) {
+                throw new Error(`OpenAI API error: ${response.statusText}`);
+              }
 
-      if (!openAIResponse.ok) {
-        throw new Error(`OpenAI API error: ${openAIResponse.statusText}`);
-      }
+              return response.json();
+            },
+            {
+              maxRetries: 3,
+              initialDelay: 1000,
+              onRetry: (error, attempt) => {
+                console.log(`Retry attempt ${attempt} for OpenAI call:`, error);
+              }
+            }
+          );
 
-      const aiData = await openAIResponse.json();
-      const generatedContent = aiData.choices[0].message.content;
+          const generatedContent = openAIResponse.choices[0].message.content;
 
-      outputs.push({
-        agent: agent.name,
-        stepId: step.id,
-        outputs: [{
-          type: 'conversational',
-          content: generatedContent
-        }],
-        orderIndex: step.order_index,
-        requirements: step.requirements
-      });
+          return {
+            agent: agent.name,
+            stepId: step.id,
+            outputs: [{
+              type: 'conversational',
+              content: generatedContent
+            }],
+            orderIndex: step.order_index,
+            requirements: step.requirements
+          };
+        }, {
+          maxRetries: 3,
+          initialDelay: 2000,
+          onRetry: (error, attempt) => {
+            console.log(`Retry attempt ${attempt} for step processing:`, error);
+          }
+        });
+      }));
 
-      console.log('Generated output for agent:', {
-        agentName: agent.name,
-        contentLength: generatedContent.length
-      });
+      outputs.push(...chunkOutputs.filter(Boolean));
     }
 
-    // Save the output
-    const { error: outputError } = await supabase
-      .from('brief_outputs')
-      .insert({
-        brief_id: briefId,
-        stage_id: stageId,
-        stage: stageId,
-        content: {
-          outputs,
-          flow_name: '',
-          stage_name: '',
-          agent_count: outputs.length,
-          feedback_used: feedbackId ? 'Feedback incorporated' : null
-        },
-        feedback_id: feedbackId || null
-      });
+    // Save the output with retry
+    await withRetry(async () => {
+      const { error: outputError } = await supabase
+        .from('brief_outputs')
+        .insert({
+          brief_id: briefId,
+          stage_id: stageId,
+          stage: stageId,
+          content: {
+            outputs,
+            flow_name: '',
+            stage_name: '',
+            agent_count: outputs.length,
+            feedback_used: feedbackId ? 'Feedback incorporated' : null
+          },
+          feedback_id: feedbackId || null
+        });
 
-    if (outputError) throw outputError;
+      if (outputError) throw outputError;
+    }, {
+      maxRetries: 3,
+      initialDelay: 1000,
+      onRetry: (error, attempt) => {
+        console.log(`Retry attempt ${attempt} for saving output:`, error);
+      }
+    });
 
     console.log('✅ Successfully processed workflow stage:', {
       briefId,
