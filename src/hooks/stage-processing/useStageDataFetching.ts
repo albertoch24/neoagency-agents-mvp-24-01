@@ -21,7 +21,12 @@ export const useStageDataFetching = () => {
             requirements,
             order_index,
             outputs,
-            description
+            description,
+            agents (
+              id,
+              name,
+              description
+            )
           )
         )
       `)
@@ -36,6 +41,13 @@ export const useStageDataFetching = () => {
       });
       throw new Error("Failed to fetch stage data");
     }
+
+    console.log("✅ Stage data retrieved:", {
+      stageName: stage.name,
+      hasFlow: !!stage.flows,
+      flowStepsCount: stage.flows?.flow_steps?.length || 0,
+      timestamp: new Date().toISOString()
+    });
 
     return stage as Stage;
   };
