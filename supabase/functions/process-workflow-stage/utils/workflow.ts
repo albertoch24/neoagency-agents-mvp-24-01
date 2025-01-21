@@ -8,30 +8,24 @@ export async function processAgent(
   requirements: string,
   previousOutputs: any[] = []
 ) {
+  if (!agent?.id) {
+    console.error("Invalid agent data:", { agent });
+    throw new Error("Agent data is missing or invalid");
+  }
+
+  if (!brief?.id) {
+    console.error("Invalid brief data:", { brief });
+    throw new Error("Brief data is missing or invalid");
+  }
+
   console.log("Starting agent processing:", {
-    agentId: agent?.id,
-    briefId: brief?.id,
+    agentId: agent.id,
+    briefId: brief.id,
     stageId,
     hasRequirements: !!requirements,
     previousOutputsCount: previousOutputs.length,
     timestamp: new Date().toISOString()
   });
-
-  // Validate required parameters
-  if (!agent || !agent.id) {
-    console.error("Invalid agent data:", { agent });
-    throw new Error("Agent data is missing or invalid");
-  }
-
-  if (!brief || !brief.id) {
-    console.error("Invalid brief data:", { brief });
-    throw new Error("Brief data is missing or invalid");
-  }
-
-  if (!stageId) {
-    console.error("Missing stageId");
-    throw new Error("Stage ID is required");
-  }
 
   try {
     // Get complete agent data
@@ -97,25 +91,41 @@ Provide a detailed, actionable response that:
 
     // For now, return a simulated response (replace with actual OpenAI call)
     const response = {
-      conversationalResponse: `As ${agentData.name}, here are my recommendations based on the brief...`
+      conversationalResponse: `As ${agentData.name}, here are my recommendations based on the brief...`,
+      structuredOutput: {
+        analysis: {
+          key_points: [],
+          challenges: [],
+          opportunities: []
+        },
+        recommendations: [],
+        next_steps: []
+      }
     };
 
     console.log("Successfully generated response for agent:", {
       agentId: agentData.id,
       agentName: agentData.name,
       responseLength: response.conversationalResponse.length,
+      hasStructuredOutput: !!response.structuredOutput,
       timestamp: new Date().toISOString()
     });
 
     return {
       agent: agentData.name,
       requirements,
-      outputs: [{
-        content: response.conversationalResponse,
-        type: 'conversational'
-      }],
+      outputs: [
+        {
+          content: response.conversationalResponse,
+          type: 'conversational'
+        },
+        {
+          content: JSON.stringify(response.structuredOutput),
+          type: 'structured'
+        }
+      ],
       stepId: agentData.id,
-      orderIndex: 0
+      orderIndex: previousOutputs.length
     };
 
   } catch (error) {

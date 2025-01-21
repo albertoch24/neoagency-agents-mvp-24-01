@@ -3,7 +3,8 @@ export async function saveBriefOutput(
   briefId: string,
   stageId: string,
   outputs: any[],
-  feedbackContext: any | null
+  stageName: string,
+  feedbackContext: any | null = null
 ) {
   const now = new Date().toISOString();
 
@@ -12,23 +13,39 @@ export async function saveBriefOutput(
       briefId,
       stageId,
       outputsCount: outputs.length,
-      hasFeedback: !!feedbackContext
+      hasFeedback: !!feedbackContext,
+      timestamp: now
     });
+
+    // Format the content object
+    const content = {
+      stage_name: stageName,
+      outputs: outputs.map(output => ({
+        agent: output.agent,
+        requirements: output.requirements,
+        outputs: output.outputs,
+        stepId: output.stepId,
+        orderIndex: output.orderIndex
+      })),
+      metadata: {
+        processing_timestamp: now,
+        feedback_used: feedbackContext?.feedbackContent || null,
+        is_reprocessed: !!feedbackContext?.isReprocessing
+      }
+    };
 
     const { error: outputError } = await supabase
       .from('brief_outputs')
       .insert({
         brief_id: briefId,
         stage_id: stageId,
-        stage: stageId,
-        content: {
-          outputs: outputs,
-          feedback_used: feedbackContext?.feedbackContent || null
-        },
+        stage: stageName,
+        content,
         feedback_id: feedbackContext?.feedbackId || null,
         original_output_id: feedbackContext?.originalOutputId || null,
         is_reprocessed: feedbackContext?.isReprocessing || false,
-        reprocessed_at: feedbackContext?.isReprocessing ? now : null
+        reprocessed_at: feedbackContext?.isReprocessing ? now : null,
+        content_format: 'structured'
       });
 
     if (outputError) {
@@ -36,7 +53,14 @@ export async function saveBriefOutput(
       throw outputError;
     }
 
-    console.log('✅ Brief output saved successfully');
+    console.log('✅ Brief output saved successfully:', {
+      briefId,
+      stageId,
+      stageName,
+      outputsCount: outputs.length,
+      timestamp: now
+    });
+
   } catch (error) {
     console.error('❌ Error in saveBriefOutput:', error);
     throw error;
