@@ -22,12 +22,12 @@ export const WorkflowDisplay = ({
   const { isProcessing, processStage } = useStageProcessing(briefId, currentStage);
   const { data: stages = [] } = useStagesData(briefId);
 
-  const handleReprocess = async (feedbackId: string) => {
+  const handleReprocess = async (feedbackId: string | null) => {
     console.log('🚀 WorkflowDisplay - Starting reprocess:', {
       briefId,
       currentStage,
       stageName: stages.find(s => s.id === currentStage)?.name,
-      feedbackId,
+      hasFeedback: !!feedbackId,
       timestamp: new Date().toISOString(),
       isProcessing,
       hasProcessStage: !!processStage,
@@ -48,7 +48,7 @@ export const WorkflowDisplay = ({
 
       try {
         console.log('⚡ Calling processStage with:', {
-          feedbackId,
+          feedbackId: feedbackId || 'null',
           timestamp: new Date().toISOString()
         });
         
@@ -99,7 +99,7 @@ export const WorkflowDisplay = ({
       <WorkflowDisplayActions
         currentStage={currentStage || ''}
         stages={stages}
-        onNextStage={() => handleReprocess("true")}
+        onNextStage={handleReprocess}
         isProcessing={isProcessing}
         onStageSelect={onStageSelect}
       />

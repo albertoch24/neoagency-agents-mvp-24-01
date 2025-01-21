@@ -141,7 +141,7 @@ export const WorkflowDisplayActions = ({
         flowSteps: nextStage.flows?.flow_steps,
         timestamp: new Date().toISOString()
       });
-      onNextStage(null);
+      onNextStage(null); // Modificato qui: passiamo null invece di "true"
     }
   };
 
