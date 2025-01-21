@@ -78,18 +78,9 @@ export const useStageHandling = (briefId?: string) => {
     enabled: !!briefId,
     retry: 2,
     retryDelay: 1000,
-    staleTime: 1000 * 60 * 5, // 5 minuti
-    cacheTime: 1000 * 60 * 30 // 30 minuti
+    gcTime: 1000 * 60 * 30, // 30 minuti (sostituisce cacheTime)
+    staleTime: 1000 * 60 * 5 // 5 minuti
   });
-
-  const handleStageSelect = (stage: Stage) => {
-    console.log("🔄 Selecting stage:", {
-      id: stage.id,
-      name: stage.name,
-      previousStage: currentStage
-    });
-    setCurrentStage(stage.id);
-  };
 
   useEffect(() => {
     if (stages.length > 0 && !currentStage) {
@@ -104,6 +95,13 @@ export const useStageHandling = (briefId?: string) => {
 
   return {
     currentStage,
-    handleStageSelect
+    handleStageSelect: (stage: Stage) => {
+      console.log("🔄 Selecting stage:", {
+        id: stage.id,
+        name: stage.name,
+        previousStage: currentStage
+      });
+      setCurrentStage(stage.id);
+    }
   };
 };
