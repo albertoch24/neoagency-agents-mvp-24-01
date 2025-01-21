@@ -24,6 +24,36 @@ export const useStageHandling = (selectedBriefId: string | null) => {
         timestamp: new Date().toISOString()
       });
 
+      // First check if the stage exists and has a valid flow
+      const { data: stageData, error: stageError } = await supabase
+        .from("stages")
+        .select(`
+          *,
+          flows (
+            id,
+            name,
+            flow_steps (*)
+          )
+        `)
+        .eq("id", currentStage)
+        .single();
+
+      if (stageError) {
+        console.error("❌ Error fetching stage data:", {
+          error: stageError,
+          stageId: currentStage,
+          timestamp: new Date().toISOString()
+        });
+        return null;
+      }
+
+      console.log("📋 Stage data:", {
+        stageName: stageData.name,
+        hasFlow: !!stageData.flows,
+        flowStepsCount: stageData.flows?.flow_steps?.length,
+        timestamp: new Date().toISOString()
+      });
+
       const { data, error } = await supabase
         .from("workflow_conversations")
         .select(`
@@ -99,10 +129,20 @@ export const useStageHandling = (selectedBriefId: string | null) => {
     // Get the current stage index and selected stage index
     const { data: stages } = await supabase
       .from("stages")
-      .select("*")
+      .select(`
+        *,
+        flows (
+          id,
+          name,
+          flow_steps (*)
+        )
+      `)
       .order("order_index", { ascending: true });
 
-    if (!stages) return;
+    if (!stages) {
+      console.error("❌ No stages found");
+      return;
+    }
 
     const currentIndex = stages.findIndex(s => s.id === currentStage);
     const selectedIndex = stages.findIndex(s => s.id === stage.id);
@@ -111,6 +151,8 @@ export const useStageHandling = (selectedBriefId: string | null) => {
       currentIndex,
       selectedIndex,
       isForward: selectedIndex > currentIndex,
+      currentStageHasFlow: !!stages[currentIndex]?.flows,
+      selectedStageHasFlow: !!stages[selectedIndex]?.flows,
       timestamp: new Date().toISOString()
     });
 
@@ -131,10 +173,22 @@ export const useStageHandling = (selectedBriefId: string | null) => {
 
     // Only process if moving to the next stage AND no outputs exist
     if (selectedIndex === currentIndex + 1 && (!existingOutputs || existingOutputs.length === 0)) {
+      // Verify the stage has a valid flow before processing
+      if (!stages[selectedIndex]?.flows?.flow_steps?.length) {
+        console.error("❌ Cannot process stage - no flow steps found:", {
+          stageId: stage.id,
+          stageName: stage.name,
+          timestamp: new Date().toISOString()
+        });
+        toast.error("Cannot process stage - no workflow configured");
+        return;
+      }
+
       console.log("🚀 Initiating stage processing:", {
         stageId: stage.id,
         stageName: stage.name,
         briefId: selectedBriefId,
+        flowStepsCount: stages[selectedIndex].flows.flow_steps.length,
         timestamp: new Date().toISOString()
       });
 
