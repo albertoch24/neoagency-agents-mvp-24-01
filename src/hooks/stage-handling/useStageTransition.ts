@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Stage } from "@/types/workflow";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { resolveStageId } from "@/services/stage/resolveStageId";
 
 export const useStageTransition = (selectedBriefId: string | null) => {
   const [currentStage, setCurrentStage] = useState("kickoff");
