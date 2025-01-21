@@ -15,7 +15,7 @@ export async function generateAgentResponse(prompt: string, systemPrompt: string
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -26,6 +26,8 @@ export async function generateAgentResponse(prompt: string, systemPrompt: string
             content: prompt
           }
         ],
+        temperature: 0.7,
+        max_tokens: 2000,
       }),
     });
 

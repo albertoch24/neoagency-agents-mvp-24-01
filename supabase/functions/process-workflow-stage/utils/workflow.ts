@@ -31,56 +31,70 @@ export async function processAgent(
       feedbackId
     ) : null;
 
-    // Parse feedback into structured points if available
-    let feedbackPoints = [];
-    if (feedbackContext?.feedbackContent) {
-      feedbackPoints = parseFeedback(feedbackContext.feedbackContent);
-      
-      if (!validateFeedbackPoints(feedbackPoints)) {
-        console.error('❌ Invalid feedback structure detected');
-        throw new Error('Invalid feedback structure');
-      }
-      
-      console.log('✅ Feedback parsed successfully:', {
-        pointsCount: feedbackPoints.length,
-        points: feedbackPoints
-      });
-    }
+    // Build comprehensive system prompt using agent skills
+    const systemPrompt = `You are ${agent.name}, a specialized creative agency professional with the following skills:
+${agent.skills?.map((skill: any) => `
+- ${skill.name}: ${skill.description}
+  ${skill.content}
+`).join('\n')}
 
-    // Get original output if reprocessing
-    let originalOutput = null;
-    if (feedbackContext?.isReprocessing) {
-      const { data: originalConversation } = await supabase
-        .from('workflow_conversations')
-        .select('content')
-        .eq('id', feedbackContext.originalConversationId)
-        .single();
-      
-      originalOutput = originalConversation?.content;
-    }
+Your task is to analyze and respond to this brief based on your expertise.
+Consider the project context:
+- Title: ${brief.title}
+- Description: ${brief.description}
+- Objectives: ${brief.objectives}
+- Target Audience: ${brief.target_audience}
+- Budget: ${brief.budget}
+- Timeline: ${brief.timeline}
 
-    // Build prompt with feedback context
-    const { conversationalPrompt, systemPrompt } = await buildPrompt(
-      agent,
-      brief,
-      previousOutputs,
-      requirements,
-      previousOutputs.length === 0,
-      feedbackContext?.isReprocessing || false,
-      feedbackContext?.feedbackContent || ''
-    );
+Requirements for this stage:
+${requirements}
 
-    // Generate new response
-    const response = await generateAgentResponse(conversationalPrompt, systemPrompt);
+${previousOutputs.length > 0 ? `
+Consider previous outputs from team members:
+${previousOutputs.map(output => `
+${output.agent}: ${output.content}
+`).join('\n')}
+` : ''}
+
+Provide a detailed, actionable response that:
+1. Analyzes the brief through your professional lens
+2. Offers specific recommendations based on your skills
+3. Addresses the stage requirements directly
+4. Proposes next steps and action items
+`;
+
+    // Build user prompt with feedback context if available
+    const userPrompt = feedbackContext ? `
+Please revise your previous response considering this feedback:
+${feedbackContext.feedbackContent}
+
+Ensure your new response:
+1. Directly addresses each feedback point
+2. Maintains professional expertise
+3. Provides more detailed and actionable insights
+` : `
+Please analyze this brief and provide your professional insights and recommendations.
+Focus on your areas of expertise and provide actionable, specific guidance.
+`;
+
+    console.log('📝 Generated prompts:', {
+      systemPromptLength: systemPrompt.length,
+      userPromptLength: userPrompt.length,
+      hasFeedback: !!feedbackContext
+    });
+
+    // Generate response using OpenAI
+    const response = await generateAgentResponse(userPrompt, systemPrompt);
 
     if (!response || !response.conversationalResponse) {
       throw new Error('No response generated from agent');
     }
 
     // If reprocessing, validate feedback incorporation
-    if (feedbackContext?.isReprocessing && originalOutput) {
+    if (feedbackContext?.isReprocessing) {
       const validationResult = await validateFeedbackIncorporation(
-        originalOutput,
+        feedbackContext.originalResponse,
         response.conversationalResponse,
         feedbackContext.feedbackContent
       );
@@ -90,6 +104,11 @@ export async function processAgent(
         throw new Error('Generated response does not properly address feedback');
       }
     }
+
+    console.log('✅ Successfully generated response:', {
+      responseLength: response.conversationalResponse.length,
+      isReprocessing: feedbackContext?.isReprocessing
+    });
 
     return {
       agent: agent.name,
