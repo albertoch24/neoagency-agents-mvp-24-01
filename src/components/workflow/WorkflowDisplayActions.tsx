@@ -121,7 +121,7 @@ export const WorkflowDisplayActions = ({
     } else {
       // Avvia nuovo processo
       console.log("Starting process for next stage:", nextStage.id);
-      onNextStage(); // Remove the "true" string, let the process handle normally
+      onNextStage();
     }
   };
 

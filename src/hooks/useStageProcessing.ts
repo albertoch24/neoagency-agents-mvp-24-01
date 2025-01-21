@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
-export const useStageProcessing = (briefId?: string, stageId?: string) => {
+export const useStageProcessing = (briefId: string, stageId: string) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const queryClient = useQueryClient();
 
@@ -15,14 +15,15 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
     }
 
     setIsProcessing(true);
-    const toastId = toast.loading(
-      "Processing stage... This may take a few minutes.",
-      { duration: 120000 }
-    );
+    console.log("🚀 Starting stage processing:", {
+      briefId,
+      stageId,
+      feedbackId: feedbackId || 'none',
+      timestamp: new Date().toISOString()
+    });
 
     try {
-      // 1. First get the stage data
-      console.log("🔍 Fetching stage data");
+      // 1. Get stage data
       const { data: stage, error: stageError } = await supabase
         .from("stages")
         .select(`
@@ -44,13 +45,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         .single();
 
       if (stageError) {
-        console.error("❌ Error fetching stage:", stageError);
-        throw new Error("Failed to fetch stage data");
-      }
-
-      if (!stage) {
-        console.error("❌ Stage not found");
-        throw new Error("Stage not found");
+        throw stageError;
       }
 
       console.log("✅ Stage data retrieved:", {
@@ -61,52 +56,44 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
 
       // 2. Validate flow steps
       if (!stage.flows?.flow_steps?.length) {
-        throw new Error("No flow steps found for this stage");
+        throw new Error("No flow steps found for stage");
       }
 
-      // 3. Call the edge function with proper typing for feedbackId
-      console.log("🔄 Invoking edge function with params:", {
-        briefId,
-        stageId,
-        flowStepsCount: stage.flows.flow_steps.length,
-        feedbackId: feedbackId || null
-      });
-
-      const { error: functionError } = await supabase.functions.invoke("process-workflow-stage", {
-        body: { 
+      // 3. Call edge function
+      const { data, error } = await supabase.functions.invoke('process-workflow-stage', {
+        body: {
           briefId,
           stageId,
           flowSteps: stage.flows.flow_steps,
-          feedbackId: feedbackId || null
+          feedbackId
         }
       });
 
-      if (functionError) {
-        console.error("❌ Edge function error:", functionError);
-        throw functionError;
+      if (error) {
+        console.error("❌ Edge function error:", error);
+        throw error;
       }
 
-      console.log("✅ Edge function completed successfully");
+      console.log("✅ Stage processing completed:", {
+        briefId,
+        stageId,
+        feedbackId: feedbackId || 'none',
+        timestamp: new Date().toISOString()
+      });
 
-      // 4. Refresh data
-      console.log("🔄 Refreshing data");
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["brief-outputs"] }),
-        queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] }),
-        queryClient.invalidateQueries({ queryKey: ["stage-feedback"] })
-      ]);
+      // 4. Invalidate queries
+      await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+      await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
 
-      toast.dismiss(toastId);
-      toast.success(
-        feedbackId 
-          ? "Stage reprocessed successfully with feedback" 
-          : "Stage processed successfully"
-      );
-
-    } catch (error) {
-      console.error("❌ Error processing stage:", error);
-      toast.dismiss(toastId);
-      toast.error(error instanceof Error ? error.message : "Failed to process stage");
+      toast.success("Stage processed successfully");
+    } catch (error: any) {
+      console.error("❌ Stage processing failed:", {
+        error,
+        briefId,
+        stageId,
+        feedbackId: feedbackId || 'none'
+      });
+      toast.error(error.message || "Failed to process stage");
     } finally {
       setIsProcessing(false);
     }
