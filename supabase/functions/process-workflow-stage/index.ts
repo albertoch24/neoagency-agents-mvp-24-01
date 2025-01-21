@@ -1,9 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { ContextManager } from "./utils/contextManager.ts";
-import { ParallelProcessor } from "./utils/parallelProcessor.ts";
-import { ErrorHandler } from "./utils/errorHandler.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,177 +12,146 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const operationId = `workflow_stage_${Date.now()}`;
-  const startTime = performance.now();
-  
   try {
-    console.log('🚀 Starting workflow stage processing:', {
-      operationId,
-      method: req.method,
-      url: req.url,
-      timestamp: new Date().toISOString()
-    });
-
     const { briefId, stageId, flowSteps, feedbackId } = await req.json();
-    
-    if (!briefId || !stageId) {
-      throw new Error('Missing required parameters: briefId and stageId');
+    console.log('🚀 Processing workflow stage:', { briefId, stageId, stepsCount: flowSteps?.length });
+
+    if (!briefId || !stageId || !Array.isArray(flowSteps)) {
+      throw new Error('Missing required parameters');
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Initialize context manager and parallel processor
-    const contextManager = new ContextManager(briefId, stageId);
-    const processor = new ParallelProcessor(contextManager);
+    // Get brief data
+    const { data: brief, error: briefError } = await supabase
+      .from('briefs')
+      .select('*')
+      .eq('id', briefId)
+      .single();
 
-    // Set up processing nodes with dependencies
+    if (briefError) throw briefError;
+
+    // Process each flow step sequentially
+    const outputs = [];
     for (const step of flowSteps) {
-      processor.addNode(step.agent_id, []);
-      contextManager.initializeAgentContext(step.agent_id, step.requirements || '');
+      console.log('Processing step:', { agentId: step.agent_id, requirements: step.requirements });
+
+      // Get agent data
+      const { data: agent } = await supabase
+        .from('agents')
+        .select('*, skills(*)')
+        .eq('id', step.agent_id)
+        .single();
+
+      if (!agent) {
+        console.error('Agent not found:', step.agent_id);
+        continue;
+      }
+
+      // Build system prompt using agent skills
+      const systemPrompt = `You are ${agent.name}, a specialized creative agency professional with the following skills:
+${agent.skills?.map((skill: any) => `
+- ${skill.name}: ${skill.description}
+  ${skill.content}
+`).join('\n')}
+
+Your task is to analyze and respond to this brief based on your expertise.
+Consider the project context:
+- Title: ${brief.title}
+- Description: ${brief.description}
+- Objectives: ${brief.objectives}
+- Target Audience: ${brief.target_audience}
+- Budget: ${brief.budget}
+- Timeline: ${brief.timeline}
+
+Requirements for this stage:
+${step.requirements}
+
+Provide a detailed, actionable response that:
+1. Analyzes the brief through your professional lens
+2. Offers specific recommendations based on your skills
+3. Addresses the stage requirements directly
+4. Proposes next steps and action items`;
+
+      // Generate response using OpenAI
+      const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: 'Please analyze this brief and provide your professional insights and recommendations.' }
+          ],
+          temperature: agent.temperature || 0.7,
+        }),
+      });
+
+      if (!openAIResponse.ok) {
+        throw new Error(`OpenAI API error: ${openAIResponse.statusText}`);
+      }
+
+      const aiData = await openAIResponse.json();
+      const generatedContent = aiData.choices[0].message.content;
+
+      outputs.push({
+        agent: agent.name,
+        stepId: step.id,
+        outputs: [{
+          type: 'conversational',
+          content: generatedContent
+        }],
+        orderIndex: step.order_index,
+        requirements: step.requirements
+      });
+
+      console.log('Generated output for agent:', {
+        agentName: agent.name,
+        contentLength: generatedContent.length
+      });
     }
 
-    // Process agents with error handling and recovery
-    const processAgent = async (agentId: string, context: ContextManager) => {
-      const processingContext = {
-        resource: 'agent-processing',
-        agentId,
-        briefId,
-        stageId,
-        startTime,
-        retryCount: 0
-      };
-
-      try {
-        const step = flowSteps.find((s: any) => s.agent_id === agentId);
-        const agentContext = context.getAgentContext(agentId);
-
-        if (!step || !agentContext) {
-          throw new Error(`Invalid step or context for agent ${agentId}`);
-        }
-
-        // Get agent data with error handling
-        const { data: agent, error: agentError } = await supabase
-          .from('agents')
-          .select('*, skills(*)')
-          .eq('id', agentId)
-          .single();
-
-        if (agentError) {
-          throw agentError;
-        }
-
-        // Format and return output
-        return {
-          agent: agent.name,
-          stepId: step.id,
-          outputs: [{
-            type: "conversational",
-            content: `Processed output for ${agent.name}`
-          }],
-          orderIndex: step.order_index,
-          requirements: step.requirements
-        };
-      } catch (error) {
-        return await ErrorHandler.handleError(error, processingContext, async () => {
-          // Fallback processing logic
-          const { data: agent } = await supabase
-            .from('agents')
-            .select('name')
-            .eq('id', agentId)
-            .single();
-
-          return {
-            agent: agent?.name || 'Unknown Agent',
-            stepId: flowSteps.find((s: any) => s.agent_id === agentId)?.id,
-            outputs: [{
-              type: "conversational",
-              content: "Fallback output due to processing error"
-            }],
-            orderIndex: 0,
-            requirements: "Error recovery output"
-          };
-        });
-      }
-    };
-
-    // Process all agents
-    const outputs = await processor.processNodes(processAgent);
-
-    // Save processing metrics
-    const endTime = performance.now();
-    const processingMetrics = {
-      duration: endTime - startTime,
-      agentCount: flowSteps.length,
-      successfulOutputs: outputs.size,
-      memoryUsage: Deno.memoryUsage().heapUsed,
-      timestamp: new Date().toISOString()
-    };
-
-    // Prepare the content object
-    const content = {
-      outputs: Array.from(outputs.values()),
-      flow_name: flowSteps[0]?.flows?.name || '',
-      stage_name: flowSteps[0]?.stages?.name || '',
-      agent_count: flowSteps.length,
-      feedback_used: feedbackId ? 'Feedback incorporated' : null
-    };
-
-    // Save brief output with metrics
-    const { data: briefOutput, error: outputError } = await supabase
+    // Save the output
+    const { error: outputError } = await supabase
       .from('brief_outputs')
       .insert({
         brief_id: briefId,
-        stage: stageId,
         stage_id: stageId,
-        content,
-        feedback_id: feedbackId || null,
-        processing_metrics: processingMetrics
-      })
-      .select()
-      .single();
+        stage: stageId,
+        content: {
+          outputs,
+          flow_name: '',
+          stage_name: '',
+          agent_count: outputs.length,
+          feedback_used: feedbackId ? 'Feedback incorporated' : null
+        },
+        feedback_id: feedbackId || null
+      });
 
-    if (outputError) {
-      throw outputError;
-    }
+    if (outputError) throw outputError;
 
-    console.log('✅ Processing completed successfully:', {
-      operationId,
-      outputId: briefOutput.id,
-      outputsCount: outputs.size,
-      metrics: processingMetrics
+    console.log('✅ Successfully processed workflow stage:', {
+      briefId,
+      stageId,
+      outputsCount: outputs.length
     });
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        outputs: Array.from(outputs.values()),
-        briefOutputId: briefOutput.id,
-        metrics: processingMetrics
-      }),
-      { headers: corsHeaders }
+      JSON.stringify({ success: true, outputs }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    const structuredError = await ErrorHandler.handleError(error, {
-      resource: 'workflow-stage',
-      operationId,
-      duration: performance.now() - startTime
-    });
-
+    console.error('❌ Error processing workflow stage:', error);
     return new Response(
-      JSON.stringify({
-        error: structuredError.message,
-        code: structuredError.code,
-        category: structuredError.category,
-        metrics: structuredError.metrics
-      }),
-      { 
-        status: 500,
-        headers: corsHeaders
-      }
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
