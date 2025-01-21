@@ -28,7 +28,7 @@ const Index = () => {
     handleSelectBrief
   } = useBriefState();
   
-  const { currentStage, handleStageSelect } = useStageHandling(briefId || selectedBriefId || '');
+  const stageHandling = useStageHandling(briefId || selectedBriefId || '');
 
   const { data: briefs, error: briefsError } = useQuery({
     queryKey: ["briefs", user?.id],
@@ -137,8 +137,8 @@ const Index = () => {
           <div className="-mx-4">
             <WorkflowDisplay
               briefId={currentBrief?.id}
-              currentStage={currentStage}
-              onStageSelect={handleStageSelect}
+              currentStage={stageHandling.currentStage}
+              onStageSelect={stageHandling.handleStageSelect}
               showOutputs={showOutputs}
             />
           </div>
