@@ -8,59 +8,109 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const CHUNK_SIZE = 3; // Processa 3 step alla volta
+const CHUNK_SIZE = 3;
 
 serve(async (req) => {
+  const requestId = crypto.randomUUID();
+  console.log(`🚀 [${requestId}] Starting request processing at ${new Date().toISOString()}`);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { briefId, stageId, flowSteps, feedbackId } = await req.json();
-    console.log('🚀 Processing workflow stage:', { briefId, stageId, stepsCount: flowSteps?.length });
+    console.log(`📝 [${requestId}] Request parameters:`, { 
+      briefId, 
+      stageId, 
+      stepsCount: flowSteps?.length,
+      hasFeedback: !!feedbackId,
+      timestamp: new Date().toISOString()
+    });
 
     if (!briefId || !stageId || !Array.isArray(flowSteps)) {
+      console.error(`❌ [${requestId}] Missing required parameters:`, {
+        hasBriefId: !!briefId,
+        hasStageId: !!stageId,
+        hasFlowSteps: Array.isArray(flowSteps),
+      });
       throw new Error('Missing required parameters');
     }
 
-    // Initialize Supabase client
+    // Initialize Supabase client with logging
+    console.log(`🔌 [${requestId}] Initializing Supabase client`);
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get brief data
+    // Get brief data with error handling
+    console.log(`📚 [${requestId}] Fetching brief data`);
     const { data: brief, error: briefError } = await supabase
       .from('briefs')
       .select('*')
       .eq('id', briefId)
       .single();
 
-    if (briefError) throw briefError;
+    if (briefError) {
+      console.error(`❌ [${requestId}] Error fetching brief:`, {
+        error: briefError,
+        briefId,
+        timestamp: new Date().toISOString()
+      });
+      throw briefError;
+    }
 
-    // Process flow steps in chunks
+    console.log(`✅ [${requestId}] Brief data fetched successfully:`, {
+      briefTitle: brief.title,
+      briefStatus: brief.status,
+      timestamp: new Date().toISOString()
+    });
+
+    // Process flow steps in chunks with detailed logging
     const outputs = [];
+    const totalChunks = Math.ceil(flowSteps.length / CHUNK_SIZE);
+    
     for (let i = 0; i < flowSteps.length; i += CHUNK_SIZE) {
+      const chunkIndex = Math.floor(i / CHUNK_SIZE) + 1;
       const chunk = flowSteps.slice(i, i + CHUNK_SIZE);
-      console.log(`Processing chunk ${i / CHUNK_SIZE + 1}:`, {
-        start: i,
-        end: Math.min(i + CHUNK_SIZE, flowSteps.length)
+      
+      console.log(`🔄 [${requestId}] Processing chunk ${chunkIndex}/${totalChunks}:`, {
+        startIndex: i,
+        endIndex: Math.min(i + CHUNK_SIZE, flowSteps.length),
+        stepsInChunk: chunk.length,
+        timestamp: new Date().toISOString()
       });
 
       const chunkOutputs = await Promise.all(chunk.map(async (step) => {
         return await withRetry(async () => {
-          console.log('Processing step:', { agentId: step.agent_id, requirements: step.requirements });
+          console.log(`👤 [${requestId}] Processing agent step:`, {
+            agentId: step.agent_id,
+            stepId: step.id,
+            orderIndex: step.order_index,
+            timestamp: new Date().toISOString()
+          });
 
-          // Get agent data
-          const { data: agent } = await supabase
+          // Get agent data with logging
+          const { data: agent, error: agentError } = await supabase
             .from('agents')
             .select('*, skills(*)')
             .eq('id', step.agent_id)
             .single();
 
-          if (!agent) {
-            console.error('Agent not found:', step.agent_id);
-            return null;
+          if (agentError) {
+            console.error(`❌ [${requestId}] Error fetching agent:`, {
+              error: agentError,
+              agentId: step.agent_id,
+              timestamp: new Date().toISOString()
+            });
+            throw agentError;
           }
+
+          console.log(`✅ [${requestId}] Agent data fetched:`, {
+            agentName: agent.name,
+            skillsCount: agent.skills?.length,
+            timestamp: new Date().toISOString()
+          });
 
           // Build system prompt
           const systemPrompt = `You are ${agent.name}, a specialized creative agency professional with the following skills:
@@ -81,7 +131,13 @@ Consider the project context:
 Requirements for this stage:
 ${step.requirements}`;
 
-          // Generate response using OpenAI with retry
+          // Generate response using OpenAI with retry and logging
+          console.log(`🤖 [${requestId}] Generating OpenAI response for agent:`, {
+            agentName: agent.name,
+            promptLength: systemPrompt.length,
+            timestamp: new Date().toISOString()
+          });
+
           const openAIResponse = await withRetry(
             async () => {
               const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -101,6 +157,11 @@ ${step.requirements}`;
               });
 
               if (!response.ok) {
+                console.error(`❌ [${requestId}] OpenAI API error:`, {
+                  status: response.status,
+                  statusText: response.statusText,
+                  timestamp: new Date().toISOString()
+                });
                 throw new Error(`OpenAI API error: ${response.statusText}`);
               }
 
@@ -110,12 +171,20 @@ ${step.requirements}`;
               maxRetries: 3,
               initialDelay: 1000,
               onRetry: (error, attempt) => {
-                console.log(`Retry attempt ${attempt} for OpenAI call:`, error);
+                console.log(`🔄 [${requestId}] Retry attempt ${attempt} for OpenAI call:`, {
+                  error: error.message,
+                  timestamp: new Date().toISOString()
+                });
               }
             }
           );
 
           const generatedContent = openAIResponse.choices[0].message.content;
+          console.log(`✅ [${requestId}] Generated content for agent:`, {
+            agentName: agent.name,
+            contentLength: generatedContent.length,
+            timestamp: new Date().toISOString()
+          });
 
           return {
             agent: agent.name,
@@ -131,15 +200,28 @@ ${step.requirements}`;
           maxRetries: 3,
           initialDelay: 2000,
           onRetry: (error, attempt) => {
-            console.log(`Retry attempt ${attempt} for step processing:`, error);
+            console.log(`🔄 [${requestId}] Retry attempt ${attempt} for step processing:`, {
+              error: error.message,
+              timestamp: new Date().toISOString()
+            });
           }
         });
       }));
 
       outputs.push(...chunkOutputs.filter(Boolean));
+      console.log(`✅ [${requestId}] Chunk ${chunkIndex}/${totalChunks} processed successfully:`, {
+        outputsGenerated: chunkOutputs.length,
+        timestamp: new Date().toISOString()
+      });
     }
 
-    // Save the output with retry
+    // Save the output with retry and logging
+    console.log(`💾 [${requestId}] Saving outputs to database:`, {
+      outputsCount: outputs.length,
+      hasFeedback: !!feedbackId,
+      timestamp: new Date().toISOString()
+    });
+
     await withRetry(async () => {
       const { error: outputError } = await supabase
         .from('brief_outputs')
@@ -157,19 +239,29 @@ ${step.requirements}`;
           feedback_id: feedbackId || null
         });
 
-      if (outputError) throw outputError;
+      if (outputError) {
+        console.error(`❌ [${requestId}] Error saving outputs:`, {
+          error: outputError,
+          timestamp: new Date().toISOString()
+        });
+        throw outputError;
+      }
     }, {
       maxRetries: 3,
       initialDelay: 1000,
       onRetry: (error, attempt) => {
-        console.log(`Retry attempt ${attempt} for saving output:`, error);
+        console.log(`🔄 [${requestId}] Retry attempt ${attempt} for saving output:`, {
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
       }
     });
 
-    console.log('✅ Successfully processed workflow stage:', {
+    console.log(`✅ [${requestId}] Successfully processed workflow stage:`, {
       briefId,
       stageId,
-      outputsCount: outputs.length
+      outputsCount: outputs.length,
+      timestamp: new Date().toISOString()
     });
 
     return new Response(
@@ -178,9 +270,14 @@ ${step.requirements}`;
     );
 
   } catch (error) {
-    console.error('❌ Error processing workflow stage:', error);
+    console.error(`❌ [${requestId}] Error processing workflow stage:`, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
