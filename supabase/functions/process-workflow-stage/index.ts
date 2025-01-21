@@ -17,11 +17,46 @@ serve(async (req) => {
 
   try {
     const { briefId, stageId, flowSteps, feedbackId } = await req.json();
-    console.log(`📝 [${requestId}] Request parameters:`, { 
+    console.log(`📝 [${requestId}] Stage Processing Details:`, { 
       briefId, 
-      stageId, 
-      stepsCount: flowSteps?.length,
+      stageId,
+      flowStepsCount: flowSteps?.length,
       hasFeedback: !!feedbackId,
+      timestamp: new Date().toISOString()
+    });
+
+    // Get stage details for debugging
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { data: stageData, error: stageError } = await supabase
+      .from('stages')
+      .select(`
+        *,
+        flows (
+          id,
+          name,
+          flow_steps (*)
+        )
+      `)
+      .eq('id', stageId)
+      .single();
+
+    if (stageError) {
+      console.error(`❌ [${requestId}] Error fetching stage:`, {
+        error: stageError,
+        stageId,
+        timestamp: new Date().toISOString()
+      });
+      throw stageError;
+    }
+
+    console.log(`📋 [${requestId}] Stage details:`, {
+      stageName: stageData.name,
+      hasFlow: !!stageData.flows,
+      flowId: stageData.flow_id,
+      flowStepsCount: stageData.flows?.flow_steps?.length,
       timestamp: new Date().toISOString()
     });
 
@@ -33,7 +68,12 @@ serve(async (req) => {
     if (Array.isArray(flowSteps) && flowSteps.length === 0) validationErrors.push('flowSteps array is empty');
 
     if (validationErrors.length > 0) {
-      console.error(`❌ [${requestId}] Validation errors:`, validationErrors);
+      console.error(`❌ [${requestId}] Validation errors:`, {
+        errors: validationErrors,
+        stageName: stageData.name,
+        flowId: stageData.flow_id,
+        timestamp: new Date().toISOString()
+      });
       return new Response(
         JSON.stringify({ 
           error: 'Validation failed', 
@@ -46,12 +86,6 @@ serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client
-    console.log(`🔌 [${requestId}] Initializing Supabase client`);
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     // Get brief data
     console.log(`📚 [${requestId}] Fetching brief data`);
     const { data: brief, error: briefError } = await supabase
@@ -61,7 +95,12 @@ serve(async (req) => {
       .single();
 
     if (briefError) {
-      console.error(`❌ [${requestId}] Error fetching brief:`, briefError);
+      console.error(`❌ [${requestId}] Error fetching brief:`, {
+        error: briefError,
+        briefId,
+        stageName: stageData.name,
+        timestamp: new Date().toISOString()
+      });
       throw briefError;
     }
 
@@ -72,6 +111,7 @@ serve(async (req) => {
         agentId: step.agent_id,
         stepId: step.id,
         orderIndex: step.order_index,
+        stageName: stageData.name,
         timestamp: new Date().toISOString()
       });
 
@@ -83,7 +123,12 @@ serve(async (req) => {
         .single();
 
       if (agentError) {
-        console.error(`❌ [${requestId}] Error fetching agent:`, agentError);
+        console.error(`❌ [${requestId}] Error fetching agent:`, {
+          error: agentError,
+          agentId: step.agent_id,
+          stageName: stageData.name,
+          timestamp: new Date().toISOString()
+        });
         throw agentError;
       }
 
@@ -102,6 +147,7 @@ Consider the project context:
 - Target Audience: ${brief.target_audience}
 - Budget: ${brief.budget}
 - Timeline: ${brief.timeline}
+- Stage: ${stageData.name}
 
 Requirements for this stage:
 ${step.requirements}`;
@@ -110,6 +156,7 @@ ${step.requirements}`;
       console.log(`🤖 [${requestId}] Generating OpenAI response for agent:`, {
         agentName: agent.name,
         promptLength: systemPrompt.length,
+        stageName: stageData.name,
         timestamp: new Date().toISOString()
       });
 
@@ -133,6 +180,7 @@ ${step.requirements}`;
         console.error(`❌ [${requestId}] OpenAI API error:`, {
           status: openAIResponse.status,
           statusText: openAIResponse.statusText,
+          stageName: stageData.name,
           timestamp: new Date().toISOString()
         });
         throw new Error(`OpenAI API error: ${openAIResponse.statusText}`);
@@ -144,6 +192,7 @@ ${step.requirements}`;
       console.log(`✅ [${requestId}] Generated content for agent:`, {
         agentName: agent.name,
         contentLength: generatedContent.length,
+        stageName: stageData.name,
         timestamp: new Date().toISOString()
       });
 
@@ -163,6 +212,7 @@ ${step.requirements}`;
     console.log(`💾 [${requestId}] Saving outputs to database:`, {
       outputsCount: outputs.length,
       hasFeedback: !!feedbackId,
+      stageName: stageData.name,
       timestamp: new Date().toISOString()
     });
 
@@ -174,8 +224,8 @@ ${step.requirements}`;
         stage: stageId,
         content: {
           outputs,
-          flow_name: '',
-          stage_name: '',
+          flow_name: stageData.flows?.name || '',
+          stage_name: stageData.name,
           agent_count: outputs.length,
           feedback_used: feedbackId ? 'Feedback incorporated' : null
         },
@@ -183,7 +233,11 @@ ${step.requirements}`;
       });
 
     if (outputError) {
-      console.error(`❌ [${requestId}] Error saving outputs:`, outputError);
+      console.error(`❌ [${requestId}] Error saving outputs:`, {
+        error: outputError,
+        stageName: stageData.name,
+        timestamp: new Date().toISOString()
+      });
       throw outputError;
     }
 
@@ -201,7 +255,11 @@ ${step.requirements}`;
         });
 
       if (conversationError) {
-        console.error(`❌ [${requestId}] Error saving conversation:`, conversationError);
+        console.error(`❌ [${requestId}] Error saving conversation:`, {
+          error: conversationError,
+          stageName: stageData.name,
+          timestamp: new Date().toISOString()
+        });
         throw conversationError;
       }
     }
@@ -209,6 +267,7 @@ ${step.requirements}`;
     console.log(`✅ [${requestId}] Successfully processed workflow stage:`, {
       briefId,
       stageId,
+      stageName: stageData.name,
       outputsCount: outputs.length,
       timestamp: new Date().toISOString()
     });
