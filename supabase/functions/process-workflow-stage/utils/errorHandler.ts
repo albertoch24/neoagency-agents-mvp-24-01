@@ -39,7 +39,7 @@ export class ErrorHandler {
       retryCount: context.retryCount || 0,
       performanceMetrics: {
         duration: context.duration || 0,
-        memoryUsage: process.memoryUsage().heapUsed,
+        memoryUsage: Deno.memoryUsage().heapUsed,
       },
     };
 
