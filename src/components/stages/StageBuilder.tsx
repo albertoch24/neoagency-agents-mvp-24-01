@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StageForm } from "./StageForm";
 import { StageList } from "./StageList";
 
@@ -107,6 +107,11 @@ export const StageBuilder = ({ stages, briefId }: StageBuilderProps) => {
         }}
       >
         <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingStage ? 'Edit Stage' : 'Create Stage'}
+            </DialogTitle>
+          </DialogHeader>
           <StageForm 
             onClose={handleCloseDialog} 
             editingStage={editingStage}
