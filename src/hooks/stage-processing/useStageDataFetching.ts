@@ -1,53 +1,44 @@
-import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { resolveStageId } from "@/services/stage/resolveStageId";
+import { Stage } from "@/types/workflow";
 
 export const useStageDataFetching = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const fetchStageData = async (stageId: string) => {
+    console.log("🔍 Fetching stage data and flow steps:", {
+      stageId,
+      timestamp: new Date().toISOString()
+    });
 
-  const fetchStageData = async (stageIdentifier: string) => {
-    console.log("🔄 Fetching stage data for:", stageIdentifier);
-    setIsLoading(true);
-
-    try {
-      const resolvedStageId = await resolveStageId(stageIdentifier);
-      
-      const { data: stage, error } = await supabase
-        .from("stages")
-        .select(`
-          *,
-          flows (
+    const { data: stage, error: stageError } = await supabase
+      .from("stages")
+      .select(`
+        *,
+        flows (
+          id,
+          name,
+          flow_steps (
             id,
-            name,
-            flow_steps (*)
+            agent_id,
+            requirements,
+            order_index,
+            outputs,
+            description
           )
-        `)
-        .eq("id", resolvedStageId)
-        .single();
+        )
+      `)
+      .eq("id", stageId)
+      .single();
 
-      if (error) {
-        console.error("❌ Error fetching stage data:", error);
-        toast.error("Failed to fetch stage data");
-        throw error;
-      }
-
-      console.log("📋 Stage data:", {
-        stageName: stage.name,
-        hasFlow: !!stage.flows,
-        flowStepsCount: stage.flows?.flow_steps?.length,
+    if (stageError) {
+      console.error("❌ Error fetching stage:", {
+        error: stageError,
+        stageId,
         timestamp: new Date().toISOString()
       });
-
-      return stage;
-    } catch (error) {
-      console.error("❌ Stage data fetching failed:", error);
-      toast.error("Failed to fetch stage data");
-      throw error;
-    } finally {
-      setIsLoading(false);
+      throw new Error("Failed to fetch stage data");
     }
+
+    return stage as Stage;
   };
 
-  return { fetchStageData, isLoading };
+  return { fetchStageData };
 };
