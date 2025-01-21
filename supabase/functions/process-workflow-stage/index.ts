@@ -1,20 +1,17 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { ContextManager } from "./utils/contextManager.ts";
+import { ParallelProcessor } from "./utils/parallelProcessor.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Content-Type': 'application/json'
 };
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   const operationId = `workflow_stage_${Date.now()}`;
@@ -30,133 +27,88 @@ serve(async (req) => {
     const { briefId, stageId, flowSteps, feedbackId } = await req.json();
     
     if (!briefId || !stageId) {
-      console.error('❌ Missing required parameters:', { briefId, stageId });
-      throw new Error('Missing required parameters: briefId and stageId are required');
+      throw new Error('Missing required parameters: briefId and stageId');
     }
 
-    // Get brief data
-    const { data: brief, error: briefError } = await supabase
-      .from('briefs')
-      .select('*')
-      .eq('id', briefId)
-      .single();
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
 
-    if (briefError) {
-      console.error('❌ Error fetching brief:', {
-        operationId,
-        error: briefError,
-        briefId
-      });
-      throw briefError;
-    }
+    // Initialize context manager
+    const contextManager = new ContextManager(briefId, stageId);
+    
+    // Initialize parallel processor
+    const processor = new ParallelProcessor(contextManager);
 
-    // Get stage data
-    const { data: stage, error: stageError } = await supabase
-      .from('stages')
-      .select(`
-        *,
-        flows (
-          id,
-          name,
-          flow_steps (
-            id,
-            agent_id,
-            requirements,
-            order_index,
-            outputs,
-            description
-          )
-        )
-      `)
-      .eq('id', stageId)
-      .single();
-
-    if (stageError) {
-      console.error('❌ Error fetching stage:', {
-        operationId,
-        error: stageError,
-        stageId
-      });
-      throw stageError;
-    }
-
-    // Process each flow step
-    const outputs = [];
+    // Set up processing nodes with dependencies
     for (const step of flowSteps) {
-      console.log('🔄 Processing flow step:', {
-        operationId,
-        stepId: step.id,
-        agentId: step.agent_id,
-        orderIndex: step.order_index
-      });
-
-      try {
-        // Get agent data
-        const { data: agent, error: agentError } = await supabase
-          .from('agents')
-          .select('*')
-          .eq('id', step.agent_id)
-          .single();
-
-        if (agentError) {
-          console.error('❌ Error fetching agent:', {
-            operationId,
-            error: agentError,
-            agentId: step.agent_id
-          });
-          throw agentError;
-        }
-
-        // Format the output in the expected structure
-        const formattedOutput = {
-          agent: agent.name,
-          stepId: step.id,
-          outputs: [{
-            type: "conversational",
-            content: formatContent(step.outputs)
-          }],
-          orderIndex: step.order_index,
-          requirements: step.requirements
-        };
-
-        outputs.push(formattedOutput);
-
-        // Create workflow conversation with the formatted content
-        const { error: conversationError } = await supabase
-          .from('workflow_conversations')
-          .insert({
-            brief_id: briefId,
-            stage_id: stageId,
-            agent_id: step.agent_id,
-            content: JSON.stringify(formattedOutput.outputs),
-            output_type: 'conversational',
-            flow_step_id: step.id
-          });
-
-        if (conversationError) {
-          console.error('❌ Error creating workflow conversation:', {
-            operationId,
-            error: conversationError,
-            stepId: step.id
-          });
-          throw conversationError;
-        }
-
-      } catch (stepError) {
-        console.error('❌ Error processing flow step:', {
-          operationId,
-          error: stepError,
-          stepId: step.id
-        });
-        throw stepError;
-      }
+      processor.addNode(step.agent_id, []);
+      contextManager.initializeAgentContext(step.agent_id, step.requirements || '');
     }
 
-    // Prepare the content object with the correct structure
+    // Process agents in parallel while maintaining context
+    const processAgent = async (agentId: string, context: ContextManager) => {
+      const step = flowSteps.find((s: any) => s.agent_id === agentId);
+      const agentContext = context.getAgentContext(agentId);
+
+      if (!step || !agentContext) {
+        throw new Error(`Invalid step or context for agent ${agentId}`);
+      }
+
+      // Get agent data
+      const { data: agent, error: agentError } = await supabase
+        .from('agents')
+        .select('*, skills(*)')
+        .eq('id', agentId)
+        .single();
+
+      if (agentError) {
+        throw agentError;
+      }
+
+      // Format the output
+      const formattedOutput = {
+        agent: agent.name,
+        stepId: step.id,
+        outputs: [{
+          type: "conversational",
+          content: `Processed output for ${agent.name}`
+        }],
+        orderIndex: step.order_index,
+        requirements: step.requirements
+      };
+
+      // Update context with new output
+      context.addOutput(agentId, formattedOutput);
+      
+      // Create workflow conversation
+      const { error: conversationError } = await supabase
+        .from('workflow_conversations')
+        .insert({
+          brief_id: briefId,
+          stage_id: stageId,
+          agent_id: agentId,
+          content: JSON.stringify(formattedOutput.outputs),
+          output_type: 'conversational',
+          flow_step_id: step.id
+        });
+
+      if (conversationError) {
+        throw conversationError;
+      }
+
+      return formattedOutput;
+    };
+
+    // Process all agents
+    const outputs = await processor.processNodes(processAgent);
+
+    // Prepare the content object
     const content = {
-      outputs,
-      flow_name: stage.flows?.name || '',
-      stage_name: stage.name,
+      outputs: Array.from(outputs.values()),
+      flow_name: flowSteps[0]?.flows?.name || '',
+      stage_name: flowSteps[0]?.stages?.name || '',
       agent_count: flowSteps.length,
       feedback_used: feedbackId ? 'Feedback incorporated' : null
     };
@@ -166,7 +118,7 @@ serve(async (req) => {
       .from('brief_outputs')
       .insert({
         brief_id: briefId,
-        stage: stage.name,
+        stage: stageId,
         stage_id: stageId,
         content,
         feedback_id: feedbackId || null
@@ -175,32 +127,26 @@ serve(async (req) => {
       .single();
 
     if (outputError) {
-      console.error('❌ Error saving brief output:', {
-        operationId,
-        error: outputError,
-        briefId,
-        stageId
-      });
       throw outputError;
     }
 
-    console.log('✅ Brief output saved successfully:', {
+    console.log('✅ Processing completed successfully:', {
       operationId,
       outputId: briefOutput.id,
-      outputsCount: outputs.length
+      outputsCount: outputs.size
     });
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        outputs,
+        outputs: Array.from(outputs.values()),
         briefOutputId: briefOutput.id
       }),
       { headers: corsHeaders }
     );
 
   } catch (error) {
-    console.error('💥 Unexpected error in workflow stage processing:', {
+    console.error('💥 Error in workflow stage processing:', {
       operationId,
       error: error.message,
       stack: error.stack
@@ -218,17 +164,3 @@ serve(async (req) => {
     );
   }
 });
-
-// Helper function to format the content
-function formatContent(outputs: any[]): string {
-  if (!Array.isArray(outputs)) return '';
-  
-  // Convert the array of text items into a markdown formatted string
-  const sections = outputs.map(output => {
-    if (typeof output === 'string') return output;
-    if (output.text) return output.text;
-    return '';
-  });
-
-  return sections.join('\n\n');
-}
