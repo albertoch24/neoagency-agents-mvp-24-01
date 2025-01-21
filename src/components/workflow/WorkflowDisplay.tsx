@@ -22,7 +22,7 @@ export const WorkflowDisplay = ({
   const { isProcessing, processStage } = useStageProcessing(briefId, currentStage);
   const { data: stages = [] } = useStagesData(briefId);
 
-  const handleReprocess = async (feedbackId: string) => {
+  const handleReprocess = async (feedbackId?: string | null) => {
     console.log('🔄 WorkflowDisplay - Starting reprocess:', {
       briefId,
       currentStage,
@@ -31,7 +31,8 @@ export const WorkflowDisplay = ({
     });
 
     if (briefId && currentStage) {
-      await processStage(feedbackId);
+      // Pass null instead of "true" when no feedback ID is provided
+      await processStage(feedbackId || null);
       
       console.log('✅ WorkflowDisplay - Reprocess completed:', {
         briefId,
@@ -61,7 +62,7 @@ export const WorkflowDisplay = ({
       <WorkflowDisplayActions
         currentStage={currentStage || ''}
         stages={stages}
-        onNextStage={() => handleReprocess("true")}
+        onNextStage={() => handleReprocess(null)}
         isProcessing={isProcessing}
         onStageSelect={onStageSelect}
       />
