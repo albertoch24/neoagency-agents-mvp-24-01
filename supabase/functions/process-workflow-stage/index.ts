@@ -30,9 +30,14 @@ serve(async (req) => {
 
     const { briefId, stageId, flowSteps, feedbackId } = await req.json();
     
+    // Validate input parameters
     if (!briefId || !stageId) {
-      console.error('❌ Missing required parameters:', { briefId, stageId });
       throw new Error('Missing required parameters: briefId and stageId are required');
+    }
+
+    // Validate feedbackId is either null or a valid UUID
+    if (feedbackId !== null && typeof feedbackId !== 'string') {
+      throw new Error('Invalid feedbackId format');
     }
 
     // Get brief data
@@ -49,36 +54,6 @@ serve(async (req) => {
         briefId
       });
       throw briefError;
-    }
-
-    // Get stage data
-    const { data: stage, error: stageError } = await supabase
-      .from('stages')
-      .select(`
-        *,
-        flows (
-          id,
-          name,
-          flow_steps (
-            id,
-            agent_id,
-            requirements,
-            order_index,
-            outputs,
-            description
-          )
-        )
-      `)
-      .eq('id', stageId)
-      .single();
-
-    if (stageError) {
-      console.error('❌ Error fetching stage:', {
-        operationId,
-        error: stageError,
-        stageId
-      });
-      throw stageError;
     }
 
     // Process each flow step
@@ -100,15 +75,10 @@ serve(async (req) => {
           .single();
 
         if (agentError) {
-          console.error('❌ Error fetching agent:', {
-            operationId,
-            error: agentError,
-            agentId: step.agent_id
-          });
           throw agentError;
         }
 
-        // Format the output with the correct structure
+        // Format the output
         const formattedOutput = {
           agent: agent.name,
           stepId: step.id,
@@ -131,15 +101,11 @@ serve(async (req) => {
             agent_id: step.agent_id,
             content: JSON.stringify(formattedOutput.outputs),
             output_type: 'conversational',
-            flow_step_id: step.id
+            flow_step_id: step.id,
+            feedback_id: feedbackId || null
           });
 
         if (conversationError) {
-          console.error('❌ Error creating workflow conversation:', {
-            operationId,
-            error: conversationError,
-            stepId: step.id
-          });
           throw conversationError;
         }
 
@@ -153,35 +119,26 @@ serve(async (req) => {
       }
     }
 
-    // Prepare the content object with the correct structure
-    const content = {
-      outputs,
-      flow_name: stage.flows?.name || '',
-      stage_name: stage.name,
-      agent_count: flowSteps.length,
-      feedback_used: feedbackId ? 'Feedback incorporated' : null
-    };
-
     // Save brief output
     const { data: briefOutput, error: outputError } = await supabase
       .from('brief_outputs')
       .insert({
         brief_id: briefId,
-        stage: stage.name,
+        stage: brief.name,
         stage_id: stageId,
-        content,
+        content: {
+          outputs,
+          flow_name: '',
+          stage_name: brief.name,
+          agent_count: flowSteps.length,
+          feedback_used: feedbackId ? 'Feedback incorporated' : null
+        },
         feedback_id: feedbackId || null
       })
       .select()
       .single();
 
     if (outputError) {
-      console.error('❌ Error saving brief output:', {
-        operationId,
-        error: outputError,
-        briefId,
-        stageId
-      });
       throw outputError;
     }
 
@@ -220,36 +177,30 @@ serve(async (req) => {
   }
 });
 
-// Helper function to format the content based on requirements and brief data
+// Helper function to format content
 function formatContent(requirements: string, brief: any): string {
-  // Create a structured markdown response based on the requirements
   let content = `### Refined Creative Brief\n\n`;
   
-  // Add project objectives section
-  content += `**Project Objectives:**\n`;
   if (brief.objectives) {
+    content += `**Project Objectives:**\n`;
     const objectives = brief.objectives.split('\n').filter(Boolean);
     objectives.forEach(obj => content += `- ${obj.trim()}\n`);
   }
 
-  // Add target audience section
-  content += `\n**Target Audience:**\n`;
   if (brief.target_audience) {
+    content += `\n**Target Audience:**\n`;
     const audience = brief.target_audience.split('\n').filter(Boolean);
     audience.forEach(aud => content += `- ${aud.trim()}\n`);
   }
 
-  // Add timeline section if available
   if (brief.timeline) {
     content += `\n**Timeline:**\n${brief.timeline}\n`;
   }
 
-  // Add budget information if available
   if (brief.budget) {
     content += `\n**Budget Considerations:**\n${brief.budget}\n`;
   }
 
-  // Add requirements section
   if (requirements) {
     content += `\n**Requirements:**\n${requirements}\n`;
   }

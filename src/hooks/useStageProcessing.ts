@@ -63,14 +63,20 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         throw new Error("No flow steps found for this stage");
       }
 
-      // 3. Call the edge function
-      console.log("🔄 Invoking edge function");
+      // 3. Call the edge function with proper typing for feedbackId
+      console.log("🔄 Invoking edge function with params:", {
+        briefId,
+        stageId,
+        flowStepsCount: stage.flows.flow_steps.length,
+        feedbackId: feedbackId || null
+      });
+
       const { error: functionError } = await supabase.functions.invoke("process-workflow-stage", {
         body: { 
           briefId,
           stageId,
           flowSteps: stage.flows.flow_steps,
-          feedbackId: typeof feedbackId === 'string' ? feedbackId : null
+          feedbackId: feedbackId || null // Ensure null is passed when undefined
         }
       });
 
