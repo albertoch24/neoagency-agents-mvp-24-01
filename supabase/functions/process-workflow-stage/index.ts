@@ -15,7 +15,6 @@ const corsHeaders = {
 serve(async (req) => {
   const operationId = `workflow_stage_${Date.now()}`;
   
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -30,7 +29,6 @@ serve(async (req) => {
 
     const { briefId, stageId, flowSteps, feedbackId } = await req.json();
     
-    // Validate input parameters
     if (!briefId || !stageId) {
       throw new Error('Missing required parameters: briefId and stageId are required');
     }
@@ -40,7 +38,6 @@ serve(async (req) => {
       throw new Error('Invalid feedbackId format');
     }
 
-    // Get brief data
     const { data: brief, error: briefError } = await supabase
       .from('briefs')
       .select('*')
@@ -56,7 +53,6 @@ serve(async (req) => {
       throw briefError;
     }
 
-    // Process each flow step
     const outputs = [];
     for (const step of flowSteps) {
       console.log('🔄 Processing flow step:', {
@@ -67,18 +63,14 @@ serve(async (req) => {
       });
 
       try {
-        // Get agent data
         const { data: agent, error: agentError } = await supabase
           .from('agents')
           .select('*')
           .eq('id', step.agent_id)
           .single();
 
-        if (agentError) {
-          throw agentError;
-        }
+        if (agentError) throw agentError;
 
-        // Format the output
         const formattedOutput = {
           agent: agent.name,
           stepId: step.id,
@@ -92,7 +84,6 @@ serve(async (req) => {
 
         outputs.push(formattedOutput);
 
-        // Create workflow conversation
         const { error: conversationError } = await supabase
           .from('workflow_conversations')
           .insert({
@@ -105,10 +96,7 @@ serve(async (req) => {
             feedback_id: feedbackId || null
           });
 
-        if (conversationError) {
-          throw conversationError;
-        }
-
+        if (conversationError) throw conversationError;
       } catch (stepError) {
         console.error('❌ Error processing flow step:', {
           operationId,
@@ -119,26 +107,38 @@ serve(async (req) => {
       }
     }
 
-    // Save brief output
+    // Save brief output with proper type handling
+    const briefOutputData = {
+      brief_id: briefId,
+      stage: brief.name,
+      stage_id: stageId,
+      content: {
+        outputs,
+        flow_name: '',
+        stage_name: brief.name,
+        agent_count: flowSteps.length,
+        feedback_used: feedbackId ? 'Feedback incorporated' : null
+      },
+      feedback_id: feedbackId || null
+    };
+
+    console.log('💾 Saving brief output:', {
+      operationId,
+      data: briefOutputData
+    });
+
     const { data: briefOutput, error: outputError } = await supabase
       .from('brief_outputs')
-      .insert({
-        brief_id: briefId,
-        stage: brief.name,
-        stage_id: stageId,
-        content: {
-          outputs,
-          flow_name: '',
-          stage_name: brief.name,
-          agent_count: flowSteps.length,
-          feedback_used: feedbackId ? 'Feedback incorporated' : null
-        },
-        feedback_id: feedbackId || null
-      })
+      .insert(briefOutputData)
       .select()
       .single();
 
     if (outputError) {
+      console.error('❌ Error saving brief output:', {
+        operationId,
+        error: outputError,
+        data: briefOutputData
+      });
       throw outputError;
     }
 
