@@ -4,7 +4,7 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://szufbafdhfwqclyixdpd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6dWZiYWZkaGZ3cWNseWl4ZHBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUyMjg4NzksImV4cCI6MjA1MDgwNDg3OX0.ry4ch2QlWkkgxmM-7ppgUdsAPNB25n8MuimkeqT864M";
 
-// Configurazione del client con opzioni aggiuntive per la gestione degli errori e logging
+// Configure client with enhanced debugging and session persistence
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     persistSession: true,
@@ -29,7 +29,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
-// Funzione di utilità per verificare la connessione
+// Utility function to verify database connection
 export const checkDatabaseConnection = async () => {
   try {
     console.log('🔍 Verifica connessione database...');
@@ -58,7 +58,7 @@ export const checkDatabaseConnection = async () => {
   }
 };
 
-// Funzione per ottenere l'utente corrente con il profilo
+// Utility function to get current user with profile
 export const getCurrentUserWithProfile = async () => {
   try {
     console.log('🔍 Recupero sessione utente...');
