@@ -22,7 +22,12 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
 
     try {
       // 1. First get the stage data
-      console.log("🔍 Fetching stage data");
+      console.log("🔍 Fetching stage data:", {
+        briefId,
+        stageId,
+        timestamp: new Date().toISOString()
+      });
+
       const { data: stage, error: stageError } = await supabase
         .from("stages")
         .select(`
@@ -44,18 +49,27 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         .single();
 
       if (stageError) {
-        console.error("❌ Error fetching stage:", stageError);
+        console.error("❌ Error fetching stage:", {
+          error: stageError,
+          stageId,
+          timestamp: new Date().toISOString()
+        });
         throw new Error("Failed to fetch stage data");
       }
 
       if (!stage) {
-        console.error("❌ Stage not found");
+        console.error("❌ Stage not found:", {
+          stageId,
+          timestamp: new Date().toISOString()
+        });
         throw new Error("Stage not found");
       }
 
       console.log("✅ Stage data retrieved:", {
         stageId: stage.id,
-        flowStepsCount: stage.flows?.flow_steps?.length || 0
+        stageName: stage.name,
+        flowStepsCount: stage.flows?.flow_steps?.length || 0,
+        timestamp: new Date().toISOString()
       });
 
       // 2. Validate flow steps
@@ -64,11 +78,12 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       }
 
       // 3. Call the edge function
-      console.log("🔄 Invoking edge function with params:", {
+      console.log("🚀 Invoking edge function:", {
         briefId,
         stageId,
         flowStepsCount: stage.flows.flow_steps.length,
-        hasFeedback: !!feedbackId
+        hasFeedback: !!feedbackId,
+        timestamp: new Date().toISOString()
       });
 
       const { error: functionError } = await supabase.functions.invoke("process-workflow-stage", {
@@ -76,16 +91,24 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
           briefId,
           stageId,
           flowSteps: stage.flows.flow_steps,
-          feedbackId: feedbackId || null // Ensure null if no feedback
+          feedbackId: feedbackId || null
         }
       });
 
       if (functionError) {
-        console.error("❌ Edge function error:", functionError);
+        console.error("❌ Edge function error:", {
+          error: functionError,
+          stageId,
+          timestamp: new Date().toISOString()
+        });
         throw functionError;
       }
 
-      console.log("✅ Edge function completed successfully");
+      console.log("✅ Edge function completed successfully:", {
+        stageId,
+        stageName: stage.name,
+        timestamp: new Date().toISOString()
+      });
 
       // 4. Refresh data
       console.log("🔄 Refreshing data");
@@ -103,7 +126,11 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       );
 
     } catch (error) {
-      console.error("❌ Error processing stage:", error);
+      console.error("❌ Error processing stage:", {
+        error,
+        stageId,
+        timestamp: new Date().toISOString()
+      });
       toast.dismiss(toastId);
       toast.error(error instanceof Error ? error.message : "Failed to process stage");
     } finally {

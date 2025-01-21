@@ -18,7 +18,12 @@ export const useStageHandling = (selectedBriefId: string | null) => {
     queryFn: async () => {
       if (!selectedBriefId) return null;
       
-      console.log("Fetching conversations for stage:", currentStage);
+      console.log("🔍 Checking conversations for stage:", {
+        stageId: currentStage,
+        briefId: selectedBriefId,
+        timestamp: new Date().toISOString()
+      });
+
       const { data, error } = await supabase
         .from("workflow_conversations")
         .select(`
@@ -35,11 +40,21 @@ export const useStageHandling = (selectedBriefId: string | null) => {
         .order("created_at", { ascending: true });
 
       if (error) {
-        console.error("Error fetching conversations:", error);
+        console.error("❌ Error fetching conversations:", {
+          error,
+          stageId: currentStage,
+          briefId: selectedBriefId,
+          timestamp: new Date().toISOString()
+        });
         return null;
       }
 
-      console.log("Found conversations:", data);
+      console.log("✅ Found conversations:", {
+        count: data?.length,
+        stageId: currentStage,
+        briefId: selectedBriefId,
+        timestamp: new Date().toISOString()
+      });
       return data;
     },
     enabled: !!selectedBriefId && !!currentStage,
@@ -52,7 +67,11 @@ export const useStageHandling = (selectedBriefId: string | null) => {
   useEffect(() => {
     const stageFromUrl = searchParams.get("stage");
     if (stageFromUrl) {
-      console.log("Setting stage from URL:", stageFromUrl);
+      console.log("🔄 Stage transition from URL:", {
+        previousStage: currentStage,
+        newStage: stageFromUrl,
+        timestamp: new Date().toISOString()
+      });
       setCurrentStage(stageFromUrl);
       
       // Ensure showOutputs is maintained in URL
@@ -69,7 +88,13 @@ export const useStageHandling = (selectedBriefId: string | null) => {
   const handleStageSelect = async (stage: Stage) => {
     if (!selectedBriefId) return;
 
-    console.log("Handling stage selection:", stage.id);
+    console.log("🎯 Stage selection initiated:", {
+      stageId: stage.id,
+      stageName: stage.name,
+      currentStage,
+      briefId: selectedBriefId,
+      timestamp: new Date().toISOString()
+    });
 
     // Get the current stage index and selected stage index
     const { data: stages } = await supabase
@@ -82,6 +107,13 @@ export const useStageHandling = (selectedBriefId: string | null) => {
     const currentIndex = stages.findIndex(s => s.id === currentStage);
     const selectedIndex = stages.findIndex(s => s.id === stage.id);
 
+    console.log("📊 Stage transition analysis:", {
+      currentIndex,
+      selectedIndex,
+      isForward: selectedIndex > currentIndex,
+      timestamp: new Date().toISOString()
+    });
+
     // Check if stage already has outputs
     const { data: existingOutputs } = await supabase
       .from("workflow_conversations")
@@ -89,17 +121,36 @@ export const useStageHandling = (selectedBriefId: string | null) => {
       .eq("brief_id", selectedBriefId)
       .eq("stage_id", stage.id);
 
-    console.log("Checking existing outputs for stage:", stage.id, existingOutputs);
+    console.log("🔍 Stage output check:", {
+      stageId: stage.id,
+      stageName: stage.name,
+      hasExistingOutputs: !!existingOutputs?.length,
+      outputCount: existingOutputs?.length,
+      timestamp: new Date().toISOString()
+    });
 
     // Only process if moving to the next stage AND no outputs exist
     if (selectedIndex === currentIndex + 1 && (!existingOutputs || existingOutputs.length === 0)) {
-      await processStage(null); // Changed from "true" to null
+      console.log("🚀 Initiating stage processing:", {
+        stageId: stage.id,
+        stageName: stage.name,
+        briefId: selectedBriefId,
+        timestamp: new Date().toISOString()
+      });
+
+      await processStage(null);
       
       // Invalidate queries to refresh the data
       await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
       await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
       
-      // Show success message and automatically transition to the processed stage
+      console.log("✅ Stage processing completed:", {
+        stageId: stage.id,
+        stageName: stage.name,
+        briefId: selectedBriefId,
+        timestamp: new Date().toISOString()
+      });
+
       toast.success(`${stage.name} stage processed successfully!`);
       setCurrentStage(stage.id);
       
@@ -112,6 +163,13 @@ export const useStageHandling = (selectedBriefId: string | null) => {
       }
       setSearchParams(newParams);
     } else {
+      console.log("↪️ Stage transition without processing:", {
+        stageId: stage.id,
+        stageName: stage.name,
+        reason: existingOutputs?.length ? "Existing outputs found" : "Not next stage",
+        timestamp: new Date().toISOString()
+      });
+
       // If stage already has outputs or is a previous stage, just switch to it
       setCurrentStage(stage.id);
       
