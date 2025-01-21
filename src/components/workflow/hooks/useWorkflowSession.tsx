@@ -9,21 +9,30 @@ export const useWorkflowSession = () => {
 
   const handleSessionRefresh = async () => {
     try {
+      console.log("Attempting to refresh session...");
       const { data: { session }, error } = await supabase.auth.getSession();
       
-      if (error || !session) {
-        console.error("Session refresh failed:", error);
+      if (error) {
+        console.error("Session refresh error:", error);
         toast.error("Failed to refresh session. Please try logging in again.");
         await signOut();
         return false;
       }
 
-      // Retry queries after refresh
+      if (!session) {
+        console.warn("No active session found");
+        // Don't immediately sign out - give time for normal initialization
+        return false;
+      }
+
+      console.log("Session refresh successful:", session.user?.id);
+      
+      // Retry queries after successful refresh
       await queryClient.invalidateQueries();
       return true;
     } catch (error) {
-      console.error("Error refreshing session:", error);
-      toast.error("Failed to refresh session. Please try logging in again.");
+      console.error("Unexpected error during session refresh:", error);
+      toast.error("An unexpected error occurred. Please try logging in again.");
       return false;
     }
   };
