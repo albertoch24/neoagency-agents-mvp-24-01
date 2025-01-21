@@ -119,9 +119,9 @@ export const WorkflowDisplayActions = ({
         onStageSelect(nextStage);
       }
     } else {
-      // Avvia nuovo processo
+      // Avvia nuovo processo senza considerare il feedback
       console.log("Starting process for next stage:", nextStage.id);
-      onNextStage(null); // Modificato qui: ora passa null invece di "true"
+      onNextStage(null);
     }
   };
 
