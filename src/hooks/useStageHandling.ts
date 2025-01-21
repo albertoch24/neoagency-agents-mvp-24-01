@@ -13,19 +13,30 @@ export const useStageHandling = (briefId?: string) => {
       console.log("🔍 Fetching stages for brief:", briefId);
       
       try {
-        // First, get the current stage from the brief
-        const { data: brief } = await supabase
+        // Prima verifichiamo che l'utente sia autenticato
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          throw new Error("User not authenticated");
+        }
+
+        // Verifichiamo che il brief esista e appartenga all'utente
+        const { data: brief, error: briefError } = await supabase
           .from("briefs")
-          .select("current_stage")
+          .select("current_stage, user_id")
           .eq("id", briefId)
-          .maybeSingle();
+          .single();
+
+        if (briefError) {
+          console.error("❌ Error fetching brief:", briefError);
+          throw briefError;
+        }
 
         if (brief?.current_stage) {
           console.log("📍 Current stage from brief:", brief.current_stage);
           setCurrentStage(brief.current_stage);
         }
 
-        // Then fetch all stages
+        // Ora recuperiamo gli stages
         const { data, error } = await supabase
           .from("stages")
           .select(`
@@ -43,6 +54,7 @@ export const useStageHandling = (briefId?: string) => {
               )
             )
           `)
+          .eq("user_id", session.user.id)
           .order("order_index", { ascending: true });
 
         if (error) {
@@ -65,7 +77,9 @@ export const useStageHandling = (briefId?: string) => {
     },
     enabled: !!briefId,
     retry: 2,
-    retryDelay: 1000
+    retryDelay: 1000,
+    staleTime: 1000 * 60 * 5, // 5 minuti
+    cacheTime: 1000 * 60 * 30 // 30 minuti
   });
 
   const handleStageSelect = (stage: Stage) => {
