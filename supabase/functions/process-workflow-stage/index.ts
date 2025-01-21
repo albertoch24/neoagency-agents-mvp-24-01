@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from '@supabase/supabase-js';
 import { validateWorkflowData } from './utils/dataValidator.ts';
 import { processFeedback } from './utils/feedbackProcessor.ts';
 import { processAgent } from './utils/workflow.ts';
@@ -19,21 +20,40 @@ serve(async (req) => {
 
   try {
     const { briefId, stageId, flowSteps, feedbackId } = await req.json();
-    console.log('Received request:', { briefId, stageId, flowStepsCount: flowSteps?.length, hasFeedback: !!feedbackId });
+    console.log('Received request:', { 
+      briefId, 
+      stageId, 
+      flowStepsCount: flowSteps?.length,
+      hasFeedback: !!feedbackId,
+      timestamp: new Date().toISOString()
+    });
 
     if (!briefId || !stageId || !Array.isArray(flowSteps)) {
       throw new Error('Missing required parameters');
     }
 
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     // 1. Data Validation & Preparation
-    const { brief, stage } = await validateWorkflowData(briefId, stageId);
-    console.log('Validated workflow data:', { briefId, stageName: stage.name });
+    const { brief, stage } = await validateWorkflowData(supabase, briefId, stageId);
+    console.log('Validated workflow data:', { 
+      briefId, 
+      stageName: stage.name,
+      timestamp: new Date().toISOString()
+    });
 
     // 2. Feedback Processing
     let feedbackContext = null;
     if (feedbackId) {
-      feedbackContext = await processFeedback(briefId, stageId, feedbackId);
-      console.log('Processed feedback:', { feedbackId, hasOriginalOutput: !!feedbackContext.originalOutput });
+      feedbackContext = await processFeedback(supabase, briefId, stageId, feedbackId);
+      console.log('Processed feedback:', { 
+        feedbackId, 
+        hasOriginalOutput: !!feedbackContext.originalOutput,
+        timestamp: new Date().toISOString()
+      });
     }
 
     // 3. Agent Processing
@@ -46,12 +66,12 @@ serve(async (req) => {
 
       try {
         const result = await processAgent(
-          step.agents,
+          supabase,
+          { id: step.agent_id },
           brief,
           stageId,
           step.requirements,
-          outputs,
-          feedbackId
+          outputs
         );
         
         if (result) {
@@ -59,9 +79,10 @@ serve(async (req) => {
           
           // 4. Conversation Management
           await saveConversation(
+            supabase,
             briefId,
             stageId,
-            step.agents.id,
+            step.agent_id,
             result.outputs[0].content,
             feedbackContext
           );
@@ -70,9 +91,10 @@ serve(async (req) => {
         console.error('Error processing step:', {
           error: stepError,
           stepId: step.id,
-          agentId: step.agent_id
+          agentId: step.agent_id,
+          timestamp: new Date().toISOString()
         });
-        continue;
+        throw stepError;
       }
     }
 
@@ -82,6 +104,7 @@ serve(async (req) => {
 
     // 5. Output Management
     await saveBriefOutput(
+      supabase,
       briefId,
       stageId,
       outputs,

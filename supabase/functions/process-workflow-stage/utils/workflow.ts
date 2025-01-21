@@ -1,37 +1,80 @@
+import { createClient } from '@supabase/supabase-js';
+
 export async function processAgent(
+  supabase: any,
   agent: any,
   brief: any,
   stageId: string,
   requirements: string,
-  previousOutputs: any[] = [],
-  feedbackId: string | null = null
+  previousOutputs: any[] = []
 ) {
+  console.log("Starting agent processing:", {
+    agentId: agent?.id,
+    briefId: brief?.id,
+    stageId,
+    hasRequirements: !!requirements,
+    previousOutputsCount: previousOutputs.length,
+    timestamp: new Date().toISOString()
+  });
+
+  // Validate required parameters
+  if (!agent || !agent.id) {
+    console.error("Invalid agent data:", { agent });
+    throw new Error("Agent data is missing or invalid");
+  }
+
+  if (!brief || !brief.id) {
+    console.error("Invalid brief data:", { brief });
+    throw new Error("Brief data is missing or invalid");
+  }
+
+  if (!stageId) {
+    console.error("Missing stageId");
+    throw new Error("Stage ID is required");
+  }
+
   try {
-    if (!agent || !agent.id) {
-      console.error('Invalid agent configuration:', agent);
-      throw new Error('Invalid agent configuration');
+    // Get complete agent data
+    const { data: agentData, error: agentError } = await supabase
+      .from('agents')
+      .select(`
+        id,
+        name,
+        description,
+        temperature,
+        skills (
+          id,
+          name,
+          type,
+          content
+        )
+      `)
+      .eq('id', agent.id)
+      .single();
+
+    if (agentError || !agentData) {
+      console.error("Error fetching agent data:", { error: agentError, agentId: agent.id });
+      throw new Error(`Failed to fetch agent data: ${agentError?.message || 'Agent not found'}`);
     }
 
-    console.log('🚀 Starting agent processing:', {
-      agentId: agent.id,
-      agentName: agent.name,
-      briefId: brief.id,
-      stageId,
-      hasFeedback: !!feedbackId
+    console.log("Retrieved agent data:", {
+      agentId: agentData.id,
+      agentName: agentData.name,
+      skillsCount: agentData.skills?.length || 0
     });
 
-    // Build comprehensive system prompt using agent skills
-    const systemPrompt = `You are ${agent.name}, a specialized creative agency professional with the following skills:
-${agent.skills?.map((skill: any) => `
-- ${skill.name}: ${skill.description}
-  ${skill.content}
+    // Build system prompt using agent skills
+    const systemPrompt = `You are ${agentData.name}, a specialized creative agency professional with the following skills:
+${agentData.skills?.map((skill: any) => `
+- ${skill.name}: ${skill.description || ''}
+  ${skill.content || ''}
 `).join('\n')}
 
 Your task is to analyze and respond to this brief based on your expertise.
 Consider the project context:
-- Title: ${brief.title}
-- Description: ${brief.description}
-- Objectives: ${brief.objectives}
+- Title: ${brief.title || ''}
+- Description: ${brief.description || ''}
+- Objectives: ${brief.objectives || ''}
 ${brief.target_audience ? `- Target Audience: ${brief.target_audience}` : ''}
 ${brief.budget ? `- Budget: ${brief.budget}` : ''}
 ${brief.timeline ? `- Timeline: ${brief.timeline}` : ''}
@@ -50,43 +93,39 @@ Provide a detailed, actionable response that:
 1. Analyzes the brief through your professional lens
 2. Offers specific recommendations based on your skills
 3. Addresses the stage requirements directly
-4. Proposes next steps and action items
-`;
+4. Proposes next steps and action items`;
 
-    // Build user prompt
-    const userPrompt = `Please analyze this brief and provide your professional insights and recommendations.
-Focus on your areas of expertise and provide actionable, specific guidance.`;
-
-    console.log('📝 Generated prompts:', {
-      systemPromptLength: systemPrompt.length,
-      userPromptLength: userPrompt.length
-    });
-
-    // Simulate response for now (replace with actual OpenAI call)
+    // For now, return a simulated response (replace with actual OpenAI call)
     const response = {
-      conversationalResponse: `As ${agent.name}, here are my recommendations...`
+      conversationalResponse: `As ${agentData.name}, here are my recommendations based on the brief...`
     };
 
-    if (!response || !response.conversationalResponse) {
-      throw new Error('No response generated from agent');
-    }
-
-    console.log('✅ Successfully generated response:', {
-      responseLength: response.conversationalResponse.length
+    console.log("Successfully generated response for agent:", {
+      agentId: agentData.id,
+      agentName: agentData.name,
+      responseLength: response.conversationalResponse.length,
+      timestamp: new Date().toISOString()
     });
 
     return {
-      agent: agent.name,
+      agent: agentData.name,
       requirements,
       outputs: [{
         content: response.conversationalResponse,
         type: 'conversational'
       }],
-      stepId: agent.id,
+      stepId: agentData.id,
       orderIndex: 0
     };
+
   } catch (error) {
-    console.error('❌ Error in processAgent:', error);
+    console.error("Error in processAgent:", {
+      error,
+      agentId: agent?.id,
+      briefId: brief?.id,
+      stageId,
+      timestamp: new Date().toISOString()
+    });
     throw error;
   }
 }
