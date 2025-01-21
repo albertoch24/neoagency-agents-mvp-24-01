@@ -33,8 +33,14 @@ serve(async (req) => {
       throw new Error('Missing required parameters: briefId and stageId are required');
     }
 
+    // Validate UUID format for IDs
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(briefId) || !uuidRegex.test(stageId)) {
+      throw new Error('Invalid UUID format for briefId or stageId');
+    }
+
     // Validate feedbackId is either null or a valid UUID
-    if (feedbackId !== null && typeof feedbackId !== 'string') {
+    if (feedbackId !== null && (!feedbackId || !uuidRegex.test(feedbackId))) {
       throw new Error('Invalid feedbackId format');
     }
 
@@ -157,7 +163,7 @@ serve(async (req) => {
       { headers: corsHeaders }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('💥 Unexpected error in workflow stage processing:', {
       operationId,
       error: error.message,
