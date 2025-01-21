@@ -143,13 +143,6 @@ export type Database = {
             foreignKeyName: "brief_outputs_feedback_id_fkey"
             columns: ["feedback_id"]
             isOneToOne: false
-            referencedRelation: "feedback_write_monitoring"
-            referencedColumns: ["feedback_id"]
-          },
-          {
-            foreignKeyName: "brief_outputs_feedback_id_fkey"
-            columns: ["feedback_id"]
-            isOneToOne: false
             referencedRelation: "stage_feedback"
             referencedColumns: ["id"]
           },
@@ -330,13 +323,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "briefs"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feedback_processing_status_feedback_id_fkey"
-            columns: ["feedback_id"]
-            isOneToOne: false
-            referencedRelation: "feedback_write_monitoring"
-            referencedColumns: ["feedback_id"]
           },
           {
             foreignKeyName: "feedback_processing_status_feedback_id_fkey"
@@ -819,13 +805,6 @@ export type Database = {
             foreignKeyName: "workflow_conversations_feedback_id_fkey"
             columns: ["feedback_id"]
             isOneToOne: false
-            referencedRelation: "feedback_write_monitoring"
-            referencedColumns: ["feedback_id"]
-          },
-          {
-            foreignKeyName: "workflow_conversations_feedback_id_fkey"
-            columns: ["feedback_id"]
-            isOneToOne: false
             referencedRelation: "stage_feedback"
             referencedColumns: ["id"]
           },
@@ -864,16 +843,55 @@ export type Database = {
           stage_id: string | null
           update_status: string | null
         }
+        Insert: {
+          brief_id?: string | null
+          conversation_updates?: number | null
+          feedback_content?: string | null
+          feedback_id?: string | null
+          feedback_time?: string | null
+          is_permanent?: boolean | null
+          last_conversation_update?: string | null
+          last_output_update?: string | null
+          output_updates?: number | null
+          processed_for_rag?: boolean | null
+          processing_time_seconds?: number | null
+          requires_revision?: boolean | null
+          stage_id?: string | null
+          update_status?: string | null
+        }
+        Update: {
+          brief_id?: string | null
+          conversation_updates?: number | null
+          feedback_content?: string | null
+          feedback_id?: string | null
+          feedback_time?: string | null
+          is_permanent?: boolean | null
+          last_conversation_update?: string | null
+          last_output_update?: string | null
+          output_updates?: number | null
+          processed_for_rag?: boolean | null
+          processing_time_seconds?: number | null
+          requires_revision?: boolean | null
+          stage_id?: string | null
+          update_status?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "stage_feedback_brief_id_fkey"
+            foreignKeyName: "feedback_processing_status_brief_id_fkey"
             columns: ["brief_id"]
             isOneToOne: false
             referencedRelation: "briefs"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "stage_feedback_stage_id_fkey"
+            foreignKeyName: "feedback_processing_status_feedback_id_fkey"
+            columns: ["feedback_id"]
+            isOneToOne: false
+            referencedRelation: "stage_feedback"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_processing_status_stage_id_fkey"
             columns: ["stage_id"]
             isOneToOne: false
             referencedRelation: "stages"
