@@ -2,6 +2,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { Stage } from "@/types/workflow";
 import { toast } from "sonner";
 
+// Custom error class for workflow-specific errors
+class WorkflowError extends Error {
+  public errorCode: string;
+  public context: Record<string, any>;
+  public timestamp: string;
+  public metrics?: Record<string, any>;
+
+  constructor(message: string, errorCode: string, context: Record<string, any>) {
+    super(message);
+    this.name = 'WorkflowError';
+    this.errorCode = errorCode;
+    this.context = context;
+    this.timestamp = new Date().toISOString();
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      errorCode: this.errorCode,
+      context: this.context,
+      timestamp: this.timestamp,
+      metrics: this.metrics,
+      stack: this.stack
+    };
+  }
+}
+
 export const processWorkflowStage = async (
   briefId: string,
   stage: Stage,
@@ -17,16 +45,32 @@ export const processWorkflowStage = async (
   try {
     // Validate inputs before making the request
     if (!briefId) {
-      throw new Error("Brief ID is required");
+      throw new WorkflowError(
+        "Brief ID is required",
+        "INVALID_INPUT",
+        { briefId }
+      );
     }
     if (!stage?.id) {
-      throw new Error("Stage ID is required");
+      throw new WorkflowError(
+        "Stage ID is required",
+        "INVALID_INPUT",
+        { stage }
+      );
     }
     if (!Array.isArray(flowSteps)) {
-      throw new Error("Flow steps must be an array");
+      throw new WorkflowError(
+        "Flow steps must be an array",
+        "INVALID_INPUT",
+        { flowSteps }
+      );
     }
     if (flowSteps.length === 0) {
-      throw new Error("Flow steps array cannot be empty");
+      throw new WorkflowError(
+        "Flow steps array cannot be empty",
+        "INVALID_INPUT",
+        { flowSteps }
+      );
     }
 
     // Log auth state
@@ -40,13 +84,25 @@ export const processWorkflowStage = async (
     // Validate each flow step and ensure proper structure
     const validatedFlowSteps = flowSteps.map((step, index) => {
       if (!step) {
-        throw new Error(`Flow step ${index} is undefined`);
+        throw new WorkflowError(
+          `Flow step ${index} is undefined`,
+          "INVALID_FLOW_STEP",
+          { stepIndex: index }
+        );
       }
       if (!step.agent_id) {
-        throw new Error(`Flow step ${index} is missing agent_id`);
+        throw new WorkflowError(
+          `Flow step ${index} is missing agent_id`,
+          "INVALID_FLOW_STEP",
+          { step, index }
+        );
       }
       if (typeof step.order_index !== 'number') {
-        throw new Error(`Flow step ${index} is missing order_index`);
+        throw new WorkflowError(
+          `Flow step ${index} is missing order_index`,
+          "INVALID_FLOW_STEP",
+          { step, index }
+        );
       }
       return {
         id: step.id,
@@ -70,7 +126,11 @@ export const processWorkflowStage = async (
       });
 
     if (progressError) {
-      console.error("Error creating progress record:", progressError);
+      throw new WorkflowError(
+        "Error creating progress record",
+        "PROGRESS_RECORD_ERROR",
+        { error: progressError }
+      );
     }
 
     // Call the edge function with detailed logging
@@ -90,18 +150,16 @@ export const processWorkflowStage = async (
     });
 
     if (error) {
-      console.error("Error processing workflow stage:", {
-        error,
-        briefId,
-        stageId: stage.id,
-        timestamp: new Date().toISOString(),
-        errorDetails: {
-          message: error.message,
-          name: error.name,
-          cause: error.cause
+      throw new WorkflowError(
+        "Error processing workflow stage",
+        "EDGE_FUNCTION_ERROR",
+        {
+          error,
+          briefId,
+          stageId: stage.id,
+          timestamp: new Date().toISOString()
         }
-      });
-      throw error;
+      );
     }
 
     console.log("Successfully processed workflow stage:", {
@@ -132,12 +190,15 @@ export const processWorkflowStage = async (
         });
 
       if (conversationError) {
-        console.error("Error creating workflow conversation:", {
-          error: conversationError,
-          stepId: step.id,
-          timestamp: new Date().toISOString()
-        });
-        throw conversationError;
+        throw new WorkflowError(
+          "Error creating workflow conversation",
+          "CONVERSATION_CREATE_ERROR",
+          {
+            error: conversationError,
+            stepId: step.id,
+            timestamp: new Date().toISOString()
+          }
+        );
       }
     }
 
@@ -153,7 +214,11 @@ export const processWorkflowStage = async (
       .eq('stage_id', stage.id);
 
     if (updateError) {
-      console.error("Error updating progress:", updateError);
+      throw new WorkflowError(
+        "Error updating progress",
+        "PROGRESS_UPDATE_ERROR",
+        { error: updateError }
+      );
     }
 
     console.log("Successfully processed workflow stage and created conversations:", {
@@ -169,12 +234,10 @@ export const processWorkflowStage = async (
       briefId,
       stageId: stage.id,
       timestamp: new Date().toISOString(),
-      errorDetails: error instanceof Error ? {
-        message: error.message,
-        name: error.name,
-        stack: error.stack,
-        cause: error.cause
-      } : 'Unknown error type'
+      errorDetails: error instanceof WorkflowError ? error.toJSON() : {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      }
     });
 
     // Update progress to failed
