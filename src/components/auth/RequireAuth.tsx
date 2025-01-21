@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
 
 interface RequireAuthProps {
   children: React.ReactNode;
@@ -12,43 +11,29 @@ interface RequireAuthProps {
 
 export const RequireAuth = ({ children, requireAdmin = false }: RequireAuthProps) => {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading } = useAuth();
 
   // Fetch profile data to check admin status
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      
-      console.log("Fetching profile for user:", user.id);
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
-        .maybeSingle();
+        .single();
 
-      if (error) {
-        console.error("Error fetching profile:", error);
-        throw error;
-      }
-      
-      console.log("Profile data:", data);
+      if (error) throw error;
       return data;
     },
     enabled: !!user,
-    retry: 1
   });
 
   useEffect(() => {
-    console.log("RequireAuth effect running", { 
-      authLoading, 
-      user, 
-      profileLoading,
-      isAdmin: profile?.is_admin, 
-      requireAdmin 
-    });
+    console.log("RequireAuth effect running", { loading, user, isAdmin: profile?.is_admin, requireAdmin });
 
-    if (!authLoading && !profileLoading) {
+    if (!loading) {
       if (!user) {
         navigate("/auth");
       } else if (requireAdmin && !profile?.is_admin) {
@@ -56,14 +41,10 @@ export const RequireAuth = ({ children, requireAdmin = false }: RequireAuthProps
         navigate("/");
       }
     }
-  }, [authLoading, profileLoading, user, profile, requireAdmin, navigate]);
+  }, [loading, user, profile, requireAdmin, navigate]);
 
-  if (authLoading || profileLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+  if (loading || profileLoading) {
+    return <div>Loading...</div>;
   }
 
   if (!user) {
@@ -71,8 +52,10 @@ export const RequireAuth = ({ children, requireAdmin = false }: RequireAuthProps
   }
 
   if (requireAdmin && !profile?.is_admin) {
+    console.log("User is not admin, not rendering admin content");
     return null;
   }
 
+  console.log("Rendering protected content for user:", user.id);
   return <>{children}</>;
 };

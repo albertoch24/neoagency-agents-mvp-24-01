@@ -13,12 +13,12 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  const operationId = `workflow_stage_${Date.now()}`;
-  
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const operationId = `workflow_stage_${Date.now()}`;
+  
   try {
     console.log('🚀 Starting workflow stage processing:', {
       operationId,
@@ -30,20 +30,11 @@ serve(async (req) => {
     const { briefId, stageId, flowSteps, feedbackId } = await req.json();
     
     if (!briefId || !stageId) {
+      console.error('❌ Missing required parameters:', { briefId, stageId });
       throw new Error('Missing required parameters: briefId and stageId are required');
     }
 
-    // Validate UUID format for IDs
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(briefId) || !uuidRegex.test(stageId)) {
-      throw new Error('Invalid UUID format for briefId or stageId');
-    }
-
-    // Validate feedbackId is either null or a valid UUID
-    if (feedbackId !== null && (!feedbackId || !uuidRegex.test(feedbackId))) {
-      throw new Error('Invalid feedbackId format');
-    }
-
+    // Get brief data
     const { data: brief, error: briefError } = await supabase
       .from('briefs')
       .select('*')
@@ -59,6 +50,37 @@ serve(async (req) => {
       throw briefError;
     }
 
+    // Get stage data
+    const { data: stage, error: stageError } = await supabase
+      .from('stages')
+      .select(`
+        *,
+        flows (
+          id,
+          name,
+          flow_steps (
+            id,
+            agent_id,
+            requirements,
+            order_index,
+            outputs,
+            description
+          )
+        )
+      `)
+      .eq('id', stageId)
+      .single();
+
+    if (stageError) {
+      console.error('❌ Error fetching stage:', {
+        operationId,
+        error: stageError,
+        stageId
+      });
+      throw stageError;
+    }
+
+    // Process each flow step
     const outputs = [];
     for (const step of flowSteps) {
       console.log('🔄 Processing flow step:', {
@@ -69,20 +91,29 @@ serve(async (req) => {
       });
 
       try {
+        // Get agent data
         const { data: agent, error: agentError } = await supabase
           .from('agents')
           .select('*')
           .eq('id', step.agent_id)
           .single();
 
-        if (agentError) throw agentError;
+        if (agentError) {
+          console.error('❌ Error fetching agent:', {
+            operationId,
+            error: agentError,
+            agentId: step.agent_id
+          });
+          throw agentError;
+        }
 
+        // Format the output in the expected structure
         const formattedOutput = {
           agent: agent.name,
           stepId: step.id,
           outputs: [{
             type: "conversational",
-            content: formatContent(step.requirements, brief)
+            content: formatContent(step.outputs)
           }],
           orderIndex: step.order_index,
           requirements: step.requirements
@@ -90,6 +121,7 @@ serve(async (req) => {
 
         outputs.push(formattedOutput);
 
+        // Create workflow conversation with the formatted content
         const { error: conversationError } = await supabase
           .from('workflow_conversations')
           .insert({
@@ -98,11 +130,18 @@ serve(async (req) => {
             agent_id: step.agent_id,
             content: JSON.stringify(formattedOutput.outputs),
             output_type: 'conversational',
-            flow_step_id: step.id,
-            feedback_id: feedbackId || null
+            flow_step_id: step.id
           });
 
-        if (conversationError) throw conversationError;
+        if (conversationError) {
+          console.error('❌ Error creating workflow conversation:', {
+            operationId,
+            error: conversationError,
+            stepId: step.id
+          });
+          throw conversationError;
+        }
+
       } catch (stepError) {
         console.error('❌ Error processing flow step:', {
           operationId,
@@ -113,29 +152,25 @@ serve(async (req) => {
       }
     }
 
-    // Save brief output with proper type handling
-    const briefOutputData = {
-      brief_id: briefId,
-      stage: brief.name,
-      stage_id: stageId,
-      content: {
-        outputs,
-        flow_name: '',
-        stage_name: brief.name,
-        agent_count: flowSteps.length,
-        feedback_used: feedbackId ? 'Feedback incorporated' : null
-      },
-      feedback_id: feedbackId || null
+    // Prepare the content object with the correct structure
+    const content = {
+      outputs,
+      flow_name: stage.flows?.name || '',
+      stage_name: stage.name,
+      agent_count: flowSteps.length,
+      feedback_used: feedbackId ? 'Feedback incorporated' : null
     };
 
-    console.log('💾 Saving brief output:', {
-      operationId,
-      data: briefOutputData
-    });
-
+    // Save brief output
     const { data: briefOutput, error: outputError } = await supabase
       .from('brief_outputs')
-      .insert(briefOutputData)
+      .insert({
+        brief_id: briefId,
+        stage: stage.name,
+        stage_id: stageId,
+        content,
+        feedback_id: feedbackId || null
+      })
       .select()
       .single();
 
@@ -143,7 +178,8 @@ serve(async (req) => {
       console.error('❌ Error saving brief output:', {
         operationId,
         error: outputError,
-        data: briefOutputData
+        briefId,
+        stageId
       });
       throw outputError;
     }
@@ -163,7 +199,7 @@ serve(async (req) => {
       { headers: corsHeaders }
     );
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('💥 Unexpected error in workflow stage processing:', {
       operationId,
       error: error.message,
@@ -183,33 +219,16 @@ serve(async (req) => {
   }
 });
 
-// Helper function to format content
-function formatContent(requirements: string, brief: any): string {
-  let content = `### Refined Creative Brief\n\n`;
+// Helper function to format the content
+function formatContent(outputs: any[]): string {
+  if (!Array.isArray(outputs)) return '';
   
-  if (brief.objectives) {
-    content += `**Project Objectives:**\n`;
-    const objectives = brief.objectives.split('\n').filter(Boolean);
-    objectives.forEach(obj => content += `- ${obj.trim()}\n`);
-  }
+  // Convert the array of text items into a markdown formatted string
+  const sections = outputs.map(output => {
+    if (typeof output === 'string') return output;
+    if (output.text) return output.text;
+    return '';
+  });
 
-  if (brief.target_audience) {
-    content += `\n**Target Audience:**\n`;
-    const audience = brief.target_audience.split('\n').filter(Boolean);
-    audience.forEach(aud => content += `- ${aud.trim()}\n`);
-  }
-
-  if (brief.timeline) {
-    content += `\n**Timeline:**\n${brief.timeline}\n`;
-  }
-
-  if (brief.budget) {
-    content += `\n**Budget Considerations:**\n${brief.budget}\n`;
-  }
-
-  if (requirements) {
-    content += `\n**Requirements:**\n${requirements}\n`;
-  }
-
-  return content;
+  return sections.join('\n\n');
 }

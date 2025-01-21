@@ -1,107 +1,136 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useSearchParams } from "react-router-dom";
 import { Stage } from "@/types/workflow";
+import { supabase } from "@/integrations/supabase/client";
+import { useStageProcessing } from "@/hooks/useStageProcessing";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export const useStageHandling = (briefId?: string) => {
-  const [currentStage, setCurrentStage] = useState<string>("");
+export const useStageHandling = (selectedBriefId: string | null) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [currentStage, setCurrentStage] = useState("kickoff");
+  const { processStage, isProcessing } = useStageProcessing(selectedBriefId || "", currentStage);
+  const queryClient = useQueryClient();
 
-  const { data: stages = [] } = useQuery({
-    queryKey: ["stages", briefId],
+  // Query to check if stage has outputs
+  const { data: stageOutputs } = useQuery({
+    queryKey: ["workflow-conversations", selectedBriefId, currentStage],
     queryFn: async () => {
-      console.log("🔍 Fetching stages for brief:", briefId);
+      if (!selectedBriefId) return null;
       
-      try {
-        // Prima verifichiamo che l'utente sia autenticato
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) {
-          throw new Error("User not authenticated");
-        }
+      console.log("Fetching conversations for stage:", currentStage);
+      const { data, error } = await supabase
+        .from("workflow_conversations")
+        .select(`
+          *,
+          agents (
+            id,
+            name,
+            description,
+            skills (*)
+          )
+        `)
+        .eq("brief_id", selectedBriefId)
+        .eq("stage_id", currentStage)
+        .order("created_at", { ascending: true });
 
-        // Verifichiamo che il brief esista e appartenga all'utente
-        const { data: brief, error: briefError } = await supabase
-          .from("briefs")
-          .select("current_stage, user_id")
-          .eq("id", briefId)
-          .single();
-
-        if (briefError) {
-          console.error("❌ Error fetching brief:", briefError);
-          throw briefError;
-        }
-
-        if (brief?.current_stage) {
-          console.log("📍 Current stage from brief:", brief.current_stage);
-          setCurrentStage(brief.current_stage);
-        }
-
-        // Ora recuperiamo gli stages
-        const { data, error } = await supabase
-          .from("stages")
-          .select(`
-            *,
-            flows (
-              id,
-              name,
-              flow_steps (
-                id,
-                agent_id,
-                requirements,
-                order_index,
-                outputs,
-                description
-              )
-            )
-          `)
-          .eq("user_id", session.user.id)
-          .order("order_index", { ascending: true });
-
-        if (error) {
-          console.error("❌ Error fetching stages:", error);
-          toast.error("Failed to load stages");
-          throw error;
-        }
-
-        console.log("✅ Stages fetched successfully:", {
-          count: data?.length || 0,
-          stages: data?.map(s => ({ id: s.id, name: s.name }))
-        });
-        
-        return data || [];
-      } catch (error) {
-        console.error("❌ Unexpected error in useStageHandling:", error);
-        toast.error("Failed to load stages. Please try again.");
-        throw error;
+      if (error) {
+        console.error("Error fetching conversations:", error);
+        return null;
       }
+
+      console.log("Found conversations:", data);
+      return data;
     },
-    enabled: !!briefId,
-    retry: 2,
-    retryDelay: 1000,
-    gcTime: 1000 * 60 * 30, // 30 minuti (sostituisce cacheTime)
-    staleTime: 1000 * 60 * 5 // 5 minuti
+    enabled: !!selectedBriefId && !!currentStage,
+    staleTime: 0,
+    gcTime: 0,
+    refetchInterval: 5000
   });
 
+  // Initialize state from URL parameters and handle stage completion
   useEffect(() => {
-    if (stages.length > 0 && !currentStage) {
-      const firstStage = stages[0];
-      console.log("📍 Setting initial stage:", {
-        id: firstStage.id,
-        name: firstStage.name
-      });
-      setCurrentStage(firstStage.id);
+    const stageFromUrl = searchParams.get("stage");
+    if (stageFromUrl) {
+      console.log("Setting stage from URL:", stageFromUrl);
+      setCurrentStage(stageFromUrl);
+      
+      // Ensure showOutputs is maintained in URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("stage", stageFromUrl);
+      newParams.set("showOutputs", "true");
+      if (selectedBriefId) {
+        newParams.set("briefId", selectedBriefId);
+      }
+      setSearchParams(newParams, { replace: true });
     }
-  }, [stages, currentStage]);
+  }, [searchParams.get("stage"), selectedBriefId]);
+
+  const handleStageSelect = async (stage: Stage) => {
+    if (!selectedBriefId) return;
+
+    console.log("Handling stage selection:", stage.id);
+
+    // Get the current stage index and selected stage index
+    const { data: stages } = await supabase
+      .from("stages")
+      .select("*")
+      .order("order_index", { ascending: true });
+
+    if (!stages) return;
+
+    const currentIndex = stages.findIndex(s => s.id === currentStage);
+    const selectedIndex = stages.findIndex(s => s.id === stage.id);
+
+    // Check if stage already has outputs
+    const { data: existingOutputs } = await supabase
+      .from("workflow_conversations")
+      .select("*")
+      .eq("brief_id", selectedBriefId)
+      .eq("stage_id", stage.id);
+
+    console.log("Checking existing outputs for stage:", stage.id, existingOutputs);
+
+    // Only process if moving to the next stage AND no outputs exist
+    if (selectedIndex === currentIndex + 1 && (!existingOutputs || existingOutputs.length === 0)) {
+      await processStage("true"); // Changed from boolean to string
+      
+      // Invalidate queries to refresh the data
+      await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
+      await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
+      
+      // Show success message and automatically transition to the processed stage
+      toast.success(`${stage.name} stage processed successfully!`);
+      setCurrentStage(stage.id);
+      
+      // Update URL parameters to show outputs
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("stage", stage.id);
+      newParams.set("showOutputs", "true");
+      if (selectedBriefId) {
+        newParams.set("briefId", selectedBriefId);
+      }
+      setSearchParams(newParams);
+    } else {
+      // If stage already has outputs or is a previous stage, just switch to it
+      setCurrentStage(stage.id);
+      
+      // Update URL parameters
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("stage", stage.id);
+      newParams.set("showOutputs", "true");
+      if (selectedBriefId) {
+        newParams.set("briefId", selectedBriefId);
+      }
+      setSearchParams(newParams);
+    }
+  };
 
   return {
     currentStage,
-    handleStageSelect: (stage: Stage) => {
-      console.log("🔄 Selecting stage:", {
-        id: stage.id,
-        name: stage.name,
-        previousStage: currentStage
-      });
-      setCurrentStage(stage.id);
-    }
+    setCurrentStage,
+    handleStageSelect,
+    stageOutputs,
+    isProcessing
   };
 };
