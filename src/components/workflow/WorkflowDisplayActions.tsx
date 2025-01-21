@@ -37,9 +37,12 @@ export const WorkflowDisplayActions = ({
       if (!nextStage) return;
 
       try {
-        console.log("Checking outputs for next stage:", {
+        console.log("🔍 Checking next stage:", {
           nextStageId: nextStage.id,
-          nextStageName: nextStage.name
+          nextStageName: nextStage.name,
+          hasFlow: !!nextStage.flow_id,
+          flowSteps: nextStage.flows?.flow_steps,
+          timestamp: new Date().toISOString()
         });
 
         // Check in brief_outputs table using stage_id
@@ -50,7 +53,7 @@ export const WorkflowDisplayActions = ({
           .limit(1);
 
         if (outputsError) {
-          console.error("Error checking outputs by ID:", outputsError);
+          console.error("❌ Error checking outputs by ID:", outputsError);
         }
 
         // Check in brief_outputs table using stage name
@@ -61,7 +64,7 @@ export const WorkflowDisplayActions = ({
           .limit(1);
 
         if (outputsNameError) {
-          console.error("Error checking outputs by name:", outputsNameError);
+          console.error("❌ Error checking outputs by name:", outputsNameError);
         }
 
         // Check in workflow_conversations table
@@ -72,7 +75,7 @@ export const WorkflowDisplayActions = ({
           .limit(1);
 
         if (convsError) {
-          console.error("Error checking conversations:", convsError);
+          console.error("❌ Error checking conversations:", convsError);
         }
 
         const hasOutput = !!(
@@ -81,16 +84,17 @@ export const WorkflowDisplayActions = ({
           (conversations && conversations.length > 0)
         );
 
-        console.log("Next stage output check result:", {
+        console.log("✅ Next stage output check result:", {
           hasOutput,
           outputsById,
           outputsByName,
-          conversations
+          conversations,
+          timestamp: new Date().toISOString()
         });
         
         setNextStageHasOutput(hasOutput);
       } catch (error) {
-        console.error("Error checking next stage output:", error);
+        console.error("❌ Error checking next stage output:", error);
       }
     };
 
@@ -106,21 +110,37 @@ export const WorkflowDisplayActions = ({
     const nextStage = stages[currentIndex + 1];
     if (!nextStage) return;
 
-    console.log("Handling next stage:", {
-      nextStage,
+    console.log("🚀 Handling next stage transition:", {
+      currentStage: {
+        id: currentStage,
+        name: stages[currentIndex]?.name
+      },
+      nextStage: {
+        id: nextStage.id,
+        name: nextStage.name,
+        hasFlow: !!nextStage.flow_id,
+        flowSteps: nextStage.flows?.flow_steps
+      },
       hasOutput: nextStageHasOutput,
-      willProcess: !nextStageHasOutput
+      willProcess: !nextStageHasOutput,
+      timestamp: new Date().toISOString()
     });
 
     if (nextStageHasOutput) {
       // Solo navigazione
       if (onStageSelect) {
-        console.log("Navigating to next stage:", nextStage.id);
+        console.log("🔄 Navigating to next stage:", nextStage.id);
         onStageSelect(nextStage);
       }
     } else {
       // Avvia nuovo processo senza feedback
-      console.log("Starting process for next stage without feedback:", nextStage.id);
+      console.log("⚡ Starting process for next stage without feedback:", {
+        stageId: nextStage.id,
+        stageName: nextStage.name,
+        flowId: nextStage.flow_id,
+        flowSteps: nextStage.flows?.flow_steps,
+        timestamp: new Date().toISOString()
+      });
       onNextStage(null);
     }
   };
@@ -132,7 +152,7 @@ export const WorkflowDisplayActions = ({
     }
     const previousStage = stages[currentIndex - 1];
     if (previousStage && onStageSelect) {
-      console.log("Navigating to previous stage:", previousStage.id);
+      console.log("⬅️ Navigating to previous stage:", previousStage.id);
       onStageSelect(previousStage);
     }
   };
