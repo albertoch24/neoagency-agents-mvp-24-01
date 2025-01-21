@@ -42,6 +42,8 @@ export const WorkflowDisplayActions = ({
           nextStageName: nextStage.name,
           hasFlow: !!nextStage.flow_id,
           flowSteps: nextStage.flows?.flow_steps,
+          currentIndex,
+          totalStages: stages.length,
           timestamp: new Date().toISOString()
         });
 
@@ -86,9 +88,11 @@ export const WorkflowDisplayActions = ({
 
         console.log("✅ Next stage output check result:", {
           hasOutput,
-          outputsById,
-          outputsByName,
-          conversations,
+          outputsById: outputsById?.length || 0,
+          outputsByName: outputsByName?.length || 0,
+          conversations: conversations?.length || 0,
+          nextStageId: nextStage.id,
+          nextStageName: nextStage.name,
           timestamp: new Date().toISOString()
         });
         
@@ -119,7 +123,7 @@ export const WorkflowDisplayActions = ({
         id: nextStage.id,
         name: nextStage.name,
         hasFlow: !!nextStage.flow_id,
-        flowSteps: nextStage.flows?.flow_steps
+        flowSteps: nextStage.flows?.flow_steps?.length
       },
       hasOutput: nextStageHasOutput,
       willProcess: !nextStageHasOutput,
@@ -134,14 +138,14 @@ export const WorkflowDisplayActions = ({
       }
     } else {
       // Avvia nuovo processo senza feedback
-      console.log("⚡ Starting process for next stage without feedback:", {
+      console.log("⚡ Starting process for next stage:", {
         stageId: nextStage.id,
         stageName: nextStage.name,
         flowId: nextStage.flow_id,
-        flowSteps: nextStage.flows?.flow_steps,
+        flowSteps: nextStage.flows?.flow_steps?.length,
         timestamp: new Date().toISOString()
       });
-      onNextStage(null); // Modificato qui: passiamo null invece di "true"
+      onNextStage(null);
     }
   };
 
