@@ -2,19 +2,22 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Stage } from "@/types/workflow";
 import { resolveStageId } from "@/services/stage/resolveStageId";
+import { useState } from "react";
 
 export const useStageHandling = (stageId: string) => {
-  return useQuery({
-    queryKey: ["stage", stageId],
+  const [currentStage, setCurrentStage] = useState<string>(stageId);
+
+  const query = useQuery({
+    queryKey: ["stage", currentStage],
     queryFn: async () => {
       console.log('🔍 Fetching stage data:', {
-        stageId,
+        stageId: currentStage,
         timestamp: new Date().toISOString()
       });
 
       try {
         // Resolve stage ID from name if necessary
-        const resolvedStageId = await resolveStageId(stageId);
+        const resolvedStageId = await resolveStageId(currentStage);
         
         const { data: stage, error } = await supabase
           .from("stages")
@@ -32,7 +35,7 @@ export const useStageHandling = (stageId: string) => {
         if (error) {
           console.error("❌ Error fetching stage data:", {
             error,
-            stageId,
+            stageId: currentStage,
             timestamp: new Date().toISOString()
           });
           throw error;
@@ -40,7 +43,7 @@ export const useStageHandling = (stageId: string) => {
 
         if (!stage) {
           console.error("❌ Stage not found:", {
-            stageId,
+            stageId: currentStage,
             timestamp: new Date().toISOString()
           });
           throw new Error("Stage not found");
@@ -57,12 +60,22 @@ export const useStageHandling = (stageId: string) => {
       } catch (error) {
         console.error("❌ Error fetching stage data:", {
           error,
-          stageId,
+          stageId: currentStage,
           timestamp: new Date().toISOString()
         });
         throw error;
       }
     },
-    enabled: !!stageId
+    enabled: !!currentStage
   });
+
+  const handleStageSelect = (stage: Stage) => {
+    setCurrentStage(stage.id);
+  };
+
+  return {
+    ...query,
+    currentStage,
+    handleStageSelect
+  };
 };

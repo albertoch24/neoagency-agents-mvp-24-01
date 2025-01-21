@@ -28,7 +28,7 @@ const Index = () => {
     handleSelectBrief
   } = useBriefState();
   
-  const { currentStage, handleStageSelect } = useStageHandling(briefId || selectedBriefId);
+  const { currentStage, handleStageSelect } = useStageHandling(briefId || selectedBriefId || '');
 
   const { data: briefs, error: briefsError } = useQuery({
     queryKey: ["briefs", user?.id],
