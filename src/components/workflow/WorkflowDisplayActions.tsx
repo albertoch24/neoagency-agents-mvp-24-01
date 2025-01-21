@@ -135,7 +135,7 @@ export const WorkflowDisplayActions = ({
       });
       onStageSelect?.(nextStage);
     } else {
-      // Start new process with proper context
+      // Start new process with null feedback ID since this is a fresh start
       console.log("⚡ Starting process for next stage:", {
         stageId: nextStage.id,
         stageName: nextStage.name,
@@ -143,7 +143,7 @@ export const WorkflowDisplayActions = ({
         flowSteps: nextStage.flows?.flow_steps,
         timestamp: new Date().toISOString()
       });
-      onNextStage(true); // Restored the true flag for proper processing
+      onNextStage(null);
     }
   };
 
