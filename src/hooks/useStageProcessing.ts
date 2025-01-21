@@ -14,6 +14,13 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       return;
     }
 
+    console.log("🚀 useStageProcessing - Starting stage processing:", {
+      briefId,
+      stageId,
+      hasFeedback: !!feedbackId,
+      timestamp: new Date().toISOString()
+    });
+
     setIsProcessing(true);
     const toastId = toast.loading(
       "Processing stage... This may take a few minutes.",
@@ -21,8 +28,8 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
     );
 
     try {
-      // 1. First get the stage data
-      console.log("🔍 Fetching stage data:", {
+      // 1. First get the stage data and flow steps
+      console.log("🔍 Fetching stage data and flow steps:", {
         briefId,
         stageId,
         timestamp: new Date().toISOString()
@@ -86,7 +93,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         timestamp: new Date().toISOString()
       });
 
-      const { error: functionError } = await supabase.functions.invoke("process-workflow-stage", {
+      const { data, error: functionError } = await supabase.functions.invoke("process-workflow-stage", {
         body: { 
           briefId,
           stageId,
@@ -107,6 +114,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       console.log("✅ Edge function completed successfully:", {
         stageId,
         stageName: stage.name,
+        response: data,
         timestamp: new Date().toISOString()
       });
 
@@ -133,6 +141,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       });
       toast.dismiss(toastId);
       toast.error(error instanceof Error ? error.message : "Failed to process stage");
+      throw error;
     } finally {
       setIsProcessing(false);
     }

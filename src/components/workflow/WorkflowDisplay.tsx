@@ -42,15 +42,24 @@ export const WorkflowDisplay = ({
         timestamp: new Date().toISOString()
       });
 
-      await processStage(feedbackId);
-      
-      console.log('✅ WorkflowDisplay - Reprocess completed:', {
-        briefId,
-        currentStage,
-        stageName: currentStageData?.name,
-        feedbackId,
-        timestamp: new Date().toISOString()
-      });
+      try {
+        await processStage(feedbackId);
+        console.log('✅ WorkflowDisplay - Reprocess completed:', {
+          briefId,
+          currentStage,
+          stageName: currentStageData?.name,
+          feedbackId,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('❌ WorkflowDisplay - Error during reprocess:', {
+          error,
+          briefId,
+          currentStage,
+          stageName: currentStageData?.name,
+          timestamp: new Date().toISOString()
+        });
+      }
     }
   };
 
