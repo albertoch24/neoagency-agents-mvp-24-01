@@ -25,13 +25,25 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     });
 
-    if (!briefId || !stageId || !Array.isArray(flowSteps)) {
-      console.error(`❌ [${requestId}] Missing required parameters:`, {
-        hasBriefId: !!briefId,
-        hasStageId: !!stageId,
-        hasFlowSteps: Array.isArray(flowSteps),
-      });
-      throw new Error('Missing required parameters');
+    // Detailed validation
+    const validationErrors = [];
+    if (!briefId) validationErrors.push('Missing briefId');
+    if (!stageId) validationErrors.push('Missing stageId');
+    if (!Array.isArray(flowSteps)) validationErrors.push('flowSteps must be an array');
+    if (Array.isArray(flowSteps) && flowSteps.length === 0) validationErrors.push('flowSteps array is empty');
+
+    if (validationErrors.length > 0) {
+      console.error(`❌ [${requestId}] Validation errors:`, validationErrors);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Validation failed', 
+          details: validationErrors 
+        }), 
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
     // Initialize Supabase client
@@ -108,7 +120,7 @@ ${step.requirements}`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: 'Please analyze this brief and provide your professional insights and recommendations.' }
@@ -175,6 +187,25 @@ ${step.requirements}`;
       throw outputError;
     }
 
+    // Create workflow conversations
+    for (const output of outputs) {
+      const { error: conversationError } = await supabase
+        .from('workflow_conversations')
+        .insert({
+          brief_id: briefId,
+          stage_id: stageId,
+          agent_id: flowSteps.find(s => s.id === output.stepId)?.agent_id,
+          content: output.outputs[0].content,
+          flow_step_id: output.stepId,
+          version: 1
+        });
+
+      if (conversationError) {
+        console.error(`❌ [${requestId}] Error saving conversation:`, conversationError);
+        throw conversationError;
+      }
+    }
+
     console.log(`✅ [${requestId}] Successfully processed workflow stage:`, {
       briefId,
       stageId,
@@ -188,15 +219,21 @@ ${step.requirements}`;
     );
 
   } catch (error) {
-    console.error(`❌ Error processing workflow stage:`, {
+    console.error(`❌ [${requestId}] Error processing workflow stage:`, {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString()
     });
     
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        details: error instanceof Error ? error.stack : undefined
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   }
 });
