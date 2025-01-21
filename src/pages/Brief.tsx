@@ -6,6 +6,7 @@ import { WorkflowDisplay } from "@/components/workflow/WorkflowDisplay";
 import { useStageHandling } from "@/hooks/useStageHandling";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 const Brief = () => {
   const { briefId } = useParams();
@@ -17,29 +18,43 @@ const Brief = () => {
       console.log("🔍 Fetching brief details:", { briefId });
       
       if (!briefId) {
+        console.error("❌ Brief ID is missing");
         throw new Error("Brief ID is required");
       }
 
-      const { data, error } = await supabase
-        .from("briefs")
-        .select("*, brief_outputs(*)")
-        .eq("id", briefId)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from("briefs")
+          .select("*, brief_outputs(*)")
+          .eq("id", briefId)
+          .maybeSingle();
 
-      if (error) {
-        console.error("❌ Error fetching brief:", error);
+        if (error) {
+          console.error("❌ Error fetching brief:", error);
+          throw error;
+        }
+
+        if (!data) {
+          console.error("❌ Brief not found:", briefId);
+          throw new Error("Brief not found");
+        }
+
+        console.log("✅ Brief fetched successfully:", {
+          id: data.id,
+          title: data.title,
+          outputsCount: data.brief_outputs?.length || 0
+        });
+        
+        return data;
+      } catch (error) {
+        console.error("❌ Unexpected error fetching brief:", error);
+        toast.error("Failed to load brief details. Please try again.");
         throw error;
       }
-
-      if (!data) {
-        throw new Error("Brief not found");
-      }
-
-      console.log("✅ Brief fetched successfully:", data);
-      return data;
     },
     enabled: !!briefId,
-    retry: 1
+    retry: 1,
+    retryDelay: 1000
   });
 
   if (isLoading) {
@@ -52,18 +67,20 @@ const Brief = () => {
   }
 
   if (error) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to load brief";
+    console.error("❌ Error in Brief component:", { error, briefId });
+    
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert variant="destructive">
-          <AlertDescription>
-            {error instanceof Error ? error.message : "Failed to load brief"}
-          </AlertDescription>
+          <AlertDescription>{errorMessage}</AlertDescription>
         </Alert>
       </div>
     );
   }
 
   if (!brief) {
+    console.error("❌ No brief data available:", { briefId });
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert>

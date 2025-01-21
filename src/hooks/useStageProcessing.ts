@@ -8,9 +8,17 @@ export const useStageProcessing = (briefId: string, stageId: string) => {
   const queryClient = useQueryClient();
 
   const processStage = async (feedbackId: string | null = null) => {
+    // Validate input parameters
     if (!briefId || !stageId) {
       console.error("❌ Missing required parameters:", { briefId, stageId });
-      toast.error("Missing brief or stage ID");
+      toast.error("Missing required parameters");
+      return;
+    }
+
+    // Validate feedbackId if provided
+    if (feedbackId !== null && typeof feedbackId !== 'string') {
+      console.error("❌ Invalid feedback ID type:", { feedbackId, type: typeof feedbackId });
+      toast.error("Invalid feedback ID");
       return;
     }
 
@@ -45,19 +53,27 @@ export const useStageProcessing = (briefId: string, stageId: string) => {
           )
         `)
         .eq("id", stageId)
-        .single();
+        .maybeSingle();
 
       if (stageError) {
+        console.error("❌ Error fetching stage:", stageError);
         throw stageError;
+      }
+
+      if (!stage) {
+        console.error("❌ Stage not found:", { stageId });
+        throw new Error("Stage not found");
       }
 
       console.log("✅ Stage data retrieved:", {
         operationId,
         stageId: stage.id,
+        stageName: stage.name,
         flowStepsCount: stage.flows?.flow_steps?.length || 0
       });
 
       if (!stage.flows?.flow_steps?.length) {
+        console.error("❌ No flow steps found for stage:", { stageId });
         throw new Error("No flow steps found for stage");
       }
 
@@ -67,7 +83,7 @@ export const useStageProcessing = (briefId: string, stageId: string) => {
           briefId,
           stageId,
           flowSteps: stage.flows.flow_steps,
-          feedbackId: feedbackId || null // Ensure null is passed when no feedbackId
+          feedbackId: feedbackId
         }
       });
 
@@ -85,9 +101,11 @@ export const useStageProcessing = (briefId: string, stageId: string) => {
       });
 
       // Invalidate queries to refresh data
-      await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
-      await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
-      await queryClient.invalidateQueries({ queryKey: ["brief"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] }),
+        queryClient.invalidateQueries({ queryKey: ["brief-outputs"] }),
+        queryClient.invalidateQueries({ queryKey: ["brief"] })
+      ]);
 
       toast.success("Stage processed successfully");
     } catch (error: any) {
