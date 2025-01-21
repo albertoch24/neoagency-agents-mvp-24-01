@@ -26,16 +26,28 @@ export const WorkflowDisplay = ({
     console.log('🔄 WorkflowDisplay - Starting reprocess:', {
       briefId,
       currentStage,
+      stageName: stages.find(s => s.id === currentStage)?.name,
       feedbackId,
       timestamp: new Date().toISOString()
     });
 
     if (briefId && currentStage) {
+      const currentStageData = stages.find(s => s.id === currentStage);
+      console.log('📋 Stage Details:', {
+        stageName: currentStageData?.name,
+        stageId: currentStage,
+        briefId,
+        hasFlow: !!currentStageData?.flow_id,
+        flowId: currentStageData?.flow_id,
+        timestamp: new Date().toISOString()
+      });
+
       await processStage(feedbackId);
       
       console.log('✅ WorkflowDisplay - Reprocess completed:', {
         briefId,
         currentStage,
+        stageName: currentStageData?.name,
         feedbackId,
         timestamp: new Date().toISOString()
       });
