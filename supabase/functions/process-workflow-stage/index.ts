@@ -120,7 +120,7 @@ serve(async (req) => {
       duration: endTime - startTime,
       agentCount: flowSteps.length,
       successfulOutputs: outputs.size,
-      memoryUsage: process.memoryUsage().heapUsed,
+      memoryUsage: Deno.memoryUsage().heapUsed,
       timestamp: new Date().toISOString()
     };
 
