@@ -1,48 +1,41 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export const resolveStageId = async (stageId: string): Promise<string> => {
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(stageId)) {
-    return stageId;
+export const resolveStageId = async (stageIdentifier: string): Promise<string> => {
+  // If it looks like a UUID, return it directly
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidPattern.test(stageIdentifier)) {
+    console.log("✅ Using provided UUID:", stageIdentifier);
+    return stageIdentifier;
   }
 
-  console.log('Fetching actual stage ID for:', stageId);
-  
-  // Try exact match first
-  let { data: stageData, error: stageError } = await supabase
-    .from('stages')
-    .select('id')
-    .eq('name', stageId)
-    .maybeSingle();
+  console.log("🔍 Resolving stage name to ID:", stageIdentifier);
 
-  // If no exact match, try with capitalized first letters
-  if (!stageData) {
-    const capitalizedName = stageId
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-      
-    console.log('Trying with capitalized name:', capitalizedName);
-    
-    const result = await supabase
-      .from('stages')
-      .select('id')
-      .eq('name', capitalizedName)
-      .maybeSingle();
-      
-    stageData = result.data;
-    stageError = result.error;
+  try {
+    // Try to find the stage by name (case insensitive)
+    const { data: stages, error } = await supabase
+      .from("stages")
+      .select("id, name")
+      .ilike("name", stageIdentifier)
+      .limit(1);
+
+    if (error) {
+      console.error("❌ Error resolving stage ID:", error);
+      throw error;
+    }
+
+    if (!stages || stages.length === 0) {
+      console.error("❌ No stage found for identifier:", stageIdentifier);
+      throw new Error(`No stage found for: ${stageIdentifier}`);
+    }
+
+    console.log("✅ Resolved stage ID:", {
+      name: stages[0].name,
+      id: stages[0].id
+    });
+
+    return stages[0].id;
+  } catch (error) {
+    console.error("❌ Failed to resolve stage ID:", error);
+    throw error;
   }
-
-  if (stageError) {
-    console.error("❌ Error fetching stage:", stageError);
-    throw new Error("Failed to find stage");
-  }
-
-  if (!stageData) {
-    console.error("❌ Stage not found:", stageId);
-    throw new Error(`Stage not found: ${stageId}. Please check the stage name.`);
-  }
-
-  console.log('Found actual stage ID:', stageData.id);
-  return stageData.id;
 };
