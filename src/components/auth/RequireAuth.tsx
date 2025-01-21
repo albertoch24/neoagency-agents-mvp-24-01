@@ -1,6 +1,8 @@
 import { useEffect } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RequireAuthProps {
   children: React.ReactNode;
@@ -8,34 +10,52 @@ interface RequireAuthProps {
 }
 
 export const RequireAuth = ({ children, requireAdmin = false }: RequireAuthProps) => {
-  const { user, loading, isAdmin } = useAuth();
-  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, loading } = useAuth();
+
+  // Fetch profile data to check admin status
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
   useEffect(() => {
-    console.log("RequireAuth effect running", {
-      loading,
-      user,
-      isAdmin,
-      requireAdmin
-    });
-  }, [loading, user, isAdmin, requireAdmin]);
+    console.log("RequireAuth effect running", { loading, user, isAdmin: profile?.is_admin, requireAdmin });
 
-  if (loading) {
+    if (!loading) {
+      if (!user) {
+        navigate("/auth");
+      } else if (requireAdmin && !profile?.is_admin) {
+        console.log("User is not admin, redirecting to /");
+        navigate("/");
+      }
+    }
+  }, [loading, user, profile, requireAdmin, navigate]);
+
+  if (loading || profileLoading) {
     return <div>Loading...</div>;
   }
 
   if (!user) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    return null;
   }
 
-  if (requireAdmin && !isAdmin) {
-    console.log("Access denied - Admin required", {
-      userId: user.id,
-      isAdmin,
-      path: location.pathname
-    });
-    return <Navigate to="/" replace />;
+  if (requireAdmin && !profile?.is_admin) {
+    console.log("User is not admin, not rendering admin content");
+    return null;
   }
 
+  console.log("Rendering protected content for user:", user.id);
   return <>{children}</>;
 };
