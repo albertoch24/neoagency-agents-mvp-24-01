@@ -9,10 +9,18 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
   const queryClient = useQueryClient();
 
   const validateStageData = (briefId?: string, stageId?: string) => {
-    console.log("🔍 Validating stage data:", { briefId, stageId });
+    console.log("🔍 Validating stage data:", { 
+      briefId, 
+      stageId,
+      timestamp: new Date().toISOString()
+    });
     
     if (!briefId || !stageId) {
-      console.error("❌ Missing required parameters:", { briefId, stageId });
+      console.error("❌ Missing required parameters:", { 
+        briefId, 
+        stageId,
+        timestamp: new Date().toISOString()
+      });
       toast.error("Missing required parameters");
       return false;
     }
@@ -20,7 +28,10 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
   };
 
   const fetchStageData = async (stageId: string) => {
-    console.log("📥 Fetching stage data for:", stageId);
+    console.log("📥 Fetching stage data for:", {
+      stageId,
+      timestamp: new Date().toISOString()
+    });
     
     const { data: stage, error } = await supabase
       .from("stages")
@@ -36,25 +47,41 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       .single();
 
     if (error) {
-      console.error("❌ Error fetching stage:", error);
+      console.error("❌ Error fetching stage:", {
+        error,
+        stageId,
+        timestamp: new Date().toISOString()
+      });
       throw error;
     }
 
     if (!stage) {
-      console.error("❌ Stage not found:", stageId);
+      console.error("❌ Stage not found:", {
+        stageId,
+        timestamp: new Date().toISOString()
+      });
       throw new Error("Stage not found");
     }
 
     console.log("✅ Stage data retrieved:", {
       stageName: stage.name,
       flowId: stage.flow_id,
-      flowStepsCount: stage.flows?.flow_steps?.length
+      flowStepsCount: stage.flows?.flow_steps?.length,
+      hasFlowSteps: !!stage.flows?.flow_steps?.length,
+      timestamp: new Date().toISOString()
     });
 
     return stage;
   };
 
   const processStage = async (feedbackId?: string | null) => {
+    console.log("🎯 processStage called with:", {
+      briefId,
+      stageId,
+      feedbackId,
+      timestamp: new Date().toISOString()
+    });
+
     if (!validateStageData(briefId, stageId)) {
       return;
     }
@@ -80,6 +107,11 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       }
 
       if (!stage.flows?.flow_steps?.length) {
+        console.error("❌ No flow steps found:", {
+          stageId: stage.id,
+          stageName: stage.name,
+          timestamp: new Date().toISOString()
+        });
         throw new Error("No flow steps found for this stage");
       }
 
@@ -87,6 +119,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         briefId,
         stageId,
         flowStepsCount: stage.flows.flow_steps.length,
+        flowSteps: stage.flows.flow_steps,
         timestamp: new Date().toISOString()
       });
 
@@ -103,6 +136,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         console.error("❌ Edge function error:", {
           error: functionError,
           stageId: stage.id,
+          errorDetails: functionError.message || functionError,
           timestamp: new Date().toISOString()
         });
         throw functionError;
@@ -133,7 +167,9 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
     } catch (error) {
       console.error("❌ Error processing stage:", {
         error,
+        briefId,
         stageId,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
       });
       toast.dismiss(toastId);
