@@ -1,65 +1,52 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-export interface AgentContext {
-  agentId: string;
-  previousOutputs: any[];
-  conversationHistory: any[];
-  requirements: string;
-  metadata: Record<string, any>;
-}
-
-export interface SharedContext {
-  briefId: string;
-  stageId: string;
-  contexts: Map<string, AgentContext>;
-  globalMetadata: Record<string, any>;
+export interface StageContext {
+  previousStageContent?: any;
+  validationResults?: {
+    missingInfo: string[];
+    unclearInfo: string[];
+    suggestions: string[];
+  };
 }
 
 export class ContextManager {
-  private context: SharedContext;
+  private static instance: ContextManager;
+  private context: Map<string, StageContext> = new Map();
 
-  constructor(briefId: string, stageId: string) {
-    this.context = {
-      briefId,
-      stageId,
-      contexts: new Map(),
-      globalMetadata: {}
-    };
+  private constructor() {}
+
+  static getInstance(): ContextManager {
+    if (!ContextManager.instance) {
+      ContextManager.instance = new ContextManager();
+    }
+    return ContextManager.instance;
   }
 
-  public initializeAgentContext(agentId: string, requirements: string): void {
-    this.context.contexts.set(agentId, {
-      agentId,
-      previousOutputs: [],
-      conversationHistory: [],
-      requirements,
-      metadata: {}
-    });
-  }
+  async loadPreviousStageContent(supabase: any, briefId: string, currentStageId: string): Promise<void> {
+    try {
+      const { data: previousOutput, error } = await supabase
+        .from('brief_outputs')
+        .select('*')
+        .eq('brief_id', briefId)
+        .eq('is_reprocessed', false)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-  public addOutput(agentId: string, output: any): void {
-    const agentContext = this.context.contexts.get(agentId);
-    if (agentContext) {
-      agentContext.previousOutputs.push(output);
+      if (error) throw error;
+
+      if (previousOutput) {
+        const context: StageContext = {
+          previousStageContent: previousOutput.content,
+          validationResults: validateFirstStageData(previousOutput.content)
+        };
+        this.context.set(currentStageId, context);
+      }
+    } catch (error) {
+      console.error('Error loading previous stage content:', error);
+      throw error;
     }
   }
 
-  public addToConversationHistory(agentId: string, conversation: any): void {
-    const agentContext = this.context.contexts.get(agentId);
-    if (agentContext) {
-      agentContext.conversationHistory.push(conversation);
-    }
-  }
-
-  public getAgentContext(agentId: string): AgentContext | undefined {
-    return this.context.contexts.get(agentId);
-  }
-
-  public getAllContexts(): SharedContext {
-    return this.context;
-  }
-
-  public setGlobalMetadata(key: string, value: any): void {
-    this.context.globalMetadata[key] = value;
+  getContext(stageId: string): StageContext | undefined {
+    return this.context.get(stageId);
   }
 }
