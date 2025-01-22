@@ -8,17 +8,18 @@ export async function processAgent(
   requirements: string,
   previousOutputs: any[] = []
 ) {
+  // Input validation
   if (!agent?.id) {
-    console.error("Invalid agent data:", { agent });
+    console.error("❌ Invalid agent data:", { agent });
     throw new Error("Agent data is missing or invalid");
   }
 
   if (!brief?.id) {
-    console.error("Invalid brief data:", { brief });
+    console.error("❌ Invalid brief data:", { brief });
     throw new Error("Brief data is missing or invalid");
   }
 
-  console.log("Starting agent processing:", {
+  console.log("🚀 Starting agent processing:", {
     agentId: agent.id,
     briefId: brief.id,
     stageId,
@@ -28,36 +29,58 @@ export async function processAgent(
   });
 
   try {
-    // Get complete agent data
-    const { data: agentData, error: agentError } = await supabase
-      .from('agents')
-      .select(`
-        id,
-        name,
-        description,
-        temperature,
-        skills (
-          id,
-          name,
-          type,
-          content
-        )
-      `)
-      .eq('id', agent.id)
-      .single();
+    // Get complete agent data with retry logic
+    const maxRetries = 3;
+    let agentData = null;
+    let lastError = null;
 
-    if (agentError || !agentData) {
-      console.error("Error fetching agent data:", { error: agentError, agentId: agent.id });
-      throw new Error(`Failed to fetch agent data: ${agentError?.message || 'Agent not found'}`);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const { data, error } = await supabase
+          .from('agents')
+          .select(`
+            id,
+            name,
+            description,
+            temperature,
+            skills (
+              id,
+              name,
+              type,
+              content
+            )
+          `)
+          .eq('id', agent.id)
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        if (data) {
+          agentData = data;
+          break;
+        }
+      } catch (error) {
+        console.warn(`⚠️ Attempt ${attempt} failed:`, error);
+        lastError = error;
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
+      }
     }
 
-    console.log("Retrieved agent data:", {
+    if (!agentData) {
+      throw lastError || new Error('Failed to fetch agent data after multiple attempts');
+    }
+
+    console.log("✅ Retrieved agent data:", {
       agentId: agentData.id,
       agentName: agentData.name,
       skillsCount: agentData.skills?.length || 0
     });
 
-    // Safely parse requirements
+    // Parse requirements with error recovery
     let processedRequirements = [];
     try {
       if (requirements) {
@@ -70,7 +93,7 @@ export async function processAgent(
         });
       }
     } catch (parseError) {
-      console.error("Error parsing requirements:", parseError);
+      console.error("❌ Error parsing requirements:", parseError);
       processedRequirements = [{
         title: 'General',
         points: [requirements || 'No specific requirements provided']
@@ -133,7 +156,7 @@ Provide a detailed, actionable response that:
       }
     };
 
-    console.log("Successfully generated response for agent:", {
+    console.log("✅ Successfully generated response for agent:", {
       agentId: agentData.id,
       agentName: agentData.name,
       responseLength: response.conversationalResponse.length,
@@ -160,7 +183,7 @@ Provide a detailed, actionable response that:
     };
 
   } catch (error) {
-    console.error("Error in processAgent:", {
+    console.error("❌ Error in processAgent:", {
       error,
       agentId: agent?.id,
       briefId: brief?.id,

@@ -10,27 +10,41 @@ import { saveBriefOutput } from './utils/outputManager.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Content-Type': 'application/json'
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 204
+    });
   }
 
   try {
+    console.log('🚀 Starting workflow processing:', {
+      method: req.method,
+      url: req.url,
+      timestamp: new Date().toISOString()
+    });
+
     const { briefId, stageId, flowSteps, feedbackId } = await req.json();
-    console.log('Received request:', { 
+    
+    // Input validation
+    if (!briefId || !stageId || !Array.isArray(flowSteps)) {
+      console.error('❌ Invalid input parameters:', { briefId, stageId, flowStepsCount: flowSteps?.length });
+      throw new Error('Missing or invalid required parameters');
+    }
+
+    console.log('📝 Processing request:', { 
       briefId, 
       stageId, 
       flowStepsCount: flowSteps?.length,
       hasFeedback: !!feedbackId,
       timestamp: new Date().toISOString()
     });
-
-    if (!briefId || !stageId || !Array.isArray(flowSteps)) {
-      throw new Error('Missing required parameters');
-    }
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -39,7 +53,7 @@ serve(async (req) => {
 
     // 1. Data Validation & Preparation
     const { brief, stage } = await validateWorkflowData(supabase, briefId, stageId);
-    console.log('Validated workflow data:', { 
+    console.log('✅ Validated workflow data:', { 
       briefId, 
       stageName: stage.name,
       timestamp: new Date().toISOString()
@@ -49,28 +63,34 @@ serve(async (req) => {
     let feedbackContext = null;
     if (feedbackId) {
       feedbackContext = await processFeedback(supabase, briefId, stageId, feedbackId);
-      console.log('Processed feedback:', { 
+      console.log('📋 Processed feedback:', { 
         feedbackId, 
         hasOriginalOutput: !!feedbackContext.originalOutput,
         timestamp: new Date().toISOString()
       });
     }
 
-    // 3. Agent Processing
+    // 3. Agent Processing with enhanced error handling
     const outputs = [];
     for (const step of flowSteps) {
-      if (!step || !step.agent_id) {
-        console.error('Invalid flow step:', step);
-        continue;
-      }
-
       try {
+        if (!step?.agent_id) {
+          console.warn('⚠️ Skipping invalid flow step:', { step });
+          continue;
+        }
+
+        console.log('🤖 Processing agent step:', {
+          stepId: step.id,
+          agentId: step.agent_id,
+          timestamp: new Date().toISOString()
+        });
+
         const result = await processAgent(
           supabase,
           { id: step.agent_id },
           brief,
           stageId,
-          step.requirements,
+          step.requirements || '',
           outputs
         );
         
@@ -88,7 +108,7 @@ serve(async (req) => {
           );
         }
       } catch (stepError) {
-        console.error('Error processing step:', {
+        console.error('❌ Error processing step:', {
           error: stepError,
           stepId: step.id,
           agentId: step.agent_id,
@@ -112,7 +132,7 @@ serve(async (req) => {
       feedbackContext
     );
 
-    // 6. Response Handling
+    // 6. Response Handling with proper headers
     return new Response(
       JSON.stringify({
         success: true,
@@ -123,11 +143,14 @@ serve(async (req) => {
           outputsCount: outputs.length
         }
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: corsHeaders,
+        status: 200
+      }
     );
 
   } catch (error) {
-    console.error('Error in workflow processing:', {
+    console.error('❌ Error in workflow processing:', {
       error: error.message,
       stack: error.stack,
       timestamp: new Date().toISOString()
@@ -136,11 +159,12 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        details: error.stack
+        details: error.stack,
+        timestamp: new Date().toISOString()
       }),
       { 
         status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: corsHeaders
       }
     );
   }
