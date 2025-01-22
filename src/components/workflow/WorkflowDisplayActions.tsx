@@ -10,6 +10,7 @@ interface WorkflowDisplayActionsProps {
   onNextStage: (feedbackId: string | null) => void;
   isProcessing?: boolean;
   briefId?: string;
+  onStageSelect?: (stage: Stage) => void;
 }
 
 export const WorkflowDisplayActions = ({
@@ -17,7 +18,8 @@ export const WorkflowDisplayActions = ({
   currentStage,
   onNextStage,
   isProcessing,
-  briefId
+  briefId,
+  onStageSelect
 }: WorkflowDisplayActionsProps) => {
   const [currentStageProcessed, setCurrentStageProcessed] = useState(false);
   const [previousStageProcessed, setPreviousStageProcessed] = useState(false);
@@ -179,6 +181,9 @@ export const WorkflowDisplayActions = ({
       
       try {
         await onNextStage(null);
+        if (onStageSelect) {
+          onStageSelect(nextStage);
+        }
         toast.success(`Processing stage: ${nextStage.name}`);
       } catch (error) {
         console.error("Error processing next stage:", error);
