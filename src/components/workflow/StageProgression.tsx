@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface StageProgressionProps {
   briefId?: string;
@@ -22,54 +23,119 @@ export const StageProgression = ({
     const checkAndProgressStage = async () => {
       try {
         const currentIndex = stages.findIndex(stage => stage.id === currentStage);
-        console.log("Current stage index:", currentIndex, "Current stage:", currentStage);
-        
-        // Get conversations for current stage
-        const { data: currentConversations, error: currentError } = await supabase
-          .from("workflow_conversations")
-          .select("*")
-          .eq("brief_id", briefId)
-          .eq("stage_id", currentStage);
+        console.log("🔍 Checking progression for:", {
+          currentIndex,
+          currentStage,
+          totalStages: stages.length,
+          timestamp: new Date().toISOString()
+        });
 
-        if (currentError) {
-          console.error("Error fetching current stage conversations:", currentError);
-          return;
-        }
+        // Se è il primo stage, verifichiamo solo gli output correnti
+        if (currentIndex === 0) {
+          const { data: currentOutputs, error: outputError } = await supabase
+            .from("brief_outputs")
+            .select("*")
+            .eq("brief_id", briefId)
+            .eq("stage_id", currentStage);
 
-        console.log("Current stage conversations:", currentConversations?.length);
+          if (outputError) {
+            console.error("Error checking current stage outputs:", outputError);
+            return;
+          }
 
-        // If we have conversations for the current stage
-        if (currentConversations?.length > 0) {
-          // Get the next stage if it exists
-          const nextStage = stages[currentIndex + 1];
+          console.log("📊 First stage outputs:", {
+            count: currentOutputs?.length,
+            stageId: currentStage,
+            timestamp: new Date().toISOString()
+          });
+
+          if (currentOutputs?.length > 0) {
+            console.log("✅ First stage ready for progression");
+            return;
+          }
+        } else {
+          // Per gli altri stage, verifichiamo il completamento dello stage precedente
+          const previousStage = stages[currentIndex - 1];
           
-          if (nextStage) {
-            console.log("Checking next stage:", nextStage.id);
-            
-            // Check if we already have conversations for the next stage
-            const { data: nextStageConversations, error: nextError } = await supabase
-              .from("workflow_conversations")
-              .select("*")
-              .eq("brief_id", briefId)
-              .eq("stage_id", nextStage.id);
+          if (!previousStage) {
+            console.error("Previous stage not found");
+            return;
+          }
 
-            if (nextError) {
-              console.error("Error checking next stage:", nextError);
-              return;
-            }
+          console.log("🔍 Checking previous stage:", {
+            previousStageId: previousStage.id,
+            currentStage,
+            timestamp: new Date().toISOString()
+          });
 
-            // If no conversations exist for next stage, it's ready for progression
-            if (!nextStageConversations?.length) {
-              console.log("Stage completed, ready for progression to:", {
-                fromStage: currentStage,
-                toStage: nextStage.id,
-                currentConversationsCount: currentConversations.length
-              });
+          // Verifica output dello stage precedente
+          const { data: previousOutputs, error: prevOutputError } = await supabase
+            .from("brief_outputs")
+            .select("*")
+            .eq("brief_id", briefId)
+            .eq("stage_id", previousStage.id);
+
+          if (prevOutputError) {
+            console.error("Error checking previous stage outputs:", prevOutputError);
+            return;
+          }
+
+          // Verifica conversazioni dello stage precedente
+          const { data: previousConversations, error: prevConvError } = await supabase
+            .from("workflow_conversations")
+            .select("*")
+            .eq("brief_id", briefId)
+            .eq("stage_id", previousStage.id);
+
+          if (prevConvError) {
+            console.error("Error checking previous stage conversations:", prevConvError);
+            return;
+          }
+
+          const isPreviousStageComplete = previousOutputs?.length > 0 && previousConversations?.length > 0;
+
+          console.log("📊 Previous stage status:", {
+            stageId: previousStage.id,
+            hasOutputs: previousOutputs?.length > 0,
+            hasConversations: previousConversations?.length > 0,
+            isComplete: isPreviousStageComplete,
+            timestamp: new Date().toISOString()
+          });
+
+          if (!isPreviousStageComplete) {
+            console.log("⚠️ Previous stage not complete");
+            toast.error("Previous stage must be completed first");
+            return;
+          }
+
+          // Verifica se lo stage corrente può procedere
+          const { data: currentConversations, error: currentError } = await supabase
+            .from("workflow_conversations")
+            .select("*")
+            .eq("brief_id", briefId)
+            .eq("stage_id", currentStage);
+
+          if (currentError) {
+            console.error("Error checking current stage:", currentError);
+            return;
+          }
+
+          console.log("📊 Current stage status:", {
+            stageId: currentStage,
+            conversationsCount: currentConversations?.length,
+            timestamp: new Date().toISOString()
+          });
+
+          if (currentConversations?.length > 0) {
+            const nextStage = stages[currentIndex + 1];
+            if (nextStage) {
+              console.log("✅ Stage completed, ready for progression to:", nextStage.id);
             }
           }
         }
       } catch (error) {
-        console.error("Error in progression check:", error);
+        console.error("❌ Error in progression check:", error);
+        toast.error("Error checking stage progression");
       }
     };
 
