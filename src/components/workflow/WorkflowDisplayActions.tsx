@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface WorkflowDisplayActionsProps {
-  stages: Stage[];
+  stages: any[];
   currentStage: string;
   onNextStage: (feedbackId: string | null) => void;
   isProcessing?: boolean;
@@ -30,6 +30,11 @@ export const WorkflowDisplayActions = ({
       if (!currentStage) return;
 
       try {
+        console.log("🔍 Checking current stage outputs:", {
+          stageId: currentStage,
+          timestamp: new Date().toISOString()
+        });
+
         const { data: outputs, error: outputError } = await supabase
           .from('brief_outputs')
           .select('*')
@@ -40,11 +45,12 @@ export const WorkflowDisplayActions = ({
           return;
         }
 
-        setCurrentStageProcessed(outputs && outputs.length > 0);
+        const hasOutputs = outputs && outputs.length > 0;
+        setCurrentStageProcessed(hasOutputs);
         
         console.log("🔍 Current stage status check:", {
           stageId: currentStage,
-          hasOutputs: outputs && outputs.length > 0,
+          hasOutputs,
           outputsCount: outputs?.length || 0,
           timestamp: new Date().toISOString()
         });
@@ -153,8 +159,14 @@ export const WorkflowDisplayActions = ({
         flowSteps: nextStage.flows?.flow_steps,
         timestamp: new Date().toISOString()
       });
-      await onNextStage(null);
-      toast.success("Processing next stage");
+      
+      try {
+        await onNextStage(null);
+        toast.success(`Processing stage: ${nextStage.name}`);
+      } catch (error) {
+        console.error("Error processing next stage:", error);
+        toast.error("Failed to process next stage");
+      }
     }
   };
 
