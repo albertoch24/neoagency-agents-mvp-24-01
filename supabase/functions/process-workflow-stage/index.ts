@@ -33,7 +33,7 @@ serve(async (req) => {
 
     // Validate inputs
     if (!briefId || !stageId || !Array.isArray(flowSteps)) {
-      throw new Error('Missing required parameters: briefId, stageId, and flowSteps array are required');
+      throw new Error('Missing required parameters');
     }
 
     // Initialize Supabase client
@@ -42,12 +42,6 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get brief data
-    console.log('🔍 Fetching brief data:', {
-      operationId,
-      briefId,
-      timestamp: new Date().toISOString()
-    });
-
     const { data: brief, error: briefError } = await supabase
       .from('briefs')
       .select('*')
@@ -55,21 +49,10 @@ serve(async (req) => {
       .single();
 
     if (briefError || !brief) {
-      console.error('❌ Error fetching brief:', {
-        operationId,
-        error: briefError,
-        timestamp: new Date().toISOString()
-      });
       throw new Error(`Error fetching brief: ${briefError?.message || 'Brief not found'}`);
     }
 
     // Get stage data
-    console.log('🔍 Fetching stage data:', {
-      operationId,
-      stageId,
-      timestamp: new Date().toISOString()
-    });
-
     const { data: stage, error: stageError } = await supabase
       .from('stages')
       .select('*, flows!inner(id, name)')
@@ -77,11 +60,6 @@ serve(async (req) => {
       .single();
 
     if (stageError || !stage) {
-      console.error('❌ Error fetching stage:', {
-        operationId,
-        error: stageError,
-        timestamp: new Date().toISOString()
-      });
       throw new Error(`Error fetching stage: ${stageError?.message || 'Stage not found'}`);
     }
 
@@ -97,58 +75,28 @@ serve(async (req) => {
           timestamp: new Date().toISOString()
         });
 
-        // Get agent data with retry logic
-        let agent = null;
-        let retryCount = 0;
-        const maxRetries = 3;
-
-        while (!agent && retryCount < maxRetries) {
-          const { data, error } = await supabase
-            .from('agents')
-            .select(`
+        // Get agent data
+        const { data: agent, error: agentError } = await supabase
+          .from('agents')
+          .select(`
+            id,
+            name,
+            description,
+            temperature,
+            skills (
               id,
               name,
-              description,
-              temperature,
-              skills (
-                id,
-                name,
-                type,
-                content,
-                description
-              )
-            `)
-            .eq('id', step.agent_id)
-            .single();
+              type,
+              content,
+              description
+            )
+          `)
+          .eq('id', step.agent_id)
+          .single();
 
-          if (error) {
-            console.warn(`⚠️ Retry ${retryCount + 1} failed for agent fetch:`, {
-              operationId,
-              error,
-              agentId: step.agent_id,
-              timestamp: new Date().toISOString()
-            });
-            retryCount++;
-            if (retryCount < maxRetries) {
-              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-            }
-          } else {
-            agent = data;
-            break;
-          }
+        if (agentError || !agent) {
+          throw new Error(`Failed to fetch agent data: ${agentError?.message}`);
         }
-
-        if (!agent) {
-          throw new Error(`Failed to fetch agent data after ${maxRetries} attempts`);
-        }
-
-        console.log('✅ Retrieved agent data:', {
-          operationId,
-          agentId: agent.id,
-          agentName: agent.name,
-          skillsCount: agent.skills?.length || 0,
-          timestamp: new Date().toISOString()
-        });
 
         // Generate OpenAI prompt
         const systemPrompt = `You are ${agent.name}, a specialized creative agency professional with the following skills:
@@ -182,13 +130,6 @@ Provide a detailed, actionable response that:
 3. Addresses the stage requirements directly
 4. Proposes next steps and action items`;
 
-        console.log('🤖 Generating OpenAI response:', {
-          operationId,
-          agentId: agent.id,
-          agentName: agent.name,
-          timestamp: new Date().toISOString()
-        });
-
         // Call OpenAI API
         const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
@@ -197,7 +138,7 @@ Provide a detailed, actionable response that:
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
+            model: 'gpt-4',
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: 'Based on the brief and requirements, provide your professional analysis and recommendations.' }
@@ -207,26 +148,11 @@ Provide a detailed, actionable response that:
         });
 
         if (!openAIResponse.ok) {
-          const errorText = await openAIResponse.text();
-          console.error('❌ OpenAI API error:', {
-            operationId,
-            status: openAIResponse.status,
-            error: errorText,
-            timestamp: new Date().toISOString()
-          });
-          throw new Error(`OpenAI API error: ${openAIResponse.status} - ${errorText}`);
+          throw new Error(`OpenAI API error: ${openAIResponse.status}`);
         }
 
         const aiData = await openAIResponse.json();
         const generatedContent = aiData.choices[0].message.content;
-
-        console.log('✅ Successfully generated response:', {
-          operationId,
-          agentId: agent.id,
-          agentName: agent.name,
-          contentLength: generatedContent.length,
-          timestamp: new Date().toISOString()
-        });
 
         outputs.push({
           agent: agent.name,
@@ -237,8 +163,8 @@ Provide a detailed, actionable response that:
               type: 'conversational'
             }
           ],
-          stepId: agent.id,
-          orderIndex: outputs.length
+          stepId: step.agent_id,
+          orderIndex: step.order_index
         });
 
       } catch (stepError) {
@@ -249,7 +175,6 @@ Provide a detailed, actionable response that:
           agentId: step.agent_id,
           timestamp: new Date().toISOString()
         });
-        // Continue with next step instead of failing the entire process
         continue;
       }
     }
@@ -257,12 +182,6 @@ Provide a detailed, actionable response that:
     if (outputs.length === 0) {
       throw new Error('No outputs were generated from any agent');
     }
-
-    console.log('✅ Successfully processed all steps:', {
-      operationId,
-      outputsCount: outputs.length,
-      timestamp: new Date().toISOString()
-    });
 
     return new Response(
       JSON.stringify({ success: true, outputs }),

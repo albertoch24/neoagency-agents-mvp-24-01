@@ -60,6 +60,21 @@ export const processWorkflowStage = async (
 
     // Save workflow conversations
     for (const output of data?.outputs || []) {
+      const flowStep = flowSteps.find(step => step.agent_id === output.stepId);
+      
+      if (!flowStep) {
+        console.error("Could not find matching flow step for agent:", output.stepId);
+        continue;
+      }
+
+      console.log("Saving workflow conversation:", {
+        briefId,
+        stageId: stage.id,
+        flowStepId: flowStep.id,
+        agentId: output.stepId,
+        timestamp: new Date().toISOString()
+      });
+
       const { error: conversationError } = await supabase
         .from("workflow_conversations")
         .insert({
@@ -68,7 +83,7 @@ export const processWorkflowStage = async (
           agent_id: output.stepId,
           content: output.outputs[0]?.content || "",
           output_type: "conversational",
-          flow_step_id: output.stepId
+          flow_step_id: flowStep.id // Using the correct flow step ID
         });
 
       if (conversationError) {
