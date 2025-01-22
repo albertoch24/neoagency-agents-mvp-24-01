@@ -6,6 +6,12 @@ interface ValidationResult {
 }
 
 export const validateFirstStageData = (content: any): ValidationResult => {
+  console.log("Validating first stage data:", {
+    hasContent: !!content,
+    contentType: typeof content,
+    timestamp: new Date().toISOString()
+  });
+
   const result: ValidationResult = {
     isValid: true,
     missingInfo: [],
@@ -14,15 +20,27 @@ export const validateFirstStageData = (content: any): ValidationResult => {
   };
 
   try {
-    // Extract outputs from content
-    const outputs = content?.outputs || [];
+    if (!content?.outputs?.length) {
+      console.error("No outputs found in content");
+      result.isValid = false;
+      result.missingInfo.push("No outputs found");
+      return result;
+    }
+
+    // Estrai il contenuto da tutti gli output
+    const outputs = content.outputs || [];
     const combinedContent = outputs
       .map((output: any) => output.outputs?.[0]?.content || '')
       .join(' ');
 
-    // Check for essential information
+    console.log("Analyzing combined content:", {
+      contentLength: combinedContent.length,
+      outputsCount: outputs.length
+    });
+
+    // Verifica informazioni essenziali
     if (!combinedContent.includes('Target Audience')) {
-      result.missingInfo.push('Detailed target audience demographics');
+      result.missingInfo.push('Detailed target audience information');
     }
     if (!combinedContent.toLowerCase().includes('budget')) {
       result.missingInfo.push('Budget information');
@@ -30,26 +48,24 @@ export const validateFirstStageData = (content: any): ValidationResult => {
     if (!combinedContent.includes('Timeline')) {
       result.missingInfo.push('Project timeline');
     }
-
-    // Check for unclear information
-    if (!combinedContent.includes('OOH') && !combinedContent.includes('Out of Home')) {
-      result.unclearInfo.push('Specific OOH placement strategy');
+    if (!combinedContent.toLowerCase().includes('ooh') && !combinedContent.toLowerCase().includes('out of home')) {
+      result.unclearInfo.push('OOH placement strategy');
     }
-    if (!combinedContent.includes('KPI') && !combinedContent.includes('metrics')) {
+    if (!combinedContent.toLowerCase().includes('kpi') && !combinedContent.toLowerCase().includes('metrics')) {
       result.unclearInfo.push('Success metrics and KPIs');
     }
 
-    // Add suggestions for improvement
-    if (!combinedContent.includes('competitor')) {
+    // Suggerimenti per miglioramenti
+    if (!combinedContent.toLowerCase().includes('competitor')) {
       result.suggestions.push('Consider adding competitor analysis');
     }
-    if (!combinedContent.includes('measurement') && !combinedContent.includes('tracking')) {
+    if (!combinedContent.toLowerCase().includes('measurement') && !combinedContent.toLowerCase().includes('tracking')) {
       result.suggestions.push('Include measurement and tracking strategy');
     }
 
     result.isValid = result.missingInfo.length === 0;
 
-    console.log('Stage validation results:', {
+    console.log("Validation results:", {
       isValid: result.isValid,
       missingInfoCount: result.missingInfo.length,
       unclearInfoCount: result.unclearInfo.length,
@@ -59,30 +75,9 @@ export const validateFirstStageData = (content: any): ValidationResult => {
 
     return result;
   } catch (error) {
-    console.error('Error validating first stage data:', error);
-    throw error;
+    console.error("Error in validateFirstStageData:", error);
+    result.isValid = false;
+    result.missingInfo.push('Error processing stage data');
+    return result;
   }
-};
-
-export const validateStageRequirements = (requirements: string): string[] => {
-  const missingRequirements = [];
-  
-  if (!requirements) {
-    return ['No requirements specified'];
-  }
-
-  const requiredSections = [
-    'Project objectives',
-    'Target audience',
-    'Timeline',
-    'Deliverables'
-  ];
-
-  for (const section of requiredSections) {
-    if (!requirements.includes(section)) {
-      missingRequirements.push(`Missing ${section} section`);
-    }
-  }
-
-  return missingRequirements;
 };
