@@ -8,7 +8,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -31,12 +30,10 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     });
 
-    // Validate inputs
     if (!briefId || !stageId || !Array.isArray(flowSteps)) {
       throw new Error('Missing required parameters');
     }
 
-    // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -46,7 +43,7 @@ serve(async (req) => {
       .from('briefs')
       .select('*')
       .eq('id', briefId)
-      .single();
+      .maybeSingle();
 
     if (briefError || !brief) {
       throw new Error(`Error fetching brief: ${briefError?.message || 'Brief not found'}`);
@@ -57,11 +54,30 @@ serve(async (req) => {
       .from('stages')
       .select('*, flows!inner(id, name)')
       .eq('id', stageId)
-      .single();
+      .maybeSingle();
 
     if (stageError || !stage) {
       throw new Error(`Error fetching stage: ${stageError?.message || 'Stage not found'}`);
     }
+
+    // Get previous stage output if exists
+    const { data: previousOutput, error: previousOutputError } = await supabase
+      .from('brief_outputs')
+      .select('*')
+      .eq('brief_id', briefId)
+      .eq('stage_id', stageId)
+      .order('created_at', { ascending: false })
+      .maybeSingle();
+
+    if (previousOutputError) {
+      console.error('Error fetching previous output:', previousOutputError);
+    }
+
+    console.log('Previous output status:', {
+      exists: !!previousOutput,
+      stageId,
+      timestamp: new Date().toISOString()
+    });
 
     // Process each agent
     const outputs = [];
@@ -75,7 +91,6 @@ serve(async (req) => {
           timestamp: new Date().toISOString()
         });
 
-        // Get agent data
         const { data: agent, error: agentError } = await supabase
           .from('agents')
           .select(`
@@ -92,7 +107,7 @@ serve(async (req) => {
             )
           `)
           .eq('id', step.agent_id)
-          .single();
+          .maybeSingle();
 
         if (agentError || !agent) {
           throw new Error(`Failed to fetch agent data: ${agentError?.message}`);
@@ -115,6 +130,9 @@ Consider the project context:
 ${brief.budget ? `- Budget: ${brief.budget}` : ''}
 ${brief.timeline ? `- Timeline: ${brief.timeline}` : ''}
 ${brief.website ? `- Website: ${brief.website}` : ''}
+
+${previousOutput ? `Previous stage output:
+${JSON.stringify(previousOutput.content, null, 2)}` : 'No previous stage output available.'}
 
 Requirements for this stage:
 ${step.requirements || 'No specific requirements provided'}
