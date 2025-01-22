@@ -73,23 +73,37 @@ export const StageProgression = ({
             timestamp: new Date().toISOString()
           });
 
-          // Verifica output dello stage precedente
-          const { data: previousOutputs, error: prevOutputError } = await supabase
-            .from("brief_outputs")
-            .select("*")
-            .eq("brief_id", briefId)
-            .eq("stage_id", previousStage.id);
+          // Verifica output e conversazioni dello stage precedente
+          const [outputsResponse, conversationsResponse] = await Promise.all([
+            supabase
+              .from("brief_outputs")
+              .select("*")
+              .eq("brief_id", briefId)
+              .eq("stage_id", previousStage.id),
+            supabase
+              .from("workflow_conversations")
+              .select("*")
+              .eq("brief_id", briefId)
+              .eq("stage_id", previousStage.id)
+          ]);
 
-          if (prevOutputError) {
-            console.error("Error checking previous stage outputs:", prevOutputError);
+          if (outputsResponse.error) {
+            console.error("Error checking previous stage outputs:", outputsResponse.error);
             return;
           }
 
-          const isPreviousStageComplete = previousOutputs?.length > 0;
+          if (conversationsResponse.error) {
+            console.error("Error checking previous stage conversations:", conversationsResponse.error);
+            return;
+          }
+
+          const isPreviousStageComplete = outputsResponse.data?.length > 0 && 
+                                        conversationsResponse.data?.length > 0;
 
           console.log("📊 Previous stage status:", {
             stageId: previousStage.id,
-            hasOutputs: previousOutputs?.length > 0,
+            hasOutputs: outputsResponse.data?.length > 0,
+            hasConversations: conversationsResponse.data?.length > 0,
             isComplete: isPreviousStageComplete,
             timestamp: new Date().toISOString()
           });
@@ -100,30 +114,13 @@ export const StageProgression = ({
             return;
           }
 
-          // Se lo stage precedente è completo, verifichiamo se possiamo procedere
-          const { data: currentOutputs, error: currentError } = await supabase
-            .from("brief_outputs")
-            .select("*")
-            .eq("brief_id", briefId)
-            .eq("stage_id", currentStage);
-
-          if (currentError) {
-            console.error("Error checking current stage:", currentError);
-            return;
-          }
-
-          console.log("📊 Current stage status:", {
-            stageId: currentStage,
-            outputsCount: currentOutputs?.length,
-            timestamp: new Date().toISOString()
-          });
-
-          // Se non ci sono output per lo stage corrente, possiamo procedere
-          if (!currentOutputs?.length) {
-            const nextStage = stages[currentIndex + 1];
-            if (nextStage) {
-              console.log("✅ Ready to progress to:", nextStage.id);
-            }
+          // Se lo stage precedente è completo, possiamo procedere con il nuovo stage
+          const nextStage = stages[currentIndex + 1];
+          if (nextStage) {
+            console.log("✅ Ready to progress to:", nextStage.id, {
+              previousStageConversations: conversationsResponse.data,
+              timestamp: new Date().toISOString()
+            });
           }
         }
       } catch (error) {
