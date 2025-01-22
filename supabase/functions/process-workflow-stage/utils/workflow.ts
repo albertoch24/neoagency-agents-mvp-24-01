@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { validateFirstStageData } from './stageValidation';
+import { validateFirstStageData } from './stageValidation.ts';
 
 export async function processAgent(
   supabase: any,
