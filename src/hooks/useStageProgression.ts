@@ -82,6 +82,31 @@ export const useStageProgression = (briefId?: string) => {
         stageId,
         timestamp: new Date().toISOString()
       });
+
+      // Get flow steps for the stage
+      const { data: flowSteps, error: flowStepsError } = await supabase
+        .from("flow_steps")
+        .select(`
+          *,
+          agents (
+            id,
+            name,
+            description,
+            skills (*)
+          )
+        `)
+        .eq("flow_id", stageId)
+        .order("order_index", { ascending: true });
+
+      if (flowStepsError) {
+        console.error("❌ Error fetching flow steps:", flowStepsError);
+        throw new Error(`Error fetching flow steps: ${flowStepsError.message}`);
+      }
+
+      console.log("📋 Flow steps retrieved:", {
+        count: flowSteps?.length,
+        steps: flowSteps
+      });
       
       // Create initial processing record
       const { error: progressError } = await supabase
@@ -100,7 +125,8 @@ export const useStageProgression = (briefId?: string) => {
       const { error } = await supabase.functions.invoke('process-workflow-stage', {
         body: { 
           briefId,
-          stageId
+          stageId,
+          flowSteps: flowSteps || []
         }
       });
 
