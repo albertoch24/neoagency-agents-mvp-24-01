@@ -5,6 +5,9 @@ export interface BriefFormData {
   target_audience: string;
   budget: string;
   timeline: string;
+  brand?: string;
+  website?: string;
+  language?: string;
 }
 
 export interface Stage {
