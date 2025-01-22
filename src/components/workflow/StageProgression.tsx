@@ -19,33 +19,34 @@ export const StageProgression = ({
       return;
     }
 
-    const checkAndProgressFirstStage = async () => {
+    const checkAndProgressStage = async () => {
       try {
         const currentIndex = stages.findIndex(stage => stage.id === currentStage);
+        console.log("Current stage index:", currentIndex, "Current stage:", currentStage);
         
-        if (currentIndex !== 0) {
-          return;
-        }
-
-        console.log("Checking conversations for first stage:", currentStage);
-        const { data: conversations, error } = await supabase
+        // Get conversations for current stage
+        const { data: currentConversations, error: currentError } = await supabase
           .from("workflow_conversations")
           .select("*")
           .eq("brief_id", briefId)
           .eq("stage_id", currentStage);
 
-        if (error) {
-          console.error("Error fetching conversations:", error);
+        if (currentError) {
+          console.error("Error fetching current stage conversations:", currentError);
           return;
         }
 
-        console.log("Found conversations:", conversations?.length);
-        
-        if (conversations?.length > 0) {
-          const nextStage = stages[1];
+        console.log("Current stage conversations:", currentConversations?.length);
+
+        // If we have conversations for the current stage
+        if (currentConversations?.length > 0) {
+          // Get the next stage if it exists
+          const nextStage = stages[currentIndex + 1];
           
           if (nextStage) {
-            console.log("Checking next stage conversations:", nextStage.id);
+            console.log("Checking next stage:", nextStage.id);
+            
+            // Check if we already have conversations for the next stage
             const { data: nextStageConversations, error: nextError } = await supabase
               .from("workflow_conversations")
               .select("*")
@@ -57,8 +58,13 @@ export const StageProgression = ({
               return;
             }
 
+            // If no conversations exist for next stage, it's ready for progression
             if (!nextStageConversations?.length) {
-              console.log("First stage completed, ready for manual progression to next stage");
+              console.log("Stage completed, ready for progression to:", {
+                fromStage: currentStage,
+                toStage: nextStage.id,
+                currentConversationsCount: currentConversations.length
+              });
             }
           }
         }
@@ -67,7 +73,7 @@ export const StageProgression = ({
       }
     };
 
-    checkAndProgressFirstStage();
+    checkAndProgressStage();
   }, [briefId, currentStage, stages, isProcessing]);
 
   return null;
