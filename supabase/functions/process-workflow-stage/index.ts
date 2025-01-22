@@ -1,6 +1,9 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getBriefData, getPreviousOutput } from "./utils/briefHandler.ts";
+import { getStageData } from "./utils/stageHandler.ts";
+import { getAgentData, generateSystemPrompt } from "./utils/agentHandler.ts";
+import { generateOpenAIResponse } from "./utils/openaiHandler.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,48 +41,10 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get brief data
-    const { data: brief, error: briefError } = await supabase
-      .from('briefs')
-      .select('*')
-      .eq('id', briefId)
-      .maybeSingle();
+    const brief = await getBriefData(supabase, briefId);
+    const stage = await getStageData(supabase, stageId);
+    const previousOutput = await getPreviousOutput(supabase, briefId, stageId);
 
-    if (briefError || !brief) {
-      throw new Error(`Error fetching brief: ${briefError?.message || 'Brief not found'}`);
-    }
-
-    // Get stage data
-    const { data: stage, error: stageError } = await supabase
-      .from('stages')
-      .select('*, flows!inner(id, name)')
-      .eq('id', stageId)
-      .maybeSingle();
-
-    if (stageError || !stage) {
-      throw new Error(`Error fetching stage: ${stageError?.message || 'Stage not found'}`);
-    }
-
-    // Get previous stage output if exists
-    const { data: previousOutput, error: previousOutputError } = await supabase
-      .from('brief_outputs')
-      .select('*')
-      .eq('brief_id', briefId)
-      .eq('stage_id', stageId)
-      .order('created_at', { ascending: false })
-      .maybeSingle();
-
-    if (previousOutputError) {
-      console.error('Error fetching previous output:', previousOutputError);
-    }
-
-    console.log('Previous output status:', {
-      exists: !!previousOutput,
-      stageId,
-      timestamp: new Date().toISOString()
-    });
-
-    // Process each agent
     const outputs = [];
     for (const step of flowSteps) {
       try {
@@ -91,96 +56,9 @@ serve(async (req) => {
           timestamp: new Date().toISOString()
         });
 
-        const { data: agent, error: agentError } = await supabase
-          .from('agents')
-          .select(`
-            id,
-            name,
-            description,
-            temperature,
-            skills (
-              id,
-              name,
-              type,
-              content,
-              description
-            )
-          `)
-          .eq('id', step.agent_id)
-          .maybeSingle();
-
-        if (agentError || !agent) {
-          throw new Error(`Failed to fetch agent data: ${agentError?.message}`);
-        }
-
-        // Generate OpenAI prompt with enhanced context
-        const systemPrompt = `You are ${agent.name}, a specialized creative agency professional with the following skills:
-${agent.skills?.map((skill: any) => `
-- ${skill.name}: ${skill.description || ''}
-  ${skill.content || ''}
-`).join('\n')}
-
-Your task is to analyze and respond to this brief based on your expertise.
-Consider the project context:
-- Title: ${brief.title || ''}
-- Brand: ${brief.brand || 'Not specified'}
-- Description: ${brief.description || ''}
-- Objectives: ${brief.objectives || ''}
-- Target Audience: ${brief.target_audience || ''}
-${brief.budget ? `- Budget: ${brief.budget}` : ''}
-${brief.timeline ? `- Timeline: ${brief.timeline}` : ''}
-${brief.website ? `- Website: ${brief.website}` : ''}
-
-${previousOutput ? `Previous stage output:
-${JSON.stringify(previousOutput.content, null, 2)}` : 'No previous stage output available.'}
-
-Requirements for this stage:
-${step.requirements || 'No specific requirements provided'}
-
-${outputs.length > 0 ? `
-Consider previous outputs from team members:
-${outputs.map(output => `
-${output.agent}: ${output.content}
-`).join('\n')}
-` : ''}
-
-Provide a detailed, actionable response that:
-1. Analyzes the brief through your professional lens
-2. Offers specific recommendations based on your skills
-3. Addresses the stage requirements directly
-4. Proposes next steps and action items
-5. Maintains consistency with previous team members' outputs
-6. Includes specific examples and implementation details
-7. Considers the project timeline and budget constraints
-8. Provides measurable success metrics when applicable
-
-Your response should be comprehensive, strategic, and immediately actionable.`;
-
-        // Call OpenAI API with enhanced configuration
-        const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: 'Based on the brief and requirements, provide your professional analysis and recommendations.' }
-            ],
-            temperature: agent.temperature || 0.7,
-            max_tokens: 2500,
-            presence_penalty: 0.3,
-            frequency_penalty: 0.3,
-          }),
-        });
-
-        if (!openAIResponse.ok) {
-          throw new Error(`OpenAI API error: ${openAIResponse.status}`);
-        }
-
-        const aiData = await openAIResponse.json();
+        const agent = await getAgentData(supabase, step.agent_id);
+        const systemPrompt = generateSystemPrompt(agent, brief, previousOutput, step.requirements);
+        const aiData = await generateOpenAIResponse(systemPrompt, agent.temperature);
         const generatedContent = aiData.choices[0].message.content;
 
         outputs.push({
