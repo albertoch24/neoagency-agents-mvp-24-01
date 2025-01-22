@@ -36,7 +36,8 @@ export const WorkflowDisplayActions = ({
     const nextStage = stages[currentIndex + 1];
     const isFirstStage = currentIndex === 0;
 
-    if (!previousStageProcessed && !isFirstStage) {
+    // Modifica: rimuoviamo il controllo dello stage precedente per il Kick Off
+    if (!isFirstStage && !previousStageProcessed) {
       toast.error("Previous stage must be completed first");
       return;
     }
@@ -89,7 +90,7 @@ export const WorkflowDisplayActions = ({
           disabled={
             isProcessing ||
             !currentStageProcessed ||
-            (!previousStageProcessed && !isFirstStage)
+            (!previousStageProcessed && !isFirstStage) // Modifica: permettiamo di procedere se è il primo stage
           }
         >
           {isProcessing ? "Processing..." : "Next Stage"}

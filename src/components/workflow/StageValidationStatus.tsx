@@ -1,6 +1,3 @@
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-
 interface StageValidationStatusProps {
   currentStageProcessed: boolean;
   previousStageProcessed: boolean;
@@ -12,27 +9,25 @@ export const StageValidationStatus = ({
   previousStageProcessed,
   isFirstStage
 }: StageValidationStatusProps) => {
-  if (!previousStageProcessed && !isFirstStage) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Previous stage must be completed first
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
   if (!currentStageProcessed) {
     return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Current stage must be completed first
-        </AlertDescription>
-      </Alert>
+      <p className="text-yellow-500">
+        Complete the current stage before proceeding
+      </p>
     );
   }
 
-  return null;
+  if (!previousStageProcessed && !isFirstStage) {
+    return (
+      <p className="text-yellow-500">
+        Previous stage must be completed before proceeding
+      </p>
+    );
+  }
+
+  return (
+    <p className="text-green-500">
+      {isFirstStage ? "Ready to proceed to next stage" : "All requirements met, ready to proceed"}
+    </p>
+  );
 };
