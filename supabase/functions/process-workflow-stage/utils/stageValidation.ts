@@ -49,9 +49,40 @@ export const validateFirstStageData = (content: any): ValidationResult => {
 
     result.isValid = result.missingInfo.length === 0;
 
+    console.log('Stage validation results:', {
+      isValid: result.isValid,
+      missingInfoCount: result.missingInfo.length,
+      unclearInfoCount: result.unclearInfo.length,
+      suggestionsCount: result.suggestions.length,
+      timestamp: new Date().toISOString()
+    });
+
     return result;
   } catch (error) {
     console.error('Error validating first stage data:', error);
     throw error;
   }
+};
+
+export const validateStageRequirements = (requirements: string): string[] => {
+  const missingRequirements = [];
+  
+  if (!requirements) {
+    return ['No requirements specified'];
+  }
+
+  const requiredSections = [
+    'Project objectives',
+    'Target audience',
+    'Timeline',
+    'Deliverables'
+  ];
+
+  for (const section of requiredSections) {
+    if (!requirements.includes(section)) {
+      missingRequirements.push(`Missing ${section} section`);
+    }
+  }
+
+  return missingRequirements;
 };
