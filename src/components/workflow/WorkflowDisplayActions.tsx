@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Stage } from "@/types/workflow";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface WorkflowDisplayActionsProps {
   stages: Stage[];
@@ -22,6 +23,38 @@ export const WorkflowDisplayActions = ({
 }: WorkflowDisplayActionsProps) => {
   const [nextStageHasOutput, setNextStageHasOutput] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const [currentStageProcessed, setCurrentStageProcessed] = useState(false);
+
+  useEffect(() => {
+    const checkCurrentStageStatus = async () => {
+      if (!currentStage) return;
+
+      try {
+        const { data: outputs, error: outputError } = await supabase
+          .from('brief_outputs')
+          .select('*')
+          .eq('stage_id', currentStage);
+
+        if (outputError) {
+          console.error("Error checking current stage outputs:", outputError);
+          return;
+        }
+
+        setCurrentStageProcessed(outputs && outputs.length > 0);
+        
+        console.log("🔍 Current stage status check:", {
+          stageId: currentStage,
+          hasOutputs: outputs && outputs.length > 0,
+          outputsCount: outputs?.length || 0,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error("Error checking current stage status:", error);
+      }
+    };
+
+    checkCurrentStageStatus();
+  }, [currentStage]);
 
   useEffect(() => {
     const checkNextStageOutput = async () => {
@@ -45,48 +78,21 @@ export const WorkflowDisplayActions = ({
       });
 
       try {
-        // Check outputs by stage ID
-        const { data: outputsById, error: outputError } = await supabase
+        const { data: outputs, error: outputError } = await supabase
           .from('brief_outputs')
           .select('*')
           .eq('stage_id', nextStage.id);
 
         if (outputError) {
-          console.error("Error checking outputs by ID:", outputError);
+          console.error("Error checking outputs:", outputError);
           throw outputError;
         }
 
-        // Check outputs by stage name
-        const { data: outputsByName, error: nameError } = await supabase
-          .from('brief_outputs')
-          .select('*')
-          .eq('stage', nextStage.id);
-
-        if (nameError) {
-          console.error("Error checking outputs by name:", nameError);
-          throw nameError;
-        }
-
-        // Check workflow conversations
-        const { data: conversations, error: convError } = await supabase
-          .from('workflow_conversations')
-          .select('*')
-          .eq('stage_id', nextStage.id);
-
-        if (convError) {
-          console.error("Error checking conversations:", convError);
-          throw convError;
-        }
-
-        const hasOutput = (outputsById && outputsById.length > 0) || 
-                         (outputsByName && outputsByName.length > 0) ||
-                         (conversations && conversations.length > 0);
+        const hasOutput = outputs && outputs.length > 0;
 
         console.log("✅ Next stage output check result:", {
           hasOutput,
-          outputsById: outputsById?.length || 0,
-          outputsByName: outputsByName?.length || 0,
-          conversations: conversations?.length || 0,
+          outputsCount: outputs?.length || 0,
           nextStageId: nextStage.id,
           nextStageName: nextStage.name,
           timestamp: new Date().toISOString()
@@ -101,10 +107,10 @@ export const WorkflowDisplayActions = ({
       }
     };
 
-    if (currentStage) {
+    if (currentStage && currentStageProcessed) {
       checkNextStageOutput();
     }
-  }, [currentStage, stages]);
+  }, [currentStage, stages, currentStageProcessed]);
 
   if (!stages?.length) return null;
 
@@ -114,18 +120,23 @@ export const WorkflowDisplayActions = ({
 
   if (isLastStage || !nextStage) return null;
 
-  const handleNextStage = () => {
-    console.log("🔄 Handling next stage transition:", {
-      stage: {
-        id: nextStage.id,
-        name: nextStage.name,
-        hasFlow: !!nextStage.flow_id,
-        flowSteps: nextStage.flows?.flow_steps
-      },
-      hasOutput: nextStageHasOutput,
-      willProcess: !nextStageHasOutput,
-      timestamp: new Date().toISOString()
-    });
+  const handleNextStage = async () => {
+    if (!currentStageProcessed) {
+      console.log("🚀 Starting current stage processing:", {
+        stageId: currentStage,
+        stageName: stages.find(s => s.id === currentStage)?.name,
+        timestamp: new Date().toISOString()
+      });
+
+      try {
+        await onNextStage(null);
+        toast.success("Stage processing started");
+      } catch (error) {
+        console.error("Error processing stage:", error);
+        toast.error("Failed to process stage");
+      }
+      return;
+    }
 
     if (nextStageHasOutput) {
       console.log("✨ Next stage already has output, selecting stage:", {
@@ -135,7 +146,6 @@ export const WorkflowDisplayActions = ({
       });
       onStageSelect?.(nextStage);
     } else {
-      // Start new process with null feedback ID since this is a fresh start
       console.log("⚡ Starting process for next stage:", {
         stageId: nextStage.id,
         stageName: nextStage.name,
@@ -143,7 +153,8 @@ export const WorkflowDisplayActions = ({
         flowSteps: nextStage.flows?.flow_steps,
         timestamp: new Date().toISOString()
       });
-      onNextStage(null);
+      await onNextStage(null);
+      toast.success("Processing next stage");
     }
   };
 
@@ -155,7 +166,7 @@ export const WorkflowDisplayActions = ({
           className="flex items-center gap-2"
           disabled={isProcessing || isChecking}
         >
-          Next Stage
+          {!currentStageProcessed ? 'Process Current Stage' : 'Next Stage'}
           <ArrowRight className="h-4 w-4" />
         </Button>
       </CardContent>

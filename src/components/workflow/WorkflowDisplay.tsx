@@ -5,6 +5,7 @@ import { WorkflowDisplayActions } from "./WorkflowDisplayActions";
 import { Stage } from "@/types/workflow";
 import { useStagesData } from "@/hooks/useStagesData";
 import { StageOutputDisplay } from "./StageOutputDisplay";
+import { toast } from "sonner";
 
 interface WorkflowDisplayProps {
   briefId?: string;
@@ -23,7 +24,7 @@ export const WorkflowDisplay = ({
   const { data: stages = [] } = useStagesData(briefId);
 
   const handleReprocess = async (feedbackId: string | null) => {
-    console.log('🚀 WorkflowDisplay - Starting reprocess:', {
+    console.log('🚀 WorkflowDisplay - Starting process:', {
       briefId,
       currentStage,
       stageName: stages.find(s => s.id === currentStage)?.name,
@@ -47,22 +48,24 @@ export const WorkflowDisplay = ({
       });
 
       try {
-        console.log('⚡ Calling processStage with:', {
+        console.log('⚡ Starting stage processing:', {
           feedbackId: feedbackId || 'null',
           timestamp: new Date().toISOString()
         });
         
         await processStage(feedbackId);
         
-        console.log('✅ WorkflowDisplay - Reprocess completed:', {
+        console.log('✅ WorkflowDisplay - Process completed:', {
           briefId,
           currentStage,
           stageName: currentStageData?.name,
           feedbackId,
           timestamp: new Date().toISOString()
         });
+
+        toast.success(`Processing stage: ${currentStageData?.name}`);
       } catch (error) {
-        console.error('❌ WorkflowDisplay - Error during reprocess:', {
+        console.error('❌ WorkflowDisplay - Error during processing:', {
           error,
           briefId,
           currentStage,
@@ -70,6 +73,8 @@ export const WorkflowDisplay = ({
           errorMessage: error instanceof Error ? error.message : 'Unknown error',
           timestamp: new Date().toISOString()
         });
+        
+        toast.error("Failed to process stage. Please try again.");
       }
     } else {
       console.error('❌ WorkflowDisplay - Missing required parameters:', {
@@ -77,6 +82,8 @@ export const WorkflowDisplay = ({
         currentStage,
         timestamp: new Date().toISOString()
       });
+      
+      toast.error("Missing required information to process stage");
     }
   };
 
