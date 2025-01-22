@@ -10,35 +10,37 @@ export const useStageProgression = (briefId?: string) => {
     if (!briefId) return false;
     
     try {
-      console.log("Checking completion for stage:", stageId);
+      console.log("🔍 Checking completion for stage:", {
+        stageId,
+        briefId,
+        timestamp: new Date().toISOString()
+      });
       
       // First check brief_outputs table
       const { data: outputs, error: outputsError } = await supabase
         .from("brief_outputs")
         .select("*")
         .eq("brief_id", briefId)
-        .or(`stage_id.eq.${stageId},stage.eq.${stageId}`)
+        .eq("stage_id", stageId)
         .maybeSingle();
 
       if (outputsError) {
-        console.error("Error checking outputs:", outputsError);
+        console.error("❌ Error checking outputs:", outputsError);
         return false;
       }
 
-      // Log the check results
-      console.log("Stage completion check - outputs:", {
+      console.log("📊 Stage completion check - outputs:", {
         stageId,
         hasOutput: !!outputs,
         output: outputs
       });
 
-      // If we have an output, the stage is completed
       if (outputs) {
         return true;
       }
 
       // If no outputs found, check workflow_conversations table
-      const { data: conversation, error: convsError } = await supabase
+      const { data: conversations, error: convsError } = await supabase
         .from("workflow_conversations")
         .select("*")
         .eq("brief_id", briefId)
@@ -46,21 +48,19 @@ export const useStageProgression = (briefId?: string) => {
         .maybeSingle();
 
       if (convsError) {
-        console.error("Error checking conversations:", convsError);
+        console.error("❌ Error checking conversations:", convsError);
         return false;
       }
 
-      // Log conversations check
-      console.log("Stage completion check - conversation:", {
+      console.log("💬 Stage completion check - conversations:", {
         stageId,
-        hasConversation: !!conversation,
-        conversation: conversation
+        hasConversation: !!conversations,
+        conversation: conversations
       });
 
-      // A stage is completed if it has at least one conversation
-      return !!conversation;
+      return !!conversations;
     } catch (error) {
-      console.error("Error checking stage completion:", error);
+      console.error("❌ Error checking stage completion:", error);
       return false;
     }
   };
@@ -68,17 +68,35 @@ export const useStageProgression = (briefId?: string) => {
   const startStage = async (stageId: string) => {
     if (!briefId) {
       toast.error("No brief selected. Please select a brief first.");
-      return;
+      return false;
     }
 
     if (!stageId) {
       toast.error("No stage selected. Please select a stage first.");
-      return;
+      return false;
     }
 
     try {
-      console.log('Starting stage with params:', { briefId, stageId });
+      console.log('🚀 Starting stage processing:', { 
+        briefId, 
+        stageId,
+        timestamp: new Date().toISOString()
+      });
       
+      // Create initial processing record
+      const { error: progressError } = await supabase
+        .from("processing_progress")
+        .insert({
+          brief_id: briefId,
+          stage_id: stageId,
+          status: 'processing',
+          progress: 0
+        });
+
+      if (progressError) {
+        throw new Error(`Error creating progress record: ${progressError.message}`);
+      }
+
       const { error } = await supabase.functions.invoke('process-workflow-stage', {
         body: { 
           briefId,
@@ -87,26 +105,35 @@ export const useStageProgression = (briefId?: string) => {
       });
 
       if (error) {
-        console.error('Error starting stage:', error);
+        console.error('❌ Error starting stage:', error);
         throw error;
       }
 
       toast.success("Stage started successfully");
       
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["stages"] });
-      queryClient.invalidateQueries({ queryKey: ["brief-outputs", briefId] });
-      queryClient.invalidateQueries({ queryKey: ["workflow-conversations", briefId] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["stages"] }),
+        queryClient.invalidateQueries({ queryKey: ["brief-outputs", briefId] }),
+        queryClient.invalidateQueries({ queryKey: ["workflow-conversations", briefId] })
+      ]);
       
       return true;
     } catch (error) {
-      console.error("Error starting stage:", error);
-      toast.error("Failed to start stage");
+      console.error("❌ Error starting stage:", error);
+      toast.error("Failed to start stage. Please try again.");
       return false;
     }
   };
 
   const handleStageProgression = async (stage: Stage, index: number, stages: Stage[]) => {
+    console.log("🔄 Handling stage progression:", {
+      stageId: stage.id,
+      stageName: stage.name,
+      index,
+      totalStages: stages.length
+    });
+
     // If it's the first stage, allow starting it
     if (index === 0) {
       return startStage(stage.id);
@@ -114,7 +141,17 @@ export const useStageProgression = (briefId?: string) => {
 
     // Check if previous stage is completed
     const previousStage = stages[index - 1];
+    if (!previousStage) {
+      console.error("❌ Previous stage not found");
+      toast.error("Error finding previous stage");
+      return false;
+    }
+
     const isPreviousCompleted = await isStageCompleted(previousStage.id);
+    console.log("✅ Previous stage completion check:", {
+      previousStageId: previousStage.id,
+      isCompleted: isPreviousCompleted
+    });
 
     if (isPreviousCompleted) {
       return startStage(stage.id);

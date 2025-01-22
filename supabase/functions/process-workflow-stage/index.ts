@@ -33,15 +33,14 @@ serve(async (req) => {
     const { briefId, stageId, flowSteps, feedbackId } = await req.json();
     
     // Input validation
-    if (!briefId || !stageId || !Array.isArray(flowSteps)) {
-      console.error('❌ Invalid input parameters:', { briefId, stageId, flowStepsCount: flowSteps?.length });
-      throw new Error('Missing or invalid required parameters');
+    if (!briefId || !stageId) {
+      console.error('❌ Missing required parameters:', { briefId, stageId });
+      throw new Error('Missing required parameters: briefId and stageId are required');
     }
 
     console.log('📝 Processing request:', { 
       briefId, 
-      stageId, 
-      flowStepsCount: flowSteps?.length,
+      stageId,
       hasFeedback: !!feedbackId,
       timestamp: new Date().toISOString()
     });
@@ -65,29 +64,58 @@ serve(async (req) => {
       feedbackContext = await processFeedback(supabase, briefId, stageId, feedbackId);
       console.log('📋 Processed feedback:', { 
         feedbackId, 
-        hasOriginalOutput: !!feedbackContext.originalOutput,
+        hasOriginalOutput: !!feedbackContext?.originalOutput,
         timestamp: new Date().toISOString()
       });
     }
 
-    // 3. Agent Processing with enhanced error handling
+    // 3. Get flow steps if not provided
+    let stageFlowSteps = flowSteps;
+    if (!stageFlowSteps) {
+      const { data: steps, error: stepsError } = await supabase
+        .from('flow_steps')
+        .select(`
+          *,
+          agents (
+            id,
+            name,
+            description,
+            temperature
+          )
+        `)
+        .eq('flow_id', stage.flow_id)
+        .order('order_index');
+
+      if (stepsError) {
+        throw new Error(`Error fetching flow steps: ${stepsError.message}`);
+      }
+
+      stageFlowSteps = steps;
+    }
+
+    if (!stageFlowSteps?.length) {
+      throw new Error('No flow steps found for this stage');
+    }
+
+    // 4. Agent Processing with enhanced error handling and retries
     const outputs = [];
-    for (const step of flowSteps) {
+    for (const step of stageFlowSteps) {
       try {
-        if (!step?.agent_id) {
+        if (!step?.agents?.id) {
           console.warn('⚠️ Skipping invalid flow step:', { step });
           continue;
         }
 
         console.log('🤖 Processing agent step:', {
           stepId: step.id,
-          agentId: step.agent_id,
+          agentId: step.agents.id,
+          agentName: step.agents.name,
           timestamp: new Date().toISOString()
         });
 
         const result = await processAgent(
           supabase,
-          { id: step.agent_id },
+          step.agents,
           brief,
           stageId,
           step.requirements || '',
@@ -97,21 +125,22 @@ serve(async (req) => {
         if (result) {
           outputs.push(result);
           
-          // 4. Conversation Management
+          // 5. Conversation Management
           await saveConversation(
             supabase,
             briefId,
             stageId,
-            step.agent_id,
-            result.outputs[0].content,
-            feedbackContext
+            step.agents.id,
+            result,
+            feedbackContext,
+            step.id
           );
         }
       } catch (stepError) {
         console.error('❌ Error processing step:', {
           error: stepError,
           stepId: step.id,
-          agentId: step.agent_id,
+          agentId: step.agents?.id,
           timestamp: new Date().toISOString()
         });
         throw stepError;
@@ -122,7 +151,7 @@ serve(async (req) => {
       throw new Error('No outputs were generated from any agent');
     }
 
-    // 5. Output Management
+    // 6. Save Brief Output
     await saveBriefOutput(
       supabase,
       briefId,
@@ -132,7 +161,18 @@ serve(async (req) => {
       feedbackContext
     );
 
-    // 6. Response Handling with proper headers
+    // 7. Update processing progress
+    await supabase
+      .from('processing_progress')
+      .update({
+        status: 'completed',
+        progress: 100,
+        completed_at: new Date().toISOString()
+      })
+      .eq('brief_id', briefId)
+      .eq('stage_id', stageId);
+
+    // 8. Response Handling
     return new Response(
       JSON.stringify({
         success: true,
@@ -140,7 +180,8 @@ serve(async (req) => {
         metadata: {
           processedAt: new Date().toISOString(),
           hasFeedback: !!feedbackContext,
-          outputsCount: outputs.length
+          outputsCount: outputs.length,
+          stageName: stage.name
         }
       }),
       { 
