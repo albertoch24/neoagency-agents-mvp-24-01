@@ -101,6 +101,17 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
         parsedContent = latestOutput.content as BriefOutput['content'];
       }
 
+      // Ensure outputs array exists and has the correct format
+      if (!parsedContent.outputs) {
+        console.log("⚠️ No outputs array in content, creating default structure");
+        parsedContent.outputs = [{
+          agent: "System",
+          outputs: [{
+            content: typeof parsedContent === 'string' ? parsedContent : JSON.stringify(parsedContent)
+          }]
+        }];
+      }
+
       console.log("🎯 Final parsed content structure:", {
         hasOutputs: !!parsedContent.outputs,
         outputsCount: parsedContent.outputs?.length,
