@@ -98,7 +98,7 @@ serve(async (req) => {
           throw new Error(`Failed to fetch agent data: ${agentError?.message}`);
         }
 
-        // Generate OpenAI prompt
+        // Generate OpenAI prompt with enhanced context
         const systemPrompt = `You are ${agent.name}, a specialized creative agency professional with the following skills:
 ${agent.skills?.map((skill: any) => `
 - ${skill.name}: ${skill.description || ''}
@@ -108,11 +108,13 @@ ${agent.skills?.map((skill: any) => `
 Your task is to analyze and respond to this brief based on your expertise.
 Consider the project context:
 - Title: ${brief.title || ''}
+- Brand: ${brief.brand || 'Not specified'}
 - Description: ${brief.description || ''}
 - Objectives: ${brief.objectives || ''}
-${brief.target_audience ? `- Target Audience: ${brief.target_audience}` : ''}
+- Target Audience: ${brief.target_audience || ''}
 ${brief.budget ? `- Budget: ${brief.budget}` : ''}
 ${brief.timeline ? `- Timeline: ${brief.timeline}` : ''}
+${brief.website ? `- Website: ${brief.website}` : ''}
 
 Requirements for this stage:
 ${step.requirements || 'No specific requirements provided'}
@@ -128,9 +130,15 @@ Provide a detailed, actionable response that:
 1. Analyzes the brief through your professional lens
 2. Offers specific recommendations based on your skills
 3. Addresses the stage requirements directly
-4. Proposes next steps and action items`;
+4. Proposes next steps and action items
+5. Maintains consistency with previous team members' outputs
+6. Includes specific examples and implementation details
+7. Considers the project timeline and budget constraints
+8. Provides measurable success metrics when applicable
 
-        // Call OpenAI API
+Your response should be comprehensive, strategic, and immediately actionable.`;
+
+        // Call OpenAI API with enhanced configuration
         const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -138,12 +146,15 @@ Provide a detailed, actionable response that:
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4',
+            model: 'gpt-4o',
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: 'Based on the brief and requirements, provide your professional analysis and recommendations.' }
             ],
             temperature: agent.temperature || 0.7,
+            max_tokens: 2500,
+            presence_penalty: 0.3,
+            frequency_penalty: 0.3,
           }),
         });
 
