@@ -44,6 +44,7 @@ export const StageOutput = ({ output, stepId }: StageOutputProps) => {
     return null;
   }
 
+  // Combine all outputs content with proper formatting
   const formattedContent = stepOutput.outputs
     ?.map(out => out.content)
     .filter(Boolean)
@@ -63,6 +64,12 @@ export const StageOutput = ({ output, stepId }: StageOutputProps) => {
           <div className="prose prose-sm max-w-none">
             <MarkdownContent content={formattedContent} />
           </div>
+          {stepOutput.requirements && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <h5 className="text-sm font-medium mb-2">Requirements:</h5>
+              <p className="text-sm text-muted-foreground">{stepOutput.requirements}</p>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

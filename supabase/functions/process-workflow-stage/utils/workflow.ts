@@ -8,7 +8,6 @@ export async function processAgent(
   requirements: string,
   previousOutputs: any[] = []
 ) {
-  // Input validation
   if (!agent?.id) {
     console.error("❌ Invalid agent data:", { agent });
     throw new Error("Agent data is missing or invalid");
@@ -53,9 +52,7 @@ export async function processAgent(
           .eq('id', agent.id)
           .single();
 
-        if (error) {
-          throw error;
-        }
+        if (error) throw error;
 
         if (data) {
           agentData = data;
@@ -100,7 +97,7 @@ export async function processAgent(
       }];
     }
 
-    // Build system prompt
+    // Build system prompt with context from brief and previous outputs
     const systemPrompt = `You are ${agentData.name}, a specialized creative agency professional with the following skills:
 ${agentData.skills?.map((skill: any) => `
 - ${skill.name}: ${skill.description || ''}
@@ -134,34 +131,34 @@ Provide a detailed, actionable response that:
 3. Addresses the stage requirements directly
 4. Proposes next steps and action items`;
 
-    // Generate response
-    const response = {
-      conversationalResponse: `As ${agentData.name}, I have analyzed the brief and requirements. Here is my detailed response:\n\n${
-        processedRequirements.map(section => 
-          `${section.title}:\n${section.points.map(point => `• ${point}`).join('\n')}`
-        ).join('\n\n')
-      }`,
-      structuredOutput: {
-        analysis: {
-          key_points: processedRequirements.flatMap(section => section.points),
-          challenges: [],
-          opportunities: []
-        },
-        recommendations: processedRequirements.map(section => ({
-          category: section.title,
-          points: section.points
-        })),
-        next_steps: processedRequirements
-          .find(section => section.title.toLowerCase().includes('next'))?.points || []
-      }
-    };
+    // Generate response using OpenAI
+    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Based on the brief and requirements, provide your professional analysis and recommendations.` }
+        ],
+        temperature: agentData.temperature || 0.7,
+      }),
+    });
+
+    if (!openAIResponse.ok) {
+      throw new Error(`OpenAI API error: ${openAIResponse.statusText}`);
+    }
+
+    const aiData = await openAIResponse.json();
+    const generatedContent = aiData.choices[0].message.content;
 
     console.log("✅ Successfully generated response for agent:", {
       agentId: agentData.id,
       agentName: agentData.name,
-      responseLength: response.conversationalResponse.length,
-      hasStructuredOutput: !!response.structuredOutput,
-      requirementSectionsCount: processedRequirements.length,
+      responseLength: generatedContent.length,
       timestamp: new Date().toISOString()
     });
 
@@ -170,12 +167,8 @@ Provide a detailed, actionable response that:
       requirements,
       outputs: [
         {
-          content: response.conversationalResponse,
+          content: generatedContent,
           type: 'conversational'
-        },
-        {
-          content: JSON.stringify(response.structuredOutput),
-          type: 'structured'
         }
       ],
       stepId: agentData.id,
