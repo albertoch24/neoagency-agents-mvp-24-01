@@ -1,161 +1,178 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Stage } from "@/types/workflow";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface WorkflowDisplayActionsProps {
-  stages: any[];
+  stages: Stage[];
   currentStage: string;
   onNextStage: (feedbackId: string | null) => void;
   isProcessing?: boolean;
-  onStageSelect?: (stage: Stage) => void;
+  briefId?: string;
 }
 
-export const WorkflowDisplayActions = ({ 
-  stages, 
-  currentStage, 
+export const WorkflowDisplayActions = ({
+  stages,
+  currentStage,
   onNextStage,
-  isProcessing = false,
-  onStageSelect 
+  isProcessing,
+  briefId
 }: WorkflowDisplayActionsProps) => {
-  const [nextStageHasOutput, setNextStageHasOutput] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
   const [currentStageProcessed, setCurrentStageProcessed] = useState(false);
+  const [previousStageProcessed, setPreviousStageProcessed] = useState(false);
 
+  // Verifica lo stato dello stage corrente
   useEffect(() => {
     const checkCurrentStageStatus = async () => {
-      if (!currentStage) return;
+      if (!currentStage || !briefId) return;
 
       try {
         console.log("🔍 Checking current stage outputs:", {
+          briefId,
           stageId: currentStage,
           timestamp: new Date().toISOString()
         });
 
+        // Verifica brief_outputs
         const { data: outputs, error: outputError } = await supabase
           .from('brief_outputs')
           .select('*')
-          .eq('stage_id', currentStage);
+          .eq('stage_id', currentStage)
+          .eq('brief_id', briefId);
 
         if (outputError) {
-          console.error("Error checking current stage outputs:", outputError);
+          console.error("Error checking brief outputs:", outputError);
+          return;
+        }
+
+        // Verifica workflow_conversations
+        const { data: conversations, error: convError } = await supabase
+          .from('workflow_conversations')
+          .select('*')
+          .eq('stage_id', currentStage)
+          .eq('brief_id', briefId);
+
+        if (convError) {
+          console.error("Error checking workflow conversations:", convError);
           return;
         }
 
         const hasOutputs = outputs && outputs.length > 0;
-        setCurrentStageProcessed(hasOutputs);
+        const hasConversations = conversations && conversations.length > 0;
+        const isFullyProcessed = hasOutputs && hasConversations;
+        
+        setCurrentStageProcessed(isFullyProcessed);
         
         console.log("🔍 Current stage status check:", {
           stageId: currentStage,
           hasOutputs,
+          hasConversations,
+          isFullyProcessed,
           outputsCount: outputs?.length || 0,
+          conversationsCount: conversations?.length || 0,
           timestamp: new Date().toISOString()
         });
+
       } catch (error) {
-        console.error("Error checking current stage status:", error);
+        console.error("Error checking stage status:", error);
+        toast.error("Error checking stage status");
       }
     };
 
     checkCurrentStageStatus();
-  }, [currentStage]);
+  }, [currentStage, briefId]);
 
+  // Verifica lo stato dello stage precedente
   useEffect(() => {
-    const checkNextStageOutput = async () => {
-      setIsChecking(true);
-      const currentIndex = stages.findIndex(s => s.id === currentStage);
-      const nextStage = stages[currentIndex + 1];
+    const checkPreviousStageStatus = async () => {
+      if (!currentStage || !briefId) return;
 
-      if (!nextStage) {
-        setIsChecking(false);
+      const currentIndex = stages.findIndex(s => s.id === currentStage);
+      if (currentIndex <= 0) {
+        setPreviousStageProcessed(true);
         return;
       }
 
-      console.log("🔍 Checking next stage:", {
-        nextStageId: nextStage.id,
-        nextStageName: nextStage.name,
-        hasFlow: !!nextStage.flow_id,
-        flowSteps: nextStage.flows?.flow_steps,
-        currentIndex,
-        totalStages: stages.length,
-        timestamp: new Date().toISOString()
-      });
-
+      const previousStage = stages[currentIndex - 1];
+      
       try {
+        console.log("🔍 Checking previous stage outputs:", {
+          briefId,
+          previousStageId: previousStage.id,
+          timestamp: new Date().toISOString()
+        });
+
         const { data: outputs, error: outputError } = await supabase
           .from('brief_outputs')
           .select('*')
-          .eq('stage_id', nextStage.id);
+          .eq('stage_id', previousStage.id)
+          .eq('brief_id', briefId);
 
         if (outputError) {
-          console.error("Error checking outputs:", outputError);
-          throw outputError;
+          console.error("Error checking previous stage outputs:", outputError);
+          return;
         }
 
-        const hasOutput = outputs && outputs.length > 0;
+        const { data: conversations, error: convError } = await supabase
+          .from('workflow_conversations')
+          .select('*')
+          .eq('stage_id', previousStage.id)
+          .eq('brief_id', briefId);
 
-        console.log("✅ Next stage output check result:", {
-          hasOutput,
+        if (convError) {
+          console.error("Error checking previous stage conversations:", convError);
+          return;
+        }
+
+        const hasOutputs = outputs && outputs.length > 0;
+        const hasConversations = conversations && conversations.length > 0;
+        const isFullyProcessed = hasOutputs && hasConversations;
+
+        setPreviousStageProcessed(isFullyProcessed);
+
+        console.log("🔍 Previous stage status check:", {
+          stageId: previousStage.id,
+          hasOutputs,
+          hasConversations,
+          isFullyProcessed,
           outputsCount: outputs?.length || 0,
-          nextStageId: nextStage.id,
-          nextStageName: nextStage.name,
+          conversationsCount: conversations?.length || 0,
           timestamp: new Date().toISOString()
         });
-        
-        setNextStageHasOutput(hasOutput);
+
       } catch (error) {
-        console.error("Error checking next stage output:", error);
-        setNextStageHasOutput(false);
-      } finally {
-        setIsChecking(false);
+        console.error("Error checking previous stage status:", error);
+        toast.error("Error checking previous stage status");
       }
     };
 
-    if (currentStage && currentStageProcessed) {
-      checkNextStageOutput();
-    }
-  }, [currentStage, stages, currentStageProcessed]);
-
-  if (!stages?.length) return null;
-
-  const currentIndex = stages.findIndex(stage => stage.id === currentStage);
-  const isLastStage = currentIndex === stages.length - 1;
-  const nextStage = stages[currentIndex + 1];
-
-  if (isLastStage || !nextStage) return null;
+    checkPreviousStageStatus();
+  }, [currentStage, stages, briefId]);
 
   const handleNextStage = async () => {
-    if (!currentStageProcessed) {
-      console.log("🚀 Starting current stage processing:", {
-        stageId: currentStage,
-        stageName: stages.find(s => s.id === currentStage)?.name,
-        timestamp: new Date().toISOString()
-      });
+    if (!currentStage || !briefId) return;
 
-      try {
-        await onNextStage(null);
-        toast.success("Stage processing started");
-      } catch (error) {
-        console.error("Error processing stage:", error);
-        toast.error("Failed to process stage");
-      }
+    const currentIndex = stages.findIndex(s => s.id === currentStage);
+    if (currentIndex === -1 || currentIndex >= stages.length - 1) return;
+
+    const nextStage = stages[currentIndex + 1];
+
+    if (!previousStageProcessed) {
+      toast.error("Previous stage must be completed first");
       return;
     }
 
-    if (nextStageHasOutput) {
-      console.log("✨ Next stage already has output, selecting stage:", {
-        stageId: nextStage.id,
-        stageName: nextStage.name,
-        timestamp: new Date().toISOString()
-      });
-      onStageSelect?.(nextStage);
-    } else {
-      console.log("⚡ Starting process for next stage:", {
-        stageId: nextStage.id,
-        stageName: nextStage.name,
-        flowId: nextStage.flow_id,
+    if (!currentStageProcessed) {
+      toast.error("Current stage must be completed first");
+      return;
+    }
+
+    if (nextStage) {
+      console.log("🚀 Processing next stage:", {
+        currentStage,
+        nextStageId: nextStage.id,
+        nextStageName: nextStage.name,
         flowSteps: nextStage.flows?.flow_steps,
         timestamp: new Date().toISOString()
       });
@@ -171,17 +188,20 @@ export const WorkflowDisplayActions = ({
   };
 
   return (
-    <Card>
-      <CardContent className="flex justify-end p-4">
-        <Button 
+    <div className="flex justify-between items-center mt-4">
+      <div className="flex gap-2">
+        <Button
           onClick={handleNextStage}
-          className="flex items-center gap-2"
-          disabled={isProcessing || isChecking}
+          disabled={
+            isProcessing ||
+            !currentStageProcessed ||
+            !previousStageProcessed ||
+            stages.findIndex(s => s.id === currentStage) === stages.length - 1
+          }
         >
-          {!currentStageProcessed ? 'Process Current Stage' : 'Next Stage'}
-          <ArrowRight className="h-4 w-4" />
+          {isProcessing ? "Processing..." : "Next Stage"}
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
