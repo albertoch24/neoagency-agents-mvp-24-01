@@ -25,18 +25,47 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       // Fetch stage data including flow steps
       const stage = await fetchStageData(stageId);
       
-      if (!stage?.flows?.flow_steps) {
-        console.error("No flow steps found for stage:", {
+      if (!stage?.flow_id) {
+        console.error("No flow_id found for stage:", {
           stageId,
           stageName: stage?.name
         });
-        throw new Error("No flow steps found for this stage");
+        throw new Error("No flow_id found for this stage");
       }
 
-      console.log("Retrieved stage data:", {
+      // Fetch flow steps using the correct flow_id
+      const { data: flowSteps, error: flowStepsError } = await supabase
+        .from("flow_steps")
+        .select(`
+          id,
+          agent_id,
+          requirements,
+          order_index,
+          outputs,
+          description,
+          agents (
+            id,
+            name,
+            description
+          )
+        `)
+        .eq("flow_id", stage.flow_id)
+        .order("order_index", { ascending: true });
+
+      if (flowStepsError || !flowSteps?.length) {
+        console.error("Error fetching flow steps:", {
+          error: flowStepsError,
+          stageId,
+          flowId: stage.flow_id
+        });
+        throw new Error("Failed to fetch flow steps");
+      }
+
+      console.log("Retrieved flow steps:", {
         stageId,
         stageName: stage.name,
-        flowStepsCount: stage.flows.flow_steps.length,
+        flowId: stage.flow_id,
+        flowStepsCount: flowSteps.length,
         timestamp: new Date().toISOString()
       });
 
@@ -44,7 +73,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         body: { 
           briefId,
           stageId,
-          flowSteps: stage.flows.flow_steps,
+          flowSteps,
           feedbackId: feedbackId || null
         }
       });

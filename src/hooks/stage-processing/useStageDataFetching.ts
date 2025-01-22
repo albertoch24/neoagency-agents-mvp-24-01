@@ -3,7 +3,7 @@ import { Stage } from "@/types/workflow";
 
 export const useStageDataFetching = () => {
   const fetchStageData = async (stageId: string) => {
-    console.log("🔍 Fetching stage data and flow steps:", {
+    console.log("🔍 Fetching stage data:", {
       stageId,
       timestamp: new Date().toISOString()
     });
@@ -12,23 +12,7 @@ export const useStageDataFetching = () => {
       .from("stages")
       .select(`
         *,
-        flows (
-          id,
-          name,
-          flow_steps (
-            id,
-            agent_id,
-            requirements,
-            order_index,
-            outputs,
-            description,
-            agents (
-              id,
-              name,
-              description
-            )
-          )
-        )
+        flow_id
       `)
       .eq("id", stageId)
       .single();
@@ -44,8 +28,7 @@ export const useStageDataFetching = () => {
 
     console.log("✅ Stage data retrieved:", {
       stageName: stage.name,
-      hasFlow: !!stage.flows,
-      flowStepsCount: stage.flows?.flow_steps?.length || 0,
+      flowId: stage.flow_id,
       timestamp: new Date().toISOString()
     });
 
