@@ -50,12 +50,16 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
       // If stage is a UUID, use stage_id, otherwise use stage field
       if (isUUID(stage)) {
         query = query.eq("stage_id", stage);
+        console.log("🔍 Using stage_id for query");
       } else {
         query = query.eq("stage", stage);
+        console.log("🔍 Using stage field for query");
       }
 
       const { data, error } = await query
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
 
       if (error) {
         console.error("❌ Error fetching output:", error);
@@ -63,33 +67,24 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
         throw error;
       }
 
-      console.log("📊 Full output data:", {
-        found: !!data?.length,
-        count: data?.length,
+      console.log("📊 Raw output data:", {
+        found: !!data,
         data: data,
-        firstItem: data?.[0] ? {
-          id: data[0].id,
-          briefId: data[0].brief_id,
-          stageId: data[0].stage_id,
-          stage: data[0].stage,
-          contentSample: JSON.stringify(data[0].content).substring(0, 100)
-        } : null
+        contentSample: data ? JSON.stringify(data.content).substring(0, 100) : null,
+        timestamp: new Date().toISOString()
       });
 
-      if (!data || data.length === 0) {
+      if (!data) {
         console.log("⚠️ No output data found");
         return null;
       }
 
-      const latestOutput = data[0];
-      console.log("Latest output:", latestOutput);
-
       // Handle both array and object formats for outputs
       let parsedContent: BriefOutput['content'];
-      if (typeof latestOutput.content === 'string') {
+      if (typeof data.content === 'string') {
         try {
           console.log("🔄 Attempting to parse string content");
-          parsedContent = JSON.parse(latestOutput.content);
+          parsedContent = JSON.parse(data.content);
           console.log("✅ Successfully parsed content string");
         } catch (e) {
           console.error("❌ Error parsing content:", e);
@@ -98,7 +93,7 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
         }
       } else {
         console.log("✅ Content is already an object");
-        parsedContent = latestOutput.content as BriefOutput['content'];
+        parsedContent = data.content as BriefOutput['content'];
       }
 
       // Ensure outputs array exists and has the correct format
