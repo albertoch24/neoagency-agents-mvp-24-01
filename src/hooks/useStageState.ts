@@ -106,10 +106,12 @@ export const useStageState = (briefId?: string, stageId?: string) => {
     }
 
     if (stageData) {
+      // A stage is considered completed if it has both outputs and conversations
       const isCompleted = 
         stageData.outputs?.length > 0 && 
         stageData.conversations?.length > 0;
 
+      // A stage is processing if it's not completed
       const isProcessing = !isCompleted;
 
       console.log('🔄 Updating stage state:', {
