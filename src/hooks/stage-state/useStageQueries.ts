@@ -34,7 +34,7 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
         throw new Error('Brief not found');
       }
 
-      // Check for outputs with detailed logging
+      // Check for outputs using stage_id
       console.log('🔍 Fetching outputs for:', {
         briefId,
         stageId,
@@ -45,7 +45,7 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
         .from('brief_outputs')
         .select('*, stage:stages(name)')
         .eq('brief_id', briefId)
-        .eq('stage_id', stageId);
+        .eq('stage_id', stageId); // Changed from .eq('stage', stageId)
 
       if (outputsError) {
         console.error('❌ Error fetching outputs:', outputsError);
@@ -64,7 +64,7 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
         timestamp: new Date().toISOString()
       });
 
-      // Check for conversations with detailed logging
+      // Check for conversations
       console.log('🔍 Fetching conversations for:', {
         briefId,
         stageId,
@@ -124,26 +124,6 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
           conversationStageIds.size === 1 && 
           outputStageIds.has(stageId) && 
           conversationStageIds.has(stageId),
-        timestamp: new Date().toISOString()
-      });
-
-      // Check timing of updates
-      const latestOutputTime = outputs?.length 
-        ? Math.max(...outputs.map(o => new Date(o.created_at).getTime()))
-        : null;
-      
-      const latestConversationTime = conversations?.length
-        ? Math.max(...conversations.map(c => new Date(c.created_at).getTime()))
-        : null;
-
-      console.log('⏱️ Timing analysis:', {
-        briefId,
-        stageId,
-        latestOutputTime: latestOutputTime ? new Date(latestOutputTime).toISOString() : null,
-        latestConversationTime: latestConversationTime ? new Date(latestConversationTime).toISOString() : null,
-        timeDifferenceMs: latestOutputTime && latestConversationTime 
-          ? Math.abs(latestOutputTime - latestConversationTime)
-          : null,
         timestamp: new Date().toISOString()
       });
 
