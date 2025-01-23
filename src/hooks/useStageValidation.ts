@@ -14,41 +14,29 @@ export const useStageValidation = (
   useEffect(() => {
     const checkStageStatus = async (stageId: string, briefId: string) => {
       try {
-        console.log("🔍 Starting stage status check:", {
+        console.log("🔍 Checking stage completion for:", {
           stageId,
           briefId,
           timestamp: new Date().toISOString()
         });
 
-        // Check brief_outputs first as it's the primary indicator of completion
+        // Check brief_outputs for content
         const { data: outputs, error: outputsError } = await supabase
           .from('brief_outputs')
-          .select('content, stage_id, brief_id')
+          .select('content, stage_id')
           .eq('stage_id', stageId)
           .eq('brief_id', briefId)
           .maybeSingle();
 
         if (outputsError) {
-          console.error("❌ Error checking outputs:", {
-            error: outputsError,
-            stageId,
-            briefId
-          });
+          console.error("❌ Error checking brief_outputs:", outputsError);
           throw outputsError;
         }
 
-        console.log("📊 Brief outputs query result:", {
-          hasOutputs: !!outputs,
-          outputContent: outputs?.content ? 'Content exists' : 'No content',
-          stageId: outputs?.stage_id,
-          briefId: outputs?.brief_id,
-          timestamp: new Date().toISOString()
-        });
-
-        // If we have content in brief_outputs, the stage is considered complete
+        // Stage is complete if there's content in brief_outputs
         const isComplete = !!outputs?.content;
 
-        console.log("✅ Stage completion status:", {
+        console.log("📊 Stage completion check result:", {
           stageId,
           briefId,
           isComplete,
@@ -59,13 +47,7 @@ export const useStageValidation = (
         return isComplete;
 
       } catch (error) {
-        console.error("❌ Error in checkStageStatus:", {
-          error,
-          stageId,
-          briefId,
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          timestamp: new Date().toISOString()
-        });
+        console.error("❌ Stage validation error:", error);
         toast.error("Error checking stage status");
         return false;
       }
@@ -73,46 +55,28 @@ export const useStageValidation = (
 
     const validateStages = async () => {
       if (!currentStage || !briefId || !stages?.length) {
-        console.log("⚠️ Missing required data for validation:", {
-          hasCurrentStage: !!currentStage,
-          hasBriefId: !!briefId,
-          hasStages: !!stages?.length,
+        console.log("⚠️ Missing validation data:", {
+          currentStage,
+          briefId,
+          stagesCount: stages?.length,
           timestamp: new Date().toISOString()
         });
         return;
       }
 
-      console.log("🔄 Starting stages validation:", {
-        currentStage,
-        briefId,
-        stagesCount: stages.length,
-        timestamp: new Date().toISOString()
-      });
-
       const currentIndex = stages.findIndex(s => s.id === currentStage);
       
-      // Check current stage
+      // Check current stage completion
       const currentProcessed = await checkStageStatus(currentStage, briefId);
-      console.log("📌 Current stage processed:", {
-        currentStage,
-        currentProcessed,
-        timestamp: new Date().toISOString()
-      });
       setCurrentStageProcessed(currentProcessed);
 
       // Check previous stage if not first stage
       if (currentIndex > 0) {
         const previousStage = stages[currentIndex - 1];
         const previousProcessed = await checkStageStatus(previousStage.id, briefId);
-        console.log("📌 Previous stage processed:", {
-          previousStageId: previousStage.id,
-          previousProcessed,
-          timestamp: new Date().toISOString()
-        });
         setPreviousStageProcessed(previousProcessed);
       } else {
         // First stage doesn't need previous validation
-        console.log("ℹ️ First stage - no previous validation needed");
         setPreviousStageProcessed(true);
       }
     };

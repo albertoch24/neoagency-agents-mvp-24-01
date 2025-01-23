@@ -9,21 +9,23 @@ export const StageValidationStatus = ({
   previousStageProcessed,
   isFirstStage
 }: StageValidationStatusProps) => {
-  console.log("🎯 StageValidationStatus rendering:", {
+  console.log("🎯 StageValidationStatus props:", {
     currentStageProcessed,
     previousStageProcessed,
     isFirstStage,
     timestamp: new Date().toISOString()
   });
 
-  if (!currentStageProcessed) {
+  // If current stage is processed, show success message
+  if (currentStageProcessed) {
     return (
-      <p className="text-yellow-500">
-        Stage in elaborazione
+      <p className="text-green-500">
+        {isFirstStage ? "Ready to proceed to next stage" : "All requirements met, ready to proceed"}
       </p>
     );
   }
 
+  // If previous stage isn't processed and it's not the first stage
   if (!previousStageProcessed && !isFirstStage) {
     return (
       <p className="text-yellow-500">
@@ -32,9 +34,10 @@ export const StageValidationStatus = ({
     );
   }
 
+  // Default case - stage in progress
   return (
-    <p className="text-green-500">
-      {isFirstStage ? "Ready to proceed to next stage" : "All requirements met, ready to proceed"}
+    <p className="text-yellow-500">
+      Stage in elaborazione
     </p>
   );
 };
