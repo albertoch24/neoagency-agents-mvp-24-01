@@ -6,14 +6,15 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
   return useQuery({
     queryKey: ["stage-state", briefId, stageId],
     queryFn: async () => {
-      console.log('🔍 Starting stage state check:', {
+      console.log('🔄 Cache: Starting stage state check:', {
         briefId,
         stageId,
+        cacheKey: ["stage-state", briefId, stageId],
         timestamp: new Date().toISOString()
       });
 
       if (!briefId || !stageId) {
-        console.error('❌ Missing required parameters:', { briefId, stageId });
+        console.error('❌ Cache: Missing required parameters:', { briefId, stageId });
         throw new Error('Missing briefId or stageId');
       }
 
@@ -25,17 +26,24 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
         .maybeSingle();
 
       if (briefError) {
-        console.error('❌ Error fetching brief:', briefError);
+        console.error('❌ Cache: Error fetching brief:', {
+          error: briefError,
+          briefId,
+          timestamp: new Date().toISOString()
+        });
         throw briefError;
       }
 
       if (!brief) {
-        console.error('❌ Brief not found:', briefId);
+        console.error('❌ Cache: Brief not found:', {
+          briefId,
+          timestamp: new Date().toISOString()
+        });
         throw new Error('Brief not found');
       }
 
       // Check for outputs using stage_id
-      console.log('🔍 Fetching outputs for:', {
+      console.log('🔍 Cache: Fetching outputs for:', {
         briefId,
         stageId,
         timestamp: new Date().toISOString()
@@ -45,14 +53,19 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
         .from('brief_outputs')
         .select('*, stage:stages(name)')
         .eq('brief_id', briefId)
-        .eq('stage_id', stageId); // Changed from .eq('stage', stageId)
+        .eq('stage_id', stageId);
 
       if (outputsError) {
-        console.error('❌ Error fetching outputs:', outputsError);
+        console.error('❌ Cache: Error fetching outputs:', {
+          error: outputsError,
+          briefId,
+          stageId,
+          timestamp: new Date().toISOString()
+        });
         throw outputsError;
       }
 
-      console.log('📊 Outputs check:', {
+      console.log('📊 Cache: Outputs check:', {
         briefId,
         stageId,
         outputsCount: outputs?.length || 0,
@@ -65,7 +78,7 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
       });
 
       // Check for conversations
-      console.log('🔍 Fetching conversations for:', {
+      console.log('🔍 Cache: Fetching conversations for:', {
         briefId,
         stageId,
         timestamp: new Date().toISOString()
@@ -89,11 +102,16 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
         .eq('stage_id', stageId);
 
       if (conversationsError) {
-        console.error('❌ Error fetching conversations:', conversationsError);
+        console.error('❌ Cache: Error fetching conversations:', {
+          error: conversationsError,
+          briefId,
+          stageId,
+          timestamp: new Date().toISOString()
+        });
         throw conversationsError;
       }
 
-      console.log('💬 Conversations check:', {
+      console.log('💬 Cache: Conversations check:', {
         briefId,
         stageId,
         conversationsCount: conversations?.length || 0,
@@ -114,7 +132,7 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
       const outputStageIds = new Set(outputs?.map(o => o.stage_id));
       const conversationStageIds = new Set(conversations?.map(c => c.stage_id));
 
-      console.log('🔄 Stage ID consistency check:', {
+      console.log('🔄 Cache: Stage ID consistency check:', {
         briefId,
         stageId,
         outputStageIds: Array.from(outputStageIds),
@@ -133,6 +151,26 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
       } as StageData;
     },
     enabled: !!briefId && !!stageId,
-    refetchInterval: 5000 // Check every 5 seconds
+    refetchInterval: 5000, // Check every 5 seconds
+    staleTime: 0, // Consider data immediately stale
+    cacheTime: 1000 * 60 * 5, // Keep unused data in cache for 5 minutes
+    retry: 3, // Retry failed requests 3 times
+    onError: (error) => {
+      console.error('❌ Cache: Query error:', {
+        error,
+        briefId,
+        stageId,
+        timestamp: new Date().toISOString()
+      });
+    },
+    onSuccess: (data) => {
+      console.log('✅ Cache: Query success:', {
+        briefId,
+        stageId,
+        hasOutputs: data.outputs?.length > 0,
+        hasConversations: data.conversations?.length > 0,
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 };
