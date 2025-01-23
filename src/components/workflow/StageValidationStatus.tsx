@@ -1,23 +1,51 @@
+import { useStageState } from '@/hooks/useStageState';
+
 interface StageValidationStatusProps {
-  currentStageProcessed: boolean;
-  previousStageProcessed: boolean;
+  briefId?: string;
+  stageId: string;
   isFirstStage: boolean;
 }
 
 export const StageValidationStatus = ({
-  currentStageProcessed,
-  previousStageProcessed,
+  briefId,
+  stageId,
   isFirstStage
 }: StageValidationStatusProps) => {
-  console.log("🎯 StageValidationStatus rendering:", {
-    currentStageProcessed,
-    previousStageProcessed,
+  const {
+    isLoading,
+    isProcessing,
+    isCompleted,
+    hasError
+  } = useStageState(briefId, stageId);
+
+  console.log('🎯 StageValidationStatus rendering:', {
+    briefId,
+    stageId,
     isFirstStage,
+    isLoading,
+    isProcessing,
+    isCompleted,
+    hasError,
     timestamp: new Date().toISOString()
   });
 
-  // Se lo stage è processato, mostra il messaggio di successo
-  if (currentStageProcessed) {
+  if (isLoading) {
+    return (
+      <p className="text-gray-500">
+        Checking stage status...
+      </p>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <p className="text-red-500">
+        Error checking stage status
+      </p>
+    );
+  }
+
+  if (isCompleted) {
     return (
       <p className="text-green-500">
         {isFirstStage ? "Ready to proceed to next stage" : "All requirements met, ready to proceed"}
@@ -25,16 +53,14 @@ export const StageValidationStatus = ({
     );
   }
 
-  // Se lo stage precedente non è processato e non è il primo stage
-  if (!previousStageProcessed && !isFirstStage) {
+  if (isProcessing) {
     return (
       <p className="text-yellow-500">
-        Previous stage must be completed before proceeding
+        Stage processing in progress...
       </p>
     );
   }
 
-  // Default case - stage in progress
   return (
     <p className="text-yellow-500">
       Stage in progress...

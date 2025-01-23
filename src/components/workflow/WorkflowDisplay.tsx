@@ -29,63 +29,25 @@ export const WorkflowDisplay = ({
       currentStage,
       stageName: stages.find(s => s.id === currentStage)?.name,
       hasFeedback: !!feedbackId,
-      timestamp: new Date().toISOString(),
-      isProcessing,
-      hasProcessStage: !!processStage,
-      stagesCount: stages.length
+      timestamp: new Date().toISOString()
     });
 
     if (briefId && currentStage) {
-      const currentStageData = stages.find(s => s.id === currentStage);
-      console.log('📋 Stage Details:', {
-        stageName: currentStageData?.name,
-        stageId: currentStage,
-        briefId,
-        hasFlow: !!currentStageData?.flow_id,
-        flowId: currentStageData?.flow_id,
-        flowSteps: currentStageData?.flows?.flow_steps?.length,
-        timestamp: new Date().toISOString()
-      });
-
       try {
-        console.log('⚡ Starting stage processing:', {
-          feedbackId: feedbackId || 'null',
-          timestamp: new Date().toISOString()
-        });
-        
         await processStage(feedbackId);
-        
-        console.log('✅ WorkflowDisplay - Process completed:', {
-          briefId,
-          currentStage,
-          stageName: currentStageData?.name,
-          feedbackId,
-          timestamp: new Date().toISOString()
-        });
-
-        toast.success(`Processing stage: ${currentStageData?.name}`);
+        toast.success('Processing started');
       } catch (error) {
-        console.error('❌ WorkflowDisplay - Error during processing:', {
-          error,
-          briefId,
-          currentStage,
-          stageName: currentStageData?.name,
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          timestamp: new Date().toISOString()
-        });
-        
-        toast.error("Failed to process stage. Please try again.");
+        console.error('❌ Error processing stage:', error);
+        toast.error('Failed to process stage');
       }
     } else {
-      console.error('❌ WorkflowDisplay - Missing required parameters:', {
-        briefId,
-        currentStage,
-        timestamp: new Date().toISOString()
-      });
-      
-      toast.error("Missing required information to process stage");
+      console.error('❌ Missing required parameters:', { briefId, currentStage });
+      toast.error('Missing required information');
     }
   };
+
+  const currentIndex = stages.findIndex(s => s.id === currentStage);
+  const isFirstStage = currentIndex === 0;
 
   return (
     <div className="space-y-4">
@@ -104,11 +66,13 @@ export const WorkflowDisplay = ({
         />
       )}
       <WorkflowDisplayActions
+        briefId={briefId}
         currentStage={currentStage || ''}
         stages={stages}
         onNextStage={handleReprocess}
         isProcessing={isProcessing}
         onStageSelect={onStageSelect}
+        isFirstStage={isFirstStage}
       />
     </div>
   );
