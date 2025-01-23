@@ -34,8 +34,14 @@ export const useStageValidation = (
             .eq('brief_id', briefId)
         ]);
 
-        if (outputsResponse.error) throw outputsResponse.error;
-        if (conversationsResponse.error) throw conversationsResponse.error;
+        if (outputsResponse.error) {
+          console.error("Error checking outputs:", outputsResponse.error);
+          throw outputsResponse.error;
+        }
+        if (conversationsResponse.error) {
+          console.error("Error checking conversations:", conversationsResponse.error);
+          throw conversationsResponse.error;
+        }
 
         const hasOutputs = outputsResponse.data && outputsResponse.data.length > 0;
         const hasConversations = conversationsResponse.data && conversationsResponse.data.length > 0;
@@ -49,7 +55,8 @@ export const useStageValidation = (
           timestamp: new Date().toISOString()
         });
 
-        return hasOutputs && hasConversations;
+        // Stage is considered processed if it has either outputs or conversations
+        return hasOutputs || hasConversations;
       } catch (error) {
         console.error("❌ Error checking stage status:", {
           error,
@@ -63,21 +70,31 @@ export const useStageValidation = (
     };
 
     const validateStages = async () => {
-      if (!currentStage || !briefId || !stages?.length) return;
+      if (!currentStage || !briefId || !stages?.length) {
+        console.log("Missing required data for validation:", {
+          hasCurrentStage: !!currentStage,
+          hasBriefId: !!briefId,
+          hasStages: !!stages?.length
+        });
+        return;
+      }
 
       const currentIndex = stages.findIndex(s => s.id === currentStage);
       
       // Check current stage
       const currentProcessed = await checkStageStatus(currentStage, briefId);
+      console.log("Current stage processed:", currentProcessed);
       setCurrentStageProcessed(currentProcessed);
 
       // Check previous stage if not first stage
       if (currentIndex > 0) {
         const previousStage = stages[currentIndex - 1];
         const previousProcessed = await checkStageStatus(previousStage.id, briefId);
+        console.log("Previous stage processed:", previousProcessed);
         setPreviousStageProcessed(previousProcessed);
       } else {
-        setPreviousStageProcessed(true); // First stage doesn't need previous validation
+        // First stage doesn't need previous validation
+        setPreviousStageProcessed(true);
       }
     };
 
