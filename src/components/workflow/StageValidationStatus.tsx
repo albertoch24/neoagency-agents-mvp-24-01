@@ -16,8 +16,7 @@ export const StageValidationStatus = ({
   const {
     isLoading,
     isCompleted,
-    hasError,
-    stageData
+    hasError
   } = useStageState(briefId, stageId);
 
   console.log('🎯 StageValidationStatus rendering:', {
@@ -27,7 +26,6 @@ export const StageValidationStatus = ({
     isLoading,
     isCompleted,
     hasError,
-    hasOutput: stageData?.outputs?.length > 0,
     timestamp: new Date().toISOString()
   });
 
