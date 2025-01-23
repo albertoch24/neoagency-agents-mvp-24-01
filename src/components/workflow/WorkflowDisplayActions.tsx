@@ -23,14 +23,18 @@ export const WorkflowDisplayActions = ({
   onStageSelect,
   isFirstStage
 }: WorkflowDisplayActionsProps) => {
+  const currentIndex = stages.findIndex(s => s.id === currentStage);
+  const nextStage = stages[currentIndex + 1];
+  
   const { currentStageProcessed, previousStageProcessed } = useStageValidation(
-    currentStage,
+    nextStage?.id || currentStage,
     briefId,
     stages
   );
 
-  console.log('🔄 WorkflowDisplayActions Render:', {
+  console.log("🔄 WorkflowDisplayActions Render:", {
     currentStage,
+    nextStageId: nextStage?.id,
     briefId,
     isFirstStage,
     currentStageProcessed,
@@ -39,18 +43,10 @@ export const WorkflowDisplayActions = ({
   });
 
   const handleNextStage = async () => {
-    if (!currentStage) {
-      console.error('❌ No current stage defined');
+    if (!currentStage || !nextStage) {
+      console.error('❌ No current or next stage defined');
       return;
     }
-
-    const currentIndex = stages.findIndex(s => s.id === currentStage);
-    if (currentIndex === -1 || currentIndex >= stages.length - 1) {
-      console.error('❌ Invalid stage index:', currentIndex);
-      return;
-    }
-
-    const nextStage = stages[currentIndex + 1];
 
     if (!isFirstStage && !previousStageProcessed) {
       console.warn('⚠️ Previous stage not processed');
@@ -58,37 +54,28 @@ export const WorkflowDisplayActions = ({
       return;
     }
 
-    if (!currentStageProcessed) {
-      console.warn('⚠️ Current stage not processed');
-      toast.error("Current stage must be completed first");
-      return;
-    }
-
-    if (nextStage) {
-      console.log("🚀 Processing next stage:", {
-        currentStage,
-        nextStageId: nextStage.id,
-        nextStageName: nextStage.name,
-        flowSteps: nextStage.flows?.flow_steps,
-        timestamp: new Date().toISOString()
-      });
-      
-      try {
-        await onNextStage(null);
-        if (onStageSelect) {
-          onStageSelect(nextStage);
-        }
-        toast.success(`Processing stage: ${nextStage.name}`);
-      } catch (error) {
-        console.error("❌ Error processing next stage:", error);
-        toast.error("Failed to process next stage");
+    console.log("🚀 Processing next stage:", {
+      currentStage,
+      nextStageId: nextStage.id,
+      nextStageName: nextStage.name,
+      flowSteps: nextStage.flows?.flow_steps,
+      timestamp: new Date().toISOString()
+    });
+    
+    try {
+      await onNextStage(null);
+      if (onStageSelect) {
+        onStageSelect(nextStage);
       }
+      toast.success(`Processing stage: ${nextStage.name}`);
+    } catch (error) {
+      console.error("❌ Error processing next stage:", error);
+      toast.error("Failed to process next stage");
     }
   };
 
   if (!stages?.length) return null;
 
-  const currentIndex = stages.findIndex(stage => stage.id === currentStage);
   const isLastStage = currentIndex === stages.length - 1;
 
   if (isLastStage) return null;
@@ -97,7 +84,7 @@ export const WorkflowDisplayActions = ({
     <div className="space-y-4">
       <StageValidationStatus
         briefId={briefId}
-        stageId={currentStage}
+        stageId={nextStage?.id || currentStage}
         isFirstStage={isFirstStage}
       />
       <div className="flex justify-end">
