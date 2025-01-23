@@ -34,9 +34,8 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
       } as StageData;
     },
     enabled: !!briefId && !!stageId,
-    refetchInterval: 5000,
-    staleTime: 0,
-    gcTime: 1000 * 60 * 5,
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 1000 * 60 * 5, // Keep in garbage collection for 5 minutes
     retry: 3,
     meta: {
       errorHandler: (error: Error) => {

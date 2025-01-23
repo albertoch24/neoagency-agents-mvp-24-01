@@ -1,29 +1,16 @@
-type LogLevel = 'info' | 'error' | 'success';
-
-interface LogContext {
-  briefId?: string;
-  stageId?: string;
-  timestamp?: string;
-  [key: string]: any;
-}
-
-const formatLogMessage = (message: string, context: LogContext = {}) => {
-  return {
-    ...context,
-    timestamp: context.timestamp || new Date().toISOString()
-  };
-};
+const logPrefix = '🔄 Cache:';
 
 export const logQuery = {
-  info: (message: string, context: LogContext = {}) => {
-    console.log('🔄 Cache:', message, formatLogMessage(message, context));
+  info: (message: string, data?: any) => {
+    console.info(`${logPrefix} ${message}`, data ? {
+      ...data,
+      timestamp: new Date().toISOString()
+    } : '');
   },
-  
-  error: (message: string, context: LogContext = {}) => {
-    console.error('❌ Cache:', message, formatLogMessage(message, context));
-  },
-  
-  success: (message: string, context: LogContext = {}) => {
-    console.log('✅ Cache:', message, formatLogMessage(message, context));
+  error: (message: string, data?: any) => {
+    console.error(`❌ ${message}`, data ? {
+      ...data,
+      timestamp: new Date().toISOString()
+    } : '');
   }
 };

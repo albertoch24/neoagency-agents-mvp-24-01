@@ -1,25 +1,23 @@
-import { logQuery } from "./queryLogger";
-
 export const validateStageIds = (
   stageId: string,
   outputs: any[],
   conversations: any[]
 ) => {
-  const outputStageIds = new Set(outputs?.map(o => o.stage_id));
-  const conversationStageIds = new Set(conversations?.map(c => c.stage_id));
+  const outputStageIds = outputs.map(o => o.stage_id);
+  const conversationStageIds = conversations.map(c => c.stage_id);
 
-  const isConsistent = 
-    outputStageIds.size === 1 && 
-    conversationStageIds.size === 1 && 
-    outputStageIds.has(stageId) && 
-    conversationStageIds.has(stageId);
+  const isConsistent = outputStageIds.every(id => id === stageId) &&
+                      conversationStageIds.every(id => id === stageId);
 
-  logQuery.info('Stage ID consistency check', {
+  console.log('🔄 Cache: Stage ID consistency check', {
     stageId,
-    outputStageIds: Array.from(outputStageIds),
-    conversationStageIds: Array.from(conversationStageIds),
-    isConsistent
+    outputStageIds,
+    conversationStageIds,
+    isConsistent,
+    timestamp: new Date().toISOString()
   });
 
-  return isConsistent;
+  if (!isConsistent) {
+    throw new Error('Stage ID mismatch detected');
+  }
 };
