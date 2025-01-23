@@ -105,6 +105,12 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         await new Promise(resolve => setTimeout(resolve, 100));
         
         // Navigate directly to the stage page instead of the generic route
+        console.log("🚀 Navigating to stage:", {
+          briefId: brief.id,
+          stageId: stage.id,
+          timestamp: new Date().toISOString()
+        });
+
         navigate(`/brief/${brief.id}/stage/${stage.id}`, {
           replace: true,
           state: { 
