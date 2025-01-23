@@ -3,8 +3,10 @@ export interface StageState {
   isCompleted: boolean;
   hasError: boolean;
   error: Error | null;
-  stageData: {
-    outputs?: any[];
-    conversations?: any[];
-  } | null;
+  stageData: StageData | null;
+}
+
+export interface StageData {
+  outputs?: any[];
+  conversations?: any[];
 }
