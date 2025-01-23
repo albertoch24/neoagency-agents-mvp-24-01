@@ -34,23 +34,18 @@ export const useStageValidation = (
         }
 
         // If we have content in brief_outputs, the stage is considered complete
-        if (outputs?.content) {
-          console.log("✅ Stage completed - Found content in brief_outputs:", {
-            stageId,
-            briefId,
-            hasContent: true,
-            timestamp: new Date().toISOString()
-          });
-          return true;
-        }
+        const isComplete = !!outputs?.content;
 
-        console.log("⚠️ No content found in brief_outputs for stage:", {
+        console.log("✅ Stage completion check result:", {
           stageId,
           briefId,
+          isComplete,
+          hasContent: !!outputs?.content,
           timestamp: new Date().toISOString()
         });
 
-        return false;
+        return isComplete;
+
       } catch (error) {
         console.error("❌ Error checking stage status:", {
           error,
