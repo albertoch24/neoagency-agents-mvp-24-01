@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Stage } from '@/types/workflow';
 
 interface StageState {
   isLoading: boolean;
@@ -22,7 +21,6 @@ export const useStageState = (briefId?: string, stageId?: string) => {
   });
   const queryClient = useQueryClient();
 
-  // Query per verificare lo stato dello stage
   const { data: stageData, error: stageError } = useQuery({
     queryKey: ['stage-state', briefId, stageId],
     queryFn: async () => {
@@ -78,32 +76,15 @@ export const useStageState = (briefId?: string, stageId?: string) => {
         throw conversationsError;
       }
 
-      // Verifica lo stato di processing
-      const { data: progress, error: progressError } = await supabase
-        .from('processing_progress')
-        .select('*')
-        .eq('brief_id', briefId)
-        .eq('stage_id', stageId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (progressError) {
-        console.error('❌ Error fetching progress:', progressError);
-        throw progressError;
-      }
-
       console.log('✅ Stage state check complete:', {
         hasOutputs: outputs?.length > 0,
         hasConversations: conversations?.length > 0,
-        processingStatus: progress?.status,
         timestamp: new Date().toISOString()
       });
 
       return {
         outputs,
         conversations,
-        progress,
         brief
       };
     },
@@ -127,12 +108,9 @@ export const useStageState = (briefId?: string, stageId?: string) => {
     if (stageData) {
       const isCompleted = 
         stageData.outputs?.length > 0 && 
-        stageData.conversations?.length > 0 &&
-        stageData.progress?.status === 'completed';
+        stageData.conversations?.length > 0;
 
-      const isProcessing = 
-        stageData.progress?.status === 'processing' ||
-        stageData.progress?.status === 'pending';
+      const isProcessing = !isCompleted;
 
       console.log('🔄 Updating stage state:', {
         briefId,
