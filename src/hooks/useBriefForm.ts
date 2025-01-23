@@ -104,21 +104,18 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         // Force a small delay to ensure queries are invalidated
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Navigate directly to the stage page instead of the generic route
-        console.log("🚀 Navigating to stage:", {
+        // Navigate to the brief page with only the first stage visible
+        console.log("🚀 Navigating to first stage:", {
           briefId: brief.id,
           stageId: stage.id,
           timestamp: new Date().toISOString()
         });
 
-        navigate(`/brief/${brief.id}/stage/${stage.id}`, {
+        // Navigate to the brief view without forcing any stage selection
+        navigate(`/brief/${brief.id}`, {
           replace: true,
           state: { 
-            briefId: brief.id,
-            stageId: stage.id,
-            showOutputs: true,
-            forceShowOutputs: true,
-            isFirstStage: true
+            briefId: brief.id
           }
         });
 
