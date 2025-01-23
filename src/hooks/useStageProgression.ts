@@ -29,32 +29,33 @@ export const useStageProgression = (briefId?: string) => {
         return false;
       }
 
-      // If we have content in brief_outputs, the stage is complete
+      // If we have content in brief_outputs, check conversations
       if (outputs?.content) {
-        console.log("✅ Stage completed - Found content in brief_outputs");
-        return true;
+        console.log("✅ Found content in brief_outputs");
+        
+        // Check for workflow_conversations
+        const { data: conversations, error: convsError } = await supabase
+          .from("workflow_conversations")
+          .select("*")
+          .eq("brief_id", briefId)
+          .eq("stage_id", stageId)
+          .maybeSingle();
+
+        if (convsError) {
+          console.error("❌ Error checking conversations:", convsError);
+          return false;
+        }
+
+        const isComplete = !!conversations;
+        console.log("💬 Stage completion status:", {
+          stageId,
+          hasConversations: isComplete
+        });
+
+        return isComplete;
       }
 
-      // Fallback check for workflow_conversations
-      const { data: conversations, error: convsError } = await supabase
-        .from("workflow_conversations")
-        .select("*")
-        .eq("brief_id", briefId)
-        .eq("stage_id", stageId)
-        .maybeSingle();
-
-      if (convsError) {
-        console.error("❌ Error checking conversations:", convsError);
-        return false;
-      }
-
-      console.log("💬 Stage completion check - conversations:", {
-        stageId,
-        hasConversation: !!conversations,
-        conversation: conversations
-      });
-
-      return !!conversations;
+      return false;
     } catch (error) {
       console.error("❌ Error checking stage completion:", error);
       return false;
@@ -103,20 +104,6 @@ export const useStageProgression = (briefId?: string) => {
         count: flowSteps?.length,
         steps: flowSteps
       });
-      
-      // Create initial processing record
-      const { error: progressError } = await supabase
-        .from("processing_progress")
-        .insert({
-          brief_id: briefId,
-          stage_id: stageId,
-          status: 'processing',
-          progress: 0
-        });
-
-      if (progressError) {
-        throw new Error(`Error creating progress record: ${progressError.message}`);
-      }
 
       const { error } = await supabase.functions.invoke('process-workflow-stage', {
         body: { 

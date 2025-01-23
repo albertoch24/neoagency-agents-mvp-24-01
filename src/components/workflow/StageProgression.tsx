@@ -33,7 +33,7 @@ export const StageProgression = ({
           timestamp: new Date().toISOString()
         });
 
-        // Verifica output e conversazioni dello stage corrente
+        // Check outputs and conversations of current stage
         const [outputsResponse, conversationsResponse] = await Promise.all([
           supabase
             .from("brief_outputs")
@@ -73,7 +73,7 @@ export const StageProgression = ({
           return;
         }
 
-        // Se lo stage corrente è completo e c'è un prossimo stage, possiamo procedere
+        // If current stage is complete and there's a next stage, we can proceed
         if (nextStage) {
           console.log("✅ Ready to progress to:", nextStage.id, {
             currentStageComplete: isCurrentStageComplete,
