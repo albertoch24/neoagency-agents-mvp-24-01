@@ -14,16 +14,15 @@ export const useStageValidation = (
   useEffect(() => {
     const checkStageStatus = async (stageId: string, briefId: string) => {
       try {
-        console.log("🔍 Checking stage completion for:", {
+        console.log("🔍 Checking stage status for:", {
           stageId,
           briefId,
           timestamp: new Date().toISOString()
         });
 
-        // Check brief_outputs for content
         const { data: outputs, error: outputsError } = await supabase
           .from('brief_outputs')
-          .select('content, stage_id')
+          .select('content, brief_id')
           .eq('stage_id', stageId)
           .eq('brief_id', briefId)
           .maybeSingle();
@@ -33,10 +32,18 @@ export const useStageValidation = (
           throw outputsError;
         }
 
-        // Stage is complete if there's content in brief_outputs
+        console.log("📊 Brief outputs query result:", {
+          briefId,
+          foundBriefId: outputs?.brief_id,
+          hasOutputs: !!outputs,
+          hasContent: !!outputs?.content,
+          contentType: outputs?.content ? typeof outputs.content : 'undefined',
+          timestamp: new Date().toISOString()
+        });
+
         const isComplete = !!outputs?.content;
 
-        console.log("📊 Stage completion check result:", {
+        console.log("✅ Stage completion check result:", {
           stageId,
           briefId,
           isComplete,
@@ -46,7 +53,6 @@ export const useStageValidation = (
         });
 
         return isComplete;
-
       } catch (error) {
         console.error("❌ Stage validation error:", error);
         toast.error("Error checking stage status");
@@ -55,10 +61,19 @@ export const useStageValidation = (
     };
 
     const validateStages = async () => {
+      console.log("🚀 Starting stage validation with:", {
+        currentStage,
+        briefId,
+        stagesCount: stages?.length,
+        timestamp: new Date().toISOString()
+      });
+
       if (!currentStage || !briefId || !stages?.length) {
         console.log("⚠️ Missing required data for validation:", {
           hasCurrentStage: !!currentStage,
+          currentStage,
           hasBriefId: !!briefId,
+          briefId,
           hasStages: !!stages?.length,
           timestamp: new Date().toISOString()
         });

@@ -9,7 +9,7 @@ export const StageValidationStatus = ({
   previousStageProcessed,
   isFirstStage
 }: StageValidationStatusProps) => {
-  console.log("🎯 StageValidationStatus props:", {
+  console.log("🎯 StageValidationStatus rendering:", {
     currentStageProcessed,
     previousStageProcessed,
     isFirstStage,
