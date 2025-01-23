@@ -11,29 +11,37 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
     const stageToProcess = targetStageId || stageId;
     
     if (!briefId || !stageToProcess) {
-      console.error("Missing required parameters:", { briefId, stageToProcess });
+      console.error("❌ Missing required parameters:", { briefId, stageToProcess });
       return;
     }
 
     setIsProcessing(true);
-    console.log("Starting stage processing:", {
+    console.log("🚀 Starting stage processing:", {
       briefId,
       stageId: stageToProcess,
       hasFeedback: !!feedbackId,
+      targetStageId,
       timestamp: new Date().toISOString()
     });
 
     try {
       // Fetch stage data including flow steps
+      console.log("📥 Fetching stage data for:", stageToProcess);
       const stage = await fetchStageData(stageToProcess);
       
       if (!stage?.flow_id) {
-        console.error("No flow_id found for stage:", {
+        console.error("❌ No flow_id found for stage:", {
           stageId: stageToProcess,
           stageName: stage?.name
         });
         throw new Error("No flow_id found for this stage");
       }
+
+      console.log("✅ Stage data retrieved:", {
+        stageId: stageToProcess,
+        flowId: stage.flow_id,
+        stageName: stage.name
+      });
 
       // Fetch flow steps using the correct flow_id
       const { data: flowSteps, error: flowStepsError } = await supabase
@@ -55,7 +63,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         .order("order_index", { ascending: true });
 
       if (flowStepsError || !flowSteps?.length) {
-        console.error("Error fetching flow steps:", {
+        console.error("❌ Error fetching flow steps:", {
           error: flowStepsError,
           stageId: stageToProcess,
           flowId: stage.flow_id
@@ -63,15 +71,24 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         throw new Error("Failed to fetch flow steps");
       }
 
-      console.log("Retrieved flow steps:", {
+      console.log("📋 Flow steps retrieved:", {
         stageId: stageToProcess,
-        stageName: stage.name,
-        flowId: stage.flow_id,
         flowStepsCount: flowSteps.length,
-        timestamp: new Date().toISOString()
+        flowSteps: flowSteps.map(step => ({
+          id: step.id,
+          agentId: step.agent_id,
+          orderIndex: step.order_index
+        }))
       });
 
-      const { error } = await supabase.functions.invoke("process-workflow-stage", {
+      console.log("🔄 Invoking edge function with:", {
+        briefId,
+        stageId: stageToProcess,
+        flowStepsCount: flowSteps.length,
+        hasFeedback: !!feedbackId
+      });
+
+      const { data, error } = await supabase.functions.invoke("process-workflow-stage", {
         body: { 
           briefId,
           stageId: stageToProcess,
@@ -81,13 +98,31 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       });
 
       if (error) {
-        console.error("Error processing stage:", error);
+        console.error("❌ Edge function error:", {
+          error,
+          briefId,
+          stageId: stageToProcess,
+          timestamp: new Date().toISOString()
+        });
         throw error;
       }
 
+      console.log("✅ Edge function response:", {
+        success: true,
+        briefId,
+        stageId: stageToProcess,
+        data,
+        timestamp: new Date().toISOString()
+      });
+
       toast.success("Stage processed successfully!");
     } catch (error) {
-      console.error("Error in processStage:", error);
+      console.error("❌ Error in processStage:", {
+        error,
+        briefId,
+        stageId: stageToProcess,
+        timestamp: new Date().toISOString()
+      });
       toast.error("Failed to process stage");
       throw error;
     } finally {

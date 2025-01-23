@@ -45,11 +45,22 @@ export const WorkflowDisplay = ({
         await processStage(feedbackId, targetStageId);
         toast.success('Processing started');
       } catch (error) {
-        console.error('❌ Error processing stage:', error);
+        console.error('❌ Error processing stage:', {
+          error,
+          briefId,
+          currentStage,
+          targetStageId,
+          timestamp: new Date().toISOString()
+        });
         toast.error('Failed to process stage');
       }
     } else {
-      console.error('❌ Missing required parameters:', { briefId, currentStage, targetStageId });
+      console.error('❌ Missing required parameters:', { 
+        briefId, 
+        currentStage, 
+        targetStageId,
+        timestamp: new Date().toISOString()
+      });
       toast.error('Missing required information');
     }
   };
