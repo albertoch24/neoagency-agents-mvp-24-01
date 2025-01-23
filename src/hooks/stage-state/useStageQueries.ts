@@ -34,10 +34,16 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
         throw new Error('Brief not found');
       }
 
-      // Check for outputs
+      // Check for outputs with detailed logging
+      console.log('🔍 Fetching outputs for:', {
+        briefId,
+        stageId,
+        timestamp: new Date().toISOString()
+      });
+
       const { data: outputs, error: outputsError } = await supabase
         .from('brief_outputs')
-        .select('*')
+        .select('*, stage:stages(name)')
         .eq('brief_id', briefId)
         .eq('stage_id', stageId);
 
@@ -51,10 +57,20 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
         stageId,
         outputsCount: outputs?.length || 0,
         outputIds: outputs?.map(o => o.id),
+        outputStages: outputs?.map(o => ({
+          stageId: o.stage_id,
+          stageName: o.stage?.name
+        })),
         timestamp: new Date().toISOString()
       });
 
-      // Check for conversations
+      // Check for conversations with detailed logging
+      console.log('🔍 Fetching conversations for:', {
+        briefId,
+        stageId,
+        timestamp: new Date().toISOString()
+      });
+
       const { data: conversations, error: conversationsError } = await supabase
         .from('workflow_conversations')
         .select(`
@@ -62,6 +78,11 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
           agents (
             id,
             name
+          ),
+          flow_steps (
+            id,
+            order_index,
+            description
           )
         `)
         .eq('brief_id', briefId)
@@ -80,6 +101,8 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
           id: c.id,
           agentId: c.agent_id,
           agentName: c.agents?.name,
+          flowStepId: c.flow_step_id,
+          flowStepOrder: c.flow_steps?.order_index,
           hasContent: !!c.content,
           contentLength: c.content?.length || 0,
           timestamp: c.created_at
