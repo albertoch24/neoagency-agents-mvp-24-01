@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Stage } from "@/types/workflow";
 import { toast } from "sonner";
+import { validateBrief } from "@/utils/briefValidation";
 
 export const useStageValidation = (
   currentStage: string,
@@ -20,28 +21,18 @@ export const useStageValidation = (
           timestamp: new Date().toISOString()
         });
 
-        // First, verify the brief exists
-        const { data: brief, error: briefError } = await supabase
-          .from('briefs')
-          .select('id')
-          .eq('id', briefId)
-          .single();
-
-        if (briefError) {
-          console.error("❌ Error verifying brief:", briefError);
+        // First validate the brief exists
+        const briefValidation = await validateBrief(briefId);
+        if (!briefValidation.isValid) {
+          console.error("❌ Brief validation failed:", briefValidation.error);
+          toast.error(`Error validating brief: ${briefValidation.error}`);
           return false;
         }
-
-        console.log("📋 Brief verification:", {
-          briefFound: !!brief,
-          briefId: brief?.id,
-          timestamp: new Date().toISOString()
-        });
 
         // Then check for outputs
         const { data: outputs, error: outputsError } = await supabase
           .from('brief_outputs')
-          .select('content, brief_id')
+          .select('content')
           .eq('stage_id', stageId)
           .eq('brief_id', briefId)
           .maybeSingle();
@@ -53,11 +44,8 @@ export const useStageValidation = (
 
         console.log("📊 Brief outputs query result:", {
           briefId,
-          foundBriefId: outputs?.brief_id,
           hasOutputs: !!outputs,
-          hasContent: !!outputs?.content,
           contentType: outputs?.content ? typeof outputs.content : 'undefined',
-          contentValue: outputs?.content,
           timestamp: new Date().toISOString()
         });
 
