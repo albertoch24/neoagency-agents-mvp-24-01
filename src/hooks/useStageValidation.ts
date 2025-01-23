@@ -20,6 +20,25 @@ export const useStageValidation = (
           timestamp: new Date().toISOString()
         });
 
+        // First, verify the brief exists
+        const { data: brief, error: briefError } = await supabase
+          .from('briefs')
+          .select('id')
+          .eq('id', briefId)
+          .single();
+
+        if (briefError) {
+          console.error("❌ Error verifying brief:", briefError);
+          return false;
+        }
+
+        console.log("📋 Brief verification:", {
+          briefFound: !!brief,
+          briefId: brief?.id,
+          timestamp: new Date().toISOString()
+        });
+
+        // Then check for outputs
         const { data: outputs, error: outputsError } = await supabase
           .from('brief_outputs')
           .select('content, brief_id')
@@ -42,36 +61,26 @@ export const useStageValidation = (
           timestamp: new Date().toISOString()
         });
 
-        // Verifica più dettagliata del contenuto
-        const hasValidContent = outputs?.content && (
-          (typeof outputs.content === 'object' && Object.keys(outputs.content).length > 0) ||
-          (typeof outputs.content === 'string' && outputs.content.toString().length > 0) ||
-          (typeof outputs.content === 'number' && outputs.content !== 0)
-        );
+        // Validate content based on its type
+        let hasValidContent = false;
+        if (outputs?.content) {
+          if (typeof outputs.content === 'object') {
+            hasValidContent = Object.keys(outputs.content).length > 0;
+          } else if (typeof outputs.content === 'string') {
+            hasValidContent = outputs.content.toString().length > 0;
+          } else if (typeof outputs.content === 'number') {
+            hasValidContent = outputs.content !== 0;
+          }
+        }
 
         console.log("🔎 Content validation:", {
           hasValidContent,
           contentType: typeof outputs?.content,
-          isContentEmpty: outputs?.content ? 
-            typeof outputs.content === 'object' ? 
-              Object.keys(outputs.content).length === 0 : 
-              typeof outputs.content === 'string' ?
-                outputs.content.length === 0 :
-                outputs.content === 0 : 
-            true
-        });
-
-        const isComplete = hasValidContent;
-
-        console.log("✅ Stage completion check result:", {
-          stageId,
-          briefId,
-          isComplete,
-          hasContent: !!outputs?.content,
+          isContentEmpty: !hasValidContent,
           timestamp: new Date().toISOString()
         });
 
-        return isComplete;
+        return hasValidContent;
       } catch (error) {
         console.error("❌ Stage validation error:", error);
         toast.error("Error checking stage status");
