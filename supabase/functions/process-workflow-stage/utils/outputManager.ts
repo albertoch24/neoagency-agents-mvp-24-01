@@ -9,7 +9,7 @@ export async function saveBriefOutput(
   const now = new Date().toISOString();
 
   try {
-    console.log('💾 Saving brief output:', {
+    console.log('💾 Starting brief output save:', {
       briefId,
       stageId,
       outputsCount: outputs.length,
@@ -17,22 +17,27 @@ export async function saveBriefOutput(
       timestamp: now
     });
 
-    // Format the content object
+    // Basic validation
+    if (!outputs?.length) {
+      console.error('❌ No outputs provided for saving');
+      throw new Error('No outputs provided for saving');
+    }
+
+    // Simplified content structure with essential metadata
     const content = {
-      stage_name: stageName,
-      outputs: outputs.map(output => ({
-        agent: output.agent,
-        requirements: output.requirements,
-        outputs: output.outputs,
-        stepId: output.stepId,
-        orderIndex: output.orderIndex
-      })),
+      outputs: outputs,
+      feedback_used: feedbackContext?.feedbackContent || null,
       metadata: {
         processing_timestamp: now,
-        feedback_used: feedbackContext?.feedbackContent || null,
         is_reprocessed: !!feedbackContext?.isReprocessing
       }
     };
+
+    console.log('📦 Prepared content structure:', {
+      outputsCount: outputs.length,
+      hasFeedback: !!content.feedback_used,
+      timestamp: now
+    });
 
     const { error: outputError } = await supabase
       .from('brief_outputs')
@@ -49,20 +54,44 @@ export async function saveBriefOutput(
       });
 
     if (outputError) {
-      console.error('❌ Error saving brief output:', outputError);
+      console.error('❌ Error saving brief output:', {
+        error: outputError,
+        briefId,
+        stageId,
+        timestamp: now
+      });
       throw outputError;
     }
 
     console.log('✅ Brief output saved successfully:', {
       briefId,
       stageId,
-      stageName,
-      outputsCount: outputs.length,
       timestamp: now
     });
 
   } catch (error) {
-    console.error('❌ Error in saveBriefOutput:', error);
+    console.error('❌ Error in saveBriefOutput:', {
+      error,
+      briefId,
+      stageId,
+      timestamp: now
+    });
     throw error;
   }
+}
+
+// Simple validation helper
+export function validateOutputs(outputs: any[]): boolean {
+  if (!Array.isArray(outputs) || outputs.length === 0) {
+    return false;
+  }
+
+  return outputs.every(output => {
+    return (
+      output &&
+      typeof output === 'object' &&
+      Array.isArray(output.outputs) &&
+      output.outputs.length > 0
+    );
+  });
 }
