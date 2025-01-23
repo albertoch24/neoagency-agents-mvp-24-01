@@ -4,6 +4,21 @@ import { Stage } from "@/types/workflow";
 import { toast } from "sonner";
 import { validateBrief } from "@/utils/briefValidation";
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
+interface ValidationResult {
+  isValid: boolean;
+  error?: string;
+  details?: {
+    hasOutputs: boolean;
+    hasValidContent: boolean;
+    hasConversations: boolean;
+  };
+}
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const useStageValidation = (
   currentStage: string,
   briefId?: string,
@@ -12,70 +27,143 @@ export const useStageValidation = (
   const [currentStageProcessed, setCurrentStageProcessed] = useState(false);
   const [previousStageProcessed, setPreviousStageProcessed] = useState(false);
 
-  useEffect(() => {
-    const checkStageStatus = async (stageId: string, briefId: string) => {
-      try {
-        console.log("🔍 Checking stage status for:", {
-          stageId,
-          briefId,
-          timestamp: new Date().toISOString()
-        });
+  const validateOutputContent = (content: any): boolean => {
+    try {
+      if (!content) return false;
+      
+      // Check if content has outputs array
+      if (!content.outputs || !Array.isArray(content.outputs)) {
+        console.warn("Invalid content structure: missing outputs array");
+        return false;
+      }
 
-        // First validate the brief exists
-        const briefValidation = await validateBrief(briefId);
-        if (!briefValidation.isValid) {
-          console.error("❌ Brief validation failed:", briefValidation.error);
-          toast.error(`Error validating brief: ${briefValidation.error}`);
-          return false;
+      // Verify each output has required fields
+      return content.outputs.every((output: any) => {
+        const isValid = output && 
+          Array.isArray(output.outputs) && 
+          output.outputs.length > 0 &&
+          output.outputs.every((o: any) => o.content && typeof o.content === 'string');
+        
+        if (!isValid) {
+          console.warn("Invalid output structure:", output);
         }
+        return isValid;
+      });
+    } catch (error) {
+      console.error("Error validating output content:", error);
+      return false;
+    }
+  };
 
-        // Then check for outputs
-        const { data: outputs, error: outputsError } = await supabase
+  const checkStageStatus = async (
+    stageId: string, 
+    briefId: string,
+    retryCount = 0
+  ): Promise<ValidationResult> => {
+    try {
+      console.log("🔍 Checking stage status:", {
+        stageId,
+        briefId,
+        retryCount,
+        timestamp: new Date().toISOString()
+      });
+
+      // Check outputs
+      const { count: outputsCount, error: outputsError } = await supabase
+        .from('brief_outputs')
+        .select('*', { count: 'exact', head: true })
+        .eq('stage_id', stageId)
+        .eq('brief_id', briefId);
+
+      if (outputsError) {
+        console.error("Error checking outputs:", outputsError);
+        throw outputsError;
+      }
+
+      // If we have outputs, validate their content
+      let hasValidContent = false;
+      if (outputsCount && outputsCount > 0) {
+        const { data: outputs, error: contentError } = await supabase
           .from('brief_outputs')
           .select('content')
           .eq('stage_id', stageId)
           .eq('brief_id', briefId)
-          .maybeSingle();
+          .single();
 
-        if (outputsError) {
-          console.error("❌ Error checking brief_outputs:", outputsError);
-          throw outputsError;
+        if (contentError) {
+          console.error("Error fetching output content:", contentError);
+          throw contentError;
         }
 
-        console.log("📊 Brief outputs query result:", {
-          briefId,
-          hasOutputs: !!outputs,
-          contentType: outputs?.content ? typeof outputs.content : 'undefined',
-          timestamp: new Date().toISOString()
-        });
-
-        // Validate content based on its type
-        let hasValidContent = false;
-        if (outputs?.content) {
-          if (typeof outputs.content === 'object') {
-            hasValidContent = Object.keys(outputs.content).length > 0;
-          } else if (typeof outputs.content === 'string') {
-            hasValidContent = outputs.content.toString().length > 0;
-          } else if (typeof outputs.content === 'number') {
-            hasValidContent = outputs.content !== 0;
-          }
-        }
-
-        console.log("🔎 Content validation:", {
+        hasValidContent = validateOutputContent(outputs?.content);
+        console.log("📝 Content validation result:", {
           hasValidContent,
-          contentType: typeof outputs?.content,
-          isContentEmpty: !hasValidContent,
+          outputsCount,
           timestamp: new Date().toISOString()
         });
-
-        return hasValidContent;
-      } catch (error) {
-        console.error("❌ Stage validation error:", error);
-        toast.error("Error checking stage status");
-        return false;
       }
-    };
 
+      // Check conversations
+      const { count: conversationsCount, error: conversationsError } = await supabase
+        .from('workflow_conversations')
+        .select('*', { count: 'exact', head: true })
+        .eq('stage_id', stageId)
+        .eq('brief_id', briefId);
+
+      if (conversationsError) {
+        console.error("Error checking conversations:", conversationsError);
+        throw conversationsError;
+      }
+
+      const result: ValidationResult = {
+        isValid: outputsCount > 0 && hasValidContent && conversationsCount > 0,
+        details: {
+          hasOutputs: outputsCount > 0,
+          hasValidContent,
+          hasConversations: conversationsCount > 0
+        }
+      };
+
+      console.log("✅ Stage validation complete:", {
+        stageId,
+        result,
+        timestamp: new Date().toISOString()
+      });
+
+      return result;
+    } catch (error) {
+      console.error("❌ Stage validation error:", {
+        stageId,
+        error,
+        retryCount,
+        timestamp: new Date().toISOString()
+      });
+
+      // Implement retry logic
+      if (retryCount < MAX_RETRIES) {
+        console.log("🔄 Retrying validation...", {
+          retryCount: retryCount + 1,
+          delay: RETRY_DELAY,
+          timestamp: new Date().toISOString()
+        });
+        
+        await delay(RETRY_DELAY);
+        return checkStageStatus(stageId, briefId, retryCount + 1);
+      }
+
+      return {
+        isValid: false,
+        error: error instanceof Error ? error.message : "Unknown error occurred",
+        details: {
+          hasOutputs: false,
+          hasValidContent: false,
+          hasConversations: false
+        }
+      };
+    }
+  };
+
+  useEffect(() => {
     const validateStages = async () => {
       console.log("🚀 Starting stage validation with:", {
         currentStage,
@@ -87,9 +175,7 @@ export const useStageValidation = (
       if (!currentStage || !briefId || !stages?.length) {
         console.log("⚠️ Missing required data for validation:", {
           hasCurrentStage: !!currentStage,
-          currentStage,
           hasBriefId: !!briefId,
-          briefId,
           hasStages: !!stages?.length,
           timestamp: new Date().toISOString()
         });
@@ -99,16 +185,24 @@ export const useStageValidation = (
       const currentIndex = stages.findIndex(s => s.id === currentStage);
       
       // Check current stage completion
-      const currentProcessed = await checkStageStatus(currentStage, briefId);
-      console.log("✅ Current stage processed:", currentProcessed);
-      setCurrentStageProcessed(currentProcessed);
+      const currentResult = await checkStageStatus(currentStage, briefId);
+      console.log("✅ Current stage validation result:", {
+        stageId: currentStage,
+        result: currentResult,
+        timestamp: new Date().toISOString()
+      });
+      setCurrentStageProcessed(currentResult.isValid);
 
       // Check previous stage if not first stage
       if (currentIndex > 0) {
         const previousStage = stages[currentIndex - 1];
-        const previousProcessed = await checkStageStatus(previousStage.id, briefId);
-        console.log("✅ Previous stage processed:", previousProcessed);
-        setPreviousStageProcessed(previousProcessed);
+        const previousResult = await checkStageStatus(previousStage.id, briefId);
+        console.log("✅ Previous stage validation result:", {
+          stageId: previousStage.id,
+          result: previousResult,
+          timestamp: new Date().toISOString()
+        });
+        setPreviousStageProcessed(previousResult.isValid);
       } else {
         // First stage doesn't need previous validation
         setPreviousStageProcessed(true);
