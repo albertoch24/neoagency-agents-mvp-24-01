@@ -12,7 +12,7 @@ export const StageValidationStatus = ({
   if (!currentStageProcessed) {
     return (
       <p className="text-yellow-500">
-        Complete the current stage before proceeding
+        Stage in elaborazione
       </p>
     );
   }

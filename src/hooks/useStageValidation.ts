@@ -44,28 +44,13 @@ export const useStageValidation = (
           return true;
         }
 
-        // Fallback check for workflow_conversations if no brief_outputs found
-        const { data: conversations, error: convsError } = await supabase
-          .from('workflow_conversations')
-          .select('*')
-          .eq('stage_id', stageId)
-          .eq('brief_id', briefId);
-
-        if (convsError) {
-          console.error("Error checking conversations:", convsError);
-          throw convsError;
-        }
-
-        const hasConversations = conversations && conversations.length > 0;
-        
-        console.log("📊 Stage status check results:", {
+        console.log("⚠️ No content found in brief_outputs for stage:", {
           stageId,
-          hasConversations,
-          conversationCount: conversations?.length,
+          briefId,
           timestamp: new Date().toISOString()
         });
 
-        return hasConversations;
+        return false;
       } catch (error) {
         console.error("❌ Error checking stage status:", {
           error,
