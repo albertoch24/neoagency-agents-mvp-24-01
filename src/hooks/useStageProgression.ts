@@ -19,7 +19,7 @@ export const useStageProgression = (briefId?: string) => {
       // First check brief_outputs table
       const { data: outputs, error: outputsError } = await supabase
         .from("brief_outputs")
-        .select("*")
+        .select("content")
         .eq("brief_id", briefId)
         .eq("stage_id", stageId)
         .maybeSingle();
@@ -29,17 +29,13 @@ export const useStageProgression = (briefId?: string) => {
         return false;
       }
 
-      console.log("📊 Stage completion check - outputs:", {
-        stageId,
-        hasOutput: !!outputs,
-        output: outputs
-      });
-
-      if (outputs) {
+      // If we have content in brief_outputs, the stage is complete
+      if (outputs?.content) {
+        console.log("✅ Stage completed - Found content in brief_outputs");
         return true;
       }
 
-      // If no outputs found, check workflow_conversations table
+      // Fallback check for workflow_conversations
       const { data: conversations, error: convsError } = await supabase
         .from("workflow_conversations")
         .select("*")

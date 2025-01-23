@@ -20,43 +20,52 @@ export const useStageValidation = (
           timestamp: new Date().toISOString()
         });
 
-        // Check both outputs and conversations
-        const [outputsResponse, conversationsResponse] = await Promise.all([
-          supabase
-            .from('brief_outputs')
-            .select('*')
-            .eq('stage_id', stageId)
-            .eq('brief_id', briefId),
-          supabase
-            .from('workflow_conversations')
-            .select('*')
-            .eq('stage_id', stageId)
-            .eq('brief_id', briefId)
-        ]);
+        // Check brief_outputs first as it's the primary indicator of completion
+        const { data: outputs, error: outputsError } = await supabase
+          .from('brief_outputs')
+          .select('content')
+          .eq('stage_id', stageId)
+          .eq('brief_id', briefId)
+          .maybeSingle();
 
-        if (outputsResponse.error) {
-          console.error("Error checking outputs:", outputsResponse.error);
-          throw outputsResponse.error;
-        }
-        if (conversationsResponse.error) {
-          console.error("Error checking conversations:", conversationsResponse.error);
-          throw conversationsResponse.error;
+        if (outputsError) {
+          console.error("Error checking outputs:", outputsError);
+          throw outputsError;
         }
 
-        const hasOutputs = outputsResponse.data && outputsResponse.data.length > 0;
-        const hasConversations = conversationsResponse.data && conversationsResponse.data.length > 0;
+        // If we have content in brief_outputs, the stage is considered complete
+        if (outputs?.content) {
+          console.log("✅ Stage completed - Found content in brief_outputs:", {
+            stageId,
+            briefId,
+            hasContent: true,
+            timestamp: new Date().toISOString()
+          });
+          return true;
+        }
+
+        // Fallback check for workflow_conversations if no brief_outputs found
+        const { data: conversations, error: convsError } = await supabase
+          .from('workflow_conversations')
+          .select('*')
+          .eq('stage_id', stageId)
+          .eq('brief_id', briefId);
+
+        if (convsError) {
+          console.error("Error checking conversations:", convsError);
+          throw convsError;
+        }
+
+        const hasConversations = conversations && conversations.length > 0;
         
         console.log("📊 Stage status check results:", {
           stageId,
-          hasOutputs,
           hasConversations,
-          outputCount: outputsResponse.data?.length,
-          conversationCount: conversationsResponse.data?.length,
+          conversationCount: conversations?.length,
           timestamp: new Date().toISOString()
         });
 
-        // Stage is considered processed if it has either outputs or conversations
-        return hasOutputs || hasConversations;
+        return hasConversations;
       } catch (error) {
         console.error("❌ Error checking stage status:", {
           error,
