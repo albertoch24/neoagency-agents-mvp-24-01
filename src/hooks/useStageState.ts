@@ -30,7 +30,7 @@ export const useStageState = (briefId?: string, stageId?: string) => {
     }
 
     if (stageData) {
-      // Semplificazione: isCompleted è true se ci sono outputs
+      // Semplificazione: isCompleted è true se ci sono outputs per questo stage
       const isCompleted = stageData.outputs && stageData.outputs.length > 0;
 
       console.log('🔄 Updating stage state:', {

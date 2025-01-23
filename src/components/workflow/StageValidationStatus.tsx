@@ -55,7 +55,7 @@ export const StageValidationStatus = ({
       <Alert>
         <AlertDescription className="text-green-600">
           {isFirstStage 
-            ? "Pronto per procedere allo stage successivo" 
+            ? "Stage completato con successo" 
             : "Stage precedente completato, pronto per procedere"}
         </AlertDescription>
       </Alert>

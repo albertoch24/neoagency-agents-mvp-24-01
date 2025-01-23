@@ -19,15 +19,21 @@ export const useStageValidation = (
         timestamp: new Date().toISOString()
       });
 
+      if (!briefId || !stageId) {
+        console.error("❌ Missing required parameters:", { briefId, stageId });
+        return false;
+      }
+
       const { count, error } = await supabase
         .from('brief_outputs')
         .select('*', { count: 'exact', head: true })
         .eq('stage_id', stageId)
-        .eq('brief_id', briefId);
+        .eq('brief_id', briefId)
+        .single();
 
       if (error) {
         console.error("❌ Error checking outputs:", error);
-        throw error;
+        return false;
       }
 
       const hasOutput = count ? count > 0 : false;
@@ -70,11 +76,12 @@ export const useStageValidation = (
       console.log("✅ Current stage validation result:", {
         stageId: currentStage,
         hasOutput: currentResult,
+        isFirstStage: currentIndex === 0,
         timestamp: new Date().toISOString()
       });
       setCurrentStageProcessed(currentResult);
 
-      // Check previous stage if not first stage - only based on brief_outputs presence
+      // For non-first stages, check if previous stage is completed
       if (currentIndex > 0) {
         const previousStage = stages[currentIndex - 1];
         const previousResult = await checkStageStatus(previousStage.id, briefId);
