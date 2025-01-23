@@ -11,7 +11,7 @@ interface WorkflowDisplayActionsProps {
   isProcessing?: boolean;
   briefId?: string;
   onStageSelect?: (stage: Stage) => void;
-  isFirstStage?: boolean;
+  isFirstStage: boolean;
 }
 
 export const WorkflowDisplayActions = ({
@@ -21,7 +21,7 @@ export const WorkflowDisplayActions = ({
   isProcessing,
   briefId,
   onStageSelect,
-  isFirstStage = false
+  isFirstStage
 }: WorkflowDisplayActionsProps) => {
   const { currentStageProcessed, previousStageProcessed } = useStageValidation(
     currentStage,
@@ -29,20 +29,37 @@ export const WorkflowDisplayActions = ({
     stages
   );
 
+  console.log('🔄 WorkflowDisplayActions Render:', {
+    currentStage,
+    briefId,
+    isFirstStage,
+    currentStageProcessed,
+    previousStageProcessed,
+    timestamp: new Date().toISOString()
+  });
+
   const handleNextStage = async () => {
-    if (!currentStage) return;
+    if (!currentStage) {
+      console.error('❌ No current stage defined');
+      return;
+    }
 
     const currentIndex = stages.findIndex(s => s.id === currentStage);
-    if (currentIndex === -1 || currentIndex >= stages.length - 1) return;
+    if (currentIndex === -1 || currentIndex >= stages.length - 1) {
+      console.error('❌ Invalid stage index:', currentIndex);
+      return;
+    }
 
     const nextStage = stages[currentIndex + 1];
 
     if (!isFirstStage && !previousStageProcessed) {
+      console.warn('⚠️ Previous stage not processed');
       toast.error("Previous stage must be completed first");
       return;
     }
 
     if (!currentStageProcessed) {
+      console.warn('⚠️ Current stage not processed');
       toast.error("Current stage must be completed first");
       return;
     }
@@ -63,7 +80,7 @@ export const WorkflowDisplayActions = ({
         }
         toast.success(`Processing stage: ${nextStage.name}`);
       } catch (error) {
-        console.error("Error processing next stage:", error);
+        console.error("❌ Error processing next stage:", error);
         toast.error("Failed to process next stage");
       }
     }

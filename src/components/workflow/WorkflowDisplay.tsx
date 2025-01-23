@@ -23,6 +23,13 @@ export const WorkflowDisplay = ({
   const { isProcessing, processStage } = useStageProcessing(briefId, currentStage);
   const { data: stages = [] } = useStagesData(briefId);
 
+  console.log('🔄 WorkflowDisplay Render:', {
+    briefId,
+    currentStage,
+    stagesCount: stages.length,
+    timestamp: new Date().toISOString()
+  });
+
   const handleReprocess = async (feedbackId: string | null) => {
     console.log('🚀 WorkflowDisplay - Starting process:', {
       briefId,
@@ -48,6 +55,14 @@ export const WorkflowDisplay = ({
 
   const currentIndex = stages.findIndex(s => s.id === currentStage);
   const isFirstStage = currentIndex === 0;
+
+  console.log('📊 Stage Status:', {
+    currentIndex,
+    isFirstStage,
+    currentStage,
+    briefId,
+    timestamp: new Date().toISOString()
+  });
 
   return (
     <div className="space-y-4">
