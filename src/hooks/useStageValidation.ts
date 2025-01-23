@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Stage } from "@/types/workflow";
 import { toast } from "sonner";
-import { validateBrief } from "@/utils/briefValidation";
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
@@ -29,28 +28,39 @@ export const useStageValidation = (
 
   const validateOutputContent = (content: any): boolean => {
     try {
-      if (!content) return false;
+      if (!content) {
+        console.warn("❌ No content provided for validation");
+        return false;
+      }
       
       // Check if content has outputs array
       if (!content.outputs || !Array.isArray(content.outputs)) {
-        console.warn("Invalid content structure: missing outputs array");
+        console.warn("❌ Invalid content structure: missing outputs array");
         return false;
       }
 
-      // Verify each output has required fields
-      return content.outputs.every((output: any) => {
-        const isValid = output && 
+      // Verify each output has required fields and valid content
+      const isValid = content.outputs.every((output: any) => {
+        const hasValidStructure = output && 
           Array.isArray(output.outputs) && 
           output.outputs.length > 0 &&
           output.outputs.every((o: any) => o.content && typeof o.content === 'string');
         
-        if (!isValid) {
-          console.warn("Invalid output structure:", output);
+        if (!hasValidStructure) {
+          console.warn("❌ Invalid output structure:", output);
         }
-        return isValid;
+        return hasValidStructure;
       });
+
+      console.log("✅ Content validation result:", {
+        isValid,
+        outputsCount: content.outputs.length,
+        timestamp: new Date().toISOString()
+      });
+
+      return isValid;
     } catch (error) {
-      console.error("Error validating output content:", error);
+      console.error("❌ Error validating output content:", error);
       return false;
     }
   };
@@ -68,7 +78,7 @@ export const useStageValidation = (
         timestamp: new Date().toISOString()
       });
 
-      // Check outputs
+      // Check outputs with count
       const { count: outputsCount, error: outputsError } = await supabase
         .from('brief_outputs')
         .select('*', { count: 'exact', head: true })
@@ -76,9 +86,14 @@ export const useStageValidation = (
         .eq('brief_id', briefId);
 
       if (outputsError) {
-        console.error("Error checking outputs:", outputsError);
+        console.error("❌ Error checking outputs:", outputsError);
         throw outputsError;
       }
+
+      console.log("📊 Outputs count check:", {
+        outputsCount,
+        timestamp: new Date().toISOString()
+      });
 
       // If we have outputs, validate their content
       let hasValidContent = false;
@@ -91,7 +106,7 @@ export const useStageValidation = (
           .single();
 
         if (contentError) {
-          console.error("Error fetching output content:", contentError);
+          console.error("❌ Error fetching output content:", contentError);
           throw contentError;
         }
 
@@ -103,7 +118,7 @@ export const useStageValidation = (
         });
       }
 
-      // Check conversations
+      // Check conversations with count
       const { count: conversationsCount, error: conversationsError } = await supabase
         .from('workflow_conversations')
         .select('*', { count: 'exact', head: true })
@@ -111,9 +126,14 @@ export const useStageValidation = (
         .eq('brief_id', briefId);
 
       if (conversationsError) {
-        console.error("Error checking conversations:", conversationsError);
+        console.error("❌ Error checking conversations:", conversationsError);
         throw conversationsError;
       }
+
+      console.log("💬 Conversations count check:", {
+        conversationsCount,
+        timestamp: new Date().toISOString()
+      });
 
       const result: ValidationResult = {
         isValid: outputsCount > 0 && hasValidContent && conversationsCount > 0,
