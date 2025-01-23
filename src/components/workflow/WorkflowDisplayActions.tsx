@@ -11,6 +11,7 @@ interface WorkflowDisplayActionsProps {
   isProcessing?: boolean;
   briefId?: string;
   onStageSelect?: (stage: Stage) => void;
+  isFirstStage?: boolean;
 }
 
 export const WorkflowDisplayActions = ({
@@ -19,7 +20,8 @@ export const WorkflowDisplayActions = ({
   onNextStage,
   isProcessing,
   briefId,
-  onStageSelect
+  onStageSelect,
+  isFirstStage = false
 }: WorkflowDisplayActionsProps) => {
   const { currentStageProcessed, previousStageProcessed } = useStageValidation(
     currentStage,
@@ -34,9 +36,7 @@ export const WorkflowDisplayActions = ({
     if (currentIndex === -1 || currentIndex >= stages.length - 1) return;
 
     const nextStage = stages[currentIndex + 1];
-    const isFirstStage = currentIndex === 0;
 
-    // Modifica: rimuoviamo il controllo dello stage precedente per il Kick Off
     if (!isFirstStage && !previousStageProcessed) {
       toast.error("Previous stage must be completed first");
       return;
@@ -73,15 +73,14 @@ export const WorkflowDisplayActions = ({
 
   const currentIndex = stages.findIndex(stage => stage.id === currentStage);
   const isLastStage = currentIndex === stages.length - 1;
-  const isFirstStage = currentIndex === 0;
 
   if (isLastStage) return null;
 
   return (
     <div className="space-y-4">
       <StageValidationStatus
-        currentStageProcessed={currentStageProcessed}
-        previousStageProcessed={previousStageProcessed}
+        briefId={briefId}
+        stageId={currentStage}
         isFirstStage={isFirstStage}
       />
       <div className="flex justify-end">
@@ -90,7 +89,7 @@ export const WorkflowDisplayActions = ({
           disabled={
             isProcessing ||
             !currentStageProcessed ||
-            (!previousStageProcessed && !isFirstStage) // Modifica: permettiamo di procedere se è il primo stage
+            (!previousStageProcessed && !isFirstStage)
           }
         >
           {isProcessing ? "Processing..." : "Next Stage"}
