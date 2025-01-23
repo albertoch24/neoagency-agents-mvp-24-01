@@ -25,22 +25,38 @@ interface StageOutputProps {
 }
 
 export const StageOutput = ({ output, stepId }: StageOutputProps) => {
-  console.log("StageOutput received:", output, "for step:", stepId);
+  console.log("🔄 StageOutput processing:", {
+    hasOutput: !!output,
+    outputContent: output?.content,
+    stepId,
+    timestamp: new Date().toISOString()
+  });
 
   if (!output?.content) {
-    console.log("No content in output");
+    console.log("❌ No content in output for stage processing");
     return null;
   }
 
   // Handle both array and object formats for outputs
   const outputs = output.content.outputs || [];
-  console.log("Processing outputs:", outputs);
+  console.log("🔍 Processing stage outputs:", {
+    outputsCount: outputs.length,
+    stepId,
+    outputs
+  });
 
   const stepOutput = outputs.find(out => out.stepId === stepId);
-  console.log("Found step output:", stepOutput);
+  console.log("✅ Found step output:", {
+    hasStepOutput: !!stepOutput,
+    stepId,
+    agentName: stepOutput?.agent
+  });
 
   if (!stepOutput) {
-    console.log("No output found for step:", stepId);
+    console.log("⚠️ No output found for step:", {
+      stepId,
+      availableStepIds: outputs.map(o => o.stepId)
+    });
     return null;
   }
 
@@ -51,6 +67,7 @@ export const StageOutput = ({ output, stepId }: StageOutputProps) => {
     .join('\n\n');
 
   if (!formattedContent) {
+    console.log("❌ No formatted content available for output");
     return null;
   }
 
