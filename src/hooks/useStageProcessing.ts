@@ -7,27 +7,29 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { fetchStageData } = useStageDataFetching();
 
-  const processStage = async (feedbackId: string | null) => {
-    if (!briefId || !stageId) {
-      console.error("Missing required parameters:", { briefId, stageId });
+  const processStage = async (feedbackId: string | null, targetStageId?: string) => {
+    const stageToProcess = targetStageId || stageId;
+    
+    if (!briefId || !stageToProcess) {
+      console.error("Missing required parameters:", { briefId, stageToProcess });
       return;
     }
 
     setIsProcessing(true);
     console.log("Starting stage processing:", {
       briefId,
-      stageId,
+      stageId: stageToProcess,
       hasFeedback: !!feedbackId,
       timestamp: new Date().toISOString()
     });
 
     try {
       // Fetch stage data including flow steps
-      const stage = await fetchStageData(stageId);
+      const stage = await fetchStageData(stageToProcess);
       
       if (!stage?.flow_id) {
         console.error("No flow_id found for stage:", {
-          stageId,
+          stageId: stageToProcess,
           stageName: stage?.name
         });
         throw new Error("No flow_id found for this stage");
@@ -55,14 +57,14 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       if (flowStepsError || !flowSteps?.length) {
         console.error("Error fetching flow steps:", {
           error: flowStepsError,
-          stageId,
+          stageId: stageToProcess,
           flowId: stage.flow_id
         });
         throw new Error("Failed to fetch flow steps");
       }
 
       console.log("Retrieved flow steps:", {
-        stageId,
+        stageId: stageToProcess,
         stageName: stage.name,
         flowId: stage.flow_id,
         flowStepsCount: flowSteps.length,
@@ -72,7 +74,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       const { error } = await supabase.functions.invoke("process-workflow-stage", {
         body: { 
           briefId,
-          stageId,
+          stageId: stageToProcess,
           flowSteps,
           feedbackId: feedbackId || null
         }

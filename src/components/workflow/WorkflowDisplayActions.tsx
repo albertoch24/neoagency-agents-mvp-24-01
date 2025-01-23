@@ -7,7 +7,7 @@ import { StageValidationStatus } from "./StageValidationStatus";
 interface WorkflowDisplayActionsProps {
   stages: Stage[];
   currentStage: string;
-  onNextStage: (feedbackId: string | null) => void;
+  onNextStage: (feedbackId: string | null, targetStageId?: string) => void;
   isProcessing?: boolean;
   briefId?: string;
   onStageSelect?: (stage: Stage) => void;
@@ -63,7 +63,7 @@ export const WorkflowDisplayActions = ({
     });
     
     try {
-      await onNextStage(null);
+      await onNextStage(null, nextStage.id);
       if (onStageSelect) {
         onStageSelect(nextStage);
       }

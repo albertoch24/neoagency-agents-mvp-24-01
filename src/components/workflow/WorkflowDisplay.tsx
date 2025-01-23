@@ -30,25 +30,26 @@ export const WorkflowDisplay = ({
     timestamp: new Date().toISOString()
   });
 
-  const handleReprocess = async (feedbackId: string | null) => {
+  const handleReprocess = async (feedbackId: string | null, targetStageId?: string) => {
     console.log('🚀 WorkflowDisplay - Starting process:', {
       briefId,
       currentStage,
-      stageName: stages.find(s => s.id === currentStage)?.name,
+      targetStageId,
+      stageName: stages.find(s => s.id === (targetStageId || currentStage))?.name,
       hasFeedback: !!feedbackId,
       timestamp: new Date().toISOString()
     });
 
-    if (briefId && currentStage) {
+    if (briefId && (targetStageId || currentStage)) {
       try {
-        await processStage(feedbackId);
+        await processStage(feedbackId, targetStageId);
         toast.success('Processing started');
       } catch (error) {
         console.error('❌ Error processing stage:', error);
         toast.error('Failed to process stage');
       }
     } else {
-      console.error('❌ Missing required parameters:', { briefId, currentStage });
+      console.error('❌ Missing required parameters:', { briefId, currentStage, targetStageId });
       toast.error('Missing required information');
     }
   };
