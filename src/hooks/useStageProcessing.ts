@@ -81,15 +81,9 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         }))
       });
 
-      console.log("🔄 Invoking edge function with:", {
-        briefId,
-        stageId: stageToProcess,
-        flowStepsCount: flowSteps.length,
-        hasFeedback: !!feedbackId
-      });
-
-      const { data, error } = await supabase.functions.invoke("process-workflow-stage", {
-        body: { 
+      // Invoke the edge function with proper error handling
+      const { data, error } = await supabase.functions.invoke('process-workflow-stage', {
+        body: {
           briefId,
           stageId: stageToProcess,
           flowSteps,
