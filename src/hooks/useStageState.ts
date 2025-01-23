@@ -35,7 +35,7 @@ export const useStageState = (briefId?: string, stageId?: string) => {
         throw new Error('Missing briefId or stageId');
       }
 
-      // Verifica l'esistenza del brief
+      // Verify brief exists
       const { data: brief, error: briefError } = await supabase
         .from('briefs')
         .select('*')
@@ -52,7 +52,7 @@ export const useStageState = (briefId?: string, stageId?: string) => {
         throw new Error('Brief not found');
       }
 
-      // Verifica gli output dello stage
+      // Check for outputs
       const { data: outputs, error: outputsError } = await supabase
         .from('brief_outputs')
         .select('*')
@@ -64,7 +64,7 @@ export const useStageState = (briefId?: string, stageId?: string) => {
         throw outputsError;
       }
 
-      // Verifica le conversazioni dello stage
+      // Check for conversations
       const { data: conversations, error: conversationsError } = await supabase
         .from('workflow_conversations')
         .select('*')
@@ -89,7 +89,7 @@ export const useStageState = (briefId?: string, stageId?: string) => {
       };
     },
     enabled: !!briefId && !!stageId,
-    refetchInterval: 5000 // Ricontrolla ogni 5 secondi
+    refetchInterval: 5000 // Check every 5 seconds
   });
 
   useEffect(() => {

@@ -20,7 +20,6 @@ serve(async (req) => {
   }
 
   try {
-    // 1. Validazione input
     const { briefId, stageId, flowSteps, feedbackId } = await req.json();
     
     if (!briefId || !stageId || !Array.isArray(flowSteps)) {
@@ -44,39 +43,19 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     });
 
-    // 2. Inizializzazione Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!supabaseUrl || !supabaseKey) {
-      console.error('❌ Missing environment variables:', {
-        operationId,
-        hasUrl: !!supabaseUrl,
-        hasKey: !!supabaseKey,
-        timestamp: new Date().toISOString()
-      });
       throw new Error('Missing Supabase configuration');
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // 3. Validazione dati workflow
-    console.log('🔍 Validating workflow data...', {
-      operationId,
-      timestamp: new Date().toISOString()
-    });
-
     const { brief, stage } = await validateWorkflowData(briefId, stageId);
 
-    // 4. Se c'è feedback, recupera l'output originale
     let originalOutput = null;
     if (feedbackId) {
-      console.log('🔄 Processing with feedback:', {
-        operationId,
-        feedbackId,
-        timestamp: new Date().toISOString()
-      });
-
       const { data: output, error: outputError } = await supabase
         .from('brief_outputs')
         .select('*')
@@ -85,29 +64,11 @@ serve(async (req) => {
         .eq('is_reprocessed', false)
         .maybeSingle();
 
-      if (outputError) {
-        console.error('❌ Error fetching original output:', {
-          operationId,
-          error: outputError,
-          timestamp: new Date().toISOString()
-        });
-        throw new Error('Failed to fetch original output');
-      }
-
-      if (!output) {
-        console.error('❌ No original output found:', {
-          operationId,
-          briefId,
-          stageId,
-          timestamp: new Date().toISOString()
-        });
-        throw new Error('No original output found to process feedback against');
-      }
-
+      if (outputError) throw new Error('Failed to fetch original output');
+      if (!output) throw new Error('No original output found to process feedback against');
       originalOutput = output;
     }
 
-    // 5. Processo ogni agente
     const outputs = [];
     console.log('👥 Processing agents:', {
       operationId,
@@ -151,13 +112,26 @@ serve(async (req) => {
           agentId: step.agent_id,
           timestamp: new Date().toISOString()
         });
-        // Continuiamo con il prossimo agente invece di fallire completamente
         continue;
       }
     }
 
     if (outputs.length === 0) {
       throw new Error('No outputs were generated from any agent');
+    }
+
+    // Update brief status
+    const { error: briefUpdateError } = await supabase
+      .from('briefs')
+      .update({ 
+        current_stage: stageId,
+        status: 'in_progress'
+      })
+      .eq('id', briefId);
+
+    if (briefUpdateError) {
+      console.error('❌ Error updating brief status:', briefUpdateError);
+      throw briefUpdateError;
     }
 
     console.log('✅ Workflow stage processing completed:', {
