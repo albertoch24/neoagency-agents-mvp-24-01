@@ -16,7 +16,7 @@ export const StageValidationStatus = ({
     timestamp: new Date().toISOString()
   });
 
-  // If current stage is processed, show success message
+  // Se lo stage è processato, mostra il messaggio di successo
   if (currentStageProcessed) {
     return (
       <p className="text-green-500">
@@ -25,7 +25,7 @@ export const StageValidationStatus = ({
     );
   }
 
-  // If previous stage isn't processed and it's not the first stage
+  // Se lo stage precedente non è processato e non è il primo stage
   if (!previousStageProcessed && !isFirstStage) {
     return (
       <p className="text-yellow-500">
@@ -37,7 +37,7 @@ export const StageValidationStatus = ({
   // Default case - stage in progress
   return (
     <p className="text-yellow-500">
-      Stage in elaborazione
+      Stage in progress...
     </p>
   );
 };

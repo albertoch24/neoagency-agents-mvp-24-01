@@ -41,6 +41,7 @@ export const useStageValidation = (
           briefId,
           isComplete,
           hasContent: !!outputs?.content,
+          contentType: outputs?.content ? typeof outputs.content : 'undefined',
           timestamp: new Date().toISOString()
         });
 
@@ -55,10 +56,10 @@ export const useStageValidation = (
 
     const validateStages = async () => {
       if (!currentStage || !briefId || !stages?.length) {
-        console.log("⚠️ Missing validation data:", {
-          currentStage,
-          briefId,
-          stagesCount: stages?.length,
+        console.log("⚠️ Missing required data for validation:", {
+          hasCurrentStage: !!currentStage,
+          hasBriefId: !!briefId,
+          hasStages: !!stages?.length,
           timestamp: new Date().toISOString()
         });
         return;
@@ -68,12 +69,14 @@ export const useStageValidation = (
       
       // Check current stage completion
       const currentProcessed = await checkStageStatus(currentStage, briefId);
+      console.log("✅ Current stage processed:", currentProcessed);
       setCurrentStageProcessed(currentProcessed);
 
       // Check previous stage if not first stage
       if (currentIndex > 0) {
         const previousStage = stages[currentIndex - 1];
         const previousProcessed = await checkStageStatus(previousStage.id, briefId);
+        console.log("✅ Previous stage processed:", previousProcessed);
         setPreviousStageProcessed(previousProcessed);
       } else {
         // First stage doesn't need previous validation
