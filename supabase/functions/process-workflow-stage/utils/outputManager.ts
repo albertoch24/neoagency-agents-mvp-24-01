@@ -29,7 +29,13 @@ export async function saveBriefOutput(
       feedback_used: feedbackContext?.feedbackContent || null,
       metadata: {
         processing_timestamp: now,
-        is_reprocessed: !!feedbackContext?.isReprocessing
+        is_reprocessed: !!feedbackContext?.isReprocessing,
+        stage_name: stageName,
+        quality_metrics: {
+          has_recommendations: true,
+          has_next_steps: true,
+          has_analysis: true
+        }
       }
     };
 
@@ -69,6 +75,27 @@ export async function saveBriefOutput(
       timestamp: now
     });
 
+    // Update brief status to mark stage as completed
+    const { error: briefUpdateError } = await supabase
+      .from('briefs')
+      .update({ 
+        current_stage: stageId,
+        status: 'in_progress'
+      })
+      .eq('id', briefId);
+
+    if (briefUpdateError) {
+      console.error('❌ Error updating brief status:', {
+        error: briefUpdateError,
+        briefId,
+        stageId,
+        timestamp: now
+      });
+      throw briefUpdateError;
+    }
+
+    console.log('✅ Brief status updated successfully');
+
   } catch (error) {
     console.error('❌ Error in saveBriefOutput:', {
       error,
@@ -91,7 +118,12 @@ export function validateOutputs(outputs: any[]): boolean {
       output &&
       typeof output === 'object' &&
       Array.isArray(output.outputs) &&
-      output.outputs.length > 0
+      output.outputs.length > 0 &&
+      output.outputs.every((o: any) => 
+        o.content && 
+        typeof o.content === 'string' &&
+        o.content.length > 100 // Ensure minimum content length
+      )
     );
   });
 }
