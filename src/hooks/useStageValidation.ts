@@ -45,7 +45,8 @@ export const useStageValidation = (
         // Verifica più dettagliata del contenuto
         const hasValidContent = outputs?.content && (
           (typeof outputs.content === 'object' && Object.keys(outputs.content).length > 0) ||
-          (typeof outputs.content === 'string' && outputs.content.length > 0)
+          (typeof outputs.content === 'string' && outputs.content.toString().length > 0) ||
+          (typeof outputs.content === 'number' && outputs.content !== 0)
         );
 
         console.log("🔎 Content validation:", {
@@ -54,7 +55,9 @@ export const useStageValidation = (
           isContentEmpty: outputs?.content ? 
             typeof outputs.content === 'object' ? 
               Object.keys(outputs.content).length === 0 : 
-              outputs.content.length === 0 : 
+              typeof outputs.content === 'string' ?
+                outputs.content.length === 0 :
+                outputs.content === 0 : 
             true
         });
 
