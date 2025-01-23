@@ -840,6 +840,13 @@ export type Database = {
             referencedRelation: "workflow_conversations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "workflow_conversations_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
