@@ -9,6 +9,13 @@ export const StageValidationStatus = ({
   previousStageProcessed,
   isFirstStage
 }: StageValidationStatusProps) => {
+  console.log("🎯 StageValidationStatus rendering:", {
+    currentStageProcessed,
+    previousStageProcessed,
+    isFirstStage,
+    timestamp: new Date().toISOString()
+  });
+
   if (!currentStageProcessed) {
     return (
       <p className="text-yellow-500">
