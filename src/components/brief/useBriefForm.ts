@@ -37,7 +37,6 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       // Clean up existing data if updating
       if (initialData?.id) {
         await cleanupExistingBriefData(initialData.id);
-        // Invalidate queries immediately after cleanup
         await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
         await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
       }
@@ -58,42 +57,70 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
 
       console.log("Retrieved first stage:", stage);
 
-      toast.success(
-        initialData 
-          ? "Brief updated successfully! You can now start processing the first stage."
-          : "Brief created successfully! You can now start processing the first stage.",
-        { duration: 8000 }
+      // Process the first stage automatically
+      const toastId = toast.loading(
+        "Processing Kick Off stage... Please wait while we analyze your brief.",
+        { duration: 120000 }
       );
 
-      // Invalidate all relevant queries to refresh data
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["briefs"] }),
-        queryClient.invalidateQueries({ queryKey: ["brief"] }),
-        queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] }),
-        queryClient.invalidateQueries({ queryKey: ["brief-outputs"] }),
-        queryClient.invalidateQueries({ queryKey: ["stage-flow-steps"] })
-      ]);
-
-      setIsProcessing(false);
-      onSubmitSuccess?.();
-      
-      // Force a small delay to ensure queries are invalidated
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Update URL parameters and navigate to first stage without processing
-      const searchParams = new URLSearchParams();
-      searchParams.set("briefId", brief.id);
-      searchParams.set("stage", stage.id);
-      
-      // Navigate with state to ensure we stay on the first stage
-      navigate(`/?${searchParams.toString()}`, {
-        replace: true,
-        state: { 
-          briefId: brief.id,
-          stage: stage.id,
-          isFirstStage: true
+      try {
+        const flowSteps = stage.flows?.flow_steps || [];
+        if (!flowSteps.length) {
+          throw new Error("No flow steps found for the first stage");
         }
-      });
+
+        // Process the first stage
+        await processWorkflowStage(brief.id, stage, flowSteps);
+        
+        toast.dismiss(toastId);
+        toast.success(
+          initialData 
+            ? "Brief updated and Kick Off stage processed successfully!"
+            : "Brief created and Kick Off stage processed successfully!",
+          { duration: 8000 }
+        );
+
+        // Invalidate all relevant queries
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["briefs"] }),
+          queryClient.invalidateQueries({ queryKey: ["brief"] }),
+          queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] }),
+          queryClient.invalidateQueries({ queryKey: ["brief-outputs"] }),
+          queryClient.invalidateQueries({ queryKey: ["stage-flow-steps"] })
+        ]);
+
+        setIsProcessing(false);
+        onSubmitSuccess?.();
+        
+        // Force a small delay to ensure queries are invalidated
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Navigate to first stage with outputs visible
+        const searchParams = new URLSearchParams();
+        searchParams.set("briefId", brief.id);
+        searchParams.set("stage", stage.id);
+        searchParams.set("showOutputs", "true");
+        
+        navigate(`/?${searchParams.toString()}`, {
+          replace: true,
+          state: { 
+            briefId: brief.id,
+            stage: stage.id,
+            showOutputs: true,
+            forceShowOutputs: true,
+            isFirstStage: true
+          }
+        });
+
+      } catch (error) {
+        console.error("Error processing Kick Off stage:", error);
+        toast.dismiss(toastId);
+        toast.error(
+          "Brief saved but Kick Off stage processing failed. Please try again.",
+          { duration: 8000 }
+        );
+        setIsProcessing(false);
+      }
 
     } catch (error) {
       console.error("Error submitting brief:", error);
