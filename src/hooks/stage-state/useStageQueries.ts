@@ -155,22 +155,26 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
     staleTime: 0, // Consider data immediately stale
     gcTime: 1000 * 60 * 5, // Keep unused data in cache for 5 minutes (renamed from cacheTime)
     retry: 3, // Retry failed requests 3 times
-    onError: (error) => {
-      console.error('❌ Cache: Query error:', {
-        error,
-        briefId,
-        stageId,
-        timestamp: new Date().toISOString()
-      });
+    meta: {
+      errorHandler: (error: Error) => {
+        console.error('❌ Cache: Query error:', {
+          error,
+          briefId,
+          stageId,
+          timestamp: new Date().toISOString()
+        });
+      }
     },
-    onSuccess: (data) => {
-      console.log('✅ Cache: Query success:', {
-        briefId,
-        stageId,
-        hasOutputs: data.outputs?.length > 0,
-        hasConversations: data.conversations?.length > 0,
-        timestamp: new Date().toISOString()
-      });
+    onSettled: (data) => {
+      if (data) {
+        console.log('✅ Cache: Query success:', {
+          briefId,
+          stageId,
+          hasOutputs: data.outputs?.length > 0,
+          hasConversations: data.conversations?.length > 0,
+          timestamp: new Date().toISOString()
+        });
+      }
     }
   });
 };
