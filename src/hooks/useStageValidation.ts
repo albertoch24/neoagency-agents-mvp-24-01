@@ -68,19 +68,20 @@ export const useStageValidation = (
       }
 
       const currentIndex = stages.findIndex(s => s.id === currentStage);
+      const isFirstStage = currentIndex === 0;
       
-      // Check current stage completion - only based on brief_outputs presence
+      // Check current stage completion
       const currentResult = await checkStageStatus(currentStage, briefId);
       console.log("✅ Current stage validation result:", {
         stageId: currentStage,
         hasOutput: currentResult,
-        isFirstStage: currentIndex === 0,
+        isFirstStage,
         timestamp: new Date().toISOString()
       });
       setCurrentStageProcessed(currentResult);
 
       // For non-first stages, check if previous stage is completed
-      if (currentIndex > 0) {
+      if (!isFirstStage) {
         const previousStage = stages[currentIndex - 1];
         const previousResult = await checkStageStatus(previousStage.id, briefId);
         console.log("✅ Previous stage validation result:", {

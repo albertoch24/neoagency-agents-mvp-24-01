@@ -26,8 +26,9 @@ export const WorkflowDisplayActions = ({
   const currentIndex = stages.findIndex(s => s.id === currentStage);
   const nextStage = stages[currentIndex + 1];
   
-  const { currentStageProcessed, previousStageProcessed } = useStageValidation(
-    nextStage?.id || currentStage,
+  // Only validate current stage
+  const { currentStageProcessed } = useStageValidation(
+    currentStage,
     briefId,
     stages
   );
@@ -38,7 +39,6 @@ export const WorkflowDisplayActions = ({
     briefId,
     isFirstStage,
     currentStageProcessed,
-    previousStageProcessed,
     timestamp: new Date().toISOString()
   });
 
@@ -48,9 +48,9 @@ export const WorkflowDisplayActions = ({
       return;
     }
 
-    if (!isFirstStage && !previousStageProcessed) {
-      console.warn('⚠️ Previous stage not processed');
-      toast.error("Previous stage must be completed first");
+    if (!currentStageProcessed) {
+      console.warn('⚠️ Current stage not processed');
+      toast.error("Current stage must be completed first");
       return;
     }
 
@@ -84,17 +84,13 @@ export const WorkflowDisplayActions = ({
     <div className="space-y-4">
       <StageValidationStatus
         briefId={briefId}
-        stageId={nextStage?.id || currentStage}
+        stageId={currentStage}
         isFirstStage={isFirstStage}
       />
       <div className="flex justify-end">
         <Button
           onClick={handleNextStage}
-          disabled={
-            isProcessing ||
-            !currentStageProcessed ||
-            (!previousStageProcessed && !isFirstStage)
-          }
+          disabled={isProcessing || !currentStageProcessed}
         >
           {isProcessing ? "Processing..." : "Next Stage"}
         </Button>
