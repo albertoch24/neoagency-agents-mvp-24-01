@@ -10,7 +10,8 @@ export const useStageState = (briefId?: string, stageId?: string) => {
     isLoading: true,
     isCompleted: false,
     hasError: false,
-    error: null
+    error: null,
+    stageData: null
   });
 
   const queryClient = useQueryClient();
@@ -26,7 +27,7 @@ export const useStageState = (briefId?: string, stageId?: string) => {
         error: stageError as Error,
         isLoading: false
       }));
-      toast.error('Error checking stage state');
+      toast.error('Errore durante la verifica dello stato dello stage');
       return;
     }
 
@@ -35,6 +36,8 @@ export const useStageState = (briefId?: string, stageId?: string) => {
         briefId,
         stageId,
         isCompleted,
+        hasOutputs: stageData.outputs?.length > 0,
+        hasConversations: stageData.conversations?.length > 0,
         timestamp: new Date().toISOString()
       });
 
@@ -42,7 +45,8 @@ export const useStageState = (briefId?: string, stageId?: string) => {
         isLoading: false,
         isCompleted,
         hasError: false,
-        error: null
+        error: null,
+        stageData
       });
     }
   }, [stageData, stageError, briefId, stageId, isCompleted]);

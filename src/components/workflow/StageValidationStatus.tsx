@@ -1,4 +1,6 @@
 import { useStageState } from '@/hooks/useStageState';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
 
 interface StageValidationStatusProps {
   briefId?: string;
@@ -14,7 +16,8 @@ export const StageValidationStatus = ({
   const {
     isLoading,
     isCompleted,
-    hasError
+    hasError,
+    stageData
   } = useStageState(briefId, stageId);
 
   console.log('🎯 StageValidationStatus rendering:', {
@@ -24,36 +27,56 @@ export const StageValidationStatus = ({
     isLoading,
     isCompleted,
     hasError,
+    hasOutputs: stageData?.outputs?.length > 0,
+    hasConversations: stageData?.conversations?.length > 0,
     timestamp: new Date().toISOString()
   });
 
   if (isLoading) {
     return (
-      <p className="text-gray-500">
-        Checking stage status...
-      </p>
+      <Alert>
+        <AlertDescription className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Verificando lo stato dello stage...
+        </AlertDescription>
+      </Alert>
     );
   }
 
   if (hasError) {
     return (
-      <p className="text-red-500">
-        Error checking stage status
-      </p>
+      <Alert variant="destructive">
+        <AlertDescription>
+          Errore durante la verifica dello stato dello stage
+        </AlertDescription>
+      </Alert>
     );
   }
 
   if (isCompleted) {
     return (
-      <p className="text-green-500">
-        {isFirstStage ? "Ready to proceed to next stage" : "All requirements met, ready to proceed"}
-      </p>
+      <Alert variant="success">
+        <AlertDescription>
+          {isFirstStage 
+            ? "Pronto per procedere allo stage successivo" 
+            : "Tutti i requisiti soddisfatti, pronto per procedere"}
+        </AlertDescription>
+      </Alert>
     );
   }
 
+  // Mostra informazioni più dettagliate sullo stato corrente
   return (
-    <p className="text-yellow-500">
-      Stage in progress...
-    </p>
+    <Alert>
+      <AlertDescription>
+        {stageData?.outputs?.length === 0 && stageData?.conversations?.length === 0
+          ? "Stage in attesa di elaborazione..."
+          : stageData?.outputs?.length === 0
+          ? "Elaborazione output in corso..."
+          : stageData?.conversations?.length === 0
+          ? "Elaborazione conversazioni in corso..."
+          : "Completamento stage in corso..."}
+      </AlertDescription>
+    </Alert>
   );
 };
