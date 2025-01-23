@@ -1,22 +1,24 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Stage } from "@/types/workflow";
 
 export const useStageProgression = (briefId?: string) => {
-  const queryClient = useQueryClient();
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const isStageCompleted = async (stageId: string) => {
-    if (!briefId) return false;
-    
+  const checkStageCompletion = async (stageId: string): Promise<boolean> => {
     try {
-      console.log("🔍 Checking completion for stage:", {
-        stageId,
+      console.log("🔍 Checking stage completion:", {
         briefId,
+        stageId,
         timestamp: new Date().toISOString()
       });
-      
-      // First check brief_outputs table
+
+      if (!briefId || !stageId) {
+        console.error("❌ Missing required parameters:", { briefId, stageId });
+        return false;
+      }
+
       const { data: outputs, error: outputsError } = await supabase
         .from("brief_outputs")
         .select("content")
@@ -62,116 +64,114 @@ export const useStageProgression = (briefId?: string) => {
     }
   };
 
-  const startStage = async (stageId: string) => {
-    if (!briefId) {
-      toast.error("No brief selected. Please select a brief first.");
-      return false;
+  const startStage = async (stageId: string, flowSteps: any[] = []) => {
+    console.log("🚀 Starting stage processing:", {
+      briefId,
+      stageId,
+      flowStepsCount: flowSteps?.length,
+      timestamp: new Date().toISOString()
+    });
+
+    if (!briefId || !stageId) {
+      console.error("❌ Missing required parameters:", { briefId, stageId });
+      throw new Error("Missing required parameters");
     }
 
-    if (!stageId) {
-      toast.error("No stage selected. Please select a stage first.");
-      return false;
-    }
+    setIsProcessing(true);
+    const toastId = toast.loading(
+      "Processing stage... This may take a few moments.",
+      { duration: 60000 }
+    );
 
     try {
-      console.log('🚀 Starting stage processing:', { 
-        briefId, 
-        stageId,
-        timestamp: new Date().toISOString()
-      });
+      // Update brief status
+      const { error: briefError } = await supabase
+        .from("briefs")
+        .update({
+          current_stage: stageId,
+          status: "in_progress"
+        })
+        .eq("id", briefId);
 
-      // Get flow steps for the stage
-      const { data: flowSteps, error: flowStepsError } = await supabase
-        .from("flow_steps")
-        .select(`
-          *,
-          agents (
-            id,
-            name,
-            description,
-            skills (*)
-          )
-        `)
-        .eq("flow_id", stageId)
-        .order("order_index", { ascending: true });
-
-      if (flowStepsError) {
-        console.error("❌ Error fetching flow steps:", flowStepsError);
-        throw new Error(`Error fetching flow steps: ${flowStepsError.message}`);
+      if (briefError) {
+        throw new Error(`Error updating brief: ${briefError.message}`);
       }
 
-      console.log("📋 Flow steps retrieved:", {
+      console.log("📋 Flow steps to process:", {
         count: flowSteps?.length,
         steps: flowSteps
       });
 
-      const { error } = await supabase.functions.invoke('process-workflow-stage', {
+      const { error } = await supabase.functions.invoke("process-workflow-stage", {
         body: { 
           briefId,
           stageId,
-          flowSteps: flowSteps || []
+          flowSteps
         }
       });
 
       if (error) {
-        console.error('❌ Error starting stage:', error);
+        console.error("❌ Edge function error:", error);
         throw error;
       }
 
-      toast.success("Stage started successfully");
-      
-      // Invalidate queries to refresh data
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["stages"] }),
-        queryClient.invalidateQueries({ queryKey: ["brief-outputs", briefId] }),
-        queryClient.invalidateQueries({ queryKey: ["workflow-conversations", briefId] })
-      ]);
-      
+      toast.dismiss(toastId);
+      toast.success("Stage processing completed successfully!");
+
       return true;
     } catch (error) {
-      console.error("❌ Error starting stage:", error);
-      toast.error("Failed to start stage. Please try again.");
-      return false;
+      console.error("❌ Error in startStage:", error);
+      toast.dismiss(toastId);
+      toast.error("Failed to process stage. Please try again.");
+      throw error;
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const handleStageProgression = async (stage: Stage, index: number, stages: Stage[]) => {
-    console.log("🔄 Handling stage progression:", {
-      stageId: stage.id,
-      stageName: stage.name,
-      index,
-      totalStages: stages.length
-    });
+  const handleStageProgression = async (
+    currentStage: Stage,
+    nextStage: Stage | null,
+    flowSteps: any[] = []
+  ) => {
+    try {
+      if (!briefId) {
+        throw new Error("Missing briefId");
+      }
 
-    // If it's the first stage, allow starting it
-    if (index === 0) {
-      return startStage(stage.id);
-    }
+      console.log("🔄 Stage progression initiated:", {
+        currentStageId: currentStage.id,
+        nextStageId: nextStage?.id,
+        flowStepsCount: flowSteps?.length,
+        timestamp: new Date().toISOString()
+      });
 
-    // Check if previous stage is completed
-    const previousStage = stages[index - 1];
-    if (!previousStage) {
-      console.error("❌ Previous stage not found");
-      toast.error("Error finding previous stage");
-      return false;
-    }
+      const isComplete = await checkStageCompletion(currentStage.id);
+      
+      if (!isComplete) {
+        console.log("⚠️ Current stage not complete:", currentStage.id);
+        toast.error("Please complete the current stage before proceeding.");
+        return;
+      }
 
-    const isPreviousCompleted = await isStageCompleted(previousStage.id);
-    console.log("✅ Previous stage completion check:", {
-      previousStageId: previousStage.id,
-      isCompleted: isPreviousCompleted
-    });
+      if (!nextStage) {
+        console.log("✅ Final stage completed");
+        toast.success("All stages completed!");
+        return;
+      }
 
-    if (isPreviousCompleted) {
-      return startStage(stage.id);
-    } else {
-      toast.error("Please complete the previous stage first");
-      return false;
+      console.log("✨ Starting next stage:", nextStage.id);
+      await startStage(nextStage.id, flowSteps);
+
+    } catch (error) {
+      console.error("❌ Error in handleStageProgression:", error);
+      toast.error("Failed to progress to next stage");
     }
   };
 
   return {
-    isStageCompleted,
+    isProcessing,
+    checkStageCompletion,
     startStage,
     handleStageProgression
   };
