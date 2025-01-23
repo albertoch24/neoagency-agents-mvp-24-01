@@ -38,17 +38,33 @@ export const useStageValidation = (
           hasOutputs: !!outputs,
           hasContent: !!outputs?.content,
           contentType: outputs?.content ? typeof outputs.content : 'undefined',
+          contentValue: outputs?.content,
           timestamp: new Date().toISOString()
         });
 
-        const isComplete = !!outputs?.content;
+        // Verifica più dettagliata del contenuto
+        const hasValidContent = outputs?.content && (
+          (typeof outputs.content === 'object' && Object.keys(outputs.content).length > 0) ||
+          (typeof outputs.content === 'string' && outputs.content.length > 0)
+        );
+
+        console.log("🔎 Content validation:", {
+          hasValidContent,
+          contentType: typeof outputs?.content,
+          isContentEmpty: outputs?.content ? 
+            typeof outputs.content === 'object' ? 
+              Object.keys(outputs.content).length === 0 : 
+              outputs.content.length === 0 : 
+            true
+        });
+
+        const isComplete = hasValidContent;
 
         console.log("✅ Stage completion check result:", {
           stageId,
           briefId,
           isComplete,
           hasContent: !!outputs?.content,
-          contentType: outputs?.content ? typeof outputs.content : 'undefined',
           timestamp: new Date().toISOString()
         });
 
