@@ -24,8 +24,11 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       return;
     }
 
-    console.log("Submitting brief with values:", values);
-    console.log("Current user:", user);
+    console.log("📝 Submitting brief with values:", {
+      values,
+      userId: user.id,
+      timestamp: new Date().toISOString()
+    });
 
     try {
       setIsProcessing(true);
@@ -43,7 +46,11 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
 
       // Create/update the brief
       const brief = await createOrUpdateBrief(values, user.id, initialData?.id);
-      console.log("Brief created/updated successfully:", brief);
+      
+      console.log("✅ Brief created/updated successfully:", {
+        briefId: brief.id,
+        timestamp: new Date().toISOString()
+      });
 
       // Get the first stage and its flow
       const stage = await fetchFirstStage(user.id) as Stage;
@@ -55,11 +62,14 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         return;
       }
 
-      console.log("Retrieved first stage:", stage);
+      console.log("📋 Retrieved first stage:", {
+        stageId: stage.id,
+        stageName: stage.name,
+        timestamp: new Date().toISOString()
+      });
 
-      // Process the first stage automatically
       const toastId = toast.loading(
-        "Processing Kick Off stage... Please wait while we analyze your brief.",
+        "Processing initial stage... This may take a few minutes.",
         { duration: 120000 }
       );
 
@@ -69,14 +79,13 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
           throw new Error("No flow steps found for the first stage");
         }
 
-        // Process the first stage
         await processWorkflowStage(brief.id, stage, flowSteps);
         
         toast.dismiss(toastId);
         toast.success(
           initialData 
-            ? "Brief updated and Kick Off stage processed successfully!"
-            : "Brief created and Kick Off stage processed successfully!",
+            ? "Brief updated and initial stage processed successfully!"
+            : "Brief submitted and initial stage completed successfully!",
           { duration: 8000 }
         );
 
@@ -95,37 +104,45 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         // Force a small delay to ensure queries are invalidated
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Navigate to first stage with outputs visible
-        const searchParams = new URLSearchParams();
-        searchParams.set("briefId", brief.id);
-        searchParams.set("stage", stage.id);
-        searchParams.set("showOutputs", "true");
-        
-        navigate(`/?${searchParams.toString()}`, {
+        // Naviga solo al primo stage dopo la creazione del brief
+        console.log("🚀 Navigating to first stage:", {
+          briefId: brief.id,
+          stageId: stage.id,
+          timestamp: new Date().toISOString()
+        });
+
+        // Naviga al primo stage con gli output visibili
+        navigate(`/brief/${brief.id}/stage/${stage.id}`, {
           replace: true,
           state: { 
             briefId: brief.id,
-            stage: stage.id,
+            stageId: stage.id,
             showOutputs: true,
-            forceShowOutputs: true,
             isFirstStage: true
           }
         });
 
-      } catch (error) {
-        console.error("Error processing Kick Off stage:", error);
+      } catch (error: any) {
+        console.error("❌ Error processing first stage:", {
+          error,
+          briefId: brief.id,
+          stageId: stage.id,
+          timestamp: new Date().toISOString()
+        });
         toast.dismiss(toastId);
         toast.error(
-          "Brief saved but Kick Off stage processing failed. Please try again.",
+          "Brief saved but initial stage failed to process. Please try again or contact support.",
           { duration: 8000 }
         );
         setIsProcessing(false);
       }
-
-    } catch (error) {
-      console.error("Error submitting brief:", error);
+    } catch (error: any) {
+      console.error("❌ Error submitting brief:", {
+        error,
+        timestamp: new Date().toISOString()
+      });
       toast.error(
-        "Error submitting brief. Please check your input and try again.",
+        `Error submitting brief: ${error.message}`,
         { duration: 8000 }
       );
       setIsProcessing(false);
