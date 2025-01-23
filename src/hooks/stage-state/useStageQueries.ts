@@ -153,7 +153,7 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
     enabled: !!briefId && !!stageId,
     refetchInterval: 5000, // Check every 5 seconds
     staleTime: 0, // Consider data immediately stale
-    cacheTime: 1000 * 60 * 5, // Keep unused data in cache for 5 minutes
+    gcTime: 1000 * 60 * 5, // Keep unused data in cache for 5 minutes (renamed from cacheTime)
     retry: 3, // Retry failed requests 3 times
     onError: (error) => {
       console.error('❌ Cache: Query error:', {
