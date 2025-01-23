@@ -27,8 +27,7 @@ export const StageValidationStatus = ({
     isLoading,
     isCompleted,
     hasError,
-    hasOutputs: stageData?.outputs?.length > 0,
-    hasConversations: stageData?.conversations?.length > 0,
+    hasOutput: stageData?.outputs?.length > 0,
     timestamp: new Date().toISOString()
   });
 
@@ -59,23 +58,18 @@ export const StageValidationStatus = ({
         <AlertDescription className="text-green-600">
           {isFirstStage 
             ? "Pronto per procedere allo stage successivo" 
-            : "Tutti i requisiti soddisfatti, pronto per procedere"}
+            : "Stage precedente completato, pronto per procedere"}
         </AlertDescription>
       </Alert>
     );
   }
 
-  // Mostra informazioni più dettagliate sullo stato corrente
   return (
     <Alert>
       <AlertDescription>
-        {stageData?.outputs?.length === 0 && stageData?.conversations?.length === 0
-          ? "Stage in attesa di elaborazione..."
-          : stageData?.outputs?.length === 0
-          ? "Elaborazione output in corso..."
-          : stageData?.conversations?.length === 0
-          ? "Elaborazione conversazioni in corso..."
-          : "Completamento stage in corso..."}
+        {isFirstStage 
+          ? "Stage in attesa di elaborazione..." 
+          : "In attesa del completamento dello stage precedente..."}
       </AlertDescription>
     </Alert>
   );
