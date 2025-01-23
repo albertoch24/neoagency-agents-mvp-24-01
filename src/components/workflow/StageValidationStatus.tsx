@@ -13,7 +13,6 @@ export const StageValidationStatus = ({
 }: StageValidationStatusProps) => {
   const {
     isLoading,
-    isProcessing,
     isCompleted,
     hasError
   } = useStageState(briefId, stageId);
@@ -23,7 +22,6 @@ export const StageValidationStatus = ({
     stageId,
     isFirstStage,
     isLoading,
-    isProcessing,
     isCompleted,
     hasError,
     timestamp: new Date().toISOString()
@@ -49,14 +47,6 @@ export const StageValidationStatus = ({
     return (
       <p className="text-green-500">
         {isFirstStage ? "Ready to proceed to next stage" : "All requirements met, ready to proceed"}
-      </p>
-    );
-  }
-
-  if (isProcessing) {
-    return (
-      <p className="text-yellow-500">
-        Stage processing in progress...
       </p>
     );
   }

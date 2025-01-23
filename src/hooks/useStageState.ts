@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 
 interface StageState {
   isLoading: boolean;
-  isProcessing: boolean;
   isCompleted: boolean;
   hasError: boolean;
   error: Error | null;
@@ -14,7 +13,6 @@ interface StageState {
 export const useStageState = (briefId?: string, stageId?: string) => {
   const [state, setState] = useState<StageState>({
     isLoading: true,
-    isProcessing: false,
     isCompleted: false,
     hasError: false,
     error: null
@@ -111,20 +109,15 @@ export const useStageState = (briefId?: string, stageId?: string) => {
         stageData.outputs?.length > 0 && 
         stageData.conversations?.length > 0;
 
-      // A stage is processing if it's not completed
-      const isProcessing = !isCompleted;
-
       console.log('🔄 Updating stage state:', {
         briefId,
         stageId,
         isCompleted,
-        isProcessing,
         timestamp: new Date().toISOString()
       });
 
       setState({
         isLoading: false,
-        isProcessing,
         isCompleted,
         hasError: false,
         error: null
