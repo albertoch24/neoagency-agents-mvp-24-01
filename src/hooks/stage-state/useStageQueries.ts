@@ -164,17 +164,6 @@ export const useStageQueries = (briefId?: string, stageId?: string) => {
           timestamp: new Date().toISOString()
         });
       }
-    },
-    onSettled: (data) => {
-      if (data) {
-        console.log('✅ Cache: Query success:', {
-          briefId,
-          stageId,
-          hasOutputs: data.outputs?.length > 0,
-          hasConversations: data.conversations?.length > 0,
-          timestamp: new Date().toISOString()
-        });
-      }
     }
   });
 };
