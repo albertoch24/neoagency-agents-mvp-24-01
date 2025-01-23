@@ -40,9 +40,28 @@ export const ProjectList = ({ briefs, onSelect, onEdit, onNew }: ProjectListProp
     }
   };
 
-  const handleView = (briefId: string) => {
-    navigate(`/brief/${briefId}`);
-    onSelect(briefId);
+  const handleView = async (briefId: string) => {
+    try {
+      // Get the first stage for this user
+      const { data: stages, error } = await supabase
+        .from("stages")
+        .select("id")
+        .order("order_index", { ascending: true })
+        .limit(1)
+        .single();
+
+      if (error) throw error;
+
+      if (stages) {
+        navigate(`/brief/${briefId}/stage/${stages.id}`);
+        onSelect(briefId);
+      } else {
+        toast.error("No stages found for this project");
+      }
+    } catch (error) {
+      console.error("Error fetching first stage:", error);
+      toast.error("Failed to open project");
+    }
   };
 
   const handleEdit = (briefId: string) => {

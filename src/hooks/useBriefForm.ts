@@ -11,7 +11,6 @@ import {
   fetchFirstStage
 } from "@/services/briefService";
 import { processWorkflowStage } from "@/services/workflowService";
-import { validateBrief } from "@/utils/briefValidation";
 
 export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) => {
   const { user } = useAuth();
@@ -48,12 +47,6 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       // Create/update the brief
       const brief = await createOrUpdateBrief(values, user.id, initialData?.id);
       
-      // Validate the created/updated brief
-      const briefValidation = await validateBrief(brief.id);
-      if (!briefValidation.isValid) {
-        throw new Error(`Brief validation failed: ${briefValidation.error}`);
-      }
-
       console.log("✅ Brief created/updated successfully:", {
         briefId: brief.id,
         timestamp: new Date().toISOString()
@@ -111,13 +104,8 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         // Force a small delay to ensure queries are invalidated
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Always navigate to the first stage with the correct parameters
-        const searchParams = new URLSearchParams();
-        searchParams.set("briefId", brief.id);
-        searchParams.set("stage", stage.id);
-        searchParams.set("showOutputs", "true");
-        
-        navigate(`/?${searchParams.toString()}`, {
+        // Always navigate to first stage
+        navigate(`/brief/${brief.id}/stage/${stage.id}`, {
           replace: true,
           state: { 
             briefId: brief.id,
