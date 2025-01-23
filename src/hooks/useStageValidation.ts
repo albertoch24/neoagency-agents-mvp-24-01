@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Stage } from "@/types/workflow";
-import { toast } from "sonner";
 
 export const useStageValidation = (
   currentStage: string,
@@ -24,19 +23,18 @@ export const useStageValidation = (
         return false;
       }
 
-      const { count, error } = await supabase
+      const { data, error } = await supabase
         .from('brief_outputs')
-        .select('*', { count: 'exact', head: true })
+        .select('*')
         .eq('stage_id', stageId)
-        .eq('brief_id', briefId)
-        .single();
+        .eq('brief_id', briefId);
 
       if (error) {
         console.error("❌ Error checking outputs:", error);
         return false;
       }
 
-      const hasOutput = count ? count > 0 : false;
+      const hasOutput = data && data.length > 0;
 
       console.log("✅ Stage validation complete:", {
         stageId,
