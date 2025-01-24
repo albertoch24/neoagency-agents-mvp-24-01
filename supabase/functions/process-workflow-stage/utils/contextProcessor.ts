@@ -10,9 +10,26 @@ interface AgentContext {
 
 interface PreviousOutput {
   agent: string;
-  content: string;
+  content: string | { response?: string; outputs?: Array<{ content: string }>};
   stepId: string;
   orderIndex?: number;
+}
+
+function extractContent(content: string | { response?: string; outputs?: Array<{ content: string }> }): string {
+  if (typeof content === 'string') {
+    return content;
+  }
+
+  if (content.response) {
+    return content.response;
+  }
+
+  if (content.outputs && Array.isArray(content.outputs)) {
+    return content.outputs.map(output => output.content).join('\n');
+  }
+
+  console.warn("⚠️ Could not extract content from output:", content);
+  return '';
 }
 
 export function processRelevantContext(
@@ -38,14 +55,15 @@ export function processRelevantContext(
 
   const relevantOutputs = previousOutputs
     .map(output => {
-      const content = output.content.toLowerCase();
+      const extractedContent = extractContent(output.content).toLowerCase();
       const relevanceScore = [...requirementKeywords, ...skillKeywords]
-        .filter(keyword => content.includes(keyword))
+        .filter(keyword => extractedContent.includes(keyword))
         .length;
 
       return {
         ...output,
-        relevanceScore
+        relevanceScore,
+        extractedContent
       };
     })
     .filter(output => output.relevanceScore > 0)
@@ -53,14 +71,14 @@ export function processRelevantContext(
 
   const summary = relevantOutputs
     .map(output => {
-      const sentences = output.content
+      const sentences = output.extractedContent
         .split(/[.!?]+/)
         .filter(sentence => 
           requirementKeywords.some(keyword => 
-            sentence.toLowerCase().includes(keyword)
+            sentence.includes(keyword)
           ) ||
           skillKeywords.some(keyword => 
-            sentence.toLowerCase().includes(keyword)
+            sentence.includes(keyword)
           )
         )
         .slice(0, 3);
