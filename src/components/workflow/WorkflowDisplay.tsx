@@ -42,8 +42,33 @@ export const WorkflowDisplay = ({
 
     if (briefId && (targetStageId || currentStage)) {
       try {
+        const currentStageName = stages.find(s => s.id === currentStage)?.name || 'Current stage';
+        const targetStageName = stages.find(s => s.id === targetStageId)?.name;
+        
+        // Show initial processing message
+        toast.info(
+          targetStageId 
+            ? `Moving from "${currentStageName}" to "${targetStageName}"...`
+            : `Processing "${currentStageName}"...`, 
+          {
+            duration: 3000
+          }
+        );
+
         await processStage(feedbackId, targetStageId);
-        toast.success('Processing started');
+        
+        // Show success message with more context
+        toast.success(
+          targetStageId
+            ? `Successfully moved to "${targetStageName}"`
+            : `"${currentStageName}" processed successfully`,
+          {
+            description: feedbackId 
+              ? "Changes based on your feedback have been applied"
+              : "The stage has been processed with the latest updates",
+            duration: 5000
+          }
+        );
       } catch (error) {
         console.error('❌ Error processing stage:', {
           error,
@@ -52,7 +77,14 @@ export const WorkflowDisplay = ({
           targetStageId,
           timestamp: new Date().toISOString()
         });
-        toast.error('Failed to process stage');
+        
+        // Show detailed error message
+        toast.error('Stage processing failed', {
+          description: error instanceof Error 
+            ? error.message 
+            : 'An unexpected error occurred while processing the stage',
+          duration: 5000
+        });
       }
     } else {
       console.error('❌ Missing required parameters:', { 
@@ -61,7 +93,12 @@ export const WorkflowDisplay = ({
         targetStageId,
         timestamp: new Date().toISOString()
       });
-      toast.error('Missing required information');
+      
+      // Show missing parameters error
+      toast.error('Missing required information', {
+        description: 'Could not process the stage due to missing brief or stage information',
+        duration: 5000
+      });
     }
   };
 
