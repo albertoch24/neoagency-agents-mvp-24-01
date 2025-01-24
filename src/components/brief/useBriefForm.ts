@@ -104,14 +104,14 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         // Force a small delay to ensure queries are invalidated
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Naviga solo al primo stage dopo la creazione del brief
+        // Navigate to the first stage with the new URL structure
         console.log("🚀 Navigating to first stage:", {
           briefId: brief.id,
           stageId: stage.id,
           timestamp: new Date().toISOString()
         });
 
-        // Naviga al primo stage con gli output visibili
+        // Use the new URL structure for navigation
         navigate(`/brief/${brief.id}/stage/${stage.id}`, {
           replace: true,
           state: { 
