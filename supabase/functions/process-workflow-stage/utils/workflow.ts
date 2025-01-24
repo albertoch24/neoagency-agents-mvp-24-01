@@ -1,4 +1,4 @@
-import { processRelevantContext, filterRelevantBriefInfo } from './contextProcessor.ts';
+import { validateOutputs } from './outputManager.ts';
 
 export async function processAgent(
   supabase: any,
@@ -6,8 +6,7 @@ export async function processAgent(
   brief: any,
   stageId: string,
   requirements: string,
-  previousOutputs: any[] = [],
-  isFirstStage: boolean = false
+  previousOutputs: any[] = []
 ) {
   if (!agent?.id) {
     console.error("❌ Invalid agent data:", { agent });
@@ -18,14 +17,13 @@ export async function processAgent(
     agentId: agent.id,
     briefId: brief.id,
     stageId,
-    isFirstStage,
     hasRequirements: !!requirements,
     previousOutputsCount: previousOutputs.length,
     timestamp: new Date().toISOString()
   });
 
   try {
-    // Get agent data with maybeSingle() instead of single()
+    // Get agent data
     const { data: agentData, error } = await supabase
       .from('agents')
       .select(`
@@ -37,58 +35,16 @@ export async function processAgent(
           id,
           name,
           type,
-          content,
-          description
+          content
         )
       `)
       .eq('id', agent.id)
-      .maybeSingle();
+      .single();
 
-    if (error) {
-      console.error("❌ Error fetching agent:", {
-        error,
-        agentId: agent.id,
-        timestamp: new Date().toISOString()
-      });
-      throw error;
-    }
-    
-    if (!agentData) {
-      console.error("❌ Agent not found:", {
-        agentId: agent.id,
-        timestamp: new Date().toISOString()
-      });
-      throw new Error(`Agent not found with ID: ${agent.id}`);
-    }
+    if (error) throw error;
+    if (!agentData) throw new Error('Agent not found');
 
-    console.log("✅ Agent data retrieved:", {
-      agentId: agentData.id,
-      agentName: agentData.name,
-      skillsCount: agentData.skills?.length || 0,
-      timestamp: new Date().toISOString()
-    });
-
-    const agentContext = {
-      role: agentData.name,
-      skills: agentData.skills || [],
-      requirements: requirements || ''
-    };
-
-    // Process context based on whether it's the first stage or not
-    const relevantContext = processRelevantContext(
-      agentContext, 
-      previousOutputs, 
-      requirements,
-      isFirstStage
-    );
-    
-    const relevantBriefInfo = filterRelevantBriefInfo(
-      brief, 
-      agentContext,
-      isFirstStage
-    );
-
-    // Generate response using OpenAI with appropriate prompt structure
+    // Generate response using OpenAI
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -100,35 +56,11 @@ export async function processAgent(
         messages: [
           {
             role: 'system',
-            content: `You are ${agentData.name}, a specialized creative agency professional.
-Your role and expertise:
-${agentData.skills?.map(skill => `
-- ${skill.name}: ${skill.description || ''}
-  ${skill.content || ''}
-`).join('\n')}
-
-${isFirstStage ? 'This is the first stage of the project. Focus on initial analysis and project setup.' : 'Important: Build upon previous work and integrate with team insights.'}
-Do not repeat the project overview information in your response. Focus on your specific contribution and insights.`
+            content: `You are ${agentData.name}, analyzing and responding to this brief based on your expertise.`
           },
           {
             role: 'user',
-            content: `Project Context:
-${relevantBriefInfo}
-
-Stage Requirements:
-${requirements || 'No specific requirements provided'}
-
-${!isFirstStage ? `Previous Context:
-${relevantContext}` : ''}
-
-Focus your response on:
-1. Your specific expertise and unique contribution
-2. New insights and recommendations not already covered
-3. Concrete action items and next steps
-4. ${isFirstStage ? 'Initial project setup and direction' : 'Integration with previous team members\' contributions'}
-5. Specific metrics and success criteria
-
-Do not repeat the project overview - focus on your analysis and recommendations.`
+            content: `Analyze this brief and provide your professional recommendations:\n\nTitle: ${brief.title}\nDescription: ${brief.description}\nObjectives: ${brief.objectives}`
           }
         ],
         temperature: agentData.temperature || 0.7,
@@ -142,15 +74,7 @@ Do not repeat the project overview - focus on your analysis and recommendations.
     const aiData = await response.json();
     const generatedContent = aiData.choices[0].message.content;
 
-    console.log("✅ Agent processing completed:", {
-      agentId: agentData.id,
-      agentName: agentData.name,
-      isFirstStage,
-      outputLength: generatedContent.length,
-      timestamp: new Date().toISOString()
-    });
-
-    return {
+    const output = {
       agent: agentData.name,
       requirements,
       outputs: [
@@ -161,11 +85,24 @@ Do not repeat the project overview - focus on your analysis and recommendations.
       ],
       stepId: agentData.id
     };
+
+    // Validate output before returning
+    if (!validateOutputs([output])) {
+      throw new Error('Generated output failed validation');
+    }
+
+    console.log("✅ Agent processing completed:", {
+      agentId: agentData.id,
+      agentName: agentData.name,
+      outputLength: generatedContent.length,
+      timestamp: new Date().toISOString()
+    });
+
+    return output;
   } catch (error) {
     console.error("❌ Error in processAgent:", {
       error,
       agentId: agent.id,
-      isFirstStage,
       timestamp: new Date().toISOString()
     });
     throw error;

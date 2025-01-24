@@ -19,52 +19,24 @@ export const buildPrompt = async (
     feedbackPreview: feedback ? `${feedback.substring(0, 100)}...` : 'none'
   });
 
-  // System prompt - focus on agent role and capabilities
-  const systemPrompt = `You are ${agent.name}, a specialized creative agency professional.
-Your role and expertise:
-${agent.skills?.map(skill => `
-- ${skill.name}: ${skill.description || ''}
-  ${skill.content || ''}
-`).join('\n')}
-
-Important: Do not repeat the project overview information in your response. Focus on your specific contribution and insights.
-Base your analysis on the project context provided in the user message.`;
-
-  // User prompt - contains project context and specific instructions
-  const userPrompt = `Project Context:
-- Title: ${brief.title || ''}
-- Brand: ${brief.brand || 'Not specified'}
-- Description: ${brief.description || ''}
-- Objectives: ${brief.objectives || ''}
-- Target Audience: ${brief.target_audience || ''}
-${brief.budget ? `- Budget: ${brief.budget}` : ''}
-${brief.timeline ? `- Timeline: ${brief.timeline}` : ''}
-${brief.website ? `- Website: ${brief.website}` : ''}
-
-Stage Requirements:
-${requirements || 'No specific requirements provided'}
-
-${previousOutputs.length > 0 ? `Team Context:
-${previousOutputs.map(output => `${output.agent}'s key points: ${output.content}`).join('\n')}` : ''}
-
-Focus your response on:
-1. Your specific expertise and unique contribution
-2. New insights and recommendations not already covered
-3. Concrete action items and next steps
-4. Integration with previous team members' contributions
-5. Specific metrics and success criteria
-
-Do not repeat the project overview - focus on your analysis and recommendations.`;
-
-  // Add feedback section if present
+  const basePrompt = buildBasePrompt(agent, brief, isFirstStage);
   const feedbackSection = buildFeedbackSection(feedback, isReprocessing);
+  const instructionsSection = buildInstructionsSection(requirements, previousOutputs);
 
   const finalPrompt = `
-${systemPrompt}
+${basePrompt}
 
 ${feedbackSection}
 
-${userPrompt}
+${instructionsSection}
+
+Your response MUST:
+${isReprocessing ? `
+1. Explicitly address each point from the feedback
+2. Explain how your new response incorporates the feedback
+3. Highlight what specific changes you made based on the feedback
+4. Be substantially different from the original response
+` : '1. Follow all instructions carefully'}
 
 Respond in a clear, structured format.
 `;

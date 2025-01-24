@@ -1,7 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { processAgent } from "./utils/workflow.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -48,10 +47,9 @@ serve(async (req) => {
       .from('briefs')
       .select('*')
       .eq('id', briefId)
-      .maybeSingle();
+      .single();
 
     if (briefError) throw briefError;
-    if (!brief) throw new Error('Brief not found');
 
     // Fetch previous stage outputs
     const { data: previousOutputs, error: outputsError } = await supabase
@@ -62,19 +60,36 @@ serve(async (req) => {
 
     if (outputsError) throw outputsError;
 
-    // Determine if this is the first stage
-    const isFirstStage = !previousOutputs || previousOutputs.length === 0;
-
-    console.log('📊 Stage processing context:', {
+    console.log('📊 Previous outputs retrieved:', {
       operationId,
-      isFirstStage,
-      previousOutputsCount: previousOutputs?.length || 0,
+      outputCount: previousOutputs?.length,
       timestamp: new Date().toISOString()
     });
 
-    const outputs = [];
+    // Fetch current stage details
+    const { data: currentStage, error: stageError } = await supabase
+      .from('stages')
+      .select(`
+        *,
+        flows (
+          id,
+          name,
+          description
+        )
+      `)
+      .eq('id', stageId)
+      .single();
 
-    // Process each agent step
+    if (stageError) throw stageError;
+
+    const outputs = [];
+    console.log('👥 Processing agents:', {
+      operationId,
+      agentCount: flowSteps.length,
+      timestamp: new Date().toISOString()
+    });
+
+    // Process each agent with context
     for (const step of flowSteps) {
       try {
         console.log('🤖 Processing agent step:', {
@@ -82,31 +97,100 @@ serve(async (req) => {
           stepId: step.id,
           agentId: step.agent_id,
           orderIndex: step.order_index,
-          isFirstStage,
           timestamp: new Date().toISOString()
         });
 
-        // Get agent data
+        // Build context from previous outputs
+        const previousContext = previousOutputs
+          ?.map(output => {
+            const content = typeof output.content === 'string' 
+              ? output.content 
+              : JSON.stringify(output.content);
+            return `Previous stage output: ${content}`;
+          })
+          .join('\n\n');
+
+        // Get agent details
         const { data: agent, error: agentError } = await supabase
           .from('agents')
-          .select('*')
+          .select(`
+            *,
+            skills (
+              name,
+              description,
+              content
+            )
+          `)
           .eq('id', step.agent_id)
-          .maybeSingle();
+          .single();
 
         if (agentError) throw agentError;
-        if (!agent) throw new Error(`Agent not found with ID: ${step.agent_id}`);
 
-        const output = await processAgent(
-          supabase,
-          agent,
-          brief,
-          stageId,
-          step.requirements,
-          previousOutputs,
-          isFirstStage
-        );
-        
-        outputs.push(output);
+        // Build the complete prompt
+        const systemPrompt = `You are ${agent.name}, a specialized agent in the workflow.
+Current stage: ${currentStage.name}
+Stage description: ${currentStage.description || 'No description provided'}
+Workflow: ${currentStage.flows?.name || 'No workflow name'}
+Workflow description: ${currentStage.flows?.description || 'No description provided'}
+
+Previous context:
+${previousContext}
+
+Requirements for this step:
+${step.requirements || 'No specific requirements provided'}
+
+Your skills:
+${agent.skills?.map(skill => `
+- ${skill.name}: ${skill.description}
+  How to apply: ${skill.content}
+`).join('\n') || 'No specific skills defined'}
+
+Please provide a detailed response that:
+1. Incorporates the context from previous stages
+2. Addresses the specific requirements of this step
+3. Utilizes your specialized skills
+4. Maintains consistency with the workflow objectives`;
+
+        // Call OpenAI
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: `Process this brief:\n${JSON.stringify(brief, null, 2)}` }
+            ],
+            temperature: agent.temperature || 0.7,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`OpenAI API error: ${response.statusText}`);
+        }
+
+        const aiData = await response.json();
+        const generatedContent = aiData.choices[0].message.content;
+
+        outputs.push({
+          agent: agent.name,
+          stepId: agent.id,
+          outputs: [{
+            content: generatedContent,
+            type: 'conversational'
+          }],
+          orderIndex: step.order_index
+        });
+
+        console.log('✅ Agent processing completed:', {
+          operationId,
+          stepId: step.id,
+          agentId: step.agent_id,
+          timestamp: new Date().toISOString()
+        });
 
       } catch (stepError) {
         console.error('❌ Error processing agent step:', {
@@ -114,16 +198,62 @@ serve(async (req) => {
           error: stepError,
           stepId: step.id,
           agentId: step.agent_id,
-          isFirstStage,
           timestamp: new Date().toISOString()
         });
-        throw stepError;
+        continue;
       }
     }
 
-    // Handle response
+    if (outputs.length === 0) {
+      throw new Error('No outputs were generated from any agent');
+    }
+
+    // Save the combined output
+    const { error: saveError } = await supabase
+      .from('brief_outputs')
+      .insert({
+        brief_id: briefId,
+        stage_id: stageId,
+        stage: currentStage.name,
+        content: {
+          stage_name: currentStage.name,
+          flow_name: currentStage.flows?.name,
+          outputs: outputs
+        },
+        feedback_id: feedbackId || null,
+        content_format: 'structured'
+      });
+
+    if (saveError) throw saveError;
+
+    // Update brief status
+    const { error: briefUpdateError } = await supabase
+      .from('briefs')
+      .update({ 
+        current_stage: stageId,
+        status: 'in_progress'
+      })
+      .eq('id', briefId);
+
+    if (briefUpdateError) throw briefUpdateError;
+
+    console.log('✅ Workflow stage processing completed:', {
+      operationId,
+      outputsCount: outputs.length,
+      timestamp: new Date().toISOString()
+    });
+
     return new Response(
-      JSON.stringify({ success: true, outputs }),
+      JSON.stringify({ 
+        success: true, 
+        outputs,
+        metrics: {
+          operationId,
+          processedAt: new Date().toISOString(),
+          agentsProcessed: outputs.length,
+          hasFeedback: !!feedbackId
+        }
+      }),
       { 
         headers: { 
           ...corsHeaders,
@@ -154,7 +284,7 @@ serve(async (req) => {
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json'
-        } 
+        }
       }
     );
   }
