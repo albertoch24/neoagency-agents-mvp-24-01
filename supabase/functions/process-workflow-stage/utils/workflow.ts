@@ -1,4 +1,4 @@
-import { validateOutputs } from './outputManager.ts';
+import { processRelevantContext, filterRelevantBriefInfo } from './contextProcessor';
 
 export async function processAgent(
   supabase: any,
@@ -35,7 +35,8 @@ export async function processAgent(
           id,
           name,
           type,
-          content
+          content,
+          description
         )
       `)
       .eq('id', agent.id)
@@ -43,6 +44,16 @@ export async function processAgent(
 
     if (error) throw error;
     if (!agentData) throw new Error('Agent not found');
+
+    const agentContext = {
+      role: agentData.name,
+      skills: agentData.skills || [],
+      requirements: requirements || ''
+    };
+
+    // Process relevant context and brief information
+    const relevantContext = processRelevantContext(agentContext, previousOutputs, requirements);
+    const relevantBriefInfo = filterRelevantBriefInfo(brief, agentContext);
 
     // Generate response using OpenAI with new prompt structure
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -68,20 +79,13 @@ Important: Do not repeat the project overview information in your response. Focu
           {
             role: 'user',
             content: `Project Context:
-- Title: ${brief.title || ''}
-- Brand: ${brief.brand || 'Not specified'}
-- Description: ${brief.description || ''}
-- Objectives: ${brief.objectives || ''}
-- Target Audience: ${brief.target_audience || ''}
-${brief.budget ? `- Budget: ${brief.budget}` : ''}
-${brief.timeline ? `- Timeline: ${brief.timeline}` : ''}
-${brief.website ? `- Website: ${brief.website}` : ''}
+${relevantBriefInfo}
 
 Stage Requirements:
 ${requirements || 'No specific requirements provided'}
 
-${previousOutputs.length > 0 ? `Team Context:
-${previousOutputs.map(output => `${output.agent}'s key points: ${output.content}`).join('\n')}` : ''}
+Relevant Previous Context:
+${relevantContext}
 
 Focus your response on:
 1. Your specific expertise and unique contribution
@@ -104,7 +108,14 @@ Do not repeat the project overview - focus on your analysis and recommendations.
     const aiData = await response.json();
     const generatedContent = aiData.choices[0].message.content;
 
-    const output = {
+    console.log("✅ Agent processing completed:", {
+      agentId: agentData.id,
+      agentName: agentData.name,
+      outputLength: generatedContent.length,
+      timestamp: new Date().toISOString()
+    });
+
+    return {
       agent: agentData.name,
       requirements,
       outputs: [
@@ -115,20 +126,6 @@ Do not repeat the project overview - focus on your analysis and recommendations.
       ],
       stepId: agentData.id
     };
-
-    // Validate output before returning
-    if (!validateOutputs([output])) {
-      throw new Error('Generated output failed validation');
-    }
-
-    console.log("✅ Agent processing completed:", {
-      agentId: agentData.id,
-      agentName: agentData.name,
-      outputLength: generatedContent.length,
-      timestamp: new Date().toISOString()
-    });
-
-    return output;
   } catch (error) {
     console.error("❌ Error in processAgent:", {
       error,
