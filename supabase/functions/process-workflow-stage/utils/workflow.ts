@@ -6,8 +6,7 @@ export async function processAgent(
   brief: any,
   stageId: string,
   requirements: string,
-  previousOutputs: any[] = [],
-  isFirstStage: boolean = false
+  previousOutputs: any[] = []
 ) {
   if (!agent?.id) {
     console.error("❌ Invalid agent data:", { agent });
@@ -18,7 +17,6 @@ export async function processAgent(
     agentId: agent.id,
     briefId: brief.id,
     stageId,
-    isFirstStage,
     hasRequirements: !!requirements,
     previousOutputsCount: previousOutputs.length,
     timestamp: new Date().toISOString()
@@ -54,13 +52,10 @@ export async function processAgent(
     };
 
     // Process relevant context and brief information
-    const relevantContext = isFirstStage ? 
-      'Initial stage - Focus on analyzing the brief and setting project foundation' :
-      processRelevantContext(agentContext, previousOutputs, requirements);
-    
-    const relevantBriefInfo = filterRelevantBriefInfo(brief, agentContext, isFirstStage);
+    const relevantContext = processRelevantContext(agentContext, previousOutputs, requirements);
+    const relevantBriefInfo = filterRelevantBriefInfo(brief, agentContext);
 
-    // Generate response using OpenAI with enhanced prompt structure
+    // Generate response using OpenAI with new prompt structure
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -72,30 +67,14 @@ export async function processAgent(
         messages: [
           {
             role: 'system',
-            content: `You are ${agentData.name}, a specialized creative agency professional with deep expertise in your field.
+            content: `You are ${agentData.name}, a specialized creative agency professional.
 Your role and expertise:
 ${agentData.skills?.map(skill => `
 - ${skill.name}: ${skill.description || ''}
   ${skill.content || ''}
 `).join('\n')}
 
-${isFirstStage ? `
-As this is the first stage of the project:
-1. Focus on thorough analysis of the brief
-2. Set clear project foundations and objectives
-3. Identify key challenges and opportunities
-4. Establish success metrics and KPIs
-5. Outline initial strategic direction
-` : `
-Important guidelines:
-1. Build upon previous work while adding your unique expertise
-2. Ensure alignment with project objectives
-3. Provide actionable insights and recommendations
-4. Consider interdependencies with other team members
-5. Maintain consistency with established direction
-`}
-
-Maintain a professional, strategic tone and provide detailed, actionable insights.`
+Important: Do not repeat the project overview information in your response. Focus on your specific contribution and insights.`
           },
           {
             role: 'user',
@@ -105,19 +84,17 @@ ${relevantBriefInfo}
 Stage Requirements:
 ${requirements || 'No specific requirements provided'}
 
-${!isFirstStage ? `Previous Context and Insights:
-${relevantContext}` : ''}
+Relevant Previous Context:
+${relevantContext}
 
-Your task is to:
-1. ${isFirstStage ? 'Conduct initial project analysis and set foundation' : 'Build upon existing work while adding your expertise'}
-2. Address the stage requirements directly
-3. Provide specific, actionable recommendations
-4. ${isFirstStage ? 'Define clear objectives and success metrics' : 'Ensure integration with previous contributions'}
-5. Outline concrete next steps
-6. Consider project constraints (timeline, budget, etc.)
-7. Highlight potential challenges and solutions
+Focus your response on:
+1. Your specific expertise and unique contribution
+2. New insights and recommendations not already covered
+3. Concrete action items and next steps
+4. Integration with previous team members' contributions
+5. Specific metrics and success criteria
 
-Provide a comprehensive, strategic response that demonstrates your expertise and moves the project forward.`
+Do not repeat the project overview - focus on your analysis and recommendations.`
           }
         ],
         temperature: agentData.temperature || 0.7,
@@ -134,7 +111,6 @@ Provide a comprehensive, strategic response that demonstrates your expertise and
     console.log("✅ Agent processing completed:", {
       agentId: agentData.id,
       agentName: agentData.name,
-      isFirstStage,
       outputLength: generatedContent.length,
       timestamp: new Date().toISOString()
     });

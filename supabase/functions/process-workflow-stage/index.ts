@@ -89,38 +89,109 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     });
 
-    // Determine if this is the first stage
-    const { data: stages, error: stagesError } = await supabase
-      .from('stages')
-      .select('id, order_index')
-      .eq('user_id', brief.user_id)
-      .order('order_index', { ascending: true });
-
-    if (stagesError) throw stagesError;
-
-    const isFirstStage = stages[0]?.id === stageId;
-
-    console.log('📊 Stage context:', {
-      operationId,
-      isFirstStage,
-      stageId,
-      totalStages: stages.length,
-      timestamp: new Date().toISOString()
-    });
-
     // Process each agent with context
     for (const step of flowSteps) {
       try {
-        const output = await processAgent(
-          supabase,
-          step,
-          brief,
-          stageId,
-          step.requirements,
-          previousOutputs,
-          isFirstStage
-        );
-        outputs.push(output);
+        console.log('🤖 Processing agent step:', {
+          operationId,
+          stepId: step.id,
+          agentId: step.agent_id,
+          orderIndex: step.order_index,
+          timestamp: new Date().toISOString()
+        });
+
+        // Build context from previous outputs
+        const previousContext = previousOutputs
+          ?.map(output => {
+            const content = typeof output.content === 'string' 
+              ? output.content 
+              : JSON.stringify(output.content);
+            return `Previous stage output: ${content}`;
+          })
+          .join('\n\n');
+
+        // Get agent details
+        const { data: agent, error: agentError } = await supabase
+          .from('agents')
+          .select(`
+            *,
+            skills (
+              name,
+              description,
+              content
+            )
+          `)
+          .eq('id', step.agent_id)
+          .single();
+
+        if (agentError) throw agentError;
+
+        // Build the complete prompt
+        const systemPrompt = `You are ${agent.name}, a specialized agent in the workflow.
+Current stage: ${currentStage.name}
+Stage description: ${currentStage.description || 'No description provided'}
+Workflow: ${currentStage.flows?.name || 'No workflow name'}
+Workflow description: ${currentStage.flows?.description || 'No description provided'}
+
+Previous context:
+${previousContext}
+
+Requirements for this step:
+${step.requirements || 'No specific requirements provided'}
+
+Your skills:
+${agent.skills?.map(skill => `
+- ${skill.name}: ${skill.description}
+  How to apply: ${skill.content}
+`).join('\n') || 'No specific skills defined'}
+
+Please provide a detailed response that:
+1. Incorporates the context from previous stages
+2. Addresses the specific requirements of this step
+3. Utilizes your specialized skills
+4. Maintains consistency with the workflow objectives`;
+
+        // Call OpenAI
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: `Process this brief:\n${JSON.stringify(brief, null, 2)}` }
+            ],
+            temperature: agent.temperature || 0.7,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`OpenAI API error: ${response.statusText}`);
+        }
+
+        const aiData = await response.json();
+        const generatedContent = aiData.choices[0].message.content;
+
+        outputs.push({
+          agent: agent.name,
+          stepId: agent.id,
+          outputs: [{
+            content: generatedContent,
+            type: 'conversational'
+          }],
+          orderIndex: step.order_index
+        });
+
+        console.log('✅ Agent processing completed:', {
+          operationId,
+          stepId: step.id,
+          agentId: step.agent_id,
+          timestamp: new Date().toISOString()
+        });
+
       } catch (stepError) {
         console.error('❌ Error processing agent step:', {
           operationId,
@@ -131,6 +202,10 @@ serve(async (req) => {
         });
         continue;
       }
+    }
+
+    if (outputs.length === 0) {
+      throw new Error('No outputs were generated from any agent');
     }
 
     // Save the combined output

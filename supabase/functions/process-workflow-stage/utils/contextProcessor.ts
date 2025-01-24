@@ -18,14 +18,8 @@ interface PreviousOutput {
 export function processRelevantContext(
   agentContext: AgentContext,
   previousOutputs: PreviousOutput[],
-  requirements: string,
-  isFirstStage: boolean = false
+  requirements: string
 ): string {
-  // Se è il primo stage, non processiamo gli output precedenti
-  if (isFirstStage) {
-    return 'Initial stage - No previous context available';
-  }
-
   // Extract keywords from requirements and agent skills
   const requirementKeywords = requirements.toLowerCase().split(/\W+/);
   const skillKeywords = agentContext.skills
@@ -75,30 +69,8 @@ export function processRelevantContext(
 
 export function filterRelevantBriefInfo(
   brief: any,
-  agentContext: AgentContext,
-  isFirstStage: boolean = false
+  agentContext: AgentContext
 ): string {
-  // Per il primo stage, includiamo tutte le informazioni del brief
-  if (isFirstStage) {
-    const allFields = [
-      'title',
-      'brand',
-      'description',
-      'objectives',
-      'target_audience',
-      'budget',
-      'timeline',
-      'website',
-      'language'
-    ];
-
-    return allFields
-      .filter(field => brief[field])
-      .map(field => `${field}: ${brief[field]}`)
-      .join('\n');
-  }
-
-  // Check other fields for relevance based on agent skills and requirements
   const relevantFields = ['title', 'brand'];
   const conditionalFields = ['budget', 'timeline', 'target_audience', 'objectives', 'description'];
   
