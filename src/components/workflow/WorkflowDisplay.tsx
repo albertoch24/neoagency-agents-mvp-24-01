@@ -45,22 +45,24 @@ export const WorkflowDisplay = ({
         const currentStageName = stages.find(s => s.id === currentStage)?.name || 'Current stage';
         const targetStageName = stages.find(s => s.id === targetStageId)?.name;
         
-        // Show initial processing message
-        toast.info(
+        // Show persistent processing message
+        const toastId = toast.loading(
           targetStageId 
-            ? `Moving from "${currentStageName}" to "${targetStageName}"...`
+            ? `Processing "${targetStageName}"...`
             : `Processing "${currentStageName}"...`, 
           {
-            duration: 3000
+            duration: Infinity, // Keep the toast until we dismiss it
+            description: "This may take a few moments. Please wait while we generate the content."
           }
         );
 
         await processStage(feedbackId, targetStageId);
         
-        // Show success message with more context
+        // Dismiss the loading toast and show success message
+        toast.dismiss(toastId);
         toast.success(
           targetStageId
-            ? `Successfully moved to "${targetStageName}"`
+            ? `Successfully processed "${targetStageName}"`
             : `"${currentStageName}" processed successfully`,
           {
             description: feedbackId 
