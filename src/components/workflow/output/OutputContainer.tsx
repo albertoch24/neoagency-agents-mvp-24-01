@@ -56,11 +56,9 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
         console.log("🔍 Using stage field for query");
       }
 
-      // Get the most recent output
       const { data, error } = await query
         .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error("❌ Error fetching output:", error);
