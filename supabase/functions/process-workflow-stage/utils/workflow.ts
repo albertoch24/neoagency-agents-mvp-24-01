@@ -44,7 +44,7 @@ export async function processAgent(
     if (error) throw error;
     if (!agentData) throw new Error('Agent not found');
 
-    // Generate response using OpenAI
+    // Generate response using OpenAI with new prompt structure
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -52,15 +52,45 @@ export async function processAgent(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: `You are ${agentData.name}, analyzing and responding to this brief based on your expertise.`
+            content: `You are ${agentData.name}, a specialized creative agency professional.
+Your role and expertise:
+${agentData.skills?.map(skill => `
+- ${skill.name}: ${skill.description || ''}
+  ${skill.content || ''}
+`).join('\n')}
+
+Important: Do not repeat the project overview information in your response. Focus on your specific contribution and insights.`
           },
           {
             role: 'user',
-            content: `Analyze this brief and provide your professional recommendations:\n\nTitle: ${brief.title}\nDescription: ${brief.description}\nObjectives: ${brief.objectives}`
+            content: `Project Context:
+- Title: ${brief.title || ''}
+- Brand: ${brief.brand || 'Not specified'}
+- Description: ${brief.description || ''}
+- Objectives: ${brief.objectives || ''}
+- Target Audience: ${brief.target_audience || ''}
+${brief.budget ? `- Budget: ${brief.budget}` : ''}
+${brief.timeline ? `- Timeline: ${brief.timeline}` : ''}
+${brief.website ? `- Website: ${brief.website}` : ''}
+
+Stage Requirements:
+${requirements || 'No specific requirements provided'}
+
+${previousOutputs.length > 0 ? `Team Context:
+${previousOutputs.map(output => `${output.agent}'s key points: ${output.content}`).join('\n')}` : ''}
+
+Focus your response on:
+1. Your specific expertise and unique contribution
+2. New insights and recommendations not already covered
+3. Concrete action items and next steps
+4. Integration with previous team members' contributions
+5. Specific metrics and success criteria
+
+Do not repeat the project overview - focus on your analysis and recommendations.`
           }
         ],
         temperature: agentData.temperature || 0.7,
