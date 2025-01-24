@@ -6,7 +6,8 @@ export async function processAgent(
   brief: any,
   stageId: string,
   requirements: string,
-  previousOutputs: any[] = []
+  previousOutputs: any[] = [],
+  isFirstStage: boolean = false
 ) {
   if (!agent?.id) {
     console.error("❌ Invalid agent data:", { agent });
@@ -17,6 +18,7 @@ export async function processAgent(
     agentId: agent.id,
     briefId: brief.id,
     stageId,
+    isFirstStage,
     hasRequirements: !!requirements,
     previousOutputsCount: previousOutputs.length,
     timestamp: new Date().toISOString()
@@ -52,8 +54,8 @@ export async function processAgent(
     };
 
     // Process relevant context and brief information
-    const relevantContext = processRelevantContext(agentContext, previousOutputs, requirements);
-    const relevantBriefInfo = filterRelevantBriefInfo(brief, agentContext);
+    const relevantContext = processRelevantContext(agentContext, previousOutputs, requirements, isFirstStage);
+    const relevantBriefInfo = filterRelevantBriefInfo(brief, agentContext, isFirstStage);
 
     // Generate response using OpenAI with new prompt structure
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -74,7 +76,7 @@ ${agentData.skills?.map(skill => `
   ${skill.content || ''}
 `).join('\n')}
 
-Important: Do not repeat the project overview information in your response. Focus on your specific contribution and insights.`
+Important: ${isFirstStage ? 'This is the first stage. Focus on initial analysis and setting the foundation.' : 'Build upon previous work and avoid repeating basic project information.'}`
           },
           {
             role: 'user',
@@ -84,17 +86,17 @@ ${relevantBriefInfo}
 Stage Requirements:
 ${requirements || 'No specific requirements provided'}
 
-Relevant Previous Context:
-${relevantContext}
+${!isFirstStage ? `Previous Context:
+${relevantContext}` : ''}
 
 Focus your response on:
-1. Your specific expertise and unique contribution
-2. New insights and recommendations not already covered
+1. ${isFirstStage ? 'Initial project analysis and foundation setting' : 'Building upon previous work'}
+2. Your specific expertise and unique contribution
 3. Concrete action items and next steps
-4. Integration with previous team members' contributions
+4. ${isFirstStage ? 'Setting clear objectives and success metrics' : 'Integration with previous team members\' contributions'}
 5. Specific metrics and success criteria
 
-Do not repeat the project overview - focus on your analysis and recommendations.`
+${isFirstStage ? 'As this is the first stage, provide a comprehensive initial analysis that will guide subsequent stages.' : 'Build upon the existing work while adding your unique expertise.'}`
           }
         ],
         temperature: agentData.temperature || 0.7,
@@ -111,6 +113,7 @@ Do not repeat the project overview - focus on your analysis and recommendations.
     console.log("✅ Agent processing completed:", {
       agentId: agentData.id,
       agentName: agentData.name,
+      isFirstStage,
       outputLength: generatedContent.length,
       timestamp: new Date().toISOString()
     });
