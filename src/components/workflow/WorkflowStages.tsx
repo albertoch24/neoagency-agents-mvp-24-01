@@ -8,6 +8,7 @@ interface WorkflowStagesProps {
   onStageSelect: (stage: Stage) => void;
   briefId?: string;
   stages: Stage[];
+  onNextStage?: (feedbackId: string | null, targetStageId?: string) => Promise<void>;
 }
 
 export function WorkflowStages({
@@ -15,8 +16,9 @@ export function WorkflowStages({
   onStageSelect,
   briefId,
   stages,
+  onNextStage
 }: WorkflowStagesProps) {
-  const handleStageClick = (stage: Stage) => {
+  const handleStageClick = async (stage: Stage) => {
     const currentIndex = stages.findIndex(s => s.id === currentStage);
     const clickedIndex = stages.findIndex(s => s.id === stage.id);
     
@@ -55,14 +57,26 @@ export function WorkflowStages({
       return;
     }
 
-    // Se è lo stage immediatamente successivo, procedi
+    // Se è lo stage immediatamente successivo, procedi con l'elaborazione
     if (clickedIndex === currentIndex + 1) {
       console.log("🚀 Processing next stage:", {
         fromStage: stages[currentIndex].name,
         toStage: stage.name,
         timestamp: new Date().toISOString()
       });
-      onStageSelect(stage);
+
+      try {
+        // Prima elabora lo stage
+        if (onNextStage) {
+          await onNextStage(null, stage.id);
+          toast.success(`Processing stage: ${stage.name}`);
+        }
+        // Poi naviga allo stage
+        onStageSelect(stage);
+      } catch (error) {
+        console.error("❌ Error processing stage:", error);
+        toast.error("Failed to process stage. Please try again.");
+      }
     }
   };
 

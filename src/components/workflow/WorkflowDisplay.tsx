@@ -120,6 +120,7 @@ export const WorkflowDisplay = ({
         currentStage={currentStage || ''}
         onStageSelect={onStageSelect || (() => {})}
         stages={stages}
+        onNextStage={handleReprocess}
       />
       {currentStage && briefId && (
         <StageOutputDisplay
