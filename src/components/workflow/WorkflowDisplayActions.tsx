@@ -33,32 +33,55 @@ export const WorkflowDisplayActions = ({
     stages
   );
 
-  console.log("🔄 WorkflowDisplayActions Render:", {
+  console.log("🔄 WorkflowDisplayActions Stage Transition Check:", {
     currentStage,
+    currentStageName: stages.find(s => s.id === currentStage)?.name,
     nextStageId: nextStage?.id,
+    nextStageName: nextStage?.name,
     briefId,
     isFirstStage,
     currentStageProcessed,
+    currentIndex,
+    totalStages: stages.length,
+    hasNextStage: !!nextStage,
     timestamp: new Date().toISOString()
   });
 
   const handleNextStage = async () => {
     if (!currentStage || !nextStage) {
-      console.error('❌ No current or next stage defined');
+      console.error('❌ Stage Transition Error:', {
+        error: 'No current or next stage defined',
+        currentStage,
+        nextStage,
+        timestamp: new Date().toISOString()
+      });
       return;
     }
 
     if (!currentStageProcessed) {
-      console.warn('⚠️ Current stage not processed');
+      console.warn('⚠️ Stage Transition Blocked:', {
+        reason: 'Current stage not processed',
+        currentStage,
+        currentStageName: stages.find(s => s.id === currentStage)?.name,
+        timestamp: new Date().toISOString()
+      });
       toast.error("Current stage must be completed first");
       return;
     }
 
-    console.log("🚀 Processing next stage:", {
-      currentStage,
-      nextStageId: nextStage.id,
-      nextStageName: nextStage.name,
+    console.log("🚀 Stage Transition Started:", {
+      fromStage: {
+        id: currentStage,
+        name: stages.find(s => s.id === currentStage)?.name,
+        index: currentIndex
+      },
+      toStage: {
+        id: nextStage.id,
+        name: nextStage.name,
+        index: currentIndex + 1
+      },
       flowSteps: nextStage.flows?.flow_steps,
+      briefId,
       timestamp: new Date().toISOString()
     });
     
@@ -67,9 +90,18 @@ export const WorkflowDisplayActions = ({
       if (onStageSelect) {
         onStageSelect(nextStage);
       }
+      console.log("✅ Stage Transition Completed:", {
+        toStage: nextStage.name,
+        timestamp: new Date().toISOString()
+      });
       toast.success(`Processing stage: ${nextStage.name}`);
     } catch (error) {
-      console.error("❌ Error processing next stage:", error);
+      console.error("❌ Stage Transition Failed:", {
+        error,
+        fromStage: stages.find(s => s.id === currentStage)?.name,
+        toStage: nextStage.name,
+        timestamp: new Date().toISOString()
+      });
       toast.error("Failed to process next stage");
     }
   };
