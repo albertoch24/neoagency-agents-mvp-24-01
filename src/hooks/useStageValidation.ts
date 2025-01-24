@@ -67,7 +67,15 @@ export const useStageValidation = (
         return;
       }
 
-      const currentIndex = stages.findIndex(s => s.id === currentStage);
+      // Trova l'indice dello stage corrente con validazione
+      const currentIndex = stages.findIndex(stage => stage?.id === currentStage);
+      
+      // Verifica se l'indice è valido
+      if (currentIndex === -1) {
+        console.error("❌ Current stage not found in stages array:", currentStage);
+        return;
+      }
+
       const isFirstStage = currentIndex === 0;
       
       // Check current stage completion
@@ -83,6 +91,11 @@ export const useStageValidation = (
       // For non-first stages, check if previous stage is completed
       if (!isFirstStage) {
         const previousStage = stages[currentIndex - 1];
+        if (!previousStage?.id) {
+          console.error("❌ Previous stage not found:", { currentIndex });
+          return;
+        }
+        
         const previousResult = await checkStageStatus(previousStage.id, briefId);
         console.log("✅ Previous stage validation result:", {
           stageId: previousStage.id,
