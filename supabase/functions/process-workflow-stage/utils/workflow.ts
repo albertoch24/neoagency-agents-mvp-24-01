@@ -6,7 +6,8 @@ export async function processAgent(
   brief: any,
   stageId: string,
   requirements: string,
-  previousOutputs: any[] = []
+  previousOutputs: any[] = [],
+  isFirstStage: boolean = false
 ) {
   if (!agent?.id) {
     console.error("❌ Invalid agent data:", { agent });
@@ -17,6 +18,7 @@ export async function processAgent(
     agentId: agent.id,
     briefId: brief.id,
     stageId,
+    isFirstStage,
     hasRequirements: !!requirements,
     previousOutputsCount: previousOutputs.length,
     timestamp: new Date().toISOString()
@@ -51,11 +53,21 @@ export async function processAgent(
       requirements: requirements || ''
     };
 
-    // Process relevant context and brief information
-    const relevantContext = processRelevantContext(agentContext, previousOutputs, requirements);
-    const relevantBriefInfo = filterRelevantBriefInfo(brief, agentContext);
+    // Process context based on whether it's the first stage or not
+    const relevantContext = processRelevantContext(
+      agentContext, 
+      previousOutputs, 
+      requirements,
+      isFirstStage
+    );
+    
+    const relevantBriefInfo = filterRelevantBriefInfo(
+      brief, 
+      agentContext,
+      isFirstStage
+    );
 
-    // Generate response using OpenAI with new prompt structure
+    // Generate response using OpenAI with appropriate prompt structure
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -74,7 +86,8 @@ ${agentData.skills?.map(skill => `
   ${skill.content || ''}
 `).join('\n')}
 
-Important: Do not repeat the project overview information in your response. Focus on your specific contribution and insights.`
+${isFirstStage ? 'This is the first stage of the project. Focus on initial analysis and project setup.' : 'Important: Build upon previous work and integrate with team insights.'}
+Do not repeat the project overview information in your response. Focus on your specific contribution and insights.`
           },
           {
             role: 'user',
@@ -84,14 +97,14 @@ ${relevantBriefInfo}
 Stage Requirements:
 ${requirements || 'No specific requirements provided'}
 
-Relevant Previous Context:
-${relevantContext}
+${!isFirstStage ? `Previous Context:
+${relevantContext}` : ''}
 
 Focus your response on:
 1. Your specific expertise and unique contribution
 2. New insights and recommendations not already covered
 3. Concrete action items and next steps
-4. Integration with previous team members' contributions
+4. ${isFirstStage ? 'Initial project setup and direction' : 'Integration with previous team members\' contributions'}
 5. Specific metrics and success criteria
 
 Do not repeat the project overview - focus on your analysis and recommendations.`
@@ -111,6 +124,7 @@ Do not repeat the project overview - focus on your analysis and recommendations.
     console.log("✅ Agent processing completed:", {
       agentId: agentData.id,
       agentName: agentData.name,
+      isFirstStage,
       outputLength: generatedContent.length,
       timestamp: new Date().toISOString()
     });
@@ -130,6 +144,7 @@ Do not repeat the project overview - focus on your analysis and recommendations.
     console.error("❌ Error in processAgent:", {
       error,
       agentId: agent.id,
+      isFirstStage,
       timestamp: new Date().toISOString()
     });
     throw error;

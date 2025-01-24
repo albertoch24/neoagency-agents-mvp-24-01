@@ -18,9 +18,16 @@ interface PreviousOutput {
 export function processRelevantContext(
   agentContext: AgentContext,
   previousOutputs: PreviousOutput[],
-  requirements: string
+  requirements: string,
+  isFirstStage: boolean = false
 ): string {
-  // Extract keywords from requirements and agent skills
+  // Special handling for first stage
+  if (isFirstStage) {
+    console.log("📝 Processing first stage context - using only brief information");
+    return "This is the first stage. Focus on initial analysis and project setup based on the brief information provided.";
+  }
+
+  // For all other stages, keep existing context processing logic
   const requirementKeywords = requirements.toLowerCase().split(/\W+/);
   const skillKeywords = agentContext.skills
     .flatMap(skill => [
@@ -29,7 +36,6 @@ export function processRelevantContext(
     ])
     .filter(Boolean);
 
-  // Filter and process previous outputs
   const relevantOutputs = previousOutputs
     .map(output => {
       const content = output.content.toLowerCase();
@@ -45,7 +51,6 @@ export function processRelevantContext(
     .filter(output => output.relevanceScore > 0)
     .sort((a, b) => b.relevanceScore - a.relevanceScore);
 
-  // Create a condensed summary
   const summary = relevantOutputs
     .map(output => {
       const sentences = output.content
@@ -58,7 +63,7 @@ export function processRelevantContext(
             sentence.toLowerCase().includes(keyword)
           )
         )
-        .slice(0, 3); // Take up to 3 most relevant sentences
+        .slice(0, 3);
 
       return `${output.agent}'s relevant insights:\n${sentences.join('. ')}`;
     })
@@ -69,17 +74,37 @@ export function processRelevantContext(
 
 export function filterRelevantBriefInfo(
   brief: any,
-  agentContext: AgentContext
+  agentContext: AgentContext,
+  isFirstStage: boolean = false
 ): string {
+  // For first stage, include all brief information
+  if (isFirstStage) {
+    console.log("📄 Including complete brief information for first stage");
+    const allFields = [
+      'title',
+      'brand',
+      'description',
+      'objectives',
+      'target_audience',
+      'budget',
+      'timeline',
+      'website'
+    ];
+
+    return allFields
+      .filter(field => brief[field])
+      .map(field => `${field}: ${brief[field]}`)
+      .join('\n');
+  }
+
+  // For other stages, keep existing selective filtering
   const relevantFields = ['title', 'brand'];
   const conditionalFields = ['budget', 'timeline', 'target_audience', 'objectives', 'description'];
   
-  // Always include basic fields
   let relevantInfo = relevantFields
     .map(field => `${field}: ${brief[field] || 'Not specified'}`)
     .join('\n');
 
-  // Check other fields for relevance based on agent skills and requirements
   const keywords = [
     ...agentContext.skills.flatMap(skill => skill.name.toLowerCase().split(/\W+/)),
     ...agentContext.requirements.toLowerCase().split(/\W+/)
