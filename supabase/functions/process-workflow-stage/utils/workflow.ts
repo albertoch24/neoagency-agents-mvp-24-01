@@ -1,4 +1,4 @@
-import { processRelevantContext, filterRelevantBriefInfo } from './contextProcessor';
+import { processRelevantContext, filterRelevantBriefInfo } from './contextProcessor.ts';
 
 export async function processAgent(
   supabase: any,
