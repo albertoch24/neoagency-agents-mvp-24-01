@@ -25,7 +25,7 @@ export async function processAgent(
   });
 
   try {
-    // Get agent data
+    // Get agent data with maybeSingle() instead of single()
     const { data: agentData, error } = await supabase
       .from('agents')
       .select(`
@@ -42,10 +42,31 @@ export async function processAgent(
         )
       `)
       .eq('id', agent.id)
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
-    if (!agentData) throw new Error('Agent not found');
+    if (error) {
+      console.error("❌ Error fetching agent:", {
+        error,
+        agentId: agent.id,
+        timestamp: new Date().toISOString()
+      });
+      throw error;
+    }
+    
+    if (!agentData) {
+      console.error("❌ Agent not found:", {
+        agentId: agent.id,
+        timestamp: new Date().toISOString()
+      });
+      throw new Error(`Agent not found with ID: ${agent.id}`);
+    }
+
+    console.log("✅ Agent data retrieved:", {
+      agentId: agentData.id,
+      agentName: agentData.name,
+      skillsCount: agentData.skills?.length || 0,
+      timestamp: new Date().toISOString()
+    });
 
     const agentContext = {
       role: agentData.name,
@@ -75,7 +96,7 @@ export async function processAgent(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',

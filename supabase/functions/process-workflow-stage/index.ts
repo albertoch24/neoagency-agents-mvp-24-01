@@ -48,9 +48,10 @@ serve(async (req) => {
       .from('briefs')
       .select('*')
       .eq('id', briefId)
-      .single();
+      .maybeSingle();
 
     if (briefError) throw briefError;
+    if (!brief) throw new Error('Brief not found');
 
     // Fetch previous stage outputs
     const { data: previousOutputs, error: outputsError } = await supabase
@@ -73,7 +74,7 @@ serve(async (req) => {
 
     const outputs = [];
 
-    // Update the processAgent call to include isFirstStage
+    // Process each agent step
     for (const step of flowSteps) {
       try {
         console.log('🤖 Processing agent step:', {
@@ -85,9 +86,19 @@ serve(async (req) => {
           timestamp: new Date().toISOString()
         });
 
+        // Get agent data
+        const { data: agent, error: agentError } = await supabase
+          .from('agents')
+          .select('*')
+          .eq('id', step.agent_id)
+          .maybeSingle();
+
+        if (agentError) throw agentError;
+        if (!agent) throw new Error(`Agent not found with ID: ${step.agent_id}`);
+
         const output = await processAgent(
           supabase,
-          step,
+          agent,
           brief,
           stageId,
           step.requirements,
@@ -106,7 +117,7 @@ serve(async (req) => {
           isFirstStage,
           timestamp: new Date().toISOString()
         });
-        continue;
+        throw stepError;
       }
     }
 
