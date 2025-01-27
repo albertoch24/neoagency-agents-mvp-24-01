@@ -1,6 +1,5 @@
 import type { Database } from '../database.types';
 
-export type Tables = Database['public']['Tables'];
 export type Json =
   | string
   | number
