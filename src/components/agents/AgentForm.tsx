@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { VoiceSelector } from "./VoiceSelector";
 import { Card } from "@/components/ui/card";
 import { InfoIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -75,14 +74,6 @@ export const AgentForm = ({ onSubmit, initialData }: AgentFormProps) => {
             placeholder="Enter a custom prompt template for this agent..."
           />
         </Card>
-
-        <div className="space-y-2">
-          <Label htmlFor="voice">Voice</Label>
-          <VoiceSelector
-            value={initialData?.voice_id || ""}
-            onValueChange={(voiceId) => register("voice_id").onChange({ target: { value: voiceId } })}
-          />
-        </div>
 
         <Button type="submit" disabled={isSubmitting} className="w-full">
           {isSubmitting ? "Saving..." : initialData ? "Update Agent" : "Create Agent"}

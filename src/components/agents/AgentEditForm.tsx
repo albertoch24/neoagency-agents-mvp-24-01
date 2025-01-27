@@ -1,7 +1,6 @@
 import React from 'react';
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { VoiceSelector } from './VoiceSelector';
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { InfoIcon } from "lucide-react";
@@ -10,22 +9,18 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface AgentEditFormProps {
   name: string;
   description: string;
-  selectedVoice: string;
   promptTemplate: string;
   onNameChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
-  onVoiceChange: (value: string) => void;
   onPromptTemplateChange: (value: string) => void;
 }
 
 export const AgentEditForm = ({
   name,
   description,
-  selectedVoice,
   promptTemplate,
   onNameChange,
   onDescriptionChange,
-  onVoiceChange,
   onPromptTemplateChange
 }: AgentEditFormProps) => {
   return (
@@ -66,11 +61,6 @@ export const AgentEditForm = ({
             placeholder="Enter a custom prompt template for this agent..."
           />
         </Card>
-
-        <div className="mt-4">
-          <Label className="text-sm font-medium mb-2 block">Voice</Label>
-          <VoiceSelector value={selectedVoice} onValueChange={onVoiceChange} />
-        </div>
       </div>
     </ScrollArea>
   );

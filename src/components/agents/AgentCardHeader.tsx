@@ -25,8 +25,8 @@ export const AgentCardHeader = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(agent.name);
   const [editedDescription, setEditedDescription] = useState(agent.description || '');
+  const [editedPromptTemplate, setEditedPromptTemplate] = useState(agent.prompt_template || '');
   const [isPausing, setIsPausing] = useState(false);
-  const [selectedVoice, setSelectedVoice] = useState(agent.voice_id || '21m00Tcm4TlvDq8ikWAM');
   const queryClient = useQueryClient();
 
   const handleSave = async () => {
@@ -36,7 +36,7 @@ export const AgentCardHeader = ({
         .update({
           name: editedName,
           description: editedDescription,
-          voice_id: selectedVoice,
+          prompt_template: editedPromptTemplate,
           updated_at: new Date().toISOString()
         })
         .eq('id', agent.id);
@@ -46,7 +46,7 @@ export const AgentCardHeader = ({
       onSave({
         name: editedName,
         description: editedDescription,
-        voice_id: selectedVoice,
+        prompt_template: editedPromptTemplate,
       });
       setIsEditing(false);
       toast.success('Agent updated successfully');
@@ -60,7 +60,7 @@ export const AgentCardHeader = ({
   const handleEdit = () => {
     setEditedName(agent.name);
     setEditedDescription(agent.description || '');
-    setSelectedVoice(agent.voice_id || '21m00Tcm4TlvDq8ikWAM');
+    setEditedPromptTemplate(agent.prompt_template || '');
     setIsEditing(true);
   };
 
@@ -94,10 +94,10 @@ export const AgentCardHeader = ({
           <AgentEditForm
             name={editedName}
             description={editedDescription}
-            selectedVoice={selectedVoice}
+            promptTemplate={editedPromptTemplate}
             onNameChange={setEditedName}
             onDescriptionChange={setEditedDescription}
-            onVoiceChange={setSelectedVoice}
+            onPromptTemplateChange={setEditedPromptTemplate}
           />
         ) : (
           <CardTitle>{agent.name}</CardTitle>

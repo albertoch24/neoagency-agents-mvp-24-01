@@ -18,6 +18,5 @@ export interface Agent {
   updated_at: string;
   user_id: string;
   is_paused: boolean | null;
-  voice_id: string | null;
-  prompt_template?: string | null; // Aggiungiamo il nuovo campo
+  prompt_template?: string | null;
 }
