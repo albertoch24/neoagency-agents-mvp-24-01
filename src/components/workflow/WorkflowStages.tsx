@@ -19,6 +19,12 @@ export function WorkflowStages({
   onNextStage
 }: WorkflowStagesProps) {
   const handleStageClick = async (stage: Stage) => {
+    if (!stage) {
+      console.error("Invalid stage object:", stage);
+      toast.error("Error: Invalid stage data");
+      return;
+    }
+
     const currentIndex = stages.findIndex(s => s.id === currentStage);
     const clickedIndex = stages.findIndex(s => s.id === stage.id);
     
@@ -27,6 +33,7 @@ export function WorkflowStages({
       clickedStage: stage.id,
       currentIndex,
       clickedIndex,
+      stageName: stage.name,
       timestamp: new Date().toISOString()
     });
 
@@ -49,7 +56,7 @@ export function WorkflowStages({
     // Se si tenta di tornare a uno stage precedente
     if (clickedIndex < currentIndex) {
       console.log("ℹ️ Navigating to previous stage:", {
-        fromStage: stages[currentIndex].name,
+        fromStage: stages[currentIndex]?.name || 'Unknown',
         toStage: stage.name,
         timestamp: new Date().toISOString()
       });
@@ -60,7 +67,7 @@ export function WorkflowStages({
     // Se è lo stage immediatamente successivo, procedi con l'elaborazione
     if (clickedIndex === currentIndex + 1) {
       console.log("🚀 Processing next stage:", {
-        fromStage: stages[currentIndex].name,
+        fromStage: stages[currentIndex]?.name || 'Unknown',
         toStage: stage.name,
         timestamp: new Date().toISOString()
       });
@@ -83,19 +90,26 @@ export function WorkflowStages({
   return (
     <ScrollArea className="w-full">
       <div className="flex space-x-3 pb-4 px-1">
-        {stages.map((stage, index) => (
-          <StageCard
-            key={stage.id}
-            stage={stage}
-            index={index}
-            isActive={currentStage === stage.id}
-            isCompleted={false}
-            canStart={!!briefId}
-            totalStages={stages.length}
-            briefId={briefId || ''}
-            onStageClick={handleStageClick}
-          />
-        ))}
+        {stages.map((stage, index) => {
+          if (!stage) {
+            console.error("Invalid stage in stages array at index:", index);
+            return null;
+          }
+          
+          return (
+            <StageCard
+              key={stage.id}
+              stage={stage}
+              index={index}
+              isActive={currentStage === stage.id}
+              isCompleted={false}
+              canStart={!!briefId}
+              totalStages={stages.length}
+              briefId={briefId || ''}
+              onStageClick={handleStageClick}
+            />
+          );
+        })}
       </div>
     </ScrollArea>
   );
