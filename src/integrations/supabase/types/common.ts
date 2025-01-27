@@ -1,6 +1,6 @@
-import type { Tables } from './tables';
-import type { Functions } from './functions';
+import type { Database } from '../database.types';
 
+export type Tables = Database['public']['Tables'];
 export type Json =
   | string
   | number
@@ -9,18 +9,4 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export type DatabaseSchema = {
-  public: {
-    Tables: Tables;
-    Views: {
-      [_ in never]: never;
-    };
-    Functions: Functions;
-    Enums: {
-      [_ in never]: never;
-    };
-    CompositeTypes: {
-      [_ in never]: never;
-    };
-  };
-};
+export type DatabaseSchema = Database;

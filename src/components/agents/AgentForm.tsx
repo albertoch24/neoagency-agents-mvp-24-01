@@ -58,10 +58,13 @@ export const AgentForm = ({ onSubmit, initialData }: AgentFormProps) => {
         />
       </div>
 
-      <VoiceSelector
-        selectedVoiceId={initialData?.voice_id || null}
-        onVoiceSelect={(voiceId) => register("voice_id").onChange({ target: { value: voiceId } })}
-      />
+      <div className="space-y-2">
+        <Label htmlFor="voice">Voice</Label>
+        <VoiceSelector
+          value={initialData?.voice_id || ""}
+          onValueChange={(voiceId) => register("voice_id").onChange({ target: { value: voiceId } })}
+        />
+      </div>
 
       <Button type="submit" disabled={isSubmitting} className="w-full">
         {isSubmitting ? "Saving..." : initialData ? "Update Agent" : "Create Agent"}

@@ -3,6 +3,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Database } from "@/integrations/supabase/database.types";
+
+type AgentUpdate = Database['public']['Tables']['agents']['Update'];
 
 interface AgentPromptFormProps {
   agentId: string;
@@ -17,9 +20,13 @@ export const AgentPromptForm = ({ agentId, initialPrompt, onUpdate }: AgentPromp
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
+      const updateData: AgentUpdate = {
+        prompt_template: prompt
+      };
+
       const { error } = await supabase
         .from("agents")
-        .update({ prompt_template: prompt })
+        .update(updateData)
         .eq("id", agentId);
 
       if (error) throw error;
