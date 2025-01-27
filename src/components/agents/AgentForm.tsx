@@ -1,59 +1,71 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
+import { Agent } from "@/types/agent";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Agent, Skill } from "@/types/agent";
+import { VoiceSelector } from "./VoiceSelector";
 
 interface AgentFormProps {
-  onSubmit: (agent: Partial<Agent>) => void;
-  initialData?: Partial<Agent>;
+  onSubmit: (data: Partial<Agent>) => Promise<void>;
+  initialData?: Agent;
 }
 
 export const AgentForm = ({ onSubmit, initialData }: AgentFormProps) => {
-  const [formData, setFormData] = useState({
-    name: initialData?.name || "",
-    description: initialData?.description || "",
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { register, handleSubmit, formState: { errors } } = useForm<Partial<Agent>>({
+    defaultValues: initialData || {}
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
+  const onSubmitForm = async (data: Partial<Agent>) => {
+    setIsSubmitting(true);
+    try {
+      await onSubmit(data);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <Card className="w-full max-w-lg">
-      <CardHeader>
-        <CardTitle>{initialData ? "Edit Agent" : "Create New Agent"}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Agent name"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Describe the agent's purpose"
-              required
-            />
-          </div>
-          <Button type="submit" className="w-full">
-            {initialData ? "Update Agent" : "Create Agent"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+    <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="name">Name</Label>
+        <Input
+          id="name"
+          {...register("name", { required: "Name is required" })}
+        />
+        {errors.name && (
+          <p className="text-sm text-red-500">{errors.name.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          {...register("description")}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="prompt_template">Custom Prompt Template</Label>
+        <Textarea
+          id="prompt_template"
+          {...register("prompt_template")}
+          className="min-h-[200px]"
+          placeholder="Enter a custom prompt template for this agent..."
+        />
+      </div>
+
+      <VoiceSelector
+        selectedVoiceId={initialData?.voice_id || null}
+        onVoiceSelect={(voiceId) => register("voice_id").onChange({ target: { value: voiceId } })}
+      />
+
+      <Button type="submit" disabled={isSubmitting} className="w-full">
+        {isSubmitting ? "Saving..." : initialData ? "Update Agent" : "Create Agent"}
+      </Button>
+    </form>
   );
 };

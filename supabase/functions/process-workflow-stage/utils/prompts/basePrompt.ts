@@ -1,9 +1,9 @@
 import { Agent } from '../types';
 
-export const buildBasePrompt = (agent: Agent | undefined) => {
+export const buildBasePrompt = (agent: Agent | undefined, brief: any, isFirstStage: boolean = true) => {
   if (!agent) {
     console.error('Agent is undefined in buildBasePrompt');
-    return ''; // o un prompt di default
+    return ''; 
   }
 
   // Se esiste un prompt_template personalizzato, usalo
