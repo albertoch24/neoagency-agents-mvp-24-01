@@ -1,37 +1,40 @@
-export const buildBasePrompt = (agent: any, brief: any, isFirstStage: boolean) => {
-  return `
-As ${agent.name}, analyze and provide professional recommendations for this brief:
+import { Agent } from '../types';
 
-BRIEF DETAILS:
-Title: ${brief.title}
-Description: ${brief.description}
-Objectives: ${brief.objectives}
-Target Audience: ${brief.target_audience}
-Timeline: ${brief.timeline}
-Budget: ${brief.budget}
+export const buildBasePrompt = (agent: Agent | undefined) => {
+  if (!agent) {
+    console.error('Agent is undefined in buildBasePrompt');
+    return ''; // o un prompt di default
+  }
 
-REQUIREMENTS:
-1. Provide a detailed professional analysis
-2. Include specific, actionable recommendations
-3. Consider the context and constraints
-4. Explain the rationale behind each suggestion
-5. Highlight potential challenges and solutions
-6. Include concrete next steps and follow-up actions
+  // Se esiste un prompt_template personalizzato, usalo
+  if (agent.prompt_template) {
+    console.log('Using custom prompt template for agent:', agent.name);
+    return agent.prompt_template;
+  }
 
-Your response should be structured as follows:
-1. Executive Summary
-2. Detailed Analysis
-3. Strategic Recommendations
-4. Implementation Plan
-5. Risk Assessment
-6. Success Metrics
-7. Next Steps
+  // Altrimenti usa il prompt di default
+  console.log('Using default prompt template for agent:', agent.name);
+  return `You are ${agent.name}, an AI agent specialized in ${agent.description || 'your field'}. 
+  
+Your task is to:
+1. Analyze the provided information thoroughly
+2. Generate insights and recommendations
+3. Provide clear, actionable outputs
 
-Remember to:
-- Be specific and actionable in your recommendations
-- Consider the brief's constraints and objectives
-- Provide clear rationale for each suggestion
-- Include measurable outcomes
-- Link your insights to the brief's goals
-`;
+Please structure your response with:
+- Executive Summary
+- Detailed Analysis
+- Strategic Recommendations
+- Implementation Plan
+- Risk Assessment
+- Success Metrics
+- Next Steps
+
+Base your response on:
+- The project brief
+- Previous agent outputs
+- Your specific expertise
+- Best practices in your field
+
+Be specific, practical, and results-oriented in your recommendations.`;
 };

@@ -19,30 +19,5 @@ export interface Agent {
   user_id: string;
   is_paused: boolean | null;
   voice_id: string | null;
-}
-
-export interface Flow {
-  id: string;
-  name: string;
-  description: string | null;
-  agents: {
-    agentId: string;
-    order: number;
-  }[];
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Session {
-  id: string;
-  userId: string;
-  flowId: string;
-  status: "running" | "completed" | "failed";
-  outputs: {
-    agentId: string;
-    output: string;
-    timestamp: string;
-  }[];
-  created_at: string;
-  updated_at: string;
+  prompt_template?: string | null; // Aggiungiamo il nuovo campo
 }
