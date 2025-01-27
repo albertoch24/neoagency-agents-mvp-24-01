@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { VoiceSelector } from "./VoiceSelector";
 import { Card } from "@/components/ui/card";
 import { InfoIcon } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AgentFormProps {
   onSubmit: (data: Partial<Agent>) => Promise<void>;
@@ -30,61 +31,63 @@ export const AgentForm = ({ onSubmit, initialData }: AgentFormProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="name">Nome dell'Agente</Label>
-        <Input
-          id="name"
-          {...register("name", { required: "Il nome è obbligatorio" })}
-        />
-        {errors.name && (
-          <p className="text-sm text-red-500">{errors.name.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="description">Descrizione</Label>
-        <Textarea
-          id="description"
-          {...register("description")}
-          placeholder="Descrivi in cosa è specializzato questo agente..."
-        />
-      </div>
-
-      <Card className="p-4 space-y-4 bg-agent border-agent-border">
-        <div className="flex items-start space-x-2">
-          <Label htmlFor="prompt_template" className="text-lg font-semibold">Template del Prompt Personalizzato</Label>
-          <InfoIcon className="h-5 w-5 text-muted-foreground" />
-        </div>
-        
-        <div className="text-sm text-muted-foreground">
-          <p>Il template del prompt definisce come questo agente si comporterà e risponderà. Puoi:</p>
-          <ul className="list-disc list-inside mt-2 space-y-1">
-            <li>Lasciarlo vuoto per usare il template predefinito</li>
-            <li>Personalizzarlo per dare istruzioni specifiche all'agente</li>
-            <li>Usare variabili come {`{name}`} e {`{description}`} che verranno sostituite con i dettagli dell'agente</li>
-          </ul>
+    <ScrollArea className="h-[80vh] pr-4">
+      <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            {...register("name", { required: "Name is required" })}
+          />
+          {errors.name && (
+            <p className="text-sm text-red-500">{errors.name.message}</p>
+          )}
         </div>
 
-        <Textarea
-          id="prompt_template"
-          {...register("prompt_template")}
-          className="min-h-[200px] font-mono text-sm"
-          placeholder="Inserisci un template di prompt personalizzato per questo agente..."
-        />
-      </Card>
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            {...register("description")}
+            placeholder="Describe what this agent specializes in..."
+          />
+        </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="voice">Voce</Label>
-        <VoiceSelector
-          value={initialData?.voice_id || ""}
-          onValueChange={(voiceId) => register("voice_id").onChange({ target: { value: voiceId } })}
-        />
-      </div>
+        <Card className="p-4 space-y-4 bg-agent border-agent-border">
+          <div className="flex items-start space-x-2">
+            <Label htmlFor="prompt_template" className="text-lg font-semibold">Custom Prompt Template</Label>
+            <InfoIcon className="h-5 w-5 text-muted-foreground" />
+          </div>
+          
+          <div className="text-sm text-muted-foreground">
+            <p>The prompt template defines how this agent will behave and respond. You can:</p>
+            <ul className="list-disc list-inside mt-2 space-y-1">
+              <li>Leave it empty to use the default template</li>
+              <li>Customize it to give specific instructions to the agent</li>
+              <li>Use variables like {`{name}`} and {`{description}`} that will be replaced with the agent's details</li>
+            </ul>
+          </div>
 
-      <Button type="submit" disabled={isSubmitting} className="w-full">
-        {isSubmitting ? "Salvataggio..." : initialData ? "Aggiorna Agente" : "Crea Agente"}
-      </Button>
-    </form>
+          <Textarea
+            id="prompt_template"
+            {...register("prompt_template")}
+            className="min-h-[200px] font-mono text-sm"
+            placeholder="Enter a custom prompt template for this agent..."
+          />
+        </Card>
+
+        <div className="space-y-2">
+          <Label htmlFor="voice">Voice</Label>
+          <VoiceSelector
+            value={initialData?.voice_id || ""}
+            onValueChange={(voiceId) => register("voice_id").onChange({ target: { value: voiceId } })}
+          />
+        </div>
+
+        <Button type="submit" disabled={isSubmitting} className="w-full">
+          {isSubmitting ? "Saving..." : initialData ? "Update Agent" : "Create Agent"}
+        </Button>
+      </form>
+    </ScrollArea>
   );
 };
