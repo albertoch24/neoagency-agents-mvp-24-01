@@ -1,24 +1,32 @@
 import { Button } from "@/components/ui/button";
-import { EyeIcon } from "lucide-react";
+import { Copy } from "lucide-react";
+import { toast } from "sonner";
 
-export interface ConversationControlsProps {
-  isVisible: boolean;
-  onToggle: () => void;
+interface ConversationControlsProps {
+  content: string;
 }
 
-export const ConversationControls = ({
-  isVisible,
-  onToggle,
-}: ConversationControlsProps) => {
+export const ConversationControls = ({ content }: ConversationControlsProps) => {
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      toast.success("Content copied to clipboard");
+    } catch (error) {
+      console.error("Failed to copy content:", error);
+      toast.error("Failed to copy content");
+    }
+  };
+
   return (
-    <div className="absolute right-2 top-2 z-10">
+    <div className="flex gap-2">
       <Button
-        variant="ghost"
-        size="icon"
-        onClick={onToggle}
-        className={isVisible ? "bg-muted/50" : ""}
+        variant="outline"
+        size="sm"
+        onClick={handleCopy}
+        className="flex items-center gap-2"
       >
-        <EyeIcon className="h-4 w-4" />
+        <Copy className="h-4 w-4" />
+        Copy
       </Button>
     </div>
   );
