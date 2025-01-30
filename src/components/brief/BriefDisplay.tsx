@@ -173,14 +173,6 @@ const BriefDisplay = ({ brief }: BriefDisplayProps) => {
           <AccordionTrigger className="px-6 py-4">
             <div className="flex justify-between items-center w-full">
               <h3 className="text-lg font-semibold">{brief.title}</h3>
-              <BriefActions 
-                currentBrief={brief}
-                showNewBrief={false}
-                isEditing={false}
-                onNewBrief={() => {}}
-                onEdit={() => {}}
-                onDelete={handleDelete}
-              />
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-6 py-4">
