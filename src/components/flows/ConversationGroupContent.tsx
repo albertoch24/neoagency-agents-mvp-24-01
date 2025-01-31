@@ -55,15 +55,15 @@ export const ConversationGroupContent = ({
                   <AgentSkills skills={group.agent?.skills || []} />
                 </div>
 
-                {conversationalOutputs.map((conversation: any) => (
+                {conversationalOutputs.map((conv: any) => (
                   <ConversationContent
-                    key={conversation.id}
-                    conversation={conversation}
-                    isPlaying={isPlaying[conversation.id] || false}
-                    visibleText={visibleTexts[conversation.id] || false}
-                    onPlayStateChange={(playing) => onPlayStateChange(conversation.id, playing)}
-                    onAudioElement={(audio) => onAudioElement(conversation.id, audio)}
-                    onToggleText={() => onToggleText(conversation.id)}
+                    key={conv.id}
+                    content={conv.content}
+                    isPlaying={isPlaying[conv.id] || false}
+                    visibleText={visibleTexts[conv.id] || false}
+                    onPlayStateChange={(playing) => onPlayStateChange(conv.id, playing)}
+                    onAudioElement={(audio) => onAudioElement(conv.id, audio)}
+                    onToggleText={() => onToggleText(conv.id)}
                   />
                 ))}
               </div>

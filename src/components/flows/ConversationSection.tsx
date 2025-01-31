@@ -30,7 +30,7 @@ export const ConversationSection = ({
       {conversationalOutputs.map((conv: any) => (
         <div key={conv.id} className="space-y-4">
           <ConversationContent
-            conversation={conv}
+            content={conv.content}
             isPlaying={isPlaying[conv.id]}
             visibleText={visibleTexts[conv.id]}
             onPlayStateChange={(playing) => onPlayStateChange(conv.id, playing)}
