@@ -4,9 +4,21 @@ import { toast } from "sonner";
 
 interface ConversationControlsProps {
   content: string;
+  isPlaying?: boolean;
+  visibleText?: boolean;
+  onPlayStateChange?: (playing: boolean) => void;
+  onAudioElement?: (audio: HTMLAudioElement | null) => void;
+  onToggleText?: () => void;
 }
 
-export const ConversationControls = ({ content }: ConversationControlsProps) => {
+export const ConversationControls = ({ 
+  content,
+  isPlaying,
+  visibleText,
+  onPlayStateChange,
+  onAudioElement,
+  onToggleText 
+}: ConversationControlsProps) => {
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(content);
