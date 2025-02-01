@@ -24,8 +24,24 @@ export default function Agents() {
       const { data, error } = await supabase
         .from("agents")
         .select(`
-          *,
-          skills (*)
+          id,
+          name,
+          description,
+          created_at,
+          updated_at,
+          user_id,
+          is_paused,
+          prompt_template,
+          skills (
+            id,
+            name,
+            description,
+            type,
+            content,
+            agent_id,
+            created_at,
+            updated_at
+          )
         `)
         .order("created_at", { ascending: false });
 
