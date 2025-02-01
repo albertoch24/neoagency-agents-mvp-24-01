@@ -9,12 +9,14 @@ import { BriefSelector } from "@/components/brief/BriefSelector";
 import { useStageHandling } from "@/hooks/useStageHandling";
 import { ProjectList } from "@/components/brief/ProjectList";
 import { useBriefState } from "@/hooks/useBriefState";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const { user } = useAuth();
   const { briefId } = useParams();
+  const location = useLocation();
+  const { forceShowOutputs } = location.state || {};
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const {
@@ -72,7 +74,6 @@ const Index = () => {
     console.error("Error in briefs query:", briefsError || currentBriefError);
   }
 
-  // Se non c'è un brief selezionato e non stiamo creando un nuovo brief, mostra la lista
   if (!briefId && !selectedBriefId && !showNewBrief) {
     return (
       <ProjectList 
@@ -139,7 +140,7 @@ const Index = () => {
               briefId={currentBrief?.id}
               currentStage={stageHandling.currentStage}
               onStageSelect={stageHandling.handleStageSelect}
-              showOutputs={showOutputs}
+              showOutputs={showOutputs || forceShowOutputs}
             />
           </div>
         </>

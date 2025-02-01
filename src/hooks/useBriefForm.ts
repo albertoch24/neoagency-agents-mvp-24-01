@@ -104,8 +104,8 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         // Force a small delay to ensure queries are invalidated
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Navigate directly to the stage page instead of the generic route
-        console.log("🚀 Navigating to stage:", {
+        // Navigate directly to the stage page with forceShowOutputs
+        console.log("🚀 Navigating to stage with forced outputs:", {
           briefId: brief.id,
           stageId: stage.id,
           timestamp: new Date().toISOString()
