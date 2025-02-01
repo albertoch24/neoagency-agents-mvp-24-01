@@ -18,5 +18,5 @@ export interface Agent {
   updated_at: string;
   user_id: string;
   is_paused: boolean | null;
-  prompt_template?: string | null;
+  prompt_template: string | null;
 }
