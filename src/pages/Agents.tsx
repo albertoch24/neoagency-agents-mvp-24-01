@@ -31,7 +31,6 @@ export default function Agents() {
           updated_at,
           user_id,
           is_paused,
-          prompt_template,
           skills (
             id,
             name,
