@@ -6,6 +6,12 @@ export const buildBasePrompt = (agent: Agent | undefined, brief: any, isFirstSta
     return ''; 
   }
 
+  console.log('Building prompt for agent:', {
+    agentName: agent.name,
+    hasCustomPrompt: !!agent.prompt_template,
+    promptPreview: agent.prompt_template ? agent.prompt_template.substring(0, 100) + '...' : 'No custom prompt'
+  });
+
   // Se esiste un prompt_template personalizzato, usalo
   if (agent.prompt_template) {
     console.log('Using custom prompt template for agent:', agent.name);
