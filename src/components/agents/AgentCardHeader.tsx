@@ -31,12 +31,6 @@ export const AgentCardHeader = ({
 
   const handleSave = async () => {
     try {
-      console.log('Saving agent with data:', {
-        name: editedName,
-        description: editedDescription,
-        prompt_template: editedPromptTemplate
-      });
-
       const { error } = await supabase
         .from('agents')
         .update({
@@ -47,10 +41,7 @@ export const AgentCardHeader = ({
         })
         .eq('id', agent.id);
 
-      if (error) {
-        console.error('Error updating agent:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       onSave({
         name: editedName,
