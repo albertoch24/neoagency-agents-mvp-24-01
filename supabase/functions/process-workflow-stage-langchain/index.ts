@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { ChatOpenAI } from "npm:@langchain/openai@0.0.10"
-import { PromptTemplate } from "npm:@langchain/core@0.1.4/prompts"
-import { StringOutputParser } from "npm:@langchain/core@0.1.4/output_parsers"
-import { RunnableSequence } from "npm:@langchain/core@0.1.4/runnables"
+import { ChatOpenAI } from "@langchain/openai"
+import { PromptTemplate } from "@langchain/core/prompts"
+import { StringOutputParser } from "@langchain/core/output_parsers"
+import { RunnableSequence } from "@langchain/core/runnables"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': 'https://*.lovableproject.com',
@@ -27,11 +27,9 @@ serve(async (req) => {
     console.log("Processing request...");
     
     // Get environment variables
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
     const openAiKey = Deno.env.get('OPENAI_API_KEY')
 
-    if (!supabaseUrl || !supabaseAnonKey || !openAiKey) {
+    if (!openAiKey) {
       console.error("Missing required environment variables");
       throw new Error('Missing required environment variables')
     }
