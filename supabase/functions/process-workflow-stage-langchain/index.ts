@@ -18,7 +18,8 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     console.log("Handling CORS preflight request");
     return new Response(null, { 
-      headers: corsHeaders
+      headers: corsHeaders,
+      status: 204
     });
   }
 
@@ -48,7 +49,7 @@ serve(async (req) => {
 
     if (!briefId || !stageId || !flowSteps) {
       console.error("Missing required parameters");
-      throw new Error('Missing required parameters')
+      throw new Error('Missing required parameters: briefId, stageId, and flowSteps are required')
     }
 
     // LangChain processing logic
@@ -68,11 +69,14 @@ serve(async (req) => {
       new StringOutputParser(),
     ]);
 
+    console.log("Starting LangChain processing...");
     const outputs = await runnable.invoke({
       briefId,
       stageId,
       flowSteps,
     });
+
+    console.log("Processing completed successfully");
 
     return new Response(
       JSON.stringify({
@@ -83,7 +87,8 @@ serve(async (req) => {
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json'
-        } 
+        },
+        status: 200
       }
     )
 
@@ -91,7 +96,8 @@ serve(async (req) => {
     console.error("Error in edge function:", error);
     return new Response(
       JSON.stringify({
-        error: error.message
+        error: error.message || 'An unexpected error occurred',
+        details: error.stack
       }),
       { 
         status: 400,
