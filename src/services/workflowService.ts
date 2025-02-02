@@ -25,7 +25,12 @@ export const processWorkflowStage = async (
     });
 
     if (error) {
-      console.error("Error processing stage with LangChain:", error);
+      console.error("Error processing stage with LangChain:", {
+        error,
+        briefId,
+        stageId: stage.id,
+        timestamp: new Date().toISOString()
+      });
       toast.error("Failed to process stage. Please try again.");
       throw error;
     }
@@ -53,7 +58,12 @@ export const processWorkflowStage = async (
       });
 
     if (outputError) {
-      console.error("Error saving brief output:", outputError);
+      console.error("Error saving brief output:", {
+        error: outputError,
+        briefId,
+        stageId: stage.id,
+        timestamp: new Date().toISOString()
+      });
       toast.error("Failed to save output. Please try again.");
       throw outputError;
     }
@@ -63,7 +73,12 @@ export const processWorkflowStage = async (
       const flowStep = flowSteps.find(step => step.agent_id === output.stepId);
       
       if (!flowStep) {
-        console.error("Could not find matching flow step for agent:", output.stepId);
+        console.error("Could not find matching flow step for agent:", {
+          agentId: output.stepId,
+          briefId,
+          stageId: stage.id,
+          timestamp: new Date().toISOString()
+        });
         continue;
       }
 
@@ -87,14 +102,25 @@ export const processWorkflowStage = async (
         });
 
       if (conversationError) {
-        console.error("Error saving workflow conversation:", conversationError);
+        console.error("Error saving workflow conversation:", {
+          error: conversationError,
+          briefId,
+          stageId: stage.id,
+          agentId: output.stepId,
+          timestamp: new Date().toISOString()
+        });
         // Continue with other conversations even if one fails
       }
     }
 
     return data;
   } catch (error) {
-    console.error("Error in processWorkflowStage:", error);
+    console.error("Error in processWorkflowStage:", {
+      error,
+      briefId,
+      stageId: stage.id,
+      timestamp: new Date().toISOString()
+    });
     throw error;
   }
 };
