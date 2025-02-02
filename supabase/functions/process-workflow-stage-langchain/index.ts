@@ -11,14 +11,21 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Log per debugging
+  console.log("🚀 Edge Function ricevuta una richiesta", new Date().toISOString());
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
     const { briefId, stageId, flowSteps, feedbackId } = await req.json()
+    
+    // Log dei parametri ricevuti
+    console.log("📝 Parametri ricevuti:", { briefId, stageId, flowStepsCount: flowSteps?.length });
 
     if (!briefId || !stageId || !flowSteps) {
+      console.error("❌ Parametri mancanti");
       throw new Error('Missing required parameters')
     }
 
@@ -32,6 +39,9 @@ serve(async (req) => {
         },
       }
     )
+
+    // Log per verificare l'inizializzazione di Supabase
+    console.log("✅ Client Supabase inizializzato");
 
     // Initialize LangChain components
     const model = new ChatOpenAI({
@@ -69,6 +79,9 @@ serve(async (req) => {
       }
     `)
 
+    // Log per verificare l'inizializzazione di LangChain
+    console.log("✅ Componenti LangChain inizializzati");
+
     const chain = RunnableSequence.from([
       promptTemplate,
       model,
@@ -82,7 +95,10 @@ serve(async (req) => {
       .eq('id', briefId)
       .single()
 
-    if (briefError) throw briefError
+    if (briefError) {
+      console.error("❌ Errore nel recupero del brief:", briefError);
+      throw briefError;
+    }
 
     const { data: stage, error: stageError } = await supabaseClient
       .from('stages')
@@ -90,13 +106,25 @@ serve(async (req) => {
       .eq('id', stageId)
       .single()
 
-    if (stageError) throw stageError
+    if (stageError) {
+      console.error("❌ Errore nel recupero dello stage:", stageError);
+      throw stageError;
+    }
+
+    // Log dei dati recuperati
+    console.log("✅ Dati recuperati:", { 
+      briefFound: !!brief, 
+      stageFound: !!stage 
+    });
 
     // Process with LangChain
     const result = await chain.invoke({
       flowSteps: JSON.stringify(flowSteps),
       context: JSON.stringify({ brief, stage, feedbackId })
     })
+
+    // Log del risultato
+    console.log("✅ Elaborazione LangChain completata");
 
     const response = JSON.parse(result)
 
@@ -108,6 +136,9 @@ serve(async (req) => {
       },
     )
   } catch (error) {
+    // Log dettagliato dell'errore
+    console.error("❌ Errore nell'elaborazione:", error);
+    
     return new Response(
       JSON.stringify({ error: error.message }),
       {
