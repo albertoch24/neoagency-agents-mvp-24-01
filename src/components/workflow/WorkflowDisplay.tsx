@@ -6,7 +6,6 @@ import { Stage } from "@/types/workflow";
 import { useStagesData } from "@/hooks/useStagesData";
 import { StageOutputDisplay } from "./StageOutputDisplay";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 interface WorkflowDisplayProps {
   briefId?: string;
