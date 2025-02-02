@@ -1,2 +1,2 @@
 ALTER TABLE briefs
-ADD COLUMN use_langchain BOOLEAN DEFAULT false;
+ADD COLUMN IF NOT EXISTS use_langchain BOOLEAN DEFAULT false;

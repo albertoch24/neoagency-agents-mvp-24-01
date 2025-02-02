@@ -35,35 +35,6 @@ export interface Database {
           updated_at?: string;
         };
       };
-      agent_feedback: {
-        Row: {
-          content: string;
-          conversation_id: string;
-          created_at: string;
-          id: string;
-          rating: number | null;
-          reviewer_agent_id: string;
-          updated_at: string;
-        };
-        Insert: {
-          content: string;
-          conversation_id: string;
-          created_at?: string;
-          id?: string;
-          rating?: number | null;
-          reviewer_agent_id: string;
-          updated_at?: string;
-        };
-        Update: {
-          content?: string;
-          conversation_id?: string;
-          created_at?: string;
-          id?: string;
-          rating?: number | null;
-          reviewer_agent_id?: string;
-          updated_at?: string;
-        };
-      };
       briefs: {
         Row: {
           brand: string | null;
@@ -121,6 +92,35 @@ export interface Database {
           user_id?: string;
           website?: string | null;
           use_langchain?: boolean;
+        };
+      };
+      agent_feedback: {
+        Row: {
+          content: string;
+          conversation_id: string;
+          created_at: string;
+          id: string;
+          rating: number | null;
+          reviewer_agent_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          content: string;
+          conversation_id: string;
+          created_at?: string;
+          id?: string;
+          rating?: number | null;
+          reviewer_agent_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          content?: string;
+          conversation_id?: string;
+          created_at?: string;
+          id?: string;
+          rating?: number | null;
+          reviewer_agent_id?: string;
+          updated_at?: string;
         };
       };
       brief_outputs: {
