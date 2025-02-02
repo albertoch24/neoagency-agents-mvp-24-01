@@ -78,6 +78,8 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
                 description,
                 order_index,
                 agent_id,
+                requirements,
+                outputs,
                 agents (
                   id,
                   name,
@@ -113,7 +115,27 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
           timestamp: new Date().toISOString()
         });
 
-        return stages as Stage;
+        // Transform the data to match the Stage type
+        const transformedStage: Stage = {
+          ...stages,
+          flows: stages.flows ? {
+            ...stages.flows,
+            flow_steps: stages.flows.flow_steps?.map(step => ({
+              id: step.id,
+              agent_id: step.agent_id,
+              requirements: step.requirements || '',
+              order_index: step.order_index,
+              outputs: step.outputs || [],
+              agents: step.agents ? {
+                id: step.agents.id,
+                name: step.agents.name,
+                description: step.agents.description
+              } : undefined
+            })) || []
+          } : null
+        };
+
+        return transformedStage;
       } catch (error: any) {
         console.error('❌ Error fetching stage data:', {
           error,
