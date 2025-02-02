@@ -54,6 +54,7 @@ export type Database = {
           id: string
           is_paused: boolean | null
           name: string
+          prompt_template: string | null
           temperature: number | null
           updated_at: string
           user_id: string
@@ -65,6 +66,7 @@ export type Database = {
           id?: string
           is_paused?: boolean | null
           name: string
+          prompt_template?: string | null
           temperature?: number | null
           updated_at?: string
           user_id: string
@@ -76,6 +78,7 @@ export type Database = {
           id?: string
           is_paused?: boolean | null
           name?: string
+          prompt_template?: string | null
           temperature?: number | null
           updated_at?: string
           user_id?: string

@@ -83,7 +83,7 @@ export const processWorkflowStage = async (
           agent_id: output.stepId,
           content: output.outputs[0]?.content || "",
           output_type: "conversational",
-          flow_step_id: flowStep.id // Using the correct flow step ID
+          flow_step_id: flowStep.id
         });
 
       if (conversationError) {

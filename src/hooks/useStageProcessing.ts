@@ -12,19 +12,29 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
     
     if (!briefId || !stageToProcess) {
       console.error("❌ Missing required parameters:", { briefId, stageToProcess });
-      return;
+      throw new Error("Missing required parameters");
     }
 
     setIsProcessing(true);
-    console.log("🚀 Starting stage processing:", {
-      briefId,
-      stageId: stageToProcess,
-      hasFeedback: !!feedbackId,
-      targetStageId,
-      timestamp: new Date().toISOString()
-    });
+    const toastId = toast.loading(
+      "Processing stage... This may take a few moments.",
+      { duration: 60000 }
+    );
 
     try {
+      // Update brief status
+      const { error: briefError } = await supabase
+        .from("briefs")
+        .update({
+          current_stage: stageId,
+          status: "in_progress"
+        })
+        .eq("id", briefId);
+
+      if (briefError) {
+        throw new Error(`Error updating brief: ${briefError.message}`);
+      }
+
       // Fetch stage data including flow steps
       console.log("📥 Fetching stage data for:", stageToProcess);
       const stage = await fetchStageData(stageToProcess);
@@ -109,6 +119,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         timestamp: new Date().toISOString()
       });
 
+      toast.dismiss(toastId);
       toast.success("Stage processed successfully!");
     } catch (error) {
       console.error("❌ Error in processStage:", {
@@ -117,6 +128,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         stageId: stageToProcess,
         timestamp: new Date().toISOString()
       });
+      toast.dismiss(toastId);
       toast.error("Failed to process stage");
       throw error;
     } finally {
