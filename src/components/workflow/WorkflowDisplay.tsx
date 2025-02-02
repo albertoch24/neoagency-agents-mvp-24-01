@@ -6,6 +6,7 @@ import { Stage } from "@/types/workflow";
 import { useStagesData } from "@/hooks/useStagesData";
 import { StageOutputDisplay } from "./StageOutputDisplay";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WorkflowDisplayProps {
   briefId?: string;
@@ -29,6 +30,53 @@ export const WorkflowDisplay = ({
     stagesCount: stages.length,
     timestamp: new Date().toISOString()
   });
+
+  const testProcessStage = async () => {
+    const testPayload = {
+      briefId: "d3bf7c2f-ad4b-449e-8b32-7898d6b5aea0",
+      stageId: "1e027d16-7589-44ee-8771-e9093dca82f3",
+      flowSteps: [
+        {
+          id: "ec9d746d-d087-4825-9848-625d5614f1c6",
+          agent_id: "2f526b51-a2cc-4f41-ba2a-3a8994ca33fc",
+          requirements: "Refined Creative Brief...",
+          order_index: 0
+        },
+        {
+          id: "8fa4ed05-f5c5-4fcd-a8f1-d3b701baf82a",
+          agent_id: "f7a3d757-173b-4994-9f2a-19462898eb17",
+          requirements: "align with deliverables and audience...",
+          order_index: 1
+        }
+      ]
+    };
+
+    try {
+      console.log('🚀 Testing process-workflow-stage with payload:', testPayload);
+      
+      const toastId = toast.loading('Testing workflow stage processing...', {
+        duration: Infinity
+      });
+
+      const { data, error } = await supabase.functions.invoke('process-workflow-stage', {
+        body: testPayload
+      });
+
+      toast.dismiss(toastId);
+
+      if (error) {
+        console.error('❌ Test failed:', error);
+        toast.error('Test failed: ' + error.message);
+        return;
+      }
+
+      console.log('✅ Test successful:', data);
+      toast.success('Test completed successfully!');
+    } catch (error) {
+      console.error('❌ Error during test:', error);
+      toast.error('Test error: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  };
 
   const handleReprocess = async (feedbackId: string | null, targetStageId?: string) => {
     console.log('🚀 WorkflowDisplay - Starting process:', {
@@ -117,6 +165,14 @@ export const WorkflowDisplay = ({
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={testProcessStage}
+          className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors"
+        >
+          Test Process Stage
+        </button>
+      </div>
       <WorkflowStages
         briefId={briefId}
         currentStage={currentStage || ''}
