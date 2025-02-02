@@ -6,7 +6,7 @@ export const processWorkflowStage = async (
   stage: any,
   flowSteps: any[]
 ) => {
-  console.log("Starting workflow stage processing with LangChain:", {
+  console.log("Starting workflow stage processing:", {
     briefId,
     stageId: stage.id,
     flowStepsCount: flowSteps?.length,
@@ -14,8 +14,8 @@ export const processWorkflowStage = async (
   });
 
   try {
-    // Call the LangChain edge function to process the stage
-    const { data, error } = await supabase.functions.invoke("process-workflow-stage-langchain", {
+    // Call the edge function to process the stage
+    const { data, error } = await supabase.functions.invoke("process-workflow-stage", {
       body: { 
         briefId,
         stageId: stage.id,
@@ -25,12 +25,7 @@ export const processWorkflowStage = async (
     });
 
     if (error) {
-      console.error("Error processing stage with LangChain:", {
-        error,
-        briefId,
-        stageId: stage.id,
-        timestamp: new Date().toISOString()
-      });
+      console.error("Error processing stage:", error);
       toast.error("Failed to process stage. Please try again.");
       throw error;
     }
@@ -58,12 +53,7 @@ export const processWorkflowStage = async (
       });
 
     if (outputError) {
-      console.error("Error saving brief output:", {
-        error: outputError,
-        briefId,
-        stageId: stage.id,
-        timestamp: new Date().toISOString()
-      });
+      console.error("Error saving brief output:", outputError);
       toast.error("Failed to save output. Please try again.");
       throw outputError;
     }
@@ -73,12 +63,7 @@ export const processWorkflowStage = async (
       const flowStep = flowSteps.find(step => step.agent_id === output.stepId);
       
       if (!flowStep) {
-        console.error("Could not find matching flow step for agent:", {
-          agentId: output.stepId,
-          briefId,
-          stageId: stage.id,
-          timestamp: new Date().toISOString()
-        });
+        console.error("Could not find matching flow step for agent:", output.stepId);
         continue;
       }
 
@@ -98,29 +83,18 @@ export const processWorkflowStage = async (
           agent_id: output.stepId,
           content: output.outputs[0]?.content || "",
           output_type: "conversational",
-          flow_step_id: flowStep.id
+          flow_step_id: flowStep.id // Using the correct flow step ID
         });
 
       if (conversationError) {
-        console.error("Error saving workflow conversation:", {
-          error: conversationError,
-          briefId,
-          stageId: stage.id,
-          agentId: output.stepId,
-          timestamp: new Date().toISOString()
-        });
+        console.error("Error saving workflow conversation:", conversationError);
         // Continue with other conversations even if one fails
       }
     }
 
     return data;
   } catch (error) {
-    console.error("Error in processWorkflowStage:", {
-      error,
-      briefId,
-      stageId: stage.id,
-      timestamp: new Date().toISOString()
-    });
+    console.error("Error in processWorkflowStage:", error);
     throw error;
   }
 };

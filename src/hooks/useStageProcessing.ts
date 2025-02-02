@@ -37,6 +37,12 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         throw new Error("No flow_id found for this stage");
       }
 
+      console.log("✅ Stage data retrieved:", {
+        stageId: stageToProcess,
+        flowId: stage.flow_id,
+        stageName: stage.name
+      });
+
       // Fetch flow steps using the correct flow_id
       const { data: flowSteps, error: flowStepsError } = await supabase
         .from("flow_steps")
@@ -65,15 +71,18 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         throw new Error("Failed to fetch flow steps");
       }
 
-      // Invoke edge function with enhanced logging
-      console.log("🔄 Invoking edge function with:", {
-        briefId,
+      console.log("📋 Flow steps retrieved:", {
         stageId: stageToProcess,
         flowStepsCount: flowSteps.length,
-        timestamp: new Date().toISOString()
+        flowSteps: flowSteps.map(step => ({
+          id: step.id,
+          agentId: step.agent_id,
+          orderIndex: step.order_index
+        }))
       });
 
-      const { data, error } = await supabase.functions.invoke('process-workflow-stage-langchain', {
+      // Invoke the edge function with proper error handling
+      const { data, error } = await supabase.functions.invoke('process-workflow-stage', {
         body: {
           briefId,
           stageId: stageToProcess,
@@ -92,16 +101,15 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         throw error;
       }
 
-      console.log("✅ Stage processing completed:", {
+      console.log("✅ Edge function response:", {
         success: true,
         briefId,
         stageId: stageToProcess,
-        outputsCount: data?.outputs?.length,
+        data,
         timestamp: new Date().toISOString()
       });
 
       toast.success("Stage processed successfully!");
-      return data;
     } catch (error) {
       console.error("❌ Error in processStage:", {
         error,

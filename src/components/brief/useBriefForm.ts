@@ -24,26 +24,21 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
       return;
     }
 
-    console.log("📝 Starting brief submission process:", {
+    console.log("📝 Submitting brief with values:", {
       values,
       userId: user.id,
-      isUpdate: !!initialData,
       timestamp: new Date().toISOString()
     });
 
     try {
       setIsProcessing(true);
       const actionType = initialData ? "Updating" : "Creating";
-      const toastId = toast.loading(`${actionType} your brief...`, {
+      toast.info(`${actionType} your brief... Please wait while we process your request.`, {
         duration: 5000
       });
 
       // Clean up existing data if updating
       if (initialData?.id) {
-        console.log("🧹 Cleaning up existing brief data:", {
-          briefId: initialData.id,
-          timestamp: new Date().toISOString()
-        });
         await cleanupExistingBriefData(initialData.id);
         await queryClient.invalidateQueries({ queryKey: ["brief-outputs"] });
         await queryClient.invalidateQueries({ queryKey: ["workflow-conversations"] });
@@ -73,9 +68,8 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         timestamp: new Date().toISOString()
       });
 
-      toast.dismiss(toastId);
-      const processingToastId = toast.loading(
-        "Processing initial stage with LangChain... This may take a few minutes.",
+      const toastId = toast.loading(
+        "Processing initial stage... This may take a few minutes.",
         { duration: 120000 }
       );
 
@@ -85,16 +79,9 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
           throw new Error("No flow steps found for the first stage");
         }
 
-        console.log("🚀 Starting workflow stage processing:", {
-          briefId: brief.id,
-          stageId: stage.id,
-          flowStepsCount: flowSteps.length,
-          timestamp: new Date().toISOString()
-        });
-
         await processWorkflowStage(brief.id, stage, flowSteps);
         
-        toast.dismiss(processingToastId);
+        toast.dismiss(toastId);
         toast.success(
           initialData 
             ? "Brief updated and initial stage processed successfully!"
@@ -117,31 +104,32 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         // Force a small delay to ensure queries are invalidated
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        console.log("🚀 Navigating to stage view:", {
+        // Navigate to the first stage with the new URL structure
+        console.log("🚀 Navigating to first stage:", {
           briefId: brief.id,
           stageId: stage.id,
           timestamp: new Date().toISOString()
         });
 
+        // Use the new URL structure for navigation
         navigate(`/brief/${brief.id}/stage/${stage.id}`, {
           replace: true,
           state: { 
             briefId: brief.id,
             stageId: stage.id,
             showOutputs: true,
-            forceShowOutputs: true,
             isFirstStage: true
           }
         });
 
       } catch (error: any) {
-        console.error("❌ Error in workflow stage processing:", {
+        console.error("❌ Error processing first stage:", {
           error,
           briefId: brief.id,
           stageId: stage.id,
           timestamp: new Date().toISOString()
         });
-        toast.dismiss(processingToastId);
+        toast.dismiss(toastId);
         toast.error(
           "Brief saved but initial stage failed to process. Please try again or contact support.",
           { duration: 8000 }
@@ -149,7 +137,7 @@ export const useBriefForm = (initialData?: any, onSubmitSuccess?: () => void) =>
         setIsProcessing(false);
       }
     } catch (error: any) {
-      console.error("❌ Error in brief submission:", {
+      console.error("❌ Error submitting brief:", {
         error,
         timestamp: new Date().toISOString()
       });
