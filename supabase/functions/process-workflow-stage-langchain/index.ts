@@ -3,7 +3,7 @@ import { ChatOpenAI } from "@langchain/openai"
 import { PromptTemplate } from "@langchain/core/prompts"
 import { StringOutputParser } from "@langchain/core/output_parsers"
 import { RunnableSequence } from "@langchain/core/runnables"
-import { LangChainTracer } from "@langchain/core/tracers/tracer_langchain"
+import { Client } from "langsmith"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,21 +30,16 @@ serve(async (req) => {
       throw new Error('Missing required environment variable: OPENAI_API_KEY')
     }
 
-    // Initialize LangChain tracer if API key is available
-    let tracer
+    // Initialize LangSmith client if API key is available
+    let client
     if (langSmithApiKey) {
-      console.log("Initializing LangChain tracer...")
-      tracer = new LangChainTracer({
-        projectName: "workflow-stage-processing",
-      });
-      console.log("LangChain tracer initialized successfully")
-    } else {
-      console.log("No LANGCHAIN_API_KEY provided, skipping tracer initialization")
+      console.log("Initializing LangSmith client...")
+      client = new Client({
+        apiUrl: "https://api.smith.langchain.com",
+        apiKey: langSmithApiKey,
+      })
+      console.log("LangSmith client initialized successfully")
     }
-
-    // Parse request body
-    const requestData = await req.json()
-    console.log('Request data:', requestData)
 
     // Initialize ChatOpenAI
     const model = new ChatOpenAI({
@@ -67,6 +62,10 @@ serve(async (req) => {
       model,
       new StringOutputParser()
     ])
+
+    // Parse request body
+    const requestData = await req.json()
+    console.log('Request data:', requestData)
 
     // Process the input
     console.log('Processing input with LangChain...')
