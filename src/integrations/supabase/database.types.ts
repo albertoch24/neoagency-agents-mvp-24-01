@@ -9,63 +9,30 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-      briefs: {
+      agents: {
         Row: {
-          brand: string | null;
-          budget: string | null;
-          created_at: string;
-          current_stage: string | null;
-          description: string | null;
-          flow_id: string | null;
           id: string;
-          language: string;
-          objectives: string | null;
-          status: string | null;
-          target_audience: string | null;
-          timeline: string | null;
-          title: string;
+          name: string;
+          description: string | null;
+          prompt_template: string | null;
+          created_at: string;
           updated_at: string;
-          user_id: string;
-          website: string | null;
-          use_langchain: boolean;
         };
         Insert: {
-          brand?: string | null;
-          budget?: string | null;
-          created_at?: string;
-          current_stage?: string | null;
-          description?: string | null;
-          flow_id?: string | null;
           id?: string;
-          language?: string;
-          objectives?: string | null;
-          status?: string | null;
-          target_audience?: string | null;
-          timeline?: string | null;
-          title: string;
+          name: string;
+          description?: string | null;
+          prompt_template?: string | null;
+          created_at?: string;
           updated_at?: string;
-          user_id: string;
-          website?: string | null;
-          use_langchain?: boolean;
         };
         Update: {
-          brand?: string | null;
-          budget?: string | null;
-          created_at?: string;
-          current_stage?: string | null;
-          description?: string | null;
-          flow_id?: string | null;
           id?: string;
-          language?: string;
-          objectives?: string | null;
-          status?: string | null;
-          target_audience?: string | null;
-          timeline?: string | null;
-          title?: string;
+          name?: string;
+          description?: string | null;
+          prompt_template?: string | null;
+          created_at?: string;
           updated_at?: string;
-          user_id?: string;
-          website?: string | null;
-          use_langchain?: boolean;
         };
       };
       agent_feedback: {
