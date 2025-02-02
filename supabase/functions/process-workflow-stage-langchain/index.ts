@@ -47,7 +47,7 @@ serve(async (req) => {
 
     // Initialize OpenAI
     const model = new ChatOpenAI({
-      modelName: "gpt-4",
+      modelName: "gpt-4o-mini",
       temperature: 0.7,
       openAIApiKey: openAiKey,
     })
