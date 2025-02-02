@@ -9,6 +9,7 @@ export class EnhancedAgentChain {
   private memory: AgentMemoryManager;
 
   constructor() {
+    console.log("🔗 Initializing EnhancedAgentChain");
     this.model = new ChatOpenAI({
       modelName: "gpt-4o-mini",
       temperature: 0.7
@@ -17,6 +18,11 @@ export class EnhancedAgentChain {
   }
 
   private async reasoningStep(input: any) {
+    console.log("🤔 Starting reasoning step:", {
+      inputType: typeof input,
+      timestamp: new Date().toISOString()
+    });
+
     const reasoningPrompt = PromptTemplate.fromTemplate(`
       Analyze the following input and context:
       Input: {input}
@@ -31,6 +37,11 @@ export class EnhancedAgentChain {
     `);
 
     const memoryContent = await this.memory.loadMemory();
+    console.log("📝 Reasoning with context:", {
+      hasMemory: !!memoryContent,
+      contextSize: JSON.stringify(memoryContent).length
+    });
+
     const formattedPrompt = await reasoningPrompt.format({
       input: JSON.stringify(input),
       context: JSON.stringify(memoryContent)
@@ -40,6 +51,11 @@ export class EnhancedAgentChain {
   }
 
   private async actionStep(reasoning: BaseMessage, input: any) {
+    console.log("🎯 Starting action step:", {
+      reasoningLength: reasoning.content.length,
+      timestamp: new Date().toISOString()
+    });
+
     const actionPrompt = PromptTemplate.fromTemplate(`
       Based on the reasoning:
       {reasoning}
@@ -59,6 +75,12 @@ export class EnhancedAgentChain {
   }
 
   private async reflectionStep(action: BaseMessage, result: BaseMessage) {
+    console.log("🔄 Starting reflection step:", {
+      actionLength: action.content.length,
+      resultLength: result.content.length,
+      timestamp: new Date().toISOString()
+    });
+
     const reflectionPrompt = PromptTemplate.fromTemplate(`
       Review the action taken:
       {action}
@@ -83,6 +105,11 @@ export class EnhancedAgentChain {
   }
 
   async processInput(input: any) {
+    console.log("🚀 Processing input with EnhancedAgentChain:", {
+      inputType: typeof input,
+      timestamp: new Date().toISOString()
+    });
+
     const chain = RunnableSequence.from([
       {
         reasoning: async (i: any) => await this.reasoningStep(i),
@@ -100,6 +127,11 @@ export class EnhancedAgentChain {
     ]);
 
     const result = await chain.invoke(input);
+    console.log("✅ Chain processing completed:", {
+      hasResult: !!result,
+      resultType: typeof result,
+      timestamp: new Date().toISOString()
+    });
 
     await this.memory.saveToMemory(input, result);
 
