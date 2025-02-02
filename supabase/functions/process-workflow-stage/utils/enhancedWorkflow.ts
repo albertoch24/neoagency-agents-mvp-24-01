@@ -13,13 +13,13 @@ export async function processStageWithEnhancedAgents(
     timestamp: new Date().toISOString()
   });
 
-  // Inizializza gli agenti
+  // Initialize agents
   const briefAnalyzer = AgentFactory.createBriefAnalyzer();
   const creativeDirector = AgentFactory.createCreativeDirector();
   const contentSpecialist = AgentFactory.createContentSpecialist();
 
   try {
-    // 1. Analisi del brief
+    // 1. Brief Analysis with context
     const briefAnalysis = await briefAnalyzer.process({
       brief,
       stage: currentStage,
@@ -27,14 +27,15 @@ export async function processStageWithEnhancedAgents(
     });
     console.log("📋 Brief analysis completed");
 
-    // 2. Sviluppo strategia creativa
+    // 2. Creative Strategy Development
     const creativeStrategy = await creativeDirector.process({
       briefAnalysis,
-      stage: currentStage
+      stage: currentStage,
+      previousOutputs: [] // Add previous outputs if needed
     });
     console.log("🎨 Creative strategy developed");
 
-    // 3. Creazione contenuto
+    // 3. Content Creation with Tools
     const outputs = await Promise.all(
       flowSteps.map(async (step, index) => {
         const content = await contentSpecialist.process({
@@ -48,7 +49,8 @@ export async function processStageWithEnhancedAgents(
           agent: step.agents?.name || "Unknown Agent",
           requirements: step.requirements,
           outputs: [{
-            text: content
+            content,
+            type: 'conversational'
           }],
           orderIndex: index
         };

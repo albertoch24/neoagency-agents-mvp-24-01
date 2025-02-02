@@ -1,11 +1,14 @@
 import { ChatOpenAI } from "https://esm.sh/@langchain/openai@0.0.14";
 import { BufferWindowMemory } from "https://esm.sh/langchain@0.0.200/memory";
+import { initializeAgentExecutorWithOptions } from "https://esm.sh/langchain@0.0.200/agents";
+import { AgentTools } from "./AgentTools.ts";
 
 export class SpecializedAgent {
   private model: ChatOpenAI;
   private memory: BufferWindowMemory;
   private role: string;
   private expertise: string[];
+  private executor: any;
 
   constructor(role: string, expertise: string[], temperature = 0.7) {
     this.role = role;
@@ -21,6 +24,25 @@ export class SpecializedAgent {
       inputKey: "input",
       outputKey: "output",
     });
+    this.initializeExecutor();
+  }
+
+  private async initializeExecutor() {
+    const tools = [
+      AgentTools.createSentimentAnalyzer(),
+      AgentTools.createContextAnalyzer(),
+      AgentTools.createContentOptimizer()
+    ];
+
+    this.executor = await initializeAgentExecutorWithOptions(
+      tools,
+      this.model,
+      {
+        agentType: "structured-chat-zero-shot-react-description",
+        verbose: true,
+        maxIterations: 3,
+      }
+    );
   }
 
   async process(input: any, context?: any) {
@@ -30,41 +52,30 @@ export class SpecializedAgent {
       timestamp: new Date().toISOString()
     });
 
-    // Carica la memoria precedente
+    // Load previous memory
     const history = await this.memory.loadMemoryVariables({});
     console.log(`📚 ${this.role} memory loaded:`, {
       historyLength: JSON.stringify(history).length,
       timestamp: new Date().toISOString()
     });
 
-    // Prepara il prompt con contesto e memoria
-    const prompt = this.buildPrompt(input, context, history);
+    // Process with executor
+    const result = await this.executor.invoke({
+      input: this.buildPrompt(input, context, history)
+    });
 
-    // Processa con il modello
-    const response = await this.model.invoke([
-      {
-        role: "system",
-        content: `You are a ${this.role} with expertise in: ${this.expertise.join(", ")}. 
-                 Use your specific knowledge to analyze and respond.`
-      },
-      {
-        role: "user",
-        content: prompt
-      }
-    ]);
-
-    // Salva il contesto in memoria
+    // Save context to memory
     await this.memory.saveContext(
       { input: JSON.stringify(input) },
-      { output: response.content }
+      { output: result.output }
     );
 
     console.log(`✅ ${this.role} completed processing:`, {
-      responsePreview: response.content.substring(0, 100),
+      responsePreview: result.output.substring(0, 100),
       timestamp: new Date().toISOString()
     });
 
-    return response.content;
+    return result.output;
   }
 
   private buildPrompt(input: any, context?: any, history?: any): string {
@@ -75,6 +86,11 @@ export class SpecializedAgent {
       
       Based on your expertise as ${this.role}, analyze this information and provide insights.
       Focus on: ${this.expertise.join(", ")}
+      
+      Use the available tools to:
+      1. Analyze the context and requirements
+      2. Check the sentiment and tone
+      3. Optimize the content based on analysis
     `;
   }
 }
