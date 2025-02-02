@@ -5,24 +5,17 @@ export class AgentTools {
   static createSentimentAnalyzer() {
     return new DynamicStructuredTool({
       name: "analyze_sentiment",
-      description: "Analyze the sentiment and tone of content",
+      description: "Analyze the sentiment and emotional tone of content",
       schema: z.object({
         content: z.string().describe("The content to analyze")
       }),
       func: async ({ content }) => {
-        console.log("🔍 Analyzing sentiment for:", {
+        console.log("🎭 Analyzing sentiment:", {
           contentPreview: content.substring(0, 100),
           timestamp: new Date().toISOString()
         });
-
-        // Implement sentiment analysis logic
-        const analysis = {
-          sentiment: content.length > 0 ? "positive" : "neutral",
-          confidence: 0.8,
-          tone: "professional"
-        };
-
-        return JSON.stringify(analysis);
+        // Implement sentiment analysis logic here
+        return "Sentiment analysis result";
       }
     });
   }
@@ -30,26 +23,19 @@ export class AgentTools {
   static createContextAnalyzer() {
     return new DynamicStructuredTool({
       name: "analyze_context",
-      description: "Analyze the context and requirements",
+      description: "Analyze the context and requirements of the content",
       schema: z.object({
-        brief: z.string().describe("The brief content"),
-        requirements: z.string().describe("The requirements")
+        content: z.string().describe("The content to analyze"),
+        requirements: z.string().describe("The requirements to check against")
       }),
-      func: async ({ brief, requirements }) => {
-        console.log("📋 Analyzing context:", {
-          briefPreview: brief.substring(0, 100),
+      func: async ({ content, requirements }) => {
+        console.log("🔍 Analyzing context:", {
+          contentPreview: content.substring(0, 100),
           requirementsPreview: requirements.substring(0, 100),
           timestamp: new Date().toISOString()
         });
-
-        // Implement context analysis logic
-        const analysis = {
-          keyPoints: ["point1", "point2"],
-          audience: "professional",
-          complexity: "medium"
-        };
-
-        return JSON.stringify(analysis);
+        // Implement context analysis logic here
+        return "Context analysis result";
       }
     });
   }
@@ -57,10 +43,10 @@ export class AgentTools {
   static createContentOptimizer() {
     return new DynamicStructuredTool({
       name: "optimize_content",
-      description: "Optimize content based on analysis",
+      description: "Optimize content based on analysis results",
       schema: z.object({
         content: z.string().describe("The content to optimize"),
-        analysis: z.string().describe("Previous analysis results")
+        analysis: z.string().describe("The analysis results to base optimization on")
       }),
       func: async ({ content, analysis }) => {
         console.log("✨ Optimizing content:", {
@@ -68,9 +54,28 @@ export class AgentTools {
           analysisPreview: analysis.substring(0, 100),
           timestamp: new Date().toISOString()
         });
+        // Implement content optimization logic here
+        return "Optimized content";
+      }
+    });
+  }
 
-        // Implement content optimization logic
-        return content.trim();
+  static createFeedbackProcessor() {
+    return new DynamicStructuredTool({
+      name: "process_feedback",
+      description: "Process and incorporate feedback into content",
+      schema: z.object({
+        content: z.string().describe("The original content"),
+        feedback: z.string().describe("The feedback to incorporate")
+      }),
+      func: async ({ content, feedback }) => {
+        console.log("📝 Processing feedback:", {
+          contentPreview: content.substring(0, 100),
+          feedbackPreview: feedback.substring(0, 100),
+          timestamp: new Date().toISOString()
+        });
+        // Implement feedback processing logic here
+        return "Updated content based on feedback";
       }
     });
   }

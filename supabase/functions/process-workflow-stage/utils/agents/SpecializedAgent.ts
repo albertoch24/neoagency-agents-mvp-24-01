@@ -31,7 +31,8 @@ export class SpecializedAgent {
     const tools = [
       AgentTools.createSentimentAnalyzer(),
       AgentTools.createContextAnalyzer(),
-      AgentTools.createContentOptimizer()
+      AgentTools.createContentOptimizer(),
+      AgentTools.createFeedbackProcessor()
     ];
 
     this.executor = await initializeAgentExecutorWithOptions(
@@ -45,10 +46,11 @@ export class SpecializedAgent {
     );
   }
 
-  async process(input: any, context?: any) {
+  async process(input: any, context?: any, feedback?: string) {
     console.log(`🤖 ${this.role} processing:`, {
       inputPreview: JSON.stringify(input).substring(0, 100),
       contextAvailable: !!context,
+      hasFeedback: !!feedback,
       timestamp: new Date().toISOString()
     });
 
@@ -61,7 +63,7 @@ export class SpecializedAgent {
 
     // Process with executor
     const result = await this.executor.invoke({
-      input: this.buildPrompt(input, context, history)
+      input: this.buildPrompt(input, context, history, feedback)
     });
 
     // Save context to memory
@@ -78,19 +80,23 @@ export class SpecializedAgent {
     return result.output;
   }
 
-  private buildPrompt(input: any, context?: any, history?: any): string {
+  private buildPrompt(input: any, context?: any, history?: any, feedback?: string): string {
     return `
       Input: ${JSON.stringify(input)}
       ${context ? `Context: ${JSON.stringify(context)}` : ''}
       ${history.chat_history ? `Previous interactions: ${JSON.stringify(history.chat_history)}` : ''}
+      ${feedback ? `Previous feedback: ${feedback}` : ''}
       
       Based on your expertise as ${this.role}, analyze this information and provide insights.
       Focus on: ${this.expertise.join(", ")}
+      
+      ${feedback ? 'Consider and address the previous feedback in your response.' : ''}
       
       Use the available tools to:
       1. Analyze the context and requirements
       2. Check the sentiment and tone
       3. Optimize the content based on analysis
+      4. Process and incorporate any feedback
     `;
   }
 }
