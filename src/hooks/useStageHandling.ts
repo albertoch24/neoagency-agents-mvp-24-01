@@ -66,6 +66,8 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
             name,
             description,
             order_index,
+            user_id,
+            flow_id,
             flows (
               id,
               name,
@@ -111,7 +113,7 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
           timestamp: new Date().toISOString()
         });
 
-        return stages;
+        return stages as Stage;
       } catch (error: any) {
         console.error('❌ Error fetching stage data:', {
           error,
@@ -124,7 +126,7 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
     },
     enabled: !!currentStage,
     staleTime: 0, // Always fetch fresh data
-    cacheTime: 1000 * 60 * 5, // Keep in cache for 5 minutes
+    gcTime: 1000 * 60 * 5, // Keep in garbage collection for 5 minutes (previously cacheTime)
   });
 
   const handleStageSelect = useCallback((stage: Stage | null) => {
