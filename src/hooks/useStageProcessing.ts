@@ -73,7 +73,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         timestamp: new Date().toISOString()
       });
 
-      const { data, error } = await supabase.functions.invoke('process-workflow-stage', {
+      const { data, error } = await supabase.functions.invoke('process-workflow-stage-langchain', {
         body: {
           briefId,
           stageId: stageToProcess,
