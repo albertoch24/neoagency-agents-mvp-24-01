@@ -5,28 +5,39 @@ import { PromptTemplate } from "@langchain/core/prompts"
 import { StringOutputParser } from "@langchain/core/output_parsers"
 import { RunnableSequence } from "@langchain/core/runnables"
 
+console.log("Edge Function Starting: process-workflow-stage-langchain");
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-console.log("🚀 Edge Function Initialization Started");
-
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    console.log("Request received:", new Date().toISOString());
+    
+    // Validate environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    const openAiKey = Deno.env.get('OPENAI_API_KEY')
+
+    if (!supabaseUrl || !supabaseAnonKey || !openAiKey) {
+      throw new Error('Missing required environment variables')
+    }
+
+    // Parse request body
     const { briefId, stageId, flowSteps, feedbackId } = await req.json()
     
-    console.log("📝 Request received:", { 
+    console.log("Request parameters:", { 
       briefId, 
       stageId, 
       flowStepsCount: flowSteps?.length,
-      hasFeedback: !!feedbackId,
-      timestamp: new Date().toISOString()
+      hasFeedback: !!feedbackId 
     });
 
     if (!briefId || !stageId || !flowSteps) {
@@ -34,33 +45,18 @@ serve(async (req) => {
     }
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
-    
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Missing Supabase environment variables')
-    }
-
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { persistSession: false }
-    })
-
-    console.log("✅ Supabase client initialized");
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
+    console.log("Supabase client initialized");
 
     // Initialize OpenAI
-    const openAiKey = Deno.env.get('OPENAI_API_KEY')
-    if (!openAiKey) {
-      throw new Error('Missing OpenAI API key')
-    }
-
     const model = new ChatOpenAI({
       modelName: "gpt-4",
       temperature: 0.7,
       openAIApiKey: openAiKey,
     })
+    console.log("OpenAI model initialized");
 
-    console.log("✅ OpenAI model initialized");
-
+    // Create prompt template
     const promptTemplate = PromptTemplate.fromTemplate(`
       Process the following brief with ID ${briefId} for stage ${stageId}.
       Flow steps: {flowSteps}
@@ -90,8 +86,7 @@ serve(async (req) => {
       }
     `)
 
-    console.log("✅ Prompt template created");
-
+    // Create chain
     const chain = RunnableSequence.from([
       promptTemplate,
       model,
@@ -105,10 +100,7 @@ serve(async (req) => {
       .eq('id', briefId)
       .single()
 
-    if (briefError) {
-      console.error("❌ Error fetching brief:", briefError);
-      throw briefError;
-    }
+    if (briefError) throw briefError
 
     const { data: stage, error: stageError } = await supabaseClient
       .from('stages')
@@ -116,15 +108,9 @@ serve(async (req) => {
       .eq('id', stageId)
       .single()
 
-    if (stageError) {
-      console.error("❌ Error fetching stage:", stageError);
-      throw stageError;
-    }
+    if (stageError) throw stageError
 
-    console.log("✅ Data fetched successfully:", {
-      briefFound: !!brief,
-      stageFound: !!stage
-    });
+    console.log("Data fetched successfully");
 
     // Process with LangChain
     const result = await chain.invoke({
@@ -132,8 +118,9 @@ serve(async (req) => {
       context: JSON.stringify({ brief, stage, feedbackId })
     })
 
-    console.log("✅ LangChain processing completed");
+    console.log("Processing completed successfully");
 
+    // Parse and return result
     const response = JSON.parse(result)
 
     return new Response(
@@ -143,8 +130,9 @@ serve(async (req) => {
         status: 200,
       },
     )
+
   } catch (error) {
-    console.error("❌ Edge Function error:", error);
+    console.error("Error in edge function:", error);
     
     return new Response(
       JSON.stringify({ 
@@ -159,4 +147,4 @@ serve(async (req) => {
   }
 })
 
-console.log("✅ Edge Function Setup Completed");
+console.log("Edge Function Setup Completed");

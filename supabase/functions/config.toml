@@ -1,3 +1,6 @@
+[global]
+project_id = "your-project-id"
+
 [functions]
 [functions.process-workflow-stage]
 verify_jwt = true

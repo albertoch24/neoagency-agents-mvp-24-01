@@ -2,8 +2,9 @@
   "imports": {
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.38.4",
     "@langchain/openai": "https://esm.sh/@langchain/openai@0.0.10",
-    "@langchain/core/prompts": "https://esm.sh/@langchain/core/prompts@0.0.10",
-    "@langchain/core/output_parsers": "https://esm.sh/@langchain/core/output_parsers@0.0.10",
-    "@langchain/core/runnables": "https://esm.sh/@langchain/core/runnables@0.0.10"
+    "@langchain/core/prompts": "https://esm.sh/@langchain/core@0.1.4",
+    "@langchain/core/output_parsers": "https://esm.sh/@langchain/core@0.1.4",
+    "@langchain/core/runnables": "https://esm.sh/@langchain/core@0.1.4",
+    "https://deno.land/std@0.168.0/http/server.ts": "https://deno.land/std@0.168.0/http/server.ts"
   }
 }
