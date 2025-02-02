@@ -11,40 +11,87 @@ export interface Database {
     Tables: {
       agents: {
         Row: {
-          created_at: string;
-          description: string | null;
           id: string;
           name: string;
-          updated_at: string;
-          user_id: string;
-          is_paused: boolean | null;
-          voice_id: string | null;
+          description: string | null;
           prompt_template: string | null;
-          temperature: number | null;
+          created_at: string;
+          updated_at: string;
         };
         Insert: {
-          created_at?: string;
-          description?: string | null;
           id?: string;
           name: string;
-          updated_at?: string;
-          user_id: string;
-          is_paused?: boolean | null;
-          voice_id?: string | null;
+          description?: string | null;
           prompt_template?: string | null;
-          temperature?: number | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Update: {
-          created_at?: string;
-          description?: string | null;
           id?: string;
           name?: string;
+          description?: string | null;
+          prompt_template?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      briefs: {
+        Row: {
+          brand: string | null;
+          budget: string | null;
+          created_at: string;
+          current_stage: string | null;
+          description: string | null;
+          flow_id: string | null;
+          id: string;
+          language: string;
+          objectives: string | null;
+          status: string | null;
+          target_audience: string | null;
+          timeline: string | null;
+          title: string;
+          updated_at: string;
+          user_id: string;
+          website: string | null;
+          use_langchain: boolean;
+        };
+        Insert: {
+          brand?: string | null;
+          budget?: string | null;
+          created_at?: string;
+          current_stage?: string | null;
+          description?: string | null;
+          flow_id?: string | null;
+          id?: string;
+          language?: string;
+          objectives?: string | null;
+          status?: string | null;
+          target_audience?: string | null;
+          timeline?: string | null;
+          title: string;
+          updated_at?: string;
+          user_id: string;
+          website?: string | null;
+          use_langchain?: boolean;
+        };
+        Update: {
+          brand?: string | null;
+          budget?: string | null;
+          created_at?: string;
+          current_stage?: string | null;
+          description?: string | null;
+          flow_id?: string | null;
+          id?: string;
+          language?: string;
+          objectives?: string | null;
+          status?: string | null;
+          target_audience?: string | null;
+          timeline?: string | null;
+          title?: string;
           updated_at?: string;
           user_id?: string;
-          is_paused?: boolean | null;
-          voice_id?: string | null;
-          prompt_template?: string | null;
-          temperature?: number | null;
+          website?: string | null;
+          use_langchain?: boolean;
         };
       };
       agent_feedback: {
@@ -74,62 +121,6 @@ export interface Database {
           rating?: number | null;
           reviewer_agent_id?: string;
           updated_at?: string;
-        };
-      };
-      briefs: {
-        Row: {
-          brand: string | null;
-          budget: string | null;
-          created_at: string;
-          current_stage: string | null;
-          description: string | null;
-          flow_id: string | null;
-          id: string;
-          language: string;
-          objectives: string | null;
-          status: string | null;
-          target_audience: string | null;
-          timeline: string | null;
-          title: string;
-          updated_at: string;
-          user_id: string;
-          website: string | null;
-        };
-        Insert: {
-          brand?: string | null;
-          budget?: string | null;
-          created_at?: string;
-          current_stage?: string | null;
-          description?: string | null;
-          flow_id?: string | null;
-          id?: string;
-          language?: string;
-          objectives?: string | null;
-          status?: string | null;
-          target_audience?: string | null;
-          timeline?: string | null;
-          title: string;
-          updated_at?: string;
-          user_id: string;
-          website?: string | null;
-        };
-        Update: {
-          brand?: string | null;
-          budget?: string | null;
-          created_at?: string;
-          current_stage?: string | null;
-          description?: string | null;
-          flow_id?: string | null;
-          id?: string;
-          language?: string;
-          objectives?: string | null;
-          status?: string | null;
-          target_audience?: string | null;
-          timeline?: string | null;
-          title?: string;
-          updated_at?: string;
-          user_id?: string;
-          website?: string | null;
         };
       };
       brief_outputs: {

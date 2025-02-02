@@ -1,7 +1,12 @@
-project_id = "szufbafdhfwqclyixdpd"
+[global]
+project_id = "your-project-id"
 
+[functions]
 [functions.process-workflow-stage]
 verify_jwt = true
 
 [functions.process-embeddings]
+verify_jwt = true
+
+[functions.process-workflow-stage-langchain]
 verify_jwt = true

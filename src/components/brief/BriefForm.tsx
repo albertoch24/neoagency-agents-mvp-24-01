@@ -20,6 +20,7 @@ const BriefForm = ({ initialData, onSubmitSuccess }: BriefFormProps) => {
       target_audience: initialData?.target_audience || "",
       budget: initialData?.budget || "",
       timeline: initialData?.timeline || "",
+      use_langchain: initialData?.use_langchain || true, // Default to true for new briefs
     },
   });
 
