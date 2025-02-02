@@ -5,7 +5,7 @@ import { StringOutputParser } from "@langchain/core/output_parsers"
 import { RunnableSequence } from "@langchain/core/runnables"
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://*.lovableproject.com',
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Max-Age': '86400',
@@ -30,8 +30,8 @@ serve(async (req) => {
     const openAiKey = Deno.env.get('OPENAI_API_KEY')
 
     if (!openAiKey) {
-      console.error("Missing required environment variables");
-      throw new Error('Missing required environment variables')
+      console.error("Missing OPENAI_API_KEY");
+      throw new Error('Missing required environment variable: OPENAI_API_KEY')
     }
 
     // Parse request body
@@ -50,11 +50,11 @@ serve(async (req) => {
       throw new Error('Missing required parameters: briefId, stageId, and flowSteps are required')
     }
 
-    // LangChain processing logic
+    // Initialize LangChain
     const model = new ChatOpenAI({
       openAIApiKey: openAiKey,
       temperature: 0.7,
-      modelName: "gpt-4o-mini"
+      modelName: "gpt-4"
     });
 
     const prompt = new PromptTemplate({
@@ -62,14 +62,14 @@ serve(async (req) => {
       inputVariables: ["briefId", "stageId", "flowSteps"],
     });
 
-    const runnable = new RunnableSequence([
+    const chain = RunnableSequence.from([
       prompt,
       model,
       new StringOutputParser(),
     ]);
 
     console.log("Starting LangChain processing...");
-    const outputs = await runnable.invoke({
+    const outputs = await chain.invoke({
       briefId,
       stageId,
       flowSteps: JSON.stringify(flowSteps),
@@ -92,11 +92,18 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error("Error in edge function:", error);
+    console.error("Error in edge function:", {
+      error,
+      message: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
+
     return new Response(
       JSON.stringify({
         error: error.message || 'An unexpected error occurred',
-        details: error.stack
+        details: error.stack,
+        timestamp: new Date().toISOString()
       }),
       { 
         status: 400,
