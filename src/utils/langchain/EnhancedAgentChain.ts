@@ -2,6 +2,7 @@ import { RunnableSequence } from "@langchain/core/runnables";
 import { ChatOpenAI } from "@langchain/openai";
 import { AgentMemoryManager } from "./AgentMemoryManager";
 import { PromptTemplate } from "@langchain/core/prompts";
+import { BaseMessage } from "@langchain/core/messages";
 
 export class EnhancedAgentChain {
   private model: ChatOpenAI;
@@ -29,13 +30,16 @@ export class EnhancedAgentChain {
       Reasoning:
     `);
 
-    return await this.model.invoke(reasoningPrompt.format({
+    const memoryContent = await this.memory.loadMemory();
+    const formattedPrompt = await reasoningPrompt.format({
       input: JSON.stringify(input),
-      context: JSON.stringify(await this.memory.loadMemory())
-    }));
+      context: JSON.stringify(memoryContent)
+    });
+
+    return this.model.invoke(formattedPrompt);
   }
 
-  private async actionStep(reasoning: any, input: any) {
+  private async actionStep(reasoning: BaseMessage, input: any) {
     const actionPrompt = PromptTemplate.fromTemplate(`
       Based on the reasoning:
       {reasoning}
@@ -46,13 +50,15 @@ export class EnhancedAgentChain {
       Take the most appropriate action:
     `);
 
-    return await this.model.invoke(actionPrompt.format({
-      reasoning: JSON.stringify(reasoning),
+    const formattedPrompt = await actionPrompt.format({
+      reasoning: reasoning.content,
       input: JSON.stringify(input)
-    }));
+    });
+
+    return this.model.invoke(formattedPrompt);
   }
 
-  private async reflectionStep(action: any, result: any) {
+  private async reflectionStep(action: BaseMessage, result: BaseMessage) {
     const reflectionPrompt = PromptTemplate.fromTemplate(`
       Review the action taken:
       {action}
@@ -68,10 +74,12 @@ export class EnhancedAgentChain {
       Reflection:
     `);
 
-    return await this.model.invoke(reflectionPrompt.format({
-      action: JSON.stringify(action),
-      result: JSON.stringify(result)
-    }));
+    const formattedPrompt = await reflectionPrompt.format({
+      action: action.content,
+      result: result.content
+    });
+
+    return this.model.invoke(formattedPrompt);
   }
 
   async processInput(input: any) {
