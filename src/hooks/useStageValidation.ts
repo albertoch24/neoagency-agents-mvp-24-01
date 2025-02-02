@@ -68,6 +68,13 @@ export const useStageValidation = (
       }
 
       const currentIndex = stages.findIndex(s => s.id === currentStage);
+      
+      // Gestione caso stage non trovato
+      if (currentIndex === -1) {
+        console.error("❌ Current stage not found in stages array:", currentStage);
+        return;
+      }
+      
       const isFirstStage = currentIndex === 0;
       
       // Check current stage completion
@@ -80,18 +87,29 @@ export const useStageValidation = (
       });
       setCurrentStageProcessed(currentResult);
 
-      // For non-first stages, check if previous stage is completed
+      // Per gli stage non-primi, verifica lo stage precedente
       if (!isFirstStage) {
         const previousStage = stages[currentIndex - 1];
-        const previousResult = await checkStageStatus(previousStage.id, briefId);
-        console.log("✅ Previous stage validation result:", {
-          stageId: previousStage.id,
-          hasOutput: previousResult,
-          timestamp: new Date().toISOString()
-        });
-        setPreviousStageProcessed(previousResult);
+        // Verifica che previousStage esista prima di accedere al suo id
+        if (previousStage) {
+          const previousResult = await checkStageStatus(previousStage.id, briefId);
+          console.log("✅ Previous stage validation result:", {
+            stageId: previousStage.id,
+            hasOutput: previousResult,
+            timestamp: new Date().toISOString()
+          });
+          setPreviousStageProcessed(previousResult);
+        } else {
+          console.warn("⚠️ Previous stage not found:", {
+            currentIndex,
+            stagesLength: stages.length
+          });
+          // Se non troviamo lo stage precedente, assumiamo che sia completato
+          setPreviousStageProcessed(true);
+        }
       } else {
-        // First stage doesn't need previous validation
+        // Per il primo stage, impostiamo previousStageProcessed a true
+        console.log("ℹ️ First stage detected, setting previousStageProcessed to true");
         setPreviousStageProcessed(true);
       }
     };
