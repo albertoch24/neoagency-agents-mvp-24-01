@@ -17,7 +17,6 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
   const [currentStage, setCurrentStage] = useState<string>(initialStageId);
   const queryClient = useQueryClient();
 
-  // Reset cache when stage changes
   useEffect(() => {
     if (currentStage !== initialStageId) {
       console.log('🔄 Stage changed in useStageHandling:', {
@@ -42,7 +41,6 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
           timestamp: new Date().toISOString()
         });
 
-        // First try to resolve the stage ID
         const resolvedStageId = await resolveStageId(currentStage);
         
         if (!resolvedStageId) {
@@ -74,8 +72,6 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
               description,
               flow_steps (
                 id,
-                name,
-                description,
                 order_index,
                 agent_id,
                 requirements,
@@ -83,8 +79,7 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
                 agents (
                   id,
                   name,
-                  description,
-                  prompt_template
+                  description
                 )
               )
             )
@@ -115,11 +110,17 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
           timestamp: new Date().toISOString()
         });
 
-        // Transform the data to match the Stage type
         const transformedStage: Stage = {
-          ...stages,
+          id: stages.id,
+          name: stages.name,
+          description: stages.description,
+          order_index: stages.order_index,
+          user_id: stages.user_id,
+          flow_id: stages.flow_id,
           flows: stages.flows ? {
-            ...stages.flows,
+            id: stages.flows.id,
+            name: stages.flows.name,
+            description: stages.flows.description,
             flow_steps: stages.flows.flow_steps?.map(step => ({
               id: step.id,
               agent_id: step.agent_id,
@@ -146,9 +147,8 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
         throw error;
       }
     },
-    enabled: !!currentStage,
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 1000 * 60 * 5, // Keep in garbage collection for 5 minutes (previously cacheTime)
+    gcTime: 1000 * 60 * 5, // Keep in garbage collection for 5 minutes
+    staleTime: 0 // Always fetch fresh data
   });
 
   const handleStageSelect = useCallback((stage: Stage | null) => {
