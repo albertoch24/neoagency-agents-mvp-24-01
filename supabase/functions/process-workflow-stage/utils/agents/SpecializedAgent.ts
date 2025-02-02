@@ -9,12 +9,15 @@ export class SpecializedAgent {
   public role: string;
   private expertise: string[];
   private executor: any;
+  private agentId: string;
 
   constructor(role: string, expertise: string[], temperature = 0.7) {
     this.role = role;
     this.expertise = expertise;
+    this.agentId = crypto.randomUUID();
     
-    console.log(`🤖 Initializing ${role} agent:`, {
+    console.log(`🤖 Initializing ${role}:`, {
+      agentId: this.agentId,
       expertise,
       temperature,
       timestamp: new Date().toISOString()
@@ -33,12 +36,19 @@ export class SpecializedAgent {
       outputKey: "output",
     });
 
-    console.log(`✅ ${role} agent initialized`);
+    console.log(`✅ ${role} initialized:`, {
+      agentId: this.agentId,
+      hasModel: !!this.model,
+      hasMemory: !!this.memory
+    });
+    
     this.initializeExecutor();
   }
 
   private async initializeExecutor() {
-    console.log(`🔧 Initializing tools for ${this.role}...`);
+    console.log(`🔧 Initializing tools for ${this.role}...`, {
+      agentId: this.agentId
+    });
     
     const tools = [
       AgentTools.createSentimentAnalyzer(),
@@ -48,6 +58,7 @@ export class SpecializedAgent {
     ];
 
     console.log(`📊 Tools initialized for ${this.role}:`, {
+      agentId: this.agentId,
       toolsCount: tools.length,
       toolNames: tools.map(t => t.name),
       timestamp: new Date().toISOString()
@@ -63,11 +74,15 @@ export class SpecializedAgent {
       }
     );
 
-    console.log(`✅ Executor initialized for ${this.role}`);
+    console.log(`✅ Executor initialized for ${this.role}:`, {
+      agentId: this.agentId,
+      hasExecutor: !!this.executor
+    });
   }
 
   async process(input: any, context?: any, feedback?: string) {
     console.log(`🤖 ${this.role} processing:`, {
+      agentId: this.agentId,
       inputPreview: JSON.stringify(input).substring(0, 100),
       contextAvailable: !!context,
       hasFeedback: !!feedback,
@@ -77,6 +92,7 @@ export class SpecializedAgent {
     // Load previous memory
     const history = await this.memory.loadMemoryVariables({});
     console.log(`📚 ${this.role} memory loaded:`, {
+      agentId: this.agentId,
       historyLength: JSON.stringify(history).length,
       hasHistory: !!history.chat_history,
       timestamp: new Date().toISOString()
@@ -94,6 +110,7 @@ export class SpecializedAgent {
     );
 
     console.log(`✅ ${this.role} completed processing:`, {
+      agentId: this.agentId,
       responsePreview: result.output.substring(0, 100),
       timestamp: new Date().toISOString()
     });
@@ -102,7 +119,7 @@ export class SpecializedAgent {
   }
 
   private buildPrompt(input: any, context?: any, history?: any, feedback?: string): string {
-    return `
+    const prompt = `
       Input: ${JSON.stringify(input)}
       ${context ? `Context: ${JSON.stringify(context)}` : ''}
       ${history.chat_history ? `Previous interactions: ${JSON.stringify(history.chat_history)}` : ''}
@@ -119,5 +136,15 @@ export class SpecializedAgent {
       3. Optimize the content based on analysis
       4. Process and incorporate any feedback
     `;
+
+    console.log(`📝 ${this.role} prompt built:`, {
+      agentId: this.agentId,
+      promptLength: prompt.length,
+      hasContext: !!context,
+      hasFeedback: !!feedback,
+      timestamp: new Date().toISOString()
+    });
+
+    return prompt;
   }
 }

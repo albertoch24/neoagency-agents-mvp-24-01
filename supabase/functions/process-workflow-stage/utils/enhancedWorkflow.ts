@@ -7,7 +7,10 @@ export async function processStageWithEnhancedAgents(
   flowSteps: any[],
   feedbackId?: string | null
 ) {
-  console.log("🚀 Starting enhanced workflow processing:", {
+  const processId = crypto.randomUUID();
+  
+  console.log("🚀 Starting enhanced workflow:", {
+    processId,
     briefId: brief.id,
     stageId: currentStage.id,
     stepsCount: flowSteps.length,
@@ -15,43 +18,59 @@ export async function processStageWithEnhancedAgents(
     timestamp: new Date().toISOString()
   });
 
-  // Initialize agents with detailed logging
-  console.log("🤖 Initializing specialized agents...");
+  console.log("🤖 Initializing specialized agents...", { processId });
   const briefAnalyzer = AgentFactory.createBriefAnalyzer();
   const creativeDirector = AgentFactory.createCreativeDirector();
   const contentSpecialist = AgentFactory.createContentSpecialist();
 
   console.log("✅ Agents initialized:", {
-    briefAnalyzer: briefAnalyzer.role,
-    creativeDirector: creativeDirector.role,
-    contentSpecialist: contentSpecialist.role,
+    processId,
+    agents: [
+      briefAnalyzer.role,
+      creativeDirector.role,
+      contentSpecialist.role
+    ],
     timestamp: new Date().toISOString()
   });
 
   try {
-    // 1. Brief Analysis with context and feedback
-    console.log("📋 Starting brief analysis...");
+    // 1. Brief Analysis
+    console.log("📋 Starting brief analysis...", { processId });
     const briefAnalysis = await briefAnalyzer.process({
       brief,
       stage: currentStage,
       requirements: flowSteps.map(step => step.requirements)
     }, null, feedbackId);
-    console.log("✅ Brief analysis completed");
+    
+    console.log("✅ Brief analysis completed:", {
+      processId,
+      analysisLength: briefAnalysis.length,
+      timestamp: new Date().toISOString()
+    });
 
-    // 2. Creative Strategy Development
-    console.log("🎨 Developing creative strategy...");
+    // 2. Creative Strategy
+    console.log("🎨 Developing creative strategy...", { processId });
     const creativeStrategy = await creativeDirector.process({
       briefAnalysis,
       stage: currentStage,
       previousOutputs: []
     }, briefAnalysis, feedbackId);
-    console.log("✅ Creative strategy developed");
+    
+    console.log("✅ Creative strategy developed:", {
+      processId,
+      strategyLength: creativeStrategy.length,
+      timestamp: new Date().toISOString()
+    });
 
-    // 3. Content Creation with Tools and Feedback Integration
-    console.log("✍️ Starting content creation...");
+    // 3. Content Creation
+    console.log("✍️ Starting content creation...", { processId });
     const outputs = await Promise.all(
       flowSteps.map(async (step, index) => {
-        console.log(`🔄 Processing step ${index + 1}/${flowSteps.length}`);
+        console.log(`🔄 Processing step ${index + 1}/${flowSteps.length}`, {
+          processId,
+          stepId: step.id,
+          agentName: step.agents?.name
+        });
         
         const content = await contentSpecialist.process({
           step,
@@ -63,6 +82,12 @@ export async function processStageWithEnhancedAgents(
           creativeStrategy
         }, feedbackId);
 
+        console.log(`✅ Step ${index + 1} completed`, {
+          processId,
+          contentLength: content.length,
+          timestamp: new Date().toISOString()
+        });
+
         return {
           agent: step.agents?.name || "Unknown Agent",
           requirements: step.requirements,
@@ -70,14 +95,15 @@ export async function processStageWithEnhancedAgents(
             content,
             type: 'conversational'
           }],
+          stepId: step.id,
           orderIndex: index,
           processedAt: new Date().toISOString()
         };
       })
     );
-    console.log("✅ Content creation completed");
 
     console.log("📊 Processing summary:", {
+      processId,
       totalSteps: flowSteps.length,
       outputsGenerated: outputs.length,
       timestamp: new Date().toISOString()
@@ -86,7 +112,8 @@ export async function processStageWithEnhancedAgents(
     return outputs;
 
   } catch (error) {
-    console.error("❌ Error in enhanced workflow processing:", {
+    console.error("❌ Error in enhanced workflow:", {
+      processId,
       error,
       briefId: brief.id,
       stageId: currentStage.id,

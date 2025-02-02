@@ -9,10 +9,13 @@ const corsHeaders = {
 
 serve(async (req) => {
   const operationId = crypto.randomUUID();
-  console.log('🚀 Starting enhanced workflow stage processing:', {
+  const version = '2.1.0'; // Aggiornata per tracciare la nuova versione con logging avanzato
+  
+  console.log('🚀 Starting workflow processing:', {
     operationId,
+    version,
     timestamp: new Date().toISOString(),
-    version: '2.0.0', // Aggiunto per verificare la versione deployata
+    environment: Deno.env.get('ENVIRONMENT') || 'development'
   });
 
   if (req.method === 'OPTIONS') {
@@ -22,11 +25,12 @@ serve(async (req) => {
   try {
     const { briefId, stageId, flowSteps, feedbackId } = await req.json();
     
-    console.log('📥 Received request parameters:', {
+    console.log('📥 Request parameters:', {
       briefId,
       stageId,
       flowStepsCount: flowSteps?.length,
       hasFeedback: !!feedbackId,
+      operationId,
       timestamp: new Date().toISOString()
     });
 
@@ -41,12 +45,15 @@ serve(async (req) => {
       throw new Error('Missing required environment variables');
     }
 
-    console.log('🔑 Environment check passed');
+    console.log('🔑 Environment check passed:', {
+      hasUrl: !!supabaseUrl,
+      hasKey: !!supabaseKey,
+      operationId
+    });
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch brief details with detailed logging
-    console.log('🔍 Fetching brief details...');
+    console.log('🔍 Fetching brief details...', { operationId });
     const { data: brief, error: briefError } = await supabase
       .from('briefs')
       .select('*')
@@ -54,14 +61,21 @@ serve(async (req) => {
       .single();
 
     if (briefError) {
-      console.error('❌ Brief fetch error:', briefError);
+      console.error('❌ Brief fetch error:', {
+        error: briefError,
+        operationId,
+        timestamp: new Date().toISOString()
+      });
       throw briefError;
     }
 
-    console.log('✅ Brief fetched successfully');
+    console.log('✅ Brief fetched successfully:', {
+      briefId: brief.id,
+      title: brief.title,
+      operationId
+    });
 
-    // Fetch current stage details with detailed logging
-    console.log('🔍 Fetching stage details...');
+    console.log('🔍 Fetching stage details...', { operationId });
     const { data: currentStage, error: stageError } = await supabase
       .from('stages')
       .select(`
@@ -76,14 +90,25 @@ serve(async (req) => {
       .single();
 
     if (stageError) {
-      console.error('❌ Stage fetch error:', stageError);
+      console.error('❌ Stage fetch error:', {
+        error: stageError,
+        operationId,
+        timestamp: new Date().toISOString()
+      });
       throw stageError;
     }
 
-    console.log('✅ Stage fetched successfully');
+    console.log('✅ Stage fetched successfully:', {
+      stageId: currentStage.id,
+      stageName: currentStage.name,
+      operationId
+    });
 
-    // Process stage with enhanced agents and detailed logging
-    console.log('🤖 Initializing enhanced agents...');
+    console.log('🤖 Starting enhanced workflow processing...', {
+      operationId,
+      timestamp: new Date().toISOString()
+    });
+
     const outputs = await processStageWithEnhancedAgents(
       supabase,
       brief,
@@ -94,6 +119,7 @@ serve(async (req) => {
 
     console.log('📊 Processing complete:', {
       outputsCount: outputs.length,
+      operationId,
       timestamp: new Date().toISOString()
     });
 
@@ -106,7 +132,7 @@ serve(async (req) => {
           processedAt: new Date().toISOString(),
           agentsProcessed: outputs.length,
           hasFeedback: !!feedbackId,
-          version: '2.0.0'
+          version
         }
       }),
       { 
@@ -118,7 +144,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('❌ Error in workflow stage processing:', {
+    console.error('❌ Error in workflow processing:', {
       operationId,
       error: error.message,
       stack: error.stack,
@@ -132,7 +158,7 @@ serve(async (req) => {
         context: {
           operationId,
           timestamp: new Date().toISOString(),
-          version: '2.0.0'
+          version
         }
       }),
       { 
