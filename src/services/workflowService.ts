@@ -6,7 +6,7 @@ export const processWorkflowStage = async (
   stage: any,
   flowSteps: any[]
 ) => {
-  console.log("Starting workflow stage processing:", {
+  console.log("Starting workflow stage processing with LangChain:", {
     briefId,
     stageId: stage.id,
     flowStepsCount: flowSteps?.length,
@@ -14,8 +14,8 @@ export const processWorkflowStage = async (
   });
 
   try {
-    // Call the edge function to process the stage
-    const { data, error } = await supabase.functions.invoke("process-workflow-stage", {
+    // Call the LangChain edge function to process the stage
+    const { data, error } = await supabase.functions.invoke("process-workflow-stage-langchain", {
       body: { 
         briefId,
         stageId: stage.id,
@@ -25,7 +25,7 @@ export const processWorkflowStage = async (
     });
 
     if (error) {
-      console.error("Error processing stage:", error);
+      console.error("Error processing stage with LangChain:", error);
       toast.error("Failed to process stage. Please try again.");
       throw error;
     }
@@ -83,7 +83,7 @@ export const processWorkflowStage = async (
           agent_id: output.stepId,
           content: output.outputs[0]?.content || "",
           output_type: "conversational",
-          flow_step_id: flowStep.id // Using the correct flow step ID
+          flow_step_id: flowStep.id
         });
 
       if (conversationError) {
