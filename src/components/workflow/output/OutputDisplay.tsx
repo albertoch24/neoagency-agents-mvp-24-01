@@ -22,16 +22,22 @@ interface OutputDisplayProps {
 }
 
 export const OutputDisplay = ({ output }: OutputDisplayProps) => {
-  console.log("🎨 OutputDisplay initialization:", {
+  console.log("🎨 OutputDisplay received:", {
     hasContent: !!output?.content,
     contentKeys: output?.content ? Object.keys(output.content) : [],
     outputsCount: output?.content?.outputs?.length || 0,
-    timestamp: new Date().toISOString()
+    outputs: output?.content?.outputs?.map(out => ({
+      agent: out.agent || 'Unknown Agent',
+      hasStepId: !!out.stepId,
+      outputsCount: out.outputs?.length || 0,
+      firstOutput: out.outputs?.[0]?.content
+    }))
   });
 
   const outputs = output?.content?.outputs || [];
 
-  const validOutputs = outputs.map((out, index) => {
+  // Ensure outputs have required properties and validate structure
+  const validOutputs = outputs.map(out => {
     const processedOutput = {
       ...out,
       agent: out.agent || 'Unknown Agent',
@@ -40,22 +46,16 @@ export const OutputDisplay = ({ output }: OutputDisplayProps) => {
       requirements: out.requirements || ''
     };
 
-    console.log(`Processing output ${index + 1}/${outputs.length}:`, {
-      agent: processedOutput.agent,
+    console.log(`Processing output for agent ${processedOutput.agent}:`, {
       outputsCount: processedOutput.outputs.length,
-      hasValidContent: processedOutput.outputs.some(o => !!o.content),
-      timestamp: new Date().toISOString()
+      hasValidContent: processedOutput.outputs.some(o => !!o.content)
     });
 
     return processedOutput;
   });
 
   if (!validOutputs || validOutputs.length === 0) {
-    console.log("⚠️ No valid outputs to display", {
-      originalOutputs: outputs.length,
-      validOutputs: validOutputs.length,
-      timestamp: new Date().toISOString()
-    });
+    console.log("⚠️ No valid outputs available to display");
     return (
       <Card className="mt-4 p-4">
         <p className="text-muted-foreground">No output available</p>
@@ -70,8 +70,7 @@ export const OutputDisplay = ({ output }: OutputDisplayProps) => {
       agent: o.agent,
       outputsCount: o.outputs.length,
       hasContent: o.outputs.some(out => !!out.content)
-    })),
-    timestamp: new Date().toISOString()
+    }))
   });
 
   return (

@@ -81,19 +81,15 @@ export const useStageValidation = (
       setCurrentStageProcessed(currentResult);
 
       // For non-first stages, check if previous stage is completed
-      if (!isFirstStage && currentIndex > 0) {
+      if (!isFirstStage) {
         const previousStage = stages[currentIndex - 1];
-        if (previousStage) {
-          const previousResult = await checkStageStatus(previousStage.id, briefId);
-          console.log("✅ Previous stage validation result:", {
-            stageId: previousStage.id,
-            hasOutput: previousResult,
-            timestamp: new Date().toISOString()
-          });
-          setPreviousStageProcessed(previousResult);
-        } else {
-          setPreviousStageProcessed(true);
-        }
+        const previousResult = await checkStageStatus(previousStage.id, briefId);
+        console.log("✅ Previous stage validation result:", {
+          stageId: previousStage.id,
+          hasOutput: previousResult,
+          timestamp: new Date().toISOString()
+        });
+        setPreviousStageProcessed(previousResult);
       } else {
         // First stage doesn't need previous validation
         setPreviousStageProcessed(true);
