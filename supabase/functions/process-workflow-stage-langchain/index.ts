@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { ChatOpenAI } from "@langchain/openai"
-import { PromptTemplate } from "@langchain/core/prompts"
-import { StringOutputParser } from "@langchain/core/output_parsers"
-import { RunnableSequence } from "@langchain/core/runnables"
+import { ChatOpenAI } from "npm:@langchain/openai@0.0.10"
+import { PromptTemplate } from "npm:@langchain/core@0.1.4/prompts"
+import { StringOutputParser } from "npm:@langchain/core@0.1.4/output_parsers"
+import { RunnableSequence } from "npm:@langchain/core@0.1.4/runnables"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': 'https://*.lovableproject.com',
@@ -56,6 +56,7 @@ serve(async (req) => {
     const model = new ChatOpenAI({
       openAIApiKey: openAiKey,
       temperature: 0.7,
+      modelName: "gpt-4o-mini"
     });
 
     const prompt = new PromptTemplate({
@@ -73,7 +74,7 @@ serve(async (req) => {
     const outputs = await runnable.invoke({
       briefId,
       stageId,
-      flowSteps,
+      flowSteps: JSON.stringify(flowSteps),
     });
 
     console.log("Processing completed successfully");
