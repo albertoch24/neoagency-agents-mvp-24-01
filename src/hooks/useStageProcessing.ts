@@ -26,7 +26,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       const { error: briefError } = await supabase
         .from("briefs")
         .update({
-          current_stage: stageId,
+          current_stage: stageToProcess,
           status: "in_progress"
         })
         .eq("id", briefId);
