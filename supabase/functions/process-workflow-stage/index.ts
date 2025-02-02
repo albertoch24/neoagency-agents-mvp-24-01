@@ -41,7 +41,10 @@ serve(async (req) => {
       .eq('id', briefId)
       .single();
 
-    if (briefError) throw briefError;
+    if (briefError || !brief) {
+      console.error('Error fetching brief:', briefError);
+      throw new Error('Brief not found');
+    }
 
     // Fetch current stage details
     const { data: currentStage, error: stageError } = await supabase
@@ -57,7 +60,10 @@ serve(async (req) => {
       .eq('id', stageId)
       .single();
 
-    if (stageError) throw stageError;
+    if (stageError || !currentStage) {
+      console.error('Error fetching stage:', stageError);
+      throw new Error('Stage not found');
+    }
 
     // Process each flow step
     const outputs = [];
@@ -69,14 +75,26 @@ serve(async (req) => {
       });
 
       // Get agent details
-      const { data: agent } = await supabase
+      const { data: agent, error: agentError } = await supabase
         .from('agents')
-        .select('*')
+        .select(`
+          id,
+          name,
+          description,
+          temperature,
+          skills (
+            id,
+            name,
+            type,
+            content,
+            description
+          )
+        `)
         .eq('id', step.agent_id)
         .single();
 
-      if (!agent) {
-        console.error('Agent not found:', step.agent_id);
+      if (agentError || !agent) {
+        console.error('Error fetching agent:', agentError);
         continue;
       }
 
@@ -88,14 +106,35 @@ serve(async (req) => {
         outputs: [{
           content: `Processed by ${agent.name}: ${step.requirements || 'No specific requirements'}`,
           type: 'conversational'
-        }]
+        }],
+        orderIndex: step.order_index
       };
+
+      // Save workflow conversation
+      const { error: conversationError } = await supabase
+        .from('workflow_conversations')
+        .insert({
+          brief_id: briefId,
+          stage_id: stageId,
+          agent_id: agent.id,
+          content: stepOutput.outputs[0].content,
+          output_type: 'conversational',
+          flow_step_id: step.id
+        });
+
+      if (conversationError) {
+        console.error('Error saving conversation:', conversationError);
+      }
 
       outputs.push(stepOutput);
     }
 
+    if (outputs.length === 0) {
+      throw new Error('No outputs were generated from any agent');
+    }
+
     // Save the combined output
-    const { error: saveError } = await supabase
+    const { error: outputError } = await supabase
       .from('brief_outputs')
       .insert({
         brief_id: briefId,
@@ -104,13 +143,22 @@ serve(async (req) => {
         content: {
           stage_name: currentStage.name,
           flow_name: currentStage.flows?.name,
-          outputs
+          outputs: outputs.map(output => ({
+            agent: output.agent,
+            requirements: output.requirements,
+            outputs: output.outputs,
+            stepId: output.stepId,
+            orderIndex: output.orderIndex
+          }))
         },
         feedback_id: feedbackId || null,
         content_format: 'structured'
       });
 
-    if (saveError) throw saveError;
+    if (outputError) {
+      console.error('Error saving output:', outputError);
+      throw outputError;
+    }
 
     // Update brief status
     const { error: briefUpdateError } = await supabase
@@ -121,7 +169,10 @@ serve(async (req) => {
       })
       .eq('id', briefId);
 
-    if (briefUpdateError) throw briefUpdateError;
+    if (briefUpdateError) {
+      console.error('Error updating brief:', briefUpdateError);
+      throw briefUpdateError;
+    }
 
     return new Response(
       JSON.stringify({ 
