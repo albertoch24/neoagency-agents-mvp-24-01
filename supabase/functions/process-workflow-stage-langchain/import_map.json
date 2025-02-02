@@ -6,6 +6,7 @@
     "@langchain/core/prompts": "https://esm.sh/@langchain/core@0.1.18/prompts",
     "@langchain/core/output_parsers": "https://esm.sh/@langchain/core@0.1.18/output_parsers",
     "@langchain/core/runnables": "https://esm.sh/@langchain/core@0.1.18/runnables",
+    "langsmith": "https://esm.sh/langsmith@0.0.77",
     "https://deno.land/std@0.168.0/http/server.ts": "https://deno.land/std@0.168.0/http/server.ts"
   }
 }

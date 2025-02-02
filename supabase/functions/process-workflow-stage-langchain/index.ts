@@ -3,6 +3,7 @@ import { ChatOpenAI } from "@langchain/openai"
 import { PromptTemplate } from "@langchain/core/prompts"
 import { StringOutputParser } from "@langchain/core/output_parsers"
 import { RunnableSequence } from "@langchain/core/runnables"
+import { Client as LangSmithClient } from "langsmith"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,10 +29,18 @@ serve(async (req) => {
     
     // Get environment variables
     const openAiKey = Deno.env.get('OPENAI_API_KEY')
+    const langSmithApiKey = Deno.env.get('LANGCHAIN_API_KEY')
 
     if (!openAiKey) {
       console.error("Missing OPENAI_API_KEY");
       throw new Error('Missing required environment variable: OPENAI_API_KEY')
+    }
+
+    // Initialize LangSmith client if API key is available
+    let lsClient;
+    if (langSmithApiKey) {
+      lsClient = new LangSmithClient({ apiKey: langSmithApiKey });
+      console.log("LangSmith client initialized");
     }
 
     // Parse request body
