@@ -11,24 +11,38 @@ export async function processAgentInteractions(agents: any[], brief: any, flowSt
     briefTitle: brief.title
   });
 
-  const model = new ChatOpenAI({
+  const agentModels = agents.map(agent => new ChatOpenAI({
     openAIApiKey,
     modelName: "gpt-4o-mini",
-    temperature: 0.7,
-  });
+    temperature: agent.temperature || 0.7,
+    maxTokens: 2000,
+  }));
 
   const tools = agents.map((agent, index) => {
+    console.log('Creating tool for agent:', {
+      agentName: agent.name,
+      temperature: agent.temperature,
+      skillsCount: agent.skills?.length
+    });
+
     return new DynamicStructuredTool({
-      name: `consult_${agent.role.toLowerCase().replace(/\s+/g, '_')}`,
-      description: `Consult with ${agent.role} about the project`,
+      name: `consult_${agent.name.toLowerCase().replace(/\s+/g, '_')}`,
+      description: `Consult with ${agent.name} about the project`,
       schema: z.object({
         question: z.string().describe("The question or topic to discuss with the agent"),
       }),
       func: async ({ question }) => {
-        const response = await model.invoke([
+        console.log('Tool execution for agent:', {
+          agentName: agent.name,
+          questionLength: question.length,
+          questionPreview: question.substring(0, 100)
+        });
+
+        const response = await agentModels[index].invoke([
           {
             role: "system",
-            content: `You are ${agent.role}. Please provide insights and recommendations.`
+            content: `You are ${agent.name}. ${agent.description || ''} 
+            Please provide a natural, conversational response that explains your thoughts and recommendations.`
           },
           {
             role: "user",
@@ -36,18 +50,26 @@ export async function processAgentInteractions(agents: any[], brief: any, flowSt
           }
         ]);
 
+        console.log('Tool response received:', {
+          agentName: agent.name,
+          responseLength: response.content.length,
+          responsePreview: response.content.substring(0, 100)
+        });
+
         return response.content;
       }
     });
   });
 
-  return await initializeAgentExecutorWithOptions(
+  const executor = await initializeAgentExecutorWithOptions(
     tools,
-    model,
+    agentModels[0],
     {
       agentType: "structured-chat-zero-shot-react-description",
       verbose: true,
       maxIterations: 5,
     }
   );
+
+  return executor;
 }
