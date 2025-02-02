@@ -35,11 +35,12 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
   const { data: output, isLoading, error } = useQuery({
     queryKey: ["brief-outputs", briefId, stage],
     queryFn: async () => {
-      console.log("🔍 Fetching output for:", {
+      console.log("🔍 Starting output fetch:", {
         briefId,
         stage,
         isUuid: isUUID(stage),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        queryKey: ["brief-outputs", briefId, stage]
       });
       
       let query = supabase
@@ -47,7 +48,6 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
         .select("*")
         .eq("brief_id", briefId);
 
-      // If stage is a UUID, use stage_id, otherwise use stage field
       if (isUUID(stage)) {
         query = query.eq("stage_id", stage);
         console.log("🔍 Using stage_id for query");
@@ -56,39 +56,67 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
         console.log("🔍 Using stage field for query");
       }
 
-      // Get the most recent output
+      console.log("📊 Executing query:", {
+        briefId,
+        stage,
+        queryConfig: {
+          table: "brief_outputs",
+          filters: {
+            brief_id: briefId,
+            stage_id: isUUID(stage) ? stage : undefined,
+            stage: !isUUID(stage) ? stage : undefined
+          }
+        }
+      });
+
       const { data, error } = await query
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (error) {
-        console.error("❌ Error fetching output:", error);
+        console.error("❌ Error fetching output:", {
+          error,
+          briefId,
+          stage,
+          timestamp: new Date().toISOString()
+        });
         toast.error("Error loading outputs");
         throw error;
       }
 
-      console.log("📊 Raw output data:", {
+      console.log("📊 Query result:", {
         found: !!data,
-        data: data,
-        contentSample: data ? JSON.stringify(data.content).substring(0, 100) : null,
+        resultType: data ? typeof data : 'undefined',
+        hasContent: data?.content ? 'yes' : 'no',
+        contentType: data?.content ? typeof data.content : 'undefined',
         timestamp: new Date().toISOString()
       });
 
       if (!data) {
-        console.log("⚠️ No output data found");
+        console.log("⚠️ No output data found", {
+          briefId,
+          stage,
+          timestamp: new Date().toISOString()
+        });
         return null;
       }
 
-      // Handle both array and object formats for outputs
       let parsedContent: BriefOutput['content'];
       if (typeof data.content === 'string') {
         try {
-          console.log("🔄 Attempting to parse string content");
+          console.log("🔄 Parsing string content");
           parsedContent = JSON.parse(data.content);
-          console.log("✅ Successfully parsed content string");
+          console.log("✅ Content parsed successfully:", {
+            hasOutputs: !!parsedContent.outputs,
+            outputsCount: parsedContent.outputs?.length || 0
+          });
         } catch (e) {
-          console.error("❌ Error parsing content:", e);
+          console.error("❌ Error parsing content:", {
+            error: e,
+            content: data.content.substring(0, 100) + '...',
+            timestamp: new Date().toISOString()
+          });
           toast.error("Error parsing output content");
           throw new Error("Invalid content format");
         }
@@ -97,9 +125,8 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
         parsedContent = data.content as BriefOutput['content'];
       }
 
-      // Ensure outputs array exists and has the correct format
       if (!parsedContent.outputs) {
-        console.log("⚠️ No outputs array in content, creating default structure");
+        console.log("⚠️ Creating default output structure");
         parsedContent.outputs = [{
           agent: "System",
           outputs: [{
@@ -108,15 +135,15 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
         }];
       }
 
-      console.log("🎯 Final parsed content structure:", {
+      console.log("🎯 Final output structure:", {
         hasOutputs: !!parsedContent.outputs,
-        outputsCount: parsedContent.outputs?.length,
-        firstOutput: parsedContent.outputs?.[0] ? {
-          agent: parsedContent.outputs[0].agent,
-          hasStepId: !!parsedContent.outputs[0].stepId,
-          outputsCount: parsedContent.outputs[0].outputs?.length
-        } : null,
-        fullContent: parsedContent
+        outputsCount: parsedContent.outputs?.length || 0,
+        firstAgent: parsedContent.outputs?.[0]?.agent,
+        outputTypes: parsedContent.outputs?.map(o => ({
+          agent: o.agent,
+          outputCount: o.outputs?.length || 0
+        })),
+        timestamp: new Date().toISOString()
       });
 
       return {
@@ -124,14 +151,57 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
       };
     },
     enabled: !!briefId && !!stage,
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 0, // Don't cache
-    refetchInterval: 5000 // Refetch every 5 seconds
+    staleTime: 0,
+    gcTime: 0,
+    refetchInterval: 5000
   });
 
-  if (isLoading) return <OutputLoading />;
-  if (error) return <OutputError error={error as Error} />;
-  if (!output) return null;
+  console.log("🔄 OutputContainer render state:", {
+    briefId,
+    stage,
+    hasOutput: !!output,
+    isLoading,
+    hasError: !!error,
+    timestamp: new Date().toISOString()
+  });
+
+  if (isLoading) {
+    console.log("⏳ Loading output...", {
+      briefId,
+      stage,
+      timestamp: new Date().toISOString()
+    });
+    return <OutputLoading />;
+  }
+
+  if (error) {
+    console.error("❌ Error in output display:", {
+      error,
+      briefId,
+      stage,
+      timestamp: new Date().toISOString()
+    });
+    return <OutputError error={error as Error} />;
+  }
+
+  if (!output) {
+    console.log("⚠️ No output to display", {
+      briefId,
+      stage,
+      timestamp: new Date().toISOString()
+    });
+    return null;
+  }
+
+  console.log("✅ Rendering output:", {
+    briefId,
+    stage,
+    outputContent: {
+      hasOutputs: !!output.content.outputs,
+      outputsCount: output.content.outputs?.length || 0
+    },
+    timestamp: new Date().toISOString()
+  });
 
   return <OutputDisplay output={output} />;
 };
