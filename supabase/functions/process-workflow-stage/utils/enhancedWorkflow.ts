@@ -1,4 +1,4 @@
-import { AgentFactory } from "./agents/AgentFactory.ts";
+import { AgentFactory } from "./agents/AgentFactory";
 
 export async function processStageWithEnhancedAgents(
   supabase: any,
