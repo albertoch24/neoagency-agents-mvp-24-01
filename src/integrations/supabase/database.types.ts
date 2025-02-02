@@ -9,42 +9,63 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-      agents: {
+      briefs: {
         Row: {
+          brand: string | null;
+          budget: string | null;
           created_at: string;
+          current_stage: string | null;
           description: string | null;
+          flow_id: string | null;
           id: string;
-          name: string;
+          language: string;
+          objectives: string | null;
+          status: string | null;
+          target_audience: string | null;
+          timeline: string | null;
+          title: string;
           updated_at: string;
           user_id: string;
-          is_paused: boolean | null;
-          voice_id: string | null;
-          prompt_template: string | null;
-          temperature: number | null;
+          website: string | null;
+          use_langchain: boolean;
         };
         Insert: {
+          brand?: string | null;
+          budget?: string | null;
           created_at?: string;
+          current_stage?: string | null;
           description?: string | null;
+          flow_id?: string | null;
           id?: string;
-          name: string;
+          language?: string;
+          objectives?: string | null;
+          status?: string | null;
+          target_audience?: string | null;
+          timeline?: string | null;
+          title: string;
           updated_at?: string;
           user_id: string;
-          is_paused?: boolean | null;
-          voice_id?: string | null;
-          prompt_template?: string | null;
-          temperature?: number | null;
+          website?: string | null;
+          use_langchain?: boolean;
         };
         Update: {
+          brand?: string | null;
+          budget?: string | null;
           created_at?: string;
+          current_stage?: string | null;
           description?: string | null;
+          flow_id?: string | null;
           id?: string;
-          name?: string;
+          language?: string;
+          objectives?: string | null;
+          status?: string | null;
+          target_audience?: string | null;
+          timeline?: string | null;
+          title?: string;
           updated_at?: string;
           user_id?: string;
-          is_paused?: boolean | null;
-          voice_id?: string | null;
-          prompt_template?: string | null;
-          temperature?: number | null;
+          website?: string | null;
+          use_langchain?: boolean;
         };
       };
       agent_feedback: {
@@ -94,6 +115,7 @@ export interface Database {
           updated_at: string;
           user_id: string;
           website: string | null;
+          use_langchain: boolean;
         };
         Insert: {
           brand?: string | null;
@@ -112,6 +134,7 @@ export interface Database {
           updated_at?: string;
           user_id: string;
           website?: string | null;
+          use_langchain?: boolean;
         };
         Update: {
           brand?: string | null;
@@ -130,6 +153,7 @@ export interface Database {
           updated_at?: string;
           user_id?: string;
           website?: string | null;
+          use_langchain?: boolean;
         };
       };
       brief_outputs: {
