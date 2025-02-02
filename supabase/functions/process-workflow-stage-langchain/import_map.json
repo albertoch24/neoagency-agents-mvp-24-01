@@ -6,7 +6,7 @@
     "@langchain/core/output_parsers": "https://esm.sh/@langchain/core@0.1.18/output_parsers",
     "@langchain/core/runnables": "https://esm.sh/@langchain/core@0.1.18/runnables",
     "@langchain/core/tracers/tracer_langchain": "https://esm.sh/@langchain/core@0.1.18/tracers/tracer_langchain",
-    "langsmith": "https://esm.sh/langsmith@0.1.68",
+    "langsmith": "https://esm.sh/v135/langsmith@0.1.68/dist/index.js",
     "https://deno.land/std@0.168.0/http/server.ts": "https://deno.land/std@0.168.0/http/server.ts"
   }
 }
