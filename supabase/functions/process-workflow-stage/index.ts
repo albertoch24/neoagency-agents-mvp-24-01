@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { processStageWithEnhancedAgents } from "./utils/enhancedWorkflow.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,7 +8,7 @@ const corsHeaders = {
 
 serve(async (req) => {
   const operationId = crypto.randomUUID();
-  console.log('🚀 Starting enhanced workflow stage processing:', {
+  console.log('🚀 Starting workflow stage processing:', {
     operationId,
     timestamp: new Date().toISOString()
   });
@@ -60,13 +59,40 @@ serve(async (req) => {
 
     if (stageError) throw stageError;
 
-    // Process stage with enhanced agents
-    const outputs = await processStageWithEnhancedAgents(
-      supabase,
-      brief,
-      currentStage,
-      flowSteps
-    );
+    // Process each flow step
+    const outputs = [];
+    for (const step of flowSteps) {
+      console.log('Processing flow step:', {
+        stepId: step.id,
+        agentId: step.agent_id,
+        timestamp: new Date().toISOString()
+      });
+
+      // Get agent details
+      const { data: agent } = await supabase
+        .from('agents')
+        .select('*')
+        .eq('id', step.agent_id)
+        .single();
+
+      if (!agent) {
+        console.error('Agent not found:', step.agent_id);
+        continue;
+      }
+
+      // Process step with agent
+      const stepOutput = {
+        stepId: step.agent_id,
+        agent: agent.name,
+        requirements: step.requirements,
+        outputs: [{
+          content: `Processed by ${agent.name}: ${step.requirements || 'No specific requirements'}`,
+          type: 'conversational'
+        }]
+      };
+
+      outputs.push(stepOutput);
+    }
 
     // Save the combined output
     const { error: saveError } = await supabase
