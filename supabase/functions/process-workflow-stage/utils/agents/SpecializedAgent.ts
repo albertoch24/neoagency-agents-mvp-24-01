@@ -6,17 +6,25 @@ import { AgentTools } from "./AgentTools.ts";
 export class SpecializedAgent {
   private model: ChatOpenAI;
   private memory: BufferWindowMemory;
-  private role: string;
+  public role: string;
   private expertise: string[];
   private executor: any;
 
   constructor(role: string, expertise: string[], temperature = 0.7) {
     this.role = role;
     this.expertise = expertise;
+    
+    console.log(`🤖 Initializing ${role} agent:`, {
+      expertise,
+      temperature,
+      timestamp: new Date().toISOString()
+    });
+
     this.model = new ChatOpenAI({
       modelName: "gpt-4o-mini",
       temperature,
     });
+
     this.memory = new BufferWindowMemory({
       k: 5,
       returnMessages: true,
@@ -24,16 +32,26 @@ export class SpecializedAgent {
       inputKey: "input",
       outputKey: "output",
     });
+
+    console.log(`✅ ${role} agent initialized`);
     this.initializeExecutor();
   }
 
   private async initializeExecutor() {
+    console.log(`🔧 Initializing tools for ${this.role}...`);
+    
     const tools = [
       AgentTools.createSentimentAnalyzer(),
       AgentTools.createContextAnalyzer(),
       AgentTools.createContentOptimizer(),
       AgentTools.createFeedbackProcessor()
     ];
+
+    console.log(`📊 Tools initialized for ${this.role}:`, {
+      toolsCount: tools.length,
+      toolNames: tools.map(t => t.name),
+      timestamp: new Date().toISOString()
+    });
 
     this.executor = await initializeAgentExecutorWithOptions(
       tools,
@@ -44,6 +62,8 @@ export class SpecializedAgent {
         maxIterations: 3,
       }
     );
+
+    console.log(`✅ Executor initialized for ${this.role}`);
   }
 
   async process(input: any, context?: any, feedback?: string) {
@@ -58,6 +78,7 @@ export class SpecializedAgent {
     const history = await this.memory.loadMemoryVariables({});
     console.log(`📚 ${this.role} memory loaded:`, {
       historyLength: JSON.stringify(history).length,
+      hasHistory: !!history.chat_history,
       timestamp: new Date().toISOString()
     });
 

@@ -11,7 +11,8 @@ serve(async (req) => {
   const operationId = crypto.randomUUID();
   console.log('🚀 Starting enhanced workflow stage processing:', {
     operationId,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    version: '2.0.0', // Aggiunto per verificare la versione deployata
   });
 
   if (req.method === 'OPTIONS') {
@@ -21,6 +22,14 @@ serve(async (req) => {
   try {
     const { briefId, stageId, flowSteps, feedbackId } = await req.json();
     
+    console.log('📥 Received request parameters:', {
+      briefId,
+      stageId,
+      flowStepsCount: flowSteps?.length,
+      hasFeedback: !!feedbackId,
+      timestamp: new Date().toISOString()
+    });
+
     if (!briefId || !stageId || !Array.isArray(flowSteps)) {
       throw new Error('Missing required parameters');
     }
@@ -32,18 +41,27 @@ serve(async (req) => {
       throw new Error('Missing required environment variables');
     }
 
+    console.log('🔑 Environment check passed');
+
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch brief details
+    // Fetch brief details with detailed logging
+    console.log('🔍 Fetching brief details...');
     const { data: brief, error: briefError } = await supabase
       .from('briefs')
       .select('*')
       .eq('id', briefId)
       .single();
 
-    if (briefError) throw briefError;
+    if (briefError) {
+      console.error('❌ Brief fetch error:', briefError);
+      throw briefError;
+    }
 
-    // Fetch current stage details
+    console.log('✅ Brief fetched successfully');
+
+    // Fetch current stage details with detailed logging
+    console.log('🔍 Fetching stage details...');
     const { data: currentStage, error: stageError } = await supabase
       .from('stages')
       .select(`
@@ -57,44 +75,27 @@ serve(async (req) => {
       .eq('id', stageId)
       .single();
 
-    if (stageError) throw stageError;
+    if (stageError) {
+      console.error('❌ Stage fetch error:', stageError);
+      throw stageError;
+    }
 
-    // Process stage with enhanced agents
+    console.log('✅ Stage fetched successfully');
+
+    // Process stage with enhanced agents and detailed logging
+    console.log('🤖 Initializing enhanced agents...');
     const outputs = await processStageWithEnhancedAgents(
       supabase,
       brief,
       currentStage,
-      flowSteps
+      flowSteps,
+      feedbackId
     );
 
-    // Save the combined output
-    const { error: saveError } = await supabase
-      .from('brief_outputs')
-      .insert({
-        brief_id: briefId,
-        stage_id: stageId,
-        stage: currentStage.name,
-        content: {
-          stage_name: currentStage.name,
-          flow_name: currentStage.flows?.name,
-          outputs
-        },
-        feedback_id: feedbackId || null,
-        content_format: 'structured'
-      });
-
-    if (saveError) throw saveError;
-
-    // Update brief status
-    const { error: briefUpdateError } = await supabase
-      .from('briefs')
-      .update({ 
-        current_stage: stageId,
-        status: 'in_progress'
-      })
-      .eq('id', briefId);
-
-    if (briefUpdateError) throw briefUpdateError;
+    console.log('📊 Processing complete:', {
+      outputsCount: outputs.length,
+      timestamp: new Date().toISOString()
+    });
 
     return new Response(
       JSON.stringify({ 
@@ -104,7 +105,8 @@ serve(async (req) => {
           operationId,
           processedAt: new Date().toISOString(),
           agentsProcessed: outputs.length,
-          hasFeedback: !!feedbackId
+          hasFeedback: !!feedbackId,
+          version: '2.0.0'
         }
       }),
       { 
@@ -129,7 +131,8 @@ serve(async (req) => {
         details: error.stack,
         context: {
           operationId,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          version: '2.0.0'
         }
       }),
       { 
