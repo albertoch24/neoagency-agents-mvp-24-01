@@ -34,7 +34,10 @@ serve(async (req) => {
     let lsClient
     if (langSmithApiKey) {
       console.log("Initializing LangSmith client...")
-      lsClient = new LangSmithClient({ apiKey: langSmithApiKey })
+      lsClient = new LangSmithClient({
+        apiKey: langSmithApiKey,
+        apiUrl: "https://api.smith.langchain.com"
+      })
       console.log("LangSmith client initialized successfully")
     } else {
       console.log("No LANGCHAIN_API_KEY provided, skipping LangSmith initialization")
@@ -48,6 +51,7 @@ serve(async (req) => {
     const model = new ChatOpenAI({
       openAIApiKey: openAiKey,
       temperature: 0.7,
+      modelName: "gpt-4",
     })
 
     // Create prompt template
