@@ -41,21 +41,39 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
           timestamp: new Date().toISOString()
         });
 
-        const resolvedStageId = await resolveStageId(currentStage);
-        
-        if (!resolvedStageId) {
-          console.error('❌ Stage not found:', {
-            stageId: currentStage,
+        // Check if the ID exists in the stages table first
+        const { data: stageCheck, error: checkError } = await supabase
+          .from("stages")
+          .select("id")
+          .eq("id", currentStage)
+          .single();
+
+        if (checkError || !stageCheck) {
+          console.log('⚠️ Stage not found directly, attempting resolution:', {
+            originalId: currentStage,
+            error: checkError?.message,
             timestamp: new Date().toISOString()
           });
-          throw new Error('Stage not found');
-        }
 
-        console.log('✅ Stage ID resolved:', {
-          originalId: currentStage,
-          resolvedId: resolvedStageId,
-          timestamp: new Date().toISOString()
-        });
+          const resolvedStageId = await resolveStageId(currentStage);
+          
+          if (!resolvedStageId) {
+            console.error('❌ Stage not found:', {
+              stageId: currentStage,
+              timestamp: new Date().toISOString()
+            });
+            throw new Error('Stage not found');
+          }
+
+          console.log('✅ Stage ID resolved:', {
+            originalId: currentStage,
+            resolvedId: resolvedStageId,
+            timestamp: new Date().toISOString()
+          });
+
+          // Update currentStage with resolved ID
+          setCurrentStage(resolvedStageId);
+        }
 
         const { data: stages, error: stagesError } = await supabase
           .from("stages")
@@ -84,13 +102,13 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
               )
             )
           `)
-          .eq("id", resolvedStageId)
-          .single();
+          .eq("id", stageCheck?.id || currentStage)
+          .maybeSingle();
 
         if (stagesError) {
           console.error('❌ Error fetching stage data:', {
             error: stagesError,
-            stageId: resolvedStageId,
+            stageId: currentStage,
             timestamp: new Date().toISOString()
           });
           throw stagesError;
@@ -98,14 +116,14 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
 
         if (!stages) {
           console.error('❌ Stage data not found:', {
-            stageId: resolvedStageId,
+            stageId: currentStage,
             timestamp: new Date().toISOString()
           });
           throw new Error('Stage data not found');
         }
 
         console.log('✅ Stage data fetched:', {
-          stageId: resolvedStageId,
+          stageId: stages.id,
           stageName: stages.name,
           timestamp: new Date().toISOString()
         });
@@ -138,7 +156,7 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
 
         return transformedStage;
       } catch (error: any) {
-        console.error('❌ Error fetching stage data:', {
+        console.error('❌ Error in stage query:', {
           error,
           stageId: currentStage,
           timestamp: new Date().toISOString()
@@ -148,7 +166,8 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
       }
     },
     gcTime: 1000 * 60 * 5, // Keep in garbage collection for 5 minutes
-    staleTime: 0 // Always fetch fresh data
+    staleTime: 0, // Always fetch fresh data
+    retry: false // Don't retry on failure since we already handle resolution
   });
 
   const handleStageSelect = useCallback((stage: Stage | null) => {
