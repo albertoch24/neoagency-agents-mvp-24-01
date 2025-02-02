@@ -4,6 +4,7 @@ import { OutputDisplay } from "./OutputDisplay";
 import { OutputError } from "./OutputError";
 import { OutputLoading } from "./OutputLoading";
 import { toast } from "sonner";
+import { useParams } from "react-router-dom";
 
 interface OutputContainerProps {
   briefId: string;
@@ -32,15 +33,24 @@ const isUUID = (str: string) => {
 };
 
 export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
+  const { stageId } = useParams();
+  const currentStageId = stageId || stage;
+
+  console.log("🔍 OutputContainer Initialization:", {
+    briefId,
+    stage,
+    stageId: currentStageId,
+    timestamp: new Date().toISOString()
+  });
+
   const { data: output, isLoading, error } = useQuery({
-    queryKey: ["brief-outputs", briefId, stage],
+    queryKey: ["brief-outputs", briefId, currentStageId],
     queryFn: async () => {
       console.log("🔍 Starting output fetch:", {
         briefId,
-        stage,
-        isUuid: isUUID(stage),
-        timestamp: new Date().toISOString(),
-        queryKey: ["brief-outputs", briefId, stage]
+        stage: currentStageId,
+        isUuid: isUUID(currentStageId),
+        timestamp: new Date().toISOString()
       });
       
       let query = supabase
@@ -48,23 +58,23 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
         .select("*")
         .eq("brief_id", briefId);
 
-      if (isUUID(stage)) {
-        query = query.eq("stage_id", stage);
-        console.log("🔍 Using stage_id for query");
+      if (isUUID(currentStageId)) {
+        query = query.eq("stage_id", currentStageId);
+        console.log("🔍 Using stage_id for query:", currentStageId);
       } else {
-        query = query.eq("stage", stage);
-        console.log("🔍 Using stage field for query");
+        query = query.eq("stage", currentStageId);
+        console.log("🔍 Using stage field for query:", currentStageId);
       }
 
       console.log("📊 Executing query:", {
         briefId,
-        stage,
+        stageId: currentStageId,
         queryConfig: {
           table: "brief_outputs",
           filters: {
             brief_id: briefId,
-            stage_id: isUUID(stage) ? stage : undefined,
-            stage: !isUUID(stage) ? stage : undefined
+            stage_id: isUUID(currentStageId) ? currentStageId : undefined,
+            stage: !isUUID(currentStageId) ? currentStageId : undefined
           }
         }
       });
@@ -78,7 +88,7 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
         console.error("❌ Error fetching output:", {
           error,
           briefId,
-          stage,
+          stageId: currentStageId,
           timestamp: new Date().toISOString()
         });
         toast.error("Error loading outputs");
@@ -96,7 +106,7 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
       if (!data) {
         console.log("⚠️ No output data found", {
           briefId,
-          stage,
+          stageId: currentStageId,
           timestamp: new Date().toISOString()
         });
         return null;
@@ -150,7 +160,7 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
         content: parsedContent
       };
     },
-    enabled: !!briefId && !!stage,
+    enabled: !!briefId && !!currentStageId,
     staleTime: 0,
     gcTime: 0,
     refetchInterval: 5000
@@ -158,7 +168,7 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
 
   console.log("🔄 OutputContainer render state:", {
     briefId,
-    stage,
+    stageId: currentStageId,
     hasOutput: !!output,
     isLoading,
     hasError: !!error,
@@ -168,7 +178,7 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
   if (isLoading) {
     console.log("⏳ Loading output...", {
       briefId,
-      stage,
+      stageId: currentStageId,
       timestamp: new Date().toISOString()
     });
     return <OutputLoading />;
@@ -178,7 +188,7 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
     console.error("❌ Error in output display:", {
       error,
       briefId,
-      stage,
+      stageId: currentStageId,
       timestamp: new Date().toISOString()
     });
     return <OutputError error={error as Error} />;
@@ -187,7 +197,7 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
   if (!output) {
     console.log("⚠️ No output to display", {
       briefId,
-      stage,
+      stageId: currentStageId,
       timestamp: new Date().toISOString()
     });
     return null;
@@ -195,7 +205,7 @@ export const OutputContainer = ({ briefId, stage }: OutputContainerProps) => {
 
   console.log("✅ Rendering output:", {
     briefId,
-    stage,
+    stageId: currentStageId,
     outputContent: {
       hasOutputs: !!output.content.outputs,
       outputsCount: output.content.outputs?.length || 0

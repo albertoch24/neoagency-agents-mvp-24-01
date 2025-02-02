@@ -3,34 +3,37 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Stage } from "@/types/workflow";
 import { resolveStageId } from "@/services/stage/resolveStageId";
+import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 
-interface StageHandlingResult {
+export const useStageHandling = (initialStageId: string): {
   data?: Stage;
   isLoading: boolean;
   error: Error | null;
   currentStage: string;
   handleStageSelect: (stage: Stage) => void;
-}
-
-export const useStageHandling = (initialStageId: string): StageHandlingResult => {
+} => {
   const [currentStage, setCurrentStage] = useState<string>(initialStageId);
   const queryClient = useQueryClient();
+  const { stageId } = useParams();
 
   useEffect(() => {
-    if (currentStage !== initialStageId) {
-      console.log('🔄 Stage changed in useStageHandling:', {
-        from: initialStageId,
-        to: currentStage,
+    console.log('🔄 Stage Handling Effect:', {
+      initialStageId,
+      currentStage,
+      urlStageId: stageId,
+      timestamp: new Date().toISOString()
+    });
+
+    if (stageId && stageId !== currentStage) {
+      console.log('📍 Updating stage from URL:', {
+        from: currentStage,
+        to: stageId,
         timestamp: new Date().toISOString()
       });
-      
-      queryClient.invalidateQueries({ 
-        queryKey: ['stage', initialStageId]
-      });
-      setCurrentStage(initialStageId);
+      setCurrentStage(stageId);
     }
-  }, [initialStageId, currentStage, queryClient]);
+  }, [stageId, currentStage, initialStageId]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["stage", currentStage],
@@ -126,7 +129,7 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
           timestamp: new Date().toISOString()
         });
 
-        const transformedStage: Stage = {
+        return {
           id: stages.id,
           name: stages.name,
           description: stages.description,
@@ -151,8 +154,6 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
             })) || []
           } : null
         };
-
-        return transformedStage;
       } catch (error: any) {
         console.error('❌ Error in stage query:', {
           error,
@@ -163,9 +164,9 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
         throw error;
       }
     },
-    gcTime: 1000 * 60 * 5, // Keep in garbage collection for 5 minutes
-    staleTime: 0, // Always fetch fresh data
-    retry: false // Don't retry on failure since we already handle resolution
+    gcTime: 1000 * 60 * 5,
+    staleTime: 0,
+    retry: false
   });
 
   const handleStageSelect = useCallback((stage: Stage | null) => {
