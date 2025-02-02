@@ -1,5 +1,0 @@
-[global]
-project_id = "szufbafdhfwqclyixdpd"
-
-[functions.process-workflow-stage-langchain]
-verify_jwt = true

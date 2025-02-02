@@ -8,7 +8,6 @@ export interface BriefFormData {
   brand?: string;
   website?: string;
   language?: string;
-  use_langchain?: boolean;
 }
 
 export interface Stage {

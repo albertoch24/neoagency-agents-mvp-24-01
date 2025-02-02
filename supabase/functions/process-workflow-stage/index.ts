@@ -9,13 +9,9 @@ const corsHeaders = {
 
 serve(async (req) => {
   const operationId = crypto.randomUUID();
-  const version = '2.1.0'; // Aggiornata per tracciare la nuova versione con logging avanzato
-  
-  console.log('🚀 Starting workflow processing:', {
+  console.log('🚀 Starting enhanced workflow stage processing:', {
     operationId,
-    version,
-    timestamp: new Date().toISOString(),
-    environment: Deno.env.get('ENVIRONMENT') || 'development'
+    timestamp: new Date().toISOString()
   });
 
   if (req.method === 'OPTIONS') {
@@ -25,15 +21,6 @@ serve(async (req) => {
   try {
     const { briefId, stageId, flowSteps, feedbackId } = await req.json();
     
-    console.log('📥 Request parameters:', {
-      briefId,
-      stageId,
-      flowStepsCount: flowSteps?.length,
-      hasFeedback: !!feedbackId,
-      operationId,
-      timestamp: new Date().toISOString()
-    });
-
     if (!briefId || !stageId || !Array.isArray(flowSteps)) {
       throw new Error('Missing required parameters');
     }
@@ -45,37 +32,18 @@ serve(async (req) => {
       throw new Error('Missing required environment variables');
     }
 
-    console.log('🔑 Environment check passed:', {
-      hasUrl: !!supabaseUrl,
-      hasKey: !!supabaseKey,
-      operationId
-    });
-
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('🔍 Fetching brief details...', { operationId });
+    // Fetch brief details
     const { data: brief, error: briefError } = await supabase
       .from('briefs')
       .select('*')
       .eq('id', briefId)
       .single();
 
-    if (briefError) {
-      console.error('❌ Brief fetch error:', {
-        error: briefError,
-        operationId,
-        timestamp: new Date().toISOString()
-      });
-      throw briefError;
-    }
+    if (briefError) throw briefError;
 
-    console.log('✅ Brief fetched successfully:', {
-      briefId: brief.id,
-      title: brief.title,
-      operationId
-    });
-
-    console.log('🔍 Fetching stage details...', { operationId });
+    // Fetch current stage details
     const { data: currentStage, error: stageError } = await supabase
       .from('stages')
       .select(`
@@ -89,39 +57,44 @@ serve(async (req) => {
       .eq('id', stageId)
       .single();
 
-    if (stageError) {
-      console.error('❌ Stage fetch error:', {
-        error: stageError,
-        operationId,
-        timestamp: new Date().toISOString()
-      });
-      throw stageError;
-    }
+    if (stageError) throw stageError;
 
-    console.log('✅ Stage fetched successfully:', {
-      stageId: currentStage.id,
-      stageName: currentStage.name,
-      operationId
-    });
-
-    console.log('🤖 Starting enhanced workflow processing...', {
-      operationId,
-      timestamp: new Date().toISOString()
-    });
-
+    // Process stage with enhanced agents
     const outputs = await processStageWithEnhancedAgents(
       supabase,
       brief,
       currentStage,
-      flowSteps,
-      feedbackId
+      flowSteps
     );
 
-    console.log('📊 Processing complete:', {
-      outputsCount: outputs.length,
-      operationId,
-      timestamp: new Date().toISOString()
-    });
+    // Save the combined output
+    const { error: saveError } = await supabase
+      .from('brief_outputs')
+      .insert({
+        brief_id: briefId,
+        stage_id: stageId,
+        stage: currentStage.name,
+        content: {
+          stage_name: currentStage.name,
+          flow_name: currentStage.flows?.name,
+          outputs
+        },
+        feedback_id: feedbackId || null,
+        content_format: 'structured'
+      });
+
+    if (saveError) throw saveError;
+
+    // Update brief status
+    const { error: briefUpdateError } = await supabase
+      .from('briefs')
+      .update({ 
+        current_stage: stageId,
+        status: 'in_progress'
+      })
+      .eq('id', briefId);
+
+    if (briefUpdateError) throw briefUpdateError;
 
     return new Response(
       JSON.stringify({ 
@@ -131,8 +104,7 @@ serve(async (req) => {
           operationId,
           processedAt: new Date().toISOString(),
           agentsProcessed: outputs.length,
-          hasFeedback: !!feedbackId,
-          version
+          hasFeedback: !!feedbackId
         }
       }),
       { 
@@ -144,7 +116,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('❌ Error in workflow processing:', {
+    console.error('❌ Error in workflow stage processing:', {
       operationId,
       error: error.message,
       stack: error.stack,
@@ -157,8 +129,7 @@ serve(async (req) => {
         details: error.stack,
         context: {
           operationId,
-          timestamp: new Date().toISOString(),
-          version
+          timestamp: new Date().toISOString()
         }
       }),
       { 
