@@ -1,93 +1,65 @@
-import { SpecializedAgent, AGENT_CONFIGS } from "./SpecializedAgents.ts";
+import { AgentFactory } from "./agents/AgentFactory.ts";
 
 export async function processStageWithEnhancedAgents(
   supabase: any,
   brief: any,
-  stage: any,
+  currentStage: any,
   flowSteps: any[]
 ) {
-  console.log("🚀 Starting enhanced stage processing:", {
+  console.log("🚀 Starting enhanced workflow processing:", {
     briefId: brief.id,
-    stageId: stage.id,
-    flowStepsCount: flowSteps.length,
+    stageId: currentStage.id,
+    stepsCount: flowSteps.length,
     timestamp: new Date().toISOString()
   });
 
+  // Inizializza gli agenti
+  const briefAnalyzer = AgentFactory.createBriefAnalyzer();
+  const creativeDirector = AgentFactory.createCreativeDirector();
+  const contentSpecialist = AgentFactory.createContentSpecialist();
+
   try {
-    // Inizializza gli agenti specializzati
-    const briefAnalyzer = new SpecializedAgent(AGENT_CONFIGS.briefAnalyzer);
-    const creativeDirector = new SpecializedAgent(AGENT_CONFIGS.creativeDirector);
-    const contentSpecialist = new SpecializedAgent(AGENT_CONFIGS.contentSpecialist);
-
-    // Sort flow steps by order
-    const sortedSteps = [...flowSteps].sort((a, b) => 
-      (a.order_index || 0) - (b.order_index || 0)
-    );
-
-    // Process each step with specialized agents
-    const results = [];
-    for (const step of sortedSteps) {
-      console.log("📝 Processing step:", {
-        stepId: step.id,
-        agentId: step.agent_id,
-        orderIndex: step.order_index
-      });
-
-      // 1. Brief Analyzer analizza i requisiti
-      const briefAnalysis = await briefAnalyzer.process({
-        brief,
-        step,
-        requirements: step.requirements
-      });
-
-      // 2. Creative Director sviluppa la strategia
-      const creativeStrategy = await creativeDirector.process({
-        briefAnalysis,
-        step,
-        previousResults: results
-      });
-
-      // 3. Content Specialist crea il contenuto
-      const content = await contentSpecialist.process({
-        briefAnalysis,
-        creativeStrategy,
-        step,
-        requirements: step.requirements
-      });
-
-      results.push({
-        agent: step.agents?.name || 'Unknown Agent',
-        stepId: step.agent_id,
-        outputs: [{
-          content: content,
-          type: 'conversational'
-        }],
-        analysis: briefAnalysis,
-        strategy: creativeStrategy,
-        orderIndex: step.order_index || 0
-      });
-
-      console.log("✅ Step completed:", {
-        stepId: step.id,
-        outputsGenerated: results.length
-      });
-    }
-
-    // Clear memories after processing
-    await Promise.all([
-      briefAnalyzer.clearMemory(),
-      creativeDirector.clearMemory(),
-      contentSpecialist.clearMemory()
-    ]);
-
-    console.log("✨ Enhanced processing completed:", {
-      resultsCount: results.length,
-      timestamp: new Date().toISOString()
+    // 1. Analisi del brief
+    const briefAnalysis = await briefAnalyzer.process({
+      brief,
+      stage: currentStage,
+      requirements: flowSteps.map(step => step.requirements)
     });
+    console.log("📋 Brief analysis completed");
 
-    return results;
+    // 2. Sviluppo strategia creativa
+    const creativeStrategy = await creativeDirector.process({
+      briefAnalysis,
+      stage: currentStage
+    });
+    console.log("🎨 Creative strategy developed");
+
+    // 3. Creazione contenuto
+    const outputs = await Promise.all(
+      flowSteps.map(async (step, index) => {
+        const content = await contentSpecialist.process({
+          step,
+          briefAnalysis,
+          creativeStrategy,
+          orderIndex: index
+        });
+
+        return {
+          agent: step.agents?.name || "Unknown Agent",
+          requirements: step.requirements,
+          outputs: [{
+            text: content
+          }],
+          orderIndex: index
+        };
+      })
+    );
+    console.log("✍️ Content creation completed");
+
+    return outputs;
+
   } catch (error) {
-    console.error("❌ Error in enhanced processing:", error);
+    console.error("❌ Error in enhanced workflow processing:", error);
     throw error;
   }
 }
