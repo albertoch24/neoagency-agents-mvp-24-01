@@ -4,16 +4,12 @@ import { ChatOpenAI } from "@langchain/openai"
 import { PromptTemplate } from "@langchain/core/prompts"
 import { StringOutputParser } from "@langchain/core/output_parsers"
 import { RunnableSequence } from "@langchain/core/runnables"
+import { corsHeaders } from "../_shared/cors.ts"
 
 console.log("Edge Function Starting: process-workflow-stage-langchain");
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
 serve(async (req) => {
-  // CORS preflight
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -37,7 +33,8 @@ serve(async (req) => {
       briefId, 
       stageId, 
       flowStepsCount: flowSteps?.length,
-      hasFeedback: !!feedbackId 
+      hasFeedback: !!feedbackId,
+      timestamp: new Date().toISOString()
     });
 
     if (!briefId || !stageId || !flowSteps) {
@@ -100,7 +97,10 @@ serve(async (req) => {
       .eq('id', briefId)
       .single()
 
-    if (briefError) throw briefError
+    if (briefError) {
+      console.error("Error fetching brief:", briefError);
+      throw briefError;
+    }
 
     const { data: stage, error: stageError } = await supabaseClient
       .from('stages')
@@ -108,7 +108,10 @@ serve(async (req) => {
       .eq('id', stageId)
       .single()
 
-    if (stageError) throw stageError
+    if (stageError) {
+      console.error("Error fetching stage:", stageError);
+      throw stageError;
+    }
 
     console.log("Data fetched successfully");
 
