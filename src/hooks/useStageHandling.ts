@@ -1,8 +1,8 @@
+import { useState, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Stage } from "@/types/workflow";
 import { resolveStageId } from "@/services/stage/resolveStageId";
-import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 
 interface StageHandlingResult {
@@ -46,9 +46,9 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
           .from("stages")
           .select("id")
           .eq("id", currentStage)
-          .single();
+          .maybeSingle();  // Changed from single() to maybeSingle()
 
-        if (checkError || !stageCheck) {
+        if (!stageCheck) {
           console.log('⚠️ Stage not found directly, attempting resolution:', {
             originalId: currentStage,
             error: checkError?.message,
