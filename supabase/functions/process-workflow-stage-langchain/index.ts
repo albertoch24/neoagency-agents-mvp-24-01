@@ -8,119 +8,94 @@ import { Client as LangSmithClient } from "langsmith"
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Max-Age': '86400',
 }
-
-console.log("Edge Function Starting: process-workflow-stage-langchain");
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log("Handling CORS preflight request");
-    return new Response(null, { 
-      headers: corsHeaders,
-      status: 204
-    });
+    return new Response(null, {
+      headers: corsHeaders
+    })
   }
 
   try {
-    console.log("Processing request...");
-    
+    console.log('Processing workflow stage request...')
+
     // Get environment variables
     const openAiKey = Deno.env.get('OPENAI_API_KEY')
     const langSmithApiKey = Deno.env.get('LANGCHAIN_API_KEY')
 
     if (!openAiKey) {
-      console.error("Missing OPENAI_API_KEY");
+      console.error("Missing OPENAI_API_KEY")
       throw new Error('Missing required environment variable: OPENAI_API_KEY')
     }
 
     // Initialize LangSmith client if API key is available
-    let lsClient;
+    let lsClient
     if (langSmithApiKey) {
-      lsClient = new LangSmithClient({ apiKey: langSmithApiKey });
-      console.log("LangSmith client initialized");
+      console.log("Initializing LangSmith client...")
+      lsClient = new LangSmithClient({ apiKey: langSmithApiKey })
+      console.log("LangSmith client initialized successfully")
+    } else {
+      console.log("No LANGCHAIN_API_KEY provided, skipping LangSmith initialization")
     }
 
     // Parse request body
-    const { briefId, stageId, flowSteps, feedbackId } = await req.json()
+    const requestData = await req.json()
+    console.log('Request data:', requestData)
 
-    console.log("Request parameters:", {
-      briefId,
-      stageId,
-      flowStepsCount: flowSteps?.length,
-      hasFeedback: !!feedbackId,
-      timestamp: new Date().toISOString()
-    });
-
-    if (!briefId || !stageId || !flowSteps) {
-      console.error("Missing required parameters");
-      throw new Error('Missing required parameters: briefId, stageId, and flowSteps are required')
-    }
-
-    // Initialize LangChain
+    // Initialize ChatOpenAI
     const model = new ChatOpenAI({
       openAIApiKey: openAiKey,
       temperature: 0.7,
-      modelName: "gpt-4"
-    });
+    })
 
-    const prompt = new PromptTemplate({
-      template: "Given the brief ID {briefId} and stage ID {stageId}, process the following flow steps: {flowSteps}",
-      inputVariables: ["briefId", "stageId", "flowSteps"],
-    });
+    // Create prompt template
+    const prompt = PromptTemplate.fromTemplate(
+      `You are a helpful AI assistant. Please help with the following request:
+      {input}
+      
+      Please provide a detailed and helpful response.`
+    )
 
+    // Create processing chain
     const chain = RunnableSequence.from([
       prompt,
       model,
-      new StringOutputParser(),
-    ]);
+      new StringOutputParser()
+    ])
 
-    console.log("Starting LangChain processing...");
-    const outputs = await chain.invoke({
-      briefId,
-      stageId,
-      flowSteps: JSON.stringify(flowSteps),
-    });
+    // Process the input
+    console.log('Processing input with LangChain...')
+    const result = await chain.invoke({
+      input: requestData.input || "No input provided"
+    })
 
-    console.log("Processing completed successfully");
+    console.log('Processing completed successfully')
 
+    // Return the result
     return new Response(
-      JSON.stringify({
-        success: true,
-        outputs
-      }),
-      { 
+      JSON.stringify({ response: result }),
+      {
         headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        status: 200
-      }
+      },
     )
 
   } catch (error) {
-    console.error("Error in edge function:", {
-      error,
-      message: error.message,
-      stack: error.stack,
-      timestamp: new Date().toISOString()
-    });
-
+    console.error('Error processing request:', error)
+    
     return new Response(
-      JSON.stringify({
-        error: error.message || 'An unexpected error occurred',
-        details: error.stack,
-        timestamp: new Date().toISOString()
-      }),
-      { 
-        status: 400,
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
         headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      }
+          'Content-Type': 'application/json',
+        },
+      },
     )
   }
 })
