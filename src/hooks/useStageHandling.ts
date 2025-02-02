@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Stage } from "@/types/workflow";
 import { resolveStageId } from "@/services/stage/resolveStageId";
 import { useState, useCallback, useEffect } from "react";
+import { toast } from "sonner";
 
 interface StageHandlingResult {
   data?: Stage;
@@ -35,60 +36,89 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
   const { data, isLoading, error } = useQuery({
     queryKey: ["stage", currentStage],
     queryFn: async () => {
-      if (!currentStage) return null;
-
-      console.log('🔍 Fetching stage data:', {
-        stageId: currentStage,
-        timestamp: new Date().toISOString()
-      });
-
       try {
-        const resolvedStageId = await resolveStageId(currentStage);
-        
-        const { data: stage, error } = await supabase
-          .from("stages")
-          .select(`
-            *,
-            flows (
-              id,
-              name,
-              flow_steps (*)
-            )
-          `)
-          .eq("id", resolvedStageId)
-          .maybeSingle();
-
-        if (error) {
-          console.error("❌ Error fetching stage data:", {
-            error,
-            stageId: currentStage,
-            timestamp: new Date().toISOString()
-          });
-          throw error;
-        }
-
-        if (!stage) {
-          console.error("❌ Stage not found:", {
-            stageId: currentStage,
-            timestamp: new Date().toISOString()
-          });
-          throw new Error("Stage not found");
-        }
-
-        console.log("✅ Stage data retrieved:", {
-          stageName: stage.name,
-          hasFlow: !!stage.flows,
-          flowStepsCount: stage.flows?.flow_steps?.length || 0,
+        console.log('🔍 Fetching stage data:', {
+          stageId: currentStage,
           timestamp: new Date().toISOString()
         });
 
-        return stage as Stage;
-      } catch (error) {
-        console.error("❌ Error fetching stage data:", {
+        // First try to resolve the stage ID
+        const resolvedStageId = await resolveStageId(currentStage);
+        
+        if (!resolvedStageId) {
+          console.error('❌ Stage not found:', {
+            stageId: currentStage,
+            timestamp: new Date().toISOString()
+          });
+          throw new Error('Stage not found');
+        }
+
+        console.log('✅ Stage ID resolved:', {
+          originalId: currentStage,
+          resolvedId: resolvedStageId,
+          timestamp: new Date().toISOString()
+        });
+
+        const { data: stages, error: stagesError } = await supabase
+          .from("stages")
+          .select(`
+            id,
+            name,
+            description,
+            order_index,
+            flows (
+              id,
+              name,
+              description,
+              flow_steps (
+                id,
+                name,
+                description,
+                order_index,
+                agent_id,
+                agents (
+                  id,
+                  name,
+                  description,
+                  prompt_template
+                )
+              )
+            )
+          `)
+          .eq("id", resolvedStageId)
+          .single();
+
+        if (stagesError) {
+          console.error('❌ Error fetching stage data:', {
+            error: stagesError,
+            stageId: resolvedStageId,
+            timestamp: new Date().toISOString()
+          });
+          throw stagesError;
+        }
+
+        if (!stages) {
+          console.error('❌ Stage data not found:', {
+            stageId: resolvedStageId,
+            timestamp: new Date().toISOString()
+          });
+          throw new Error('Stage data not found');
+        }
+
+        console.log('✅ Stage data fetched:', {
+          stageId: resolvedStageId,
+          stageName: stages.name,
+          timestamp: new Date().toISOString()
+        });
+
+        return stages;
+      } catch (error: any) {
+        console.error('❌ Error fetching stage data:', {
           error,
           stageId: currentStage,
           timestamp: new Date().toISOString()
         });
+        toast.error(`Error loading stage: ${error.message}`);
         throw error;
       }
     },
@@ -97,7 +127,12 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
     cacheTime: 1000 * 60 * 5, // Keep in cache for 5 minutes
   });
 
-  const handleStageSelect = useCallback((stage: Stage) => {
+  const handleStageSelect = useCallback((stage: Stage | null) => {
+    if (!stage) {
+      console.warn('⚠️ Attempted to select null stage');
+      return;
+    }
+
     console.log('🔄 Stage selected:', {
       stageId: stage.id,
       stageName: stage.name,
@@ -109,7 +144,7 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
   return {
     data,
     isLoading,
-    error: error as Error | null,
+    error,
     currentStage,
     handleStageSelect
   };
