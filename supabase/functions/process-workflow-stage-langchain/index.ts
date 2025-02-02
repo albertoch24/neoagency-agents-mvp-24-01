@@ -3,7 +3,7 @@ import { ChatOpenAI } from "@langchain/openai"
 import { PromptTemplate } from "@langchain/core/prompts"
 import { StringOutputParser } from "@langchain/core/output_parsers"
 import { RunnableSequence } from "@langchain/core/runnables"
-import { LangChainTracer } from "@langchain/core/tracers/tracer_langchain"
+import { LangChainTracer } from "@langchain/core/tracers"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
