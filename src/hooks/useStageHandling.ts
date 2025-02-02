@@ -41,12 +41,11 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
           timestamp: new Date().toISOString()
         });
 
-        // Check if the ID exists in the stages table first
         const { data: stageCheck, error: checkError } = await supabase
           .from("stages")
           .select("id")
           .eq("id", currentStage)
-          .maybeSingle();  // Changed from single() to maybeSingle()
+          .maybeSingle();
 
         if (!stageCheck) {
           console.log('⚠️ Stage not found directly, attempting resolution:', {
@@ -71,7 +70,6 @@ export const useStageHandling = (initialStageId: string): StageHandlingResult =>
             timestamp: new Date().toISOString()
           });
 
-          // Update currentStage with resolved ID
           setCurrentStage(resolvedStageId);
         }
 
