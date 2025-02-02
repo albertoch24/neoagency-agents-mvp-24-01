@@ -13,7 +13,7 @@ export async function processAgentInteractions(agents: any[], brief: any, flowSt
 
   const agentModels = agents.map(agent => new ChatOpenAI({
     openAIApiKey,
-    modelName: "gpt-4o-mini",
+    modelName: "gpt-4",
     temperature: agent.temperature || 0.7,
     maxTokens: 2000,
   }));
