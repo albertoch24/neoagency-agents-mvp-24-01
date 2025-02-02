@@ -3,7 +3,7 @@ import { ChatOpenAI } from "@langchain/openai"
 import { PromptTemplate } from "@langchain/core/prompts"
 import { StringOutputParser } from "@langchain/core/output_parsers"
 import { RunnableSequence } from "@langchain/core/runnables"
-import { Client as LangSmithClient } from "langsmith"
+import { LangChainTracer } from "@langchain/core/tracers/tracer_langchain"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,17 +30,16 @@ serve(async (req) => {
       throw new Error('Missing required environment variable: OPENAI_API_KEY')
     }
 
-    // Initialize LangSmith client if API key is available
-    let lsClient
+    // Initialize LangChain tracer if API key is available
+    let tracer
     if (langSmithApiKey) {
-      console.log("Initializing LangSmith client...")
-      lsClient = new LangSmithClient({
-        apiKey: langSmithApiKey,
-        apiUrl: "https://api.smith.langchain.com"
-      })
-      console.log("LangSmith client initialized successfully")
+      console.log("Initializing LangChain tracer...")
+      tracer = new LangChainTracer({
+        projectName: "workflow-stage-processing",
+      });
+      console.log("LangChain tracer initialized successfully")
     } else {
-      console.log("No LANGCHAIN_API_KEY provided, skipping LangSmith initialization")
+      console.log("No LANGCHAIN_API_KEY provided, skipping tracer initialization")
     }
 
     // Parse request body
