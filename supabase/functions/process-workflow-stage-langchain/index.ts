@@ -1,19 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { ChatOpenAI } from "https://esm.sh/@langchain/openai@0.0.10"
-import { PromptTemplate } from "https://esm.sh/@langchain/core/prompts@0.0.10"
-import { StringOutputParser } from "https://esm.sh/@langchain/core/output_parsers@0.0.10"
-import { RunnableSequence } from "https://esm.sh/@langchain/core/runnables@0.0.10"
+import { createClient } from "@supabase/supabase-js"
+import { ChatOpenAI } from "@langchain/openai"
+import { PromptTemplate } from "@langchain/core/prompts"
+import { StringOutputParser } from "@langchain/core/output_parsers"
+import { RunnableSequence } from "@langchain/core/runnables"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
-  // Log per debugging
-  console.log("🚀 Edge Function ricevuta una richiesta", new Date().toISOString());
+console.log("🚀 Edge Function Initialization Started");
 
+serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -21,34 +21,45 @@ serve(async (req) => {
   try {
     const { briefId, stageId, flowSteps, feedbackId } = await req.json()
     
-    // Log dei parametri ricevuti
-    console.log("📝 Parametri ricevuti:", { briefId, stageId, flowStepsCount: flowSteps?.length });
+    console.log("📝 Request received:", { 
+      briefId, 
+      stageId, 
+      flowStepsCount: flowSteps?.length,
+      hasFeedback: !!feedbackId,
+      timestamp: new Date().toISOString()
+    });
 
     if (!briefId || !stageId || !flowSteps) {
-      console.error("❌ Parametri mancanti");
       throw new Error('Missing required parameters')
     }
 
     // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        auth: {
-          persistSession: false,
-        },
-      }
-    )
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Missing Supabase environment variables')
+    }
 
-    // Log per verificare l'inizializzazione di Supabase
-    console.log("✅ Client Supabase inizializzato");
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false }
+    })
 
-    // Initialize LangChain components
+    console.log("✅ Supabase client initialized");
+
+    // Initialize OpenAI
+    const openAiKey = Deno.env.get('OPENAI_API_KEY')
+    if (!openAiKey) {
+      throw new Error('Missing OpenAI API key')
+    }
+
     const model = new ChatOpenAI({
       modelName: "gpt-4",
       temperature: 0.7,
-      openAIApiKey: Deno.env.get('OPENAI_API_KEY'),
+      openAIApiKey: openAiKey,
     })
+
+    console.log("✅ OpenAI model initialized");
 
     const promptTemplate = PromptTemplate.fromTemplate(`
       Process the following brief with ID ${briefId} for stage ${stageId}.
@@ -79,8 +90,7 @@ serve(async (req) => {
       }
     `)
 
-    // Log per verificare l'inizializzazione di LangChain
-    console.log("✅ Componenti LangChain inizializzati");
+    console.log("✅ Prompt template created");
 
     const chain = RunnableSequence.from([
       promptTemplate,
@@ -96,7 +106,7 @@ serve(async (req) => {
       .single()
 
     if (briefError) {
-      console.error("❌ Errore nel recupero del brief:", briefError);
+      console.error("❌ Error fetching brief:", briefError);
       throw briefError;
     }
 
@@ -107,14 +117,13 @@ serve(async (req) => {
       .single()
 
     if (stageError) {
-      console.error("❌ Errore nel recupero dello stage:", stageError);
+      console.error("❌ Error fetching stage:", stageError);
       throw stageError;
     }
 
-    // Log dei dati recuperati
-    console.log("✅ Dati recuperati:", { 
-      briefFound: !!brief, 
-      stageFound: !!stage 
+    console.log("✅ Data fetched successfully:", {
+      briefFound: !!brief,
+      stageFound: !!stage
     });
 
     // Process with LangChain
@@ -123,8 +132,7 @@ serve(async (req) => {
       context: JSON.stringify({ brief, stage, feedbackId })
     })
 
-    // Log del risultato
-    console.log("✅ Elaborazione LangChain completata");
+    console.log("✅ LangChain processing completed");
 
     const response = JSON.parse(result)
 
@@ -136,11 +144,13 @@ serve(async (req) => {
       },
     )
   } catch (error) {
-    // Log dettagliato dell'errore
-    console.error("❌ Errore nell'elaborazione:", error);
+    console.error("❌ Edge Function error:", error);
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
@@ -148,3 +158,5 @@ serve(async (req) => {
     )
   }
 })
+
+console.log("✅ Edge Function Setup Completed");
