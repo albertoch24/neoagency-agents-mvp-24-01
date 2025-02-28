@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -14,7 +15,7 @@ export const processWorkflowStage = async (
   });
 
   try {
-    // Call the edge function to process the stage
+    // Call the edge function to process the stage - ensure we use the correct function name
     const { data, error } = await supabase.functions.invoke("process-workflow-stage", {
       body: { 
         briefId,

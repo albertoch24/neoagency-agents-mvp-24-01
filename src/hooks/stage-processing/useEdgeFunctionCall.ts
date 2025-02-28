@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Stage } from "@/types/workflow";
 
@@ -16,6 +17,7 @@ export const useEdgeFunctionCall = () => {
       timestamp: new Date().toISOString()
     });
 
+    // Ensure we're invoking the function correctly without malformed URL
     const { data, error: functionError } = await supabase.functions.invoke("process-workflow-stage", {
       body: { 
         briefId,
