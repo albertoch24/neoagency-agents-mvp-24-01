@@ -3,6 +3,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useStageDataFetching } from "./stage-processing/useStageDataFetching";
+import { processWorkflowStage } from "@/services/workflowService";
 
 export const useStageProcessing = (briefId?: string, stageId?: string) => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -92,28 +93,10 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         }))
       });
 
-      // Invoke the edge function with proper error handling
-      const { data, error } = await supabase.functions.invoke('process-workflow-stage', {
-        body: {
-          briefId,
-          stageId: stageToProcess,
-          flowSteps,
-          feedbackId: feedbackId || null
-        }
-      });
+      // Now use the service to call the Edge Function and process the workflow stage
+      const data = await processWorkflowStage(briefId, stage, flowSteps);
 
-      if (error) {
-        console.error("❌ Edge function error:", {
-          error,
-          briefId,
-          stageId: stageToProcess,
-          timestamp: new Date().toISOString()
-        });
-        throw error;
-      }
-
-      console.log("✅ Edge function response:", {
-        success: true,
+      console.log("✅ Workflow stage processing completed:", {
         briefId,
         stageId: stageToProcess,
         data,
@@ -122,6 +105,8 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
 
       toast.dismiss(toastId);
       toast.success("Stage processed successfully!");
+      
+      return data;
     } catch (error) {
       console.error("❌ Error in processStage:", {
         error,
@@ -130,7 +115,7 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         timestamp: new Date().toISOString()
       });
       toast.dismiss(toastId);
-      toast.error("Failed to process stage");
+      toast.error("Failed to process stage: " + (error instanceof Error ? error.message : "Unknown error"));
       throw error;
     } finally {
       setIsProcessing(false);

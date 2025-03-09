@@ -15,7 +15,15 @@ export const processWorkflowStage = async (
   });
 
   try {
-    // Call the edge function to process the stage - ensure we use the correct function name
+    // Call the edge function to process the stage with proper URL formatting
+    console.log("Invoking Edge Function with payload:", {
+      briefId,
+      stageId: stage.id,
+      flowStepsCount: flowSteps?.length,
+      functionName: "process-workflow-stage",
+      timestamp: new Date().toISOString()
+    });
+
     const { data, error } = await supabase.functions.invoke("process-workflow-stage", {
       body: { 
         briefId,
