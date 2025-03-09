@@ -34,6 +34,14 @@ serve(async (req) => {
       throw new Error('Missing required environment variables');
     }
 
+    // Log API key information (safely, without revealing the full key)
+    console.log('🔑 API Key information:', {
+      hasOpenAIKey: !!openAIApiKey,
+      keyLength: openAIApiKey ? openAIApiKey.length : 0,
+      keyPrefix: openAIApiKey ? `${openAIApiKey.substring(0, 3)}...` : null,
+      timestamp: new Date().toISOString()
+    });
+
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Fetch brief details
@@ -164,13 +172,17 @@ Respond with a comprehensive, detailed, and actionable analysis. Be specific and
         });
 
         if (!openAIResponse.ok) {
-          const errorText = await openAIResponse.text();
+          const errorData = await openAIResponse.json().catch(() => null);
+          const errorText = errorData ? JSON.stringify(errorData) : await openAIResponse.text();
+          
           console.error('OpenAI API error:', {
             status: openAIResponse.status,
             statusText: openAIResponse.statusText,
+            errorData,
             errorText,
             timestamp: new Date().toISOString()
           });
+          
           throw new Error(`OpenAI API error: ${openAIResponse.status} - ${errorText}`);
         }
 
@@ -221,7 +233,8 @@ Respond with a comprehensive, detailed, and actionable analysis. Be specific and
         
       } catch (openAIError) {
         console.error('Error processing with OpenAI:', {
-          error: openAIError,
+          error: openAIError.message,
+          stack: openAIError.stack,
           agentName: agent.name,
           timestamp: new Date().toISOString()
         });

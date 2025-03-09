@@ -35,8 +35,15 @@ export const processWorkflowStage = async (
 
     if (error) {
       console.error("Error processing stage:", error);
-      toast.error("Failed to process stage. Please try again.");
-      throw error;
+      
+      // Check for API key related errors
+      if (error.message && error.message.includes("API key")) {
+        toast.error("OpenAI API key is invalid or missing. Please check your API key configuration.");
+        throw new Error("Invalid OpenAI API key. Please update your API key in Supabase Edge Function Secrets.");
+      } else {
+        toast.error("Failed to process stage. Please try again.");
+        throw error;
+      }
     }
 
     console.log("Stage processing completed:", {
@@ -45,61 +52,6 @@ export const processWorkflowStage = async (
       outputs: data?.outputs,
       timestamp: new Date().toISOString()
     });
-
-    // Save the brief output
-    const { error: outputError } = await supabase
-      .from("brief_outputs")
-      .insert({
-        brief_id: briefId,
-        stage: stage.id,
-        stage_id: stage.id,
-        content: {
-          stage_name: stage.name,
-          flow_name: stage.flows?.name,
-          agent_count: flowSteps.length,
-          outputs: data?.outputs || []
-        }
-      });
-
-    if (outputError) {
-      console.error("Error saving brief output:", outputError);
-      toast.error("Failed to save output. Please try again.");
-      throw outputError;
-    }
-
-    // Save workflow conversations
-    for (const output of data?.outputs || []) {
-      const flowStep = flowSteps.find(step => step.agent_id === output.stepId);
-      
-      if (!flowStep) {
-        console.error("Could not find matching flow step for agent:", output.stepId);
-        continue;
-      }
-
-      console.log("Saving workflow conversation:", {
-        briefId,
-        stageId: stage.id,
-        flowStepId: flowStep.id,
-        agentId: output.stepId,
-        timestamp: new Date().toISOString()
-      });
-
-      const { error: conversationError } = await supabase
-        .from("workflow_conversations")
-        .insert({
-          brief_id: briefId,
-          stage_id: stage.id,
-          agent_id: output.stepId,
-          content: output.outputs[0]?.content || "",
-          output_type: "conversational",
-          flow_step_id: flowStep.id
-        });
-
-      if (conversationError) {
-        console.error("Error saving workflow conversation:", conversationError);
-        // Continue with other conversations even if one fails
-      }
-    }
 
     return data;
   } catch (error) {

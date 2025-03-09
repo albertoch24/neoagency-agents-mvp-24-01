@@ -94,19 +94,32 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
       });
 
       // Now use the service to call the Edge Function and process the workflow stage
-      const data = await processWorkflowStage(briefId, stage, flowSteps);
+      try {
+        const data = await processWorkflowStage(briefId, stage, flowSteps);
 
-      console.log("✅ Workflow stage processing completed:", {
-        briefId,
-        stageId: stageToProcess,
-        data,
-        timestamp: new Date().toISOString()
-      });
+        console.log("✅ Workflow stage processing completed:", {
+          briefId,
+          stageId: stageToProcess,
+          data,
+          timestamp: new Date().toISOString()
+        });
 
-      toast.dismiss(toastId);
-      toast.success("Stage processed successfully!");
-      
-      return data;
+        toast.dismiss(toastId);
+        toast.success("Stage processed successfully!");
+        
+        return data;
+      } catch (apiError) {
+        console.error("❌ API processing error:", apiError);
+        
+        // Handle API key specific errors
+        if (apiError.message && apiError.message.includes("API key")) {
+          toast.dismiss(toastId);
+          toast.error("OpenAI API key is invalid. Please update your API key in Supabase Edge Function Secrets.");
+          throw new Error("Invalid OpenAI API key configuration");
+        }
+        
+        throw apiError;
+      }
     } catch (error) {
       console.error("❌ Error in processStage:", {
         error,
