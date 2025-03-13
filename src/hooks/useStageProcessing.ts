@@ -4,10 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useStageDataFetching } from "./stage-processing/useStageDataFetching";
 import { processWorkflowStage } from "@/services/workflowService";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export const useStageProcessing = (briefId?: string, stageId?: string) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { fetchStageData } = useStageDataFetching();
+  const { refreshSession } = useAuth(); // Use auth context to refresh session if needed
 
   const processStage = async (feedbackId: string | null, targetStageId?: string) => {
     const stageToProcess = targetStageId || stageId;
@@ -24,6 +26,17 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
     );
 
     try {
+      // Check authentication status first
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.error("❌ No active session found");
+        toast.dismiss(toastId);
+        toast.error("Authentication required. Please log in.");
+        await refreshSession(); // Try to refresh the session
+        throw new Error("No active session. Please log in.");
+      }
+      
       // Update brief status
       const { error: briefError } = await supabase
         .from("briefs")
@@ -34,6 +47,17 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
         .eq("id", briefId);
 
       if (briefError) {
+        console.error("❌ Error updating brief:", briefError);
+        
+        if (briefError.message.includes("JWTExpired") || 
+            briefError.message.includes("auth") || 
+            briefError.message.includes("Authorization")) {
+          toast.dismiss(toastId);
+          toast.error("Your session has expired. Please log in again.");
+          await refreshSession(); // Try to refresh the session
+          throw new Error("Authentication expired. Please log in again.");
+        }
+        
         throw new Error(`Error updating brief: ${briefError.message}`);
       }
 
@@ -80,6 +104,16 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
           stageId: stageToProcess,
           flowId: stage.flow_id
         });
+        
+        if (flowStepsError?.message?.includes("JWT") || 
+            flowStepsError?.message?.includes("auth") || 
+            flowStepsError?.message?.includes("Authorization")) {
+          toast.dismiss(toastId);
+          toast.error("Your session has expired. Please log in again.");
+          await refreshSession(); // Try to refresh the session
+          throw new Error("Authentication expired. Please log in again.");
+        }
+        
         throw new Error("Failed to fetch flow steps");
       }
 
@@ -116,6 +150,19 @@ export const useStageProcessing = (briefId?: string, stageId?: string) => {
           toast.dismiss(toastId);
           toast.error("OpenAI API key is invalid. Please update your API key in Supabase Edge Function Secrets.");
           throw new Error("Invalid OpenAI API key configuration");
+        }
+        
+        // Handle authentication errors
+        if (apiError.message && (
+            apiError.message.includes("authentication") || 
+            apiError.message.includes("token") ||
+            apiError.message.includes("session") || 
+            apiError.message.includes("log in")
+        )) {
+          toast.dismiss(toastId);
+          toast.error("Authentication issue. We'll try to refresh your session.");
+          await refreshSession(); // Try to refresh the session
+          throw new Error("Authentication issue. Please try again.");
         }
         
         throw apiError;
